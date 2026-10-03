@@ -243,7 +243,7 @@ Bir bot başlatmadan önce şu üç soruyu cevaplayın:
 [Geriye dönük test](#/backtest) sayfası, bir ayarı geçmiş fiyatlarda aynı motorla çalıştırır.
 
 1. Strateji türünü, coini ve ayarları seçin.
-2. Zaman aralığını (30, 90, 180 gün ya da özel) ve mum aralığını seçin. Kısa mum aralığı (15 dk, 1 sa) mum içi hareketi daha doğru yansıtır.
+2. Zaman aralığını (30 günden 2 yıla kadar ya da özel) ve mum aralığını seçin. Kısa mum aralığı (15 dk, 1 sa) mum içi hareketi daha doğru yansıtır.
 3. **Testi çalıştır** düğmesine basın.
 
 ### Raporu okumak

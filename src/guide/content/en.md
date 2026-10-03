@@ -243,7 +243,7 @@ Answer three questions before you start a bot:
 The [Backtest](#/backtest) page runs a setting on past prices with the same engine.
 
 1. Choose the strategy type, coin and settings.
-2. Choose the period (30, 90, 180 days or custom) and the candle interval. Shorter candles (15 min, 1 h) reflect moves inside a candle more accurately.
+2. Choose the period (30 days to 2 years, or custom) and the candle interval. Shorter candles (15 min, 1 h) reflect moves inside a candle more accurately.
 3. Press **Run backtest**.
 
 ### Reading the report
