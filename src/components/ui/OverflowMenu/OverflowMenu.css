@@ -1,0 +1,78 @@
+/* "More": header actions that did not fit next to the page title. */
+.ae-more {
+  position: relative;
+  display: inline-flex;
+}
+
+.ae-more__pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-drawer);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 180px;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  box-shadow: var(--shadow-md);
+  transform-origin: top right;
+}
+.ae-more__pop[hidden] {
+  display: none;
+}
+.ae-more__pop[data-open] {
+  animation: ae-more-in 150ms var(--ease-out);
+}
+@keyframes ae-more-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* The page's own buttons, drawn as list items whatever their variant. */
+.ae-more__pop .ae-tip-anchor {
+  display: flex;
+}
+.ae-more__pop .ae-btn {
+  justify-content: flex-start;
+  width: 100%;
+  height: 32px;
+  padding: 0 var(--space-3);
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-align: left;
+}
+.ae-more__pop .ae-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.ae-more__pop .ae-btn--primary {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.ae-more__pop .ae-btn--danger {
+  color: var(--danger-text);
+}
+.ae-more__pop .ae-btn:disabled,
+.ae-more__pop .ae-btn[aria-disabled="true"] {
+  background: transparent;
+  color: var(--text-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ae-more__pop[data-open] {
+    animation: none;
+  }
+}

@@ -1,0 +1,54 @@
+.ae-status {
+  display: inline-flex;
+  flex: none; /* in a panel head or a row, the label wraps before the chip shrinks */
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  max-width: 100%;
+  padding: 0 8px 0 7px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+.ae-status__dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--text-subtle);
+}
+
+.ae-status[data-tone="positive"] {
+  background: var(--success-subtle);
+  color: var(--success-text);
+}
+.ae-status[data-tone="positive"] .ae-status__dot {
+  background: var(--success);
+}
+.ae-status[data-tone="waiting"] {
+  background: var(--accent-subtle);
+  color: var(--accent-text);
+}
+.ae-status[data-tone="waiting"] .ae-status__dot {
+  background: var(--accent);
+}
+.ae-status[data-tone="warning"] {
+  background: var(--warn-subtle);
+  color: var(--warn-text);
+}
+.ae-status[data-tone="warning"] .ae-status__dot {
+  background: var(--warn);
+}
+.ae-status[data-tone="negative"] {
+  background: var(--danger-subtle);
+  color: var(--danger-text);
+}
+.ae-status[data-tone="negative"] .ae-status__dot {
+  background: var(--danger);
+}

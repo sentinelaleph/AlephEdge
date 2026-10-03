@@ -1,0 +1,10 @@
+[package]
+name = "aleph-desk-link"
+version = "0.1.0"
+edition = "2021"
+description = "Aleph Edge masaüstünün röle bağlantısı: komut işleyici, onay ve kalp atışı"
+
+[dependencies]
+aleph-link = { path = "../aleph-link" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

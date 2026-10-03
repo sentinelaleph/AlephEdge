@@ -1,0 +1,8 @@
+[
+  {"buyer": true, "commission": "0.16800000", "commissionAsset": "USDT", "id": 100, "maker": false, "orderId": 900, "price": "140.00", "qty": "3", "quoteQty": "420.00", "realizedPnl": "12.00000000", "side": "BUY", "positionSide": "BOTH", "symbol": "SOLUSDT", "time": 1758096400000},
+  {"buyer": false, "commission": "0.36000000", "commissionAsset": "USDT", "id": 101, "maker": false, "orderId": 1000, "price": "150.00", "qty": "6", "quoteQty": "900.00", "realizedPnl": "0", "side": "SELL", "positionSide": "BOTH", "symbol": "SOLUSDT", "time": 1758100000000},
+  {"buyer": false, "commission": "0.24080000", "commissionAsset": "USDT", "id": 102, "maker": false, "orderId": 1000, "price": "150.50", "qty": "4", "quoteQty": "602.00", "realizedPnl": "0", "side": "SELL", "positionSide": "BOTH", "symbol": "SOLUSDT", "time": 1758100000005},
+  {"buyer": true, "commission": "0.29600000", "commissionAsset": "USDT", "id": 103, "maker": false, "orderId": 1001, "price": "148.00", "qty": "5", "quoteQty": "740.00", "realizedPnl": "11.00000000", "side": "BUY", "positionSide": "BOTH", "symbol": "SOLUSDT", "time": 1758110000000},
+  {"buyer": true, "commission": "0.29200000", "commissionAsset": "USDT", "id": 104, "maker": false, "orderId": 1002, "price": "146.00", "qty": "5", "quoteQty": "730.00", "realizedPnl": "21.00000000", "side": "BUY", "positionSide": "BOTH", "symbol": "SOLUSDT", "time": 1758120000000},
+  {"buyer": false, "commission": "0.05900000", "commissionAsset": "USDT", "id": 105, "maker": false, "orderId": 1100, "price": "147.50", "qty": "2", "quoteQty": "295.00", "realizedPnl": "0", "side": "SELL", "positionSide": "BOTH", "symbol": "SOLUSDT", "time": 1758130000000}
+]

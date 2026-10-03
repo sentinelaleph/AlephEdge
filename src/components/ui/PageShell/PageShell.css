@@ -1,0 +1,296 @@
+/* Page grid: left (filters) | center (the only scroll region) | right (summaries). */
+.ae-page {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--panel-left-w) minmax(0, 1fr) var(--panel-right-w);
+  height: 100%;
+  min-height: 0;
+  /* The closed summary drawer sits off-canvas to the right: clip it so it
+     never widens the page (overflow: clip, unlike hidden, also refuses
+     programmatic scroll, so scrollIntoView cannot shift the page sideways). */
+  overflow: hidden;
+  overflow: clip;
+}
+.ae-page[data-wide-left] {
+  grid-template-columns: var(--panel-left-w-wide) minmax(0, 1fr) var(--panel-right-w);
+}
+.ae-page[data-layout="left"] {
+  grid-template-columns: var(--panel-left-w) minmax(0, 1fr);
+}
+.ae-page[data-layout="right"] {
+  grid-template-columns: minmax(0, 1fr) var(--panel-right-w);
+}
+.ae-page[data-layout="center"],
+.ae-page[data-layout="single"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ae-page__left,
+.ae-page__right {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4);
+  background: var(--surface-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.ae-page__left {
+  border-right: 1px solid var(--border);
+}
+.ae-page__right {
+  border-left: 1px solid var(--border);
+}
+.ae-page__leftbody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.ae-page__leftfold {
+  display: none;
+}
+
+.ae-page__center {
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5);
+}
+.ae-page__centerinner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: var(--content-max);
+}
+.ae-page[data-layout="single"] .ae-page__centerinner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.ae-page__scrim {
+  display: none;
+}
+
+/* Heading portalled into the header. */
+.ae-pagehead {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  justify-content: center;
+}
+.ae-pagehead__crumbs ol {
+  display: flex;
+  list-style: none;
+  gap: var(--space-1);
+  font-size: var(--text-2xs);
+  color: var(--text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ae-pagehead__crumbs li + li::before {
+  content: "/";
+  margin-right: var(--space-1);
+  color: var(--text-subtle);
+}
+.ae-pagehead__crumbs a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.ae-pagehead__crumbs a:hover {
+  color: var(--text);
+}
+.ae-pagehead__title {
+  font-size: var(--text-md);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ae-pagehead__title:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+
+.ae-pageactions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ae-pageactions__group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+/* Natural-width copies for the fit (PageShell): laid out, never seen. It
+   grows leftward from the bar's right edge so it never widens the page. */
+.ae-pageactions__measure {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
+}
+.ae-pageactions__measure > * {
+  flex: none;
+  white-space: nowrap;
+}
+.ae-pageactions__measure .ae-pagehead__title {
+  display: block;
+  overflow: visible;
+  white-space: nowrap;
+}
+/* The panel toggle sits after the primary action, behind a hairline. */
+.ae-pageactions__summary {
+  display: none;
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--border);
+}
+
+/* Outside the shell: heading and actions sit inline, across the grid. */
+.ae-page__inlinehead,
+.ae-page__inlineactions {
+  grid-column: 1 / -1;
+  padding: var(--space-2) var(--space-4);
+}
+
+/* The right panel as a drawer behind "Summary" (the trigger lives in the
+   header, so it carries the page layout). */
+@media (max-width: 1439px) {
+  /* 1280–1439: a three-panel page keeps filters and a usable center; the
+     summary moves into the drawer. A right-only page keeps its panel. */
+  .ae-page[data-layout="three"] {
+    --panel-left-w: 248px;
+    grid-template-columns: var(--panel-left-w) minmax(0, 1fr);
+  }
+  /* A wide left panel (the backtest form) stays wider than the filters. */
+  .ae-page[data-layout="three"][data-wide-left] {
+    --panel-left-w: 300px;
+  }
+  .ae-page[data-layout="right"] {
+    --panel-right-w: 280px;
+  }
+  .ae-pageactions[data-layout="three"] .ae-pageactions__summary {
+    display: inline-flex;
+    align-items: center;
+  }
+  .ae-page[data-layout="three"] .ae-page__right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(var(--panel-right-w), 90%);
+    z-index: var(--z-drawer);
+    box-shadow: var(--shadow-lg);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition:
+      transform var(--dur-panel) var(--ease-drawer),
+      visibility 0s linear var(--dur-panel);
+  }
+  .ae-page[data-layout="three"][data-summary-open] .ae-page__right {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform var(--dur-panel) var(--ease-drawer);
+  }
+  .ae-page[data-layout="three"][data-summary-open] .ae-page__scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: calc(var(--z-drawer) - 1);
+    background: var(--scrim);
+  }
+}
+
+/* Under 1280: every right panel is a drawer. */
+@media (max-width: 1279px) {
+  .ae-page[data-layout="right"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ae-pageactions[data-layout="right"] .ae-pageactions__summary {
+    display: inline-flex;
+    align-items: center;
+  }
+  .ae-page[data-layout="right"] .ae-page__right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(var(--panel-right-w), 90%);
+    z-index: var(--z-drawer);
+    box-shadow: var(--shadow-lg);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition:
+      transform var(--dur-panel) var(--ease-drawer),
+      visibility 0s linear var(--dur-panel);
+  }
+  .ae-page[data-layout="right"][data-summary-open] .ae-page__right {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform var(--dur-panel) var(--ease-drawer);
+  }
+  .ae-page[data-layout="right"][data-summary-open] .ae-page__scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: calc(var(--z-drawer) - 1);
+    background: var(--scrim);
+  }
+}
+
+/* Under 1100: the left panel folds above the center behind "Filters". */
+@media (max-width: 1099px) {
+  .ae-page[data-layout="three"],
+  .ae-page[data-layout="left"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .ae-page__left {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: var(--space-2) var(--space-4);
+    max-height: 50vh;
+  }
+  .ae-page__leftfold {
+    display: inline-flex;
+    align-self: flex-start;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .ae-page__leftbody {
+    display: none;
+  }
+  .ae-page[data-left-open] .ae-page__leftbody {
+    display: flex;
+  }
+}
+.ae-page__center:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Phone widths: the header has one line for the title, so the crumbs go
+   (the sidebar and the back button carry the place) and a long title wraps
+   onto a second line instead of being cut. */
+@media (max-width: 767px) {
+  .ae-pagehead__crumbs {
+    display: none;
+  }
+  .ae-pagehead__title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: var(--text-sm);
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+  }
+}

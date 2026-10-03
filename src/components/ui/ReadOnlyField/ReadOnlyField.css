@@ -1,0 +1,20 @@
+.ae-rofield {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+/* Input height, no fill and no border: it reads as a value, not a control. */
+.ae-rofield__value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+.ae-rofield__value[data-num] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,52 @@
+.ae-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.ae-tabs__list {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  /* overflow-x forces a y scroller; the active bar must not trigger it. */
+  overflow-y: hidden;
+}
+.ae-tabs__tab {
+  position: relative;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.ae-tabs__tab:hover {
+  color: var(--text);
+}
+.ae-tabs__tab[aria-selected="true"] {
+  color: var(--text);
+}
+.ae-tabs__tab[data-tone="live"] {
+  color: var(--mode-live);
+}
+.ae-tabs__bar {
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  bottom: 0;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.ae-tabs__tab[aria-selected="true"] .ae-tabs__bar {
+  transform: scaleX(1);
+}
+.ae-tabs__tab[data-tone="live"] .ae-tabs__bar {
+  background: var(--mode-live);
+}
+.ae-tabs__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}

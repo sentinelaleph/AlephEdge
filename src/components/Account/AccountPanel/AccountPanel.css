@@ -1,0 +1,96 @@
+/* Frame, title and venue chip come from Panel; the positions heading from
+   Section. Labels are sentence case: no uppercase transforms here. */
+
+.ae-acctpanel__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-2);
+}
+.ae-acctpanel__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+}
+.ae-acctpanel__stat-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.ae-acctpanel__stat-value {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.ae-acctpanel__note {
+  font-size: var(--text-2xs);
+  color: var(--text-subtle);
+}
+
+.ae-acctpanel__positions {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+.ae-acctpanel__pos {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 32px;
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-sm);
+}
+.ae-acctpanel__pos:last-child {
+  border-bottom: none;
+}
+.ae-acctpanel__pos-dir[data-direction="long"] {
+  color: var(--up);
+}
+.ae-acctpanel__pos-dir[data-direction="short"] {
+  color: var(--down);
+}
+.ae-acctpanel__pos-sym {
+  font-weight: 600;
+  color: var(--text);
+}
+.ae-acctpanel__pos-size,
+.ae-acctpanel__pos-entry {
+  color: var(--text-muted);
+}
+
+.ae-acctpanel__empty {
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+}
+.ae-acctpanel__error {
+  font-size: var(--text-sm);
+  color: var(--danger-text);
+}
+
+.ae-acctpanel__updated {
+  font-size: var(--text-2xs);
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.ae-acctpanel__updated[data-stale="true"] {
+  color: var(--danger-text);
+}
+/* Last good figures after a failed refresh: dimmed so they never read as live. */
+.ae-acctpanel__stats[data-stale="true"] {
+  opacity: 0.55;
+}
+
+/* Phone width: the six cells flow onto two lines instead of clipping. */
+@media (max-width: 560px) {
+  .ae-acctpanel__pos {
+    grid-template-columns: auto 1fr auto;
+    row-gap: var(--space-1);
+  }
+}

@@ -1,0 +1,133 @@
+.ae-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  /* Only the properties that change — never `all`. */
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.ae-btn:hover {
+  text-decoration: none;
+}
+
+/* Instant, felt feedback on press. Subtle (0.97). */
+.ae-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Disabled stays readable (4.5:1): a flat grey control, not a faded one. */
+.ae-btn:disabled,
+.ae-btn[aria-disabled="true"] {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Sizes */
+.ae-btn--xs {
+  height: 26px;
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+  border-radius: var(--radius-xs);
+}
+.ae-btn--sm {
+  height: 30px;
+  padding: 0 var(--space-3);
+  font-size: var(--text-xs);
+}
+.ae-btn--md {
+  height: 36px;
+  padding: 0 var(--space-4);
+  font-size: var(--text-sm);
+}
+
+/* Variants */
+.ae-btn--primary {
+  background: var(--accent-strong);
+  color: var(--text-onaccent);
+  box-shadow: var(--shadow-sm);
+}
+.ae-btn--primary:hover:not(:disabled) {
+  background: var(--accent-strong-hover);
+}
+
+.ae-btn--secondary {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.ae-btn--secondary:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.ae-btn--ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+.ae-btn--ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.ae-btn--ghost:disabled {
+  background: transparent;
+  border-color: transparent;
+}
+
+.ae-btn--danger {
+  background: var(--bg);
+  color: var(--danger-text);
+  border-color: var(--danger);
+}
+.ae-btn--danger:hover:not(:disabled) {
+  background: var(--danger-subtle);
+}
+
+/* Icon-only button (IconButton). */
+.ae-iconbtn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  background: transparent;
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.ae-iconbtn--sm {
+  width: 30px;
+  height: 30px;
+}
+.ae-iconbtn--md {
+  width: 36px;
+  height: 36px;
+}
+.ae-iconbtn:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.ae-iconbtn[data-pressed] {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.ae-iconbtn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.ae-iconbtn:disabled {
+  color: var(--text-subtle);
+  cursor: not-allowed;
+}

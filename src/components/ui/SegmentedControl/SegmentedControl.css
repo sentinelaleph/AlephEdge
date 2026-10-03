@@ -1,0 +1,102 @@
+.ae-segctl {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 2px;
+  max-width: 100%;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.ae-segctl[data-fill] {
+  display: flex;
+  width: 100%;
+}
+/* Content-based basis: a longer label ("Custom", "Scaled to budget") takes
+   the room it needs, the rest is shared. */
+.ae-segctl[data-fill] .ae-segctl__opt {
+  flex: 1 1 auto;
+}
+
+.ae-segctl__opt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 var(--space-3);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+.ae-segctl[data-size="md"] .ae-segctl__opt {
+  min-height: 30px;
+}
+.ae-segctl[data-size="sm"] .ae-segctl__opt {
+  min-height: 24px;
+  padding: 0 var(--space-2);
+  font-size: var(--text-2xs);
+}
+.ae-segctl__opt:hover:not(:disabled):not([data-selected]) {
+  color: var(--text);
+  background: var(--surface-3);
+}
+.ae-segctl__opt:active:not(:disabled) {
+  transform: scale(0.97);
+}
+/* Selected: raised surface, full-contrast text, an accent underline mark. */
+.ae-segctl__opt[data-selected] {
+  background: var(--bg);
+  color: var(--text);
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 -2px 0 var(--accent);
+}
+.ae-segctl__opt:disabled {
+  color: var(--text-subtle);
+  cursor: not-allowed;
+}
+.ae-segctl__opt:focus-visible {
+  box-shadow: var(--shadow-focus);
+}
+
+.ae-segctl__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+}
+.ae-segctl__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ae-segctl__sub {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+/* Filled (form) controls share the width: tighter sides so five or six short
+   options (15m / 1h / 4h / 1d, 30d … 2y) keep their full labels in a 280px panel. */
+.ae-segctl[data-fill] .ae-segctl__opt {
+  padding: 0 var(--space-1);
+}
+/* Wrapped (`wrap`): balanced rows of equal cells, set by the component when
+   one row would truncate a label. */
+.ae-segctl[data-wrapped] {
+  display: grid;
+  width: 100%;
+}
+.ae-segctl[data-wrapped] .ae-segctl__opt {
+  min-height: 30px;
+}
+.ae-segctl[data-wrapped][data-size="sm"] .ae-segctl__opt {
+  min-height: 24px;
+}

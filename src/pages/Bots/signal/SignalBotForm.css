@@ -1,0 +1,32 @@
+/* Signal bot settings: the DCA / Grid form language (StrategyForm.css). */
+
+.ae-sigform__preview {
+  margin-top: var(--space-3);
+  max-width: 640px;
+}
+
+.ae-sigform__combos {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ae-sigform__liverow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ae-sigform__liveconfirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 560px;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.ae-sigform__livetitle {
+  font-weight: 600;
+}
+

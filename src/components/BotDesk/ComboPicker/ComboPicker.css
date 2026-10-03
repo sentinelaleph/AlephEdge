@@ -1,0 +1,35 @@
+/* Setup whitelist: a compact table, both records per row. Tokens only. */
+.ae-combos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.ae-combos__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.ae-combos__count {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.ae-combos__check {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+}
+
+.ae-combos__name {
+  font-weight: 600;
+}
+
+/* A rate never appears without its sample size. */
+.ae-combos__n,
+.ae-combos__none {
+  color: var(--text-muted);
+}
+

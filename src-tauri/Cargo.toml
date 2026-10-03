@@ -1,0 +1,68 @@
+[package]
+name = "aleph-edge"
+version = "0.1.0"
+description = "Aleph Edge — Sentinel Aleph automated trading bot"
+authors = ["Sentinel Aleph"]
+edition = "2021"
+rust-version = "1.77"
+
+# The library the desktop binary and (future) integration tests share.
+[lib]
+name = "aleph_edge_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+aleph-link = { path = "../crates/aleph-link" }
+aleph-desk-link = { path = "../crates/aleph-desk-link" }
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+# Signature-verified auto-update (PRD §7.5). Desktop-only.
+tauri-plugin-updater = "2"
+serde = { version = "1", features = ["derive"] }
+# float_roundtrip: strategy cycle state is persisted as JSON and must come
+# back bit-identical, or a restart would move order prices by an ulp.
+serde_json = { version = "1", features = ["float_roundtrip"] }
+
+# Vault crypto — key material never leaves the device.
+argon2 = "0.5"
+aes-gcm = "0.10"
+rand = "0.8"
+zeroize = "1"
+base64 = "0.22"
+
+# OS-native secure storage: the vault's salt (device-binding) and the
+# Sentinel membership refresh token + the vault salt. A platform-native store
+# feature is REQUIRED: keyring 3 with no feature falls back to a non-persistent
+# in-memory mock, so the salt (and refresh token) vanish on every restart and
+# the vault password stops unlocking. windows-native = Credential Manager,
+# apple-native = macOS Keychain.
+keyring = { version = "3", features = ["windows-native", "apple-native"] }
+
+# HMAC-SHA256 request signing for authenticated Binance calls (e.g. verifying
+# a newly-added key's real withdraw permission).
+hmac = "0.12"
+sha2 = "0.10"
+
+# Sentinel membership client (ribqa.com auth + billing status) and the
+# Sentinel signal stream (SSE over a streamed HTTP body).
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+futures-util = "0.3"
+tokio = { version = "1", features = ["time", "sync", "macros"] }
+
+# Local trade history + metrics cache (PRD §3.1: SQLite, never holds keys).
+rusqlite = { version = "0.32", features = ["bundled"] }
+tokio-tungstenite = { version = "0.29.0", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+uuid = { version = "1.20.0", features = ["v4"] }
+
+[features]
+# This feature is used for production builds where `devPath` points to the
+# filesystem instead of a dev server.
+custom-protocol = ["tauri/custom-protocol"]
+# Real-money order sending (`LIVE_TRADING_ENABLED`). OFF in every default
+# build, including the public one; a live build is made on purpose with
+# `npm run tauri build -- --features live`. Each bot still needs its own
+# per-session live opt-in, confirmed in the UI.
+live = []

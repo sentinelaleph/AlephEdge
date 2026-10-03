@@ -1,0 +1,343 @@
+/*
+ * Aleph Edge design tokens.
+ *
+ * Every color, easing, duration, radius, and shadow the UI uses is defined
+ * here as a CSS custom property. Components MUST reference tokens — hardcoded
+ * colors are forbidden (see emil-design-eng: unseen consistency compounds).
+ *
+ * Themes are selected by `:root[data-theme="light|dark"]` (stamped pre-paint
+ * by the inline script in index.html, then owned by ThemeProvider).
+ * Edge Light is the product default.
+ */
+
+:root {
+  /* ---- Motion: Emil Kowalski easing curves (built-ins are too weak) ---- */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Durations — UI stays under 300ms (perceived performance). */
+  --dur-press: 140ms;
+  --dur-fast: 160ms;
+  --dur-pop: 200ms;
+  --dur-panel: 260ms;
+
+  /* ---- Type ---- */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, "SF Mono",
+    Menlo, Consolas, monospace;
+
+  --text-2xs: 0.6875rem; /* 11px */
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.8125rem; /* 13px */
+  --text-base: 0.875rem; /* 14px */
+  --text-md: 1rem; /* 16px */
+  --text-lg: 1.25rem; /* 20px */
+  --text-xl: 1.75rem; /* 28px */
+  --text-2xl: 2.25rem; /* 36px */
+
+  /* ---- Space & shape ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  /* ---- Risk-level identity colors (self-describing per PRD §5.3) ---- */
+  /* These are theme-agnostic brand colors; each risk word wears its color. */
+  --risk-cautious: #38bdf8; /* ice blue */
+  --risk-calm: #22c55e; /* green */
+  --risk-balanced: #f5b13d; /* amber */
+  --risk-ambitious: #fb7a3c; /* orange */
+  --risk-greedy: #ef4444; /* red */
+
+  /* ---- App shell layout (theme-agnostic) ---- */
+  --sidebar-w: 232px;
+  --sidebar-w-rail: 56px;
+  --header-h: 48px;
+  --statusbar-h: 28px;
+  --panel-left-w: 280px;
+  --panel-right-w: 320px;
+  --panel-left-w-wide: 320px;
+  --content-max: 1680px;
+  --row-h: 32px;
+  --row-h-compact: 28px;
+  --tile-h: 72px;
+  --z-sidebar: 20;
+  --z-header: 30;
+  --z-drawer: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+}
+
+/* =========================== EDGE LIGHT (default) ========================= */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* Surfaces: white base, layered light greys */
+  --bg: #ffffff;
+  --surface-1: #f7f7f8;
+  --surface-2: #efeff1;
+  --surface-3: #e7e7ea;
+  --border: #e2e2e6;
+  --border-strong: #d3d3d9;
+
+  /* Text: graphite scale */
+  --text: #14161c;
+  --text-muted: #565a66;
+  /* 4.5:1+ on --bg, --surface-1 and --surface-2 (was #8a8f9c, 3.2:1). */
+  --text-subtle: #62677a;
+  --text-onaccent: #ffffff;
+
+  /* Accent: Sentinel aqua */
+  --accent: #0ea5a3;
+  --accent-hover: #0c908e;
+  --accent-active: #0a7a78;
+  --accent-subtle: rgba(14, 165, 163, 0.1);
+  --accent-ring: rgba(14, 165, 163, 0.35);
+  /* Filled controls (primary button, selected step) carrying --text-onaccent:
+     the brand aqua under white text is 3.0:1, its own active shade 5.2:1. */
+  --accent-strong: var(--accent-active);
+  --accent-strong-hover: #0a6f6d;
+
+  /* Semantic */
+  --success: #17936a;
+  --success-subtle: rgba(23, 147, 106, 0.12);
+  --warn: #b7791f;
+  --warn-subtle: rgba(183, 121, 31, 0.12);
+  --danger: #d0483b;
+  --danger-subtle: rgba(208, 72, 59, 0.12);
+
+  /* Text shades of the same hues: >= 4.5:1 on white, the side-panel grey and
+     their own -subtle chip fill. The base colours stay for dots, bars, fills. */
+  --accent-text: #0a6f6d;
+  --success-text: #107050;
+  --warn-text: #855512;
+  --danger-text: #b0362a;
+  --link: var(--accent-text);
+
+  /* PnL directional (green up / red down) */
+  --up: #17936a;
+  --down: #d0483b;
+
+  /* Aurora backdrop (Shell/Aurora) — subtle in light. */
+  --glow: rgba(14, 165, 163, 0.18);
+  --grid: rgba(60, 80, 160, 0.055);
+
+  /* Glassmorphism (.ae-glass): frosted translucent surface. */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --blur: blur(10px);
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(16, 20, 30, 0.06),
+    0 1px 1px rgba(16, 20, 30, 0.04);
+  --shadow-md: 0 4px 12px rgba(16, 20, 30, 0.08),
+    0 2px 4px rgba(16, 20, 30, 0.05);
+  --shadow-lg: 0 12px 32px rgba(16, 20, 30, 0.12),
+    0 4px 8px rgba(16, 20, 30, 0.06);
+  --shadow-focus: 0 0 0 3px var(--accent-ring);
+
+  /* Semantic: money, mode, bot state, chart series, navigation. */
+  --pnl-up: var(--success-text);
+  --pnl-down: var(--danger-text);
+  --pnl-flat: var(--text-muted);
+  --mode-paper-bg: var(--surface-3);
+  --mode-paper-text: var(--text-muted);
+  --mode-live: #b4232a;
+  --mode-live-subtle: rgba(180, 35, 42, 0.1);
+  --state-running: var(--success);
+  --state-waiting: var(--accent);
+  --state-paused: var(--warn);
+  --state-stopped: var(--text-subtle);
+  --state-error: var(--danger);
+  --state-budget: var(--warn);
+  --series-strategy: var(--accent);
+  --series-hold: var(--text-muted);
+  --series-btc: #c2410c;
+  --series-drawdown: var(--danger-subtle);
+  --chart-grid: var(--border);
+  --chart-axis: var(--text-subtle);
+  --nav-active-bg: var(--accent-subtle);
+  --nav-active-bar: var(--accent);
+  --scrim: rgba(10, 12, 18, 0.42);
+}
+
+/* ============ EDGE DARK (aurora — matches the futuristic design) ========== */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #070a12;
+  --surface-1: #0b1124;
+  --surface-2: #111a30;
+  --surface-3: #18223c;
+  --border: rgba(140, 162, 255, 0.1);
+  --border-strong: rgba(140, 162, 255, 0.18);
+
+  --text: #e9edf8;
+  --text-muted: #98a2ba;
+  /* 4.5:1+ on every dark surface (was #5d6780, 3.5:1). */
+  --text-subtle: #8a94ae;
+  --text-onaccent: #03211c;
+
+  --accent: #2ee8d0;
+  --accent-hover: #4fefdb;
+  --accent-active: #22c9b3;
+  --accent-subtle: rgba(46, 232, 208, 0.1);
+  --accent-ring: rgba(46, 232, 208, 0.4);
+  --accent-strong: var(--accent);
+  --accent-strong-hover: var(--accent-hover);
+
+  --success: #3ce0a6;
+  --success-subtle: rgba(60, 224, 166, 0.12);
+  --warn: #f5b13d;
+  --warn-subtle: rgba(245, 177, 61, 0.12);
+  --danger: #ff7d70;
+  --danger-subtle: rgba(255, 125, 112, 0.12);
+
+  /* The base hues already read at 6:1+ on the dark surfaces. */
+  --accent-text: var(--accent);
+  --success-text: var(--success);
+  --warn-text: var(--warn);
+  --danger-text: var(--danger);
+  --link: var(--accent);
+
+  --up: #3ce0a6;
+  --down: #ff7d70;
+
+  /* Aurora backdrop: accent glow + faint grid. */
+  --glow: rgba(46, 232, 208, 0.25);
+  --grid: rgba(124, 146, 255, 0.05);
+
+  /* Glassmorphism: deep translucent navy + real blur. */
+  --glass-bg: rgba(11, 17, 36, 0.55);
+  --blur: blur(14px);
+
+  --shadow-sm: 0 1px 2px rgba(2, 6, 18, 0.4);
+  --shadow-md: 0 10px 30px rgba(2, 6, 18, 0.35);
+  --shadow-lg: 0 16px 40px rgba(2, 6, 18, 0.55);
+  --shadow-focus: 0 0 0 3px var(--accent-ring);
+
+  /* Semantic: money, mode, bot state, chart series, navigation. */
+  --pnl-up: var(--up);
+  --pnl-down: var(--down);
+  --pnl-flat: var(--text-muted);
+  --mode-paper-bg: var(--surface-3);
+  --mode-paper-text: var(--text-muted);
+  --mode-live: #ff4d6d;
+  --mode-live-subtle: rgba(255, 77, 109, 0.14);
+  --state-running: var(--success);
+  --state-waiting: var(--accent);
+  --state-paused: var(--warn);
+  --state-stopped: var(--text-subtle);
+  --state-error: var(--danger);
+  --state-budget: var(--warn);
+  --series-strategy: var(--accent);
+  --series-hold: var(--text-muted);
+  --series-btc: #fb923c;
+  --series-drawdown: var(--danger-subtle);
+  --chart-grid: var(--border);
+  --chart-axis: var(--text-subtle);
+  --nav-active-bg: var(--accent-subtle);
+  --nav-active-bar: var(--accent);
+  --scrim: rgba(10, 12, 18, 0.42);
+}
+
+/* ============ EDGE CONTRAST (high-contrast accessibility theme) =========== */
+/* Pure-black surfaces, strong borders, decorative glow/grid disabled. */
+:root[data-theme="contrast"] {
+  color-scheme: dark;
+
+  --bg: #000000;
+  --surface-1: #000000;
+  --surface-2: #0a0a0a;
+  --surface-3: #141414;
+  --border: #454545;
+  --border-strong: #5a5a5a;
+
+  --text: #ffffff;
+  --text-muted: #d6d6d6;
+  --text-subtle: #a0a0a0;
+  --text-onaccent: #000000;
+
+  --accent: #00e5d0;
+  --accent-hover: #33ecdb;
+  --accent-active: #00c9b7;
+  --accent-subtle: rgba(0, 229, 208, 0.16);
+  --accent-ring: rgba(0, 229, 208, 0.6);
+  --accent-strong: var(--accent);
+  --accent-strong-hover: var(--accent-hover);
+
+  --success: #00e676;
+  --success-subtle: rgba(0, 230, 118, 0.18);
+  --warn: #ffd60a;
+  --warn-subtle: rgba(255, 214, 10, 0.18);
+  --danger: #ff5252;
+  --danger-subtle: rgba(255, 82, 82, 0.18);
+
+  --accent-text: var(--accent);
+  --success-text: var(--success);
+  --warn-text: var(--warn);
+  --danger-text: var(--danger);
+  --link: var(--accent);
+
+  --up: #00e676;
+  --down: #ff5252;
+
+  /* Decorative layers off for maximum legibility. */
+  --glow: transparent;
+  --grid: transparent;
+
+  /* No blur in contrast — solid black for legibility. */
+  --glass-bg: #000000;
+  --blur: none;
+
+  --shadow-sm: 0 0 0 1px var(--border);
+  --shadow-md: 0 0 0 1px var(--border);
+  --shadow-lg: 0 0 0 1px var(--border-strong);
+  --shadow-focus: 0 0 0 3px var(--accent-ring);
+
+  /* Semantic: money, mode, bot state, chart series, navigation. */
+  --pnl-up: var(--up);
+  --pnl-down: var(--down);
+  --pnl-flat: var(--text-muted);
+  --mode-paper-bg: var(--surface-3);
+  --mode-paper-text: var(--text-muted);
+  --mode-live: #ff6b8b;
+  --mode-live-subtle: rgba(255, 107, 139, 0.2);
+  --state-running: var(--success);
+  --state-waiting: var(--accent);
+  --state-paused: var(--warn);
+  --state-stopped: var(--text-subtle);
+  --state-error: var(--danger);
+  --state-budget: var(--warn);
+  --series-strategy: var(--accent);
+  --series-hold: var(--text-muted);
+  --series-btc: #ffa94d;
+  --series-drawdown: var(--danger-subtle);
+  --chart-grid: var(--border);
+  --chart-axis: var(--text-subtle);
+  --nav-active-bg: var(--accent-subtle);
+  --nav-active-bar: var(--accent);
+  --scrim: rgba(10, 12, 18, 0.42);
+}
+
+/* Respect reduced-motion globally: collapse durations to near-instant. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-press: 1ms;
+    --dur-fast: 1ms;
+    --dur-pop: 1ms;
+    --dur-panel: 1ms;
+  }
+}

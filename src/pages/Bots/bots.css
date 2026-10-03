@@ -1,0 +1,51 @@
+/* Bots pages: small shared bits. Tokens only; both themes. */
+
+/* A name cell with a trailing LIVE chip. */
+.ae-namecell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* A label + checkbox above a table (select all). */
+.ae-checkline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.ae-checkline input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+}
+
+/* The bot type catalog (#/bots/new): equal-height panels, action at the foot. */
+.ae-typegrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: var(--space-4);
+  align-items: stretch;
+}
+.ae-typegrid__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: auto;
+}
+.ae-typegrid__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* A section the page scrolls to (signal bot settings): clear of the top edge. */
+.ae-scrollanchor {
+  scroll-margin-top: var(--space-4);
+}
+
+

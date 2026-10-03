@@ -1,0 +1,4 @@
+.ae-workspace__loading {
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+}

@@ -1,0 +1,10 @@
+/* Symbol cell: the row identity (the whole row selects the signal; Enter / Space on a focused row). */
+.ae-sigtable__sym {
+  font-weight: 600;
+  color: var(--text);
+}
+.ae-sigtable__combo {
+  cursor: help;
+  text-decoration: underline dotted var(--border-strong);
+  text-underline-offset: 3px;
+}

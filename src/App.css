@@ -1,0 +1,22 @@
+.ae-app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+}
+
+/* Lift real content above the Aurora backdrop (which is z-index 0). */
+.ae-app > *:not(.ae-aurora) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Stage — hosts the workspace flow (login / gate / vault). */
+.ae-stage {
+  flex: 1 1 auto;
+  display: grid;
+  place-items: start center;
+  padding: var(--space-7) var(--space-6);
+  overflow-y: auto;
+}

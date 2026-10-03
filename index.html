@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Aleph Edge</title>
+    <script>
+      // Apply the persisted theme before first paint to avoid a flash of the
+      // wrong theme (FOUC). Kept inline and tiny on purpose.
+      (function () {
+        try {
+          var saved = localStorage.getItem("aleph-edge-theme");
+          var mode = saved || "light";
+          var resolved;
+          if (mode === "contrast" || mode === "dark" || mode === "light") {
+            resolved = mode;
+          } else {
+            resolved = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          }
+          document.documentElement.dataset.theme = resolved;
+        } catch (_) {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

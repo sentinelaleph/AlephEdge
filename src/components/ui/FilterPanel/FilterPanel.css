@@ -1,0 +1,201 @@
+/* Filter groups: a small caps title, then full-width rows. */
+.ae-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ae-filter__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 16px;
+}
+
+.ae-filter__label {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.ae-filter__clear {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: var(--text-2xs);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+.ae-filter__clear:hover {
+  text-decoration: underline;
+}
+.ae-filter__clear:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: 2px;
+}
+
+.ae-filter__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ae-filter__opt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 28px;
+  padding: 4px var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--text-xs);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+.ae-filter__opt:hover {
+  background: var(--surface-2);
+}
+.ae-filter__opt:active {
+  transform: scale(0.99);
+}
+.ae-filter__opt:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+.ae-filter__opt[aria-pressed="true"] {
+  background: var(--accent-subtle);
+  font-weight: 600;
+}
+/* An option with nothing behind it stays usable but steps back. */
+.ae-filter__opt[data-empty="true"]:not([aria-pressed="true"]) {
+  color: var(--text-subtle);
+}
+
+/* The check (multi) or radio dot (single). */
+.ae-filter__mark {
+  flex: none;
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: var(--bg);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.ae-filter__opt[data-kind="radio"] .ae-filter__mark {
+  border-radius: 50%;
+}
+.ae-filter__opt[aria-pressed="true"] .ae-filter__mark {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.ae-filter__opt[data-kind="check"][aria-pressed="true"] .ae-filter__mark::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--text-onaccent);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.ae-filter__opt[data-kind="radio"][aria-pressed="true"] .ae-filter__mark::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--text-onaccent);
+}
+
+/* Long labels (translated skip reasons) wrap; the count stays on the right. */
+.ae-filter__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ae-filter__count {
+  flex: none;
+  min-width: 18px;
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--text-subtle);
+  text-align: right;
+}
+.ae-filter__opt[aria-pressed="true"] .ae-filter__count {
+  color: var(--text-muted);
+}
+
+/* Search with a lens on the left and the "/" shortcut on the right. */
+.ae-filter__searchbox {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.ae-filter__searchicon {
+  position: absolute;
+  left: 9px;
+  color: var(--text-subtle);
+  pointer-events: none;
+}
+.ae-filter__search {
+  width: 100%;
+  height: 30px;
+  padding: 0 28px 0 30px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-size: var(--text-sm);
+  color: var(--text);
+  -webkit-user-select: text;
+  user-select: text;
+}
+.ae-filter__search::placeholder {
+  color: var(--text-subtle);
+}
+.ae-filter__search:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus);
+}
+.ae-filter__kbd {
+  position: absolute;
+  right: 7px;
+  min-width: 16px;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  line-height: 15px;
+  text-align: center;
+  color: var(--text-subtle);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ae-filter__opt,
+  .ae-filter__mark {
+    transition: none;
+  }
+  .ae-filter__opt:active {
+    transform: none;
+  }
+}

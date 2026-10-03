@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Aleph Edge",
+  "version": "0.1.0",
+  "identifier": "com.sentinelaleph.edge",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Aleph Edge",
+        "width": 1180,
+        "height": 760,
+        "minWidth": 940,
+        "minHeight": 620,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "theme": null,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost https://ribqa.com https://*.ribqa.com; object-src 'none'; base-uri 'self'; form-action 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "publisher": "Sentinel Aleph",
+    "copyright": "© 2026 Sentinel Aleph",
+    "homepage": "https://ribqa.com",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Finance",
+    "shortDescription": "Sentinel Aleph automated trading bot",
+    "longDescription": "Aleph Edge follows Sentinel Aleph's published research signals with risk-based position sizing and local, encrypted exchange keys that never leave your device. Signals are under test, not proven.",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE2Nzk5OEQ4QjhEQjY2M0MKUldROFp0dTQySmg1RmtOT3dQZ1ZoSHRud3dXVEpsekF2dlhzZzBWcWgzNnY0dkRNQ1BRalF5dEYK",
+      "endpoints": [
+        "https://ribqa.com/downloads/aleph-edge/latest.json"
+      ]
+    }
+  }
+}

@@ -1,0 +1,31 @@
+.ae-pnl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
+}
+
+.ae-pnl__exported {
+  font-size: var(--text-2xs);
+  color: var(--text-subtle);
+  word-break: break-all;
+}
+
+/* Simulated / Real money stats switch (live builds only). */
+.ae-pnl__scope {
+  display: flex;
+}
+
+.ae-pnl__sym {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 600;
+}
+
+.ae-pnl__tip {
+  cursor: help;
+  text-decoration: underline dotted var(--border-strong);
+  text-underline-offset: 3px;
+}

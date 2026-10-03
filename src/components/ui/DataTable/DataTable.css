@@ -1,0 +1,275 @@
+/* DataTable: one frame, hairline rows, no nested borders. Tokens only. */
+.ae-dt {
+  position: relative;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto; /* last resort only: priorities keep this from scrolling */
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+.ae-dt[data-bare] {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.ae-dt__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--text-sm);
+}
+
+.ae-dt__table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 30px;
+  padding: 0 var(--space-2);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.ae-dt__table th:first-child {
+  border-top-left-radius: var(--radius-md);
+}
+.ae-dt__table th:last-child {
+  border-top-right-radius: var(--radius-md);
+}
+.ae-dt[data-bare] .ae-dt__table th {
+  border-radius: 0;
+}
+/* A header with a tooltip: dotted underline, focusable. */
+.ae-dt__htip,
+.ae-dt__sort[data-tip] {
+  cursor: help;
+  text-decoration: underline dotted var(--border-strong);
+  text-underline-offset: 3px;
+}
+.ae-dt__htip {
+  border-radius: var(--radius-xs);
+}
+.ae-dt__htip:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.ae-dt__table td {
+  height: var(--row-h);
+  padding: 0 var(--space-2);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+  vertical-align: middle;
+  background: var(--bg);
+}
+.ae-dt[data-bare] .ae-dt__table td {
+  background: transparent;
+}
+.ae-dt[data-compact] .ae-dt__table td {
+  height: var(--row-h-compact);
+}
+/* Long localized text wraps inside its cell instead of widening the table. */
+.ae-dt__table td[data-wrap] {
+  min-width: 14ch;
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-1);
+  white-space: normal;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.ae-dt__table [data-align="right"] {
+  text-align: right;
+}
+.ae-dt__table [data-align="center"] {
+  text-align: center;
+}
+.ae-dt__table td[data-num],
+.ae-dt__detaillist dd[data-num] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-size: var(--text-xs);
+}
+.ae-dt__table td[data-tone="up"],
+.ae-dt__detaillist dd[data-tone="up"] {
+  color: var(--pnl-up);
+}
+.ae-dt__table td[data-tone="down"],
+.ae-dt__detaillist dd[data-tone="down"] {
+  color: var(--pnl-down);
+}
+.ae-dt__table td[data-tone="muted"],
+.ae-dt__detaillist dd[data-tone="muted"] {
+  color: var(--text-muted);
+}
+
+/* The last row of the frame has no rule under it (the frame closes it). */
+.ae-dt__table tbody tr:last-child > td {
+  border-bottom: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ae-dt__table tbody tr:not(.ae-dt__detail):not(.ae-dt__note):not(.ae-dt__emptyrow):hover > td {
+    background: var(--surface-1);
+  }
+}
+.ae-dt__table tbody tr[data-selected] > td {
+  background: var(--accent-subtle);
+}
+.ae-dt__table tbody tr[data-clickable] {
+  cursor: pointer;
+}
+/* Keyboard focus on an activatable row: an inset ring, no layout shift. */
+.ae-dt__table tbody tr[data-clickable]:focus {
+  outline: none;
+}
+.ae-dt__table tbody tr[data-clickable]:focus-visible > td {
+  box-shadow: inset 0 2px 0 var(--accent), inset 0 -2px 0 var(--accent);
+}
+.ae-dt__table tbody tr[data-clickable]:focus-visible > td:first-child {
+  box-shadow: inset 2px 2px 0 var(--accent), inset 0 -2px 0 var(--accent);
+}
+.ae-dt__table tbody tr[data-clickable]:focus-visible > td:last-child {
+  box-shadow: inset -2px 2px 0 var(--accent), inset 0 -2px 0 var(--accent);
+}
+/* A row followed by its note or detail shares one block: no rule between. */
+.ae-dt__table tbody tr[data-has-note] > td,
+.ae-dt__table tbody tr[data-open] > td {
+  border-bottom-color: transparent;
+}
+
+/* Pinned actions column: always fully visible at the right edge. */
+.ae-dt__table .ae-dt__actions {
+  position: sticky;
+  right: 0;
+  width: 1%;
+  padding-left: var(--space-3);
+  box-shadow: inset 1px 0 0 var(--border);
+}
+.ae-dt__table th.ae-dt__actions {
+  z-index: 2;
+}
+.ae-dt__actionsinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+/* Last resort of the fit (nothing left to fold): the row actions stack. */
+.ae-dt[data-stack-actions] .ae-dt__actionsinner {
+  flex-direction: column;
+  align-items: stretch;
+  padding: var(--space-1) 0;
+}
+
+/* Row detail expander (hidden low-priority columns). */
+.ae-dt__exp {
+  width: 28px;
+  padding: 0 0 0 var(--space-1) !important;
+}
+.ae-dt__expbtn {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.ae-dt__expbtn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.ae-dt__expbtn[aria-expanded="true"] {
+  transform: rotate(90deg);
+}
+.ae-dt__detail > td {
+  height: auto;
+  padding: var(--space-1) var(--space-3) var(--space-2) 36px;
+  white-space: normal;
+  background: var(--surface-1);
+}
+.ae-dt__detaillist {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-1) var(--space-4);
+}
+.ae-dt__detailitem {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ae-dt__detaillist dt {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+.ae-dt__detaillist dd {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+/* A note line under its row: muted; danger / warn only when the row says so. */
+.ae-dt__note > td {
+  height: auto;
+  padding: 0 var(--space-2) var(--space-2);
+  font-size: var(--text-xs);
+  white-space: normal;
+  color: var(--text-muted);
+}
+.ae-dt__note[data-tone="danger"] > td {
+  color: var(--danger-text);
+}
+.ae-dt__note[data-tone="warn"] > td {
+  color: var(--warn-text);
+}
+.ae-dt__table tbody tr[data-tone="danger"] > td:first-child {
+  box-shadow: inset 2px 0 0 var(--danger);
+}
+.ae-dt__table tbody tr[data-tone="warn"] > td:first-child {
+  box-shadow: inset 2px 0 0 var(--warn);
+}
+
+.ae-dt__emptyrow > td {
+  height: auto;
+  padding: var(--space-4);
+  white-space: normal;
+  text-align: center;
+  color: var(--text-muted);
+}
+/* An EmptyState inside the frame drops its own frame. */
+.ae-dt__emptyrow .ae-empty {
+  border: none;
+  background: transparent;
+}
+
+.ae-dt__skel > td span {
+  display: block;
+  height: 10px;
+  width: 60%;
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
+}
+
+.ae-dt__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font: inherit;
+  color: inherit;
+}
+.ae-dt__sort[data-active] {
+  color: var(--text);
+}
+.ae-dt__sortmark {
+  font-size: 8px;
+}
+.ae-dt[data-bare] .ae-dt__table td.ae-dt__actions {
+  background: var(--bg);
+}

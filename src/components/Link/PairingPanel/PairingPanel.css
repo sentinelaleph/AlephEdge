@@ -1,0 +1,135 @@
+/* Frame and title come from Panel; the link state is a StatusChip. */
+
+.ae-pair__lede {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.ae-pair__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ae-pair__hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* --- live code -------------------------------------------------------- */
+
+.ae-pair__live {
+  display: flex;
+  gap: var(--space-5);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ae-pair__qr {
+  width: 184px;
+  height: 184px;
+  padding: var(--space-3);
+  background: #fff; /* QR contrast is a scanning requirement, not a theme choice */
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+.ae-pair__qr svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ae-pair__meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 200px;
+  flex: 1 1 200px;
+}
+
+.ae-pair__count {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.ae-pair__secs {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ae-pair__unit {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.ae-pair__count.is-urgent .ae-pair__secs,
+.ae-pair__count.is-urgent .ae-pair__unit {
+  color: var(--danger-text);
+}
+
+.ae-pair__bar {
+  height: 4px;
+  background: var(--surface-3);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.ae-pair__bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left center;
+  transition: transform var(--dur-fast) linear;
+}
+
+.ae-pair__count.is-urgent ~ .ae-pair__bar .ae-pair__bar-fill {
+  background: var(--danger);
+}
+
+.ae-pair__warn {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* --- relay health ------------------------------------------------------ */
+
+.ae-pair__checking {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* --- dead code -------------------------------------------------------- */
+
+.ae-pair__dead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.ae-pair__reason {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--warn-text);
+}
+
+.ae-pair__error {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--danger-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ae-pair__bar-fill {
+    transition: none;
+  }
+}

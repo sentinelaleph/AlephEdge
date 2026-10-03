@@ -1,0 +1,14 @@
+/* Anchor targets of the Sections nav: land with a small gap under the
+   center column's top edge instead of flush against it. */
+.ae-risk-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  scroll-margin-top: var(--space-3);
+}
+
+/* Inside the limits table the level name is a plain cell, not a heading. */
+.ae-risk-section .ae-dt .ae-risklevel {
+  font-size: inherit;
+  font-weight: 500;
+}

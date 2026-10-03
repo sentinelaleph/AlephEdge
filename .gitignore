@@ -1,0 +1,25 @@
+node_modules/
+dist/
+src-tauri/target/
+crates/*/target/
+src-tauri/gen/android/.gradle/
+src-tauri/gen/android/build/
+src-tauri/gen/android/app/build/
+src-tauri/gen/schemas/
+google-services.json
+GoogleService-Info.plist
+*.p8
+*.keystore
+.env
+
+# Acik kaynak envanteri (docs/OPEN_SOURCE_INVENTORY.md) uyarinca disarida:
+Aleph Edge.html
+CHECKPOINT.md
+.claude/
+
+# Ic notlar yerelde kalir: DEV_LOG.md updater imzalama anahtarinin yolunu ve
+# parolasiz uretildigini yaziyordu; plan dosyalari Turkce ve bayat.
+docs/
+
+# Server-side paper runner: research tooling, kept out of the public repo.
+crates/aleph-paper-runner/

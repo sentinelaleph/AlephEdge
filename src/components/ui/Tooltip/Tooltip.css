@@ -1,0 +1,93 @@
+.ae-tip-anchor {
+  display: inline-flex;
+  min-width: 0;
+}
+/* The wrapper takes focus for a disabled control or static content; the
+   disabled control lets the pointer through to it. */
+.ae-tip-anchor[data-proxy] {
+  border-radius: var(--radius-sm);
+}
+.ae-tip-anchor[data-proxy]:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+.ae-tip-anchor[data-proxy] > :disabled {
+  pointer-events: none;
+}
+
+.ae-tip {
+  position: fixed;
+  z-index: var(--z-toast);
+  max-width: 320px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--text);
+  color: var(--bg);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.45;
+  white-space: normal;
+  pointer-events: none;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: scale(0.97);
+  transition:
+    opacity 125ms var(--ease-out),
+    transform 125ms var(--ease-out);
+}
+.ae-tip[data-shown] {
+  opacity: 1;
+  transform: scale(1);
+}
+.ae-tip[data-instant] {
+  transition-duration: 0ms;
+}
+
+/* Scale from the trigger side. */
+.ae-tip[data-side="top"] {
+  transform-origin: bottom center;
+}
+.ae-tip[data-side="bottom"] {
+  transform-origin: top center;
+}
+.ae-tip[data-side="bottom"][data-align="end"] {
+  transform-origin: top right;
+}
+.ae-tip[data-side="bottom"][data-align="start"] {
+  transform-origin: top left;
+}
+.ae-tip[data-side="top"][data-align="start"] {
+  transform-origin: bottom left;
+}
+.ae-tip[data-side="right"] {
+  transform-origin: left center;
+}
+.ae-tip[data-side="left"] {
+  transform-origin: right center;
+}
+
+/* A FactList or a list inside a tooltip reads on the inverted surface. */
+.ae-tip .ae-facts {
+  min-width: 200px;
+}
+.ae-tip .ae-facts dt {
+  color: inherit;
+  opacity: 0.75;
+}
+.ae-tip .ae-facts dd {
+  color: inherit;
+}
+.ae-tip__title {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ae-tip {
+    transform: none;
+  }
+  .ae-tip[data-shown] {
+    transform: none;
+  }
+}

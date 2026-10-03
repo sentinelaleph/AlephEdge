@@ -1,0 +1,65 @@
+.ae-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 20px;
+  padding: 0 7px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+.ae-chip[data-tone="paper"] {
+  background: var(--mode-paper-bg);
+  color: var(--mode-paper-text);
+}
+.ae-chip[data-tone="live"] {
+  background: var(--mode-live-subtle);
+  color: var(--mode-live);
+  box-shadow: inset 0 0 0 1px var(--mode-live);
+}
+.ae-chip[data-tone="accent"],
+.ae-chip[data-tone="waiting"] {
+  background: var(--accent-subtle);
+  color: var(--accent-text);
+}
+.ae-chip[data-tone="success"],
+.ae-chip[data-tone="running"] {
+  background: var(--success-subtle);
+  color: var(--success-text);
+}
+.ae-chip[data-tone="warn"],
+.ae-chip[data-tone="paused"] {
+  background: var(--warn-subtle);
+  color: var(--warn-text);
+}
+.ae-chip[data-tone="danger"],
+.ae-chip[data-tone="error"] {
+  background: var(--danger-subtle);
+  color: var(--danger-text);
+}
+.ae-chip[data-tone="stopped"] {
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.ae-statusdot {
+  display: inline-block;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--text-subtle);
+}
+.ae-statusdot[data-tone="success"] {
+  background: var(--success);
+}
+.ae-statusdot[data-tone="warn"] {
+  background: var(--warn);
+}
+.ae-statusdot[data-tone="danger"] {
+  background: var(--danger);
+}

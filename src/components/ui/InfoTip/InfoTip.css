@@ -1,0 +1,23 @@
+/* A small "i" that holds the explanation of the label next to it. */
+.ae-infotip {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: help;
+}
+.ae-infotip[data-size="sm"] {
+  width: 16px;
+  height: 16px;
+}
+.ae-infotip:hover,
+.ae-infotip:focus-visible {
+  color: var(--text);
+  background: var(--surface-2);
+}

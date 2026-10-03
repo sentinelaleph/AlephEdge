@@ -1,0 +1,86 @@
+.ae-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 var(--space-4);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.ae-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ae-brand__mark {
+  display: inline-flex;
+  color: var(--accent-text);
+}
+.ae-brand__name {
+  font-size: var(--text-md);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.ae-brand__testnet {
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: var(--warn-subtle);
+  color: var(--warn-text);
+  border: 1px solid var(--warn);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ae-brand__beta {
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: var(--accent-subtle);
+  color: var(--accent-text);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+}
+
+.ae-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Gate screens (sign-in, vault) on a phone: the connection pills and the
+   beta badge move out, the language shows as its menu icon, and the account
+   keeps its dot. The bar never widens the page. */
+@media (max-width: 767px) {
+  .ae-topbar {
+    gap: var(--space-2);
+    padding: 0 var(--space-3);
+  }
+  .ae-topbar .ae-cockpit,
+  .ae-topbar .ae-brand__beta {
+    display: none;
+  }
+  .ae-topbar__actions {
+    gap: var(--space-2);
+    min-width: 0;
+  }
+  .ae-topbar .ae-account__name,
+  .ae-topbar .ae-lang__current {
+    display: none;
+  }
+}
+@media (max-width: 767px) {
+  .ae-topbar .ae-brand__name {
+    white-space: nowrap;
+  }
+  .ae-topbar .ae-lang__chev {
+    display: none;
+  }
+}
+/* Below 440px the four-way theme switch does not fit beside the account and
+   language; Settings still offers it once the desk is open. */
+@media (max-width: 439px) {
+  .ae-topbar .ae-theme {
+    display: none;
+  }
+}

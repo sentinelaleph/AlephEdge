@@ -1,0 +1,42 @@
+.ae-login {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 380px;
+  padding: var(--space-6);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.ae-login__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ae-login__title {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.ae-login__subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.ae-login__error {
+  font-size: var(--text-sm);
+  color: var(--danger-text);
+  line-height: 1.45;
+}
+
+.ae-login .ae-btn {
+  width: 100%;
+  justify-content: center;
+}

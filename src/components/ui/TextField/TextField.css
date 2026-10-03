@@ -1,0 +1,50 @@
+.ae-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ae-field__labelrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ae-field__label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ae-field__input {
+  width: 100%;
+  padding: 9px var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.ae-field__input::placeholder {
+  color: var(--text-subtle);
+}
+
+.ae-field__input:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.ae-field__input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ae-field__hint {
+  font-size: var(--text-2xs);
+  color: var(--text-subtle);
+  line-height: 1.4;
+}

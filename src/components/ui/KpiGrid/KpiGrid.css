@@ -1,0 +1,10 @@
+.ae-kpigrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--kpi-min, 160px), 1fr));
+  grid-auto-rows: 1fr; /* every tile in the grid shares one height */
+  gap: 8px;
+  min-width: 0;
+}
+.ae-kpigrid > .ae-kpi {
+  height: 100%;
+}

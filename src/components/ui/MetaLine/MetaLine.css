@@ -1,0 +1,15 @@
+/* One muted line of labels: "Historical simulation · Fees included". */
+.ae-metaline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.ae-metaline [data-tone="warn"] {
+  color: var(--warn-text);
+}
+.ae-metaline__sep {
+  color: var(--text-subtle);
+}

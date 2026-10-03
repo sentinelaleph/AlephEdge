@@ -1,0 +1,91 @@
+.ae-vaultlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 380px;
+  padding: var(--space-6);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.ae-vaultlock__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--accent-subtle);
+  color: var(--accent-text);
+}
+
+.ae-vaultlock__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ae-vaultlock__title {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.ae-vaultlock__subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.ae-vaultlock__error {
+  font-size: var(--text-sm);
+  color: var(--danger-text);
+  line-height: 1.45;
+}
+
+.ae-vaultlock__warning {
+  padding: var(--space-3);
+  border: 1px solid var(--warn-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--warn-subtle);
+  color: var(--warn-text);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.ae-vaultlock .ae-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.ae-vaultlock__reset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+}
+.ae-vaultlock__reset-link {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ae-vaultlock__reset-link:hover {
+  color: var(--text-muted);
+}
+.ae-vaultlock__reset-actions {
+  display: flex;
+  gap: var(--space-2);
+  width: 100%;
+}
+.ae-vaultlock__reset-actions .ae-btn {
+  flex: 1 1 0;
+}

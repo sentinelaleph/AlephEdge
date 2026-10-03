@@ -1,0 +1,11 @@
+.ae-vaultmgr {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* Clips the add-key panel while it folds open/closed. */
+.ae-vaultmgr__add {
+  overflow: hidden;
+}

@@ -1,0 +1,50 @@
+.ae-theme {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+}
+
+.ae-theme__seg {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  color: var(--text-subtle);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.ae-theme__seg:hover {
+  color: var(--text-muted);
+}
+
+.ae-theme__seg.is-active {
+  color: var(--text);
+}
+
+/* The single sliding pill. Sits behind the icon; layoutId animates it. */
+.ae-theme__pill {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  z-index: 0;
+}
+
+.ae-theme__icon {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+}
+
+.ae-theme__seg:active .ae-theme__icon {
+  transform: scale(0.9);
+  transition: transform var(--dur-press) var(--ease-out);
+}

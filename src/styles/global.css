@@ -1,0 +1,133 @@
+/* Minimal reset + base, on top of tokens.css. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Glassmorphism surface — frosted translucent panel. Token-driven so it reads
+   as a real blur on dark, a subtle frost on light, and a solid (no-blur) panel
+   on the contrast theme where legibility beats decoration. */
+.ae-glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Desktop app: never rubber-band or select chrome text. */
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Theme transitions: only the properties that change, never `all`. */
+body,
+.themed-surface {
+  transition:
+    background-color var(--dur-panel) var(--ease-standard),
+    border-color var(--dur-panel) var(--ease-standard),
+    color var(--dur-panel) var(--ease-standard);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* Links: one colour from tokens in every state. :where() keeps the
+   specificity at zero, so any class (nav items, buttons styled as links)
+   still owns its own colour; nothing falls back to the browser's blue or
+   visited purple. */
+:where(a) {
+  color: var(--link);
+  text-decoration: none;
+}
+:where(a:hover) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Values the user reads (prices, PnL, latency) use tabular figures so digits
+   don't jitter as they update. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* Focus is always visible for keyboard users, never for mouse. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-sm);
+}
+
+::selection {
+  background: var(--accent-subtle);
+}
+
+/* Thin, unobtrusive scrollbars that match the theme. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Directional money colour (was defined in the removed health strip). */
+.ae-up {
+  color: var(--pnl-up);
+}
+.ae-down {
+  color: var(--pnl-down);
+}
+
+/* Screen-reader-only text (icon buttons, rail labels, table headers). */
+.ae-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

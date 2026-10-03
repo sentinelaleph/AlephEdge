@@ -1,0 +1,50 @@
+/*
+ * Aurora backdrop. Sits behind all app content (App.css lifts siblings to
+ * z-index 1). Colors come only from theme tokens: --glow (accent bloom) and
+ * --grid (line mesh). Both are transparent in the contrast theme, which makes
+ * this layer disappear without any conditional rendering.
+ */
+.ae-aurora {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Faint perspective grid, faded out toward the bottom via a mask. */
+.ae-aurora__grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  -webkit-mask-image: radial-gradient(120% 80% at 50% 0%, #000 42%, transparent);
+  mask-image: radial-gradient(120% 80% at 50% 0%, #000 42%, transparent);
+}
+
+/* Two accent blooms drifting slowly across the top of the stage. */
+.ae-aurora__glow {
+  position: absolute;
+  inset: -25% -10% auto -10%;
+  height: 65%;
+  background: radial-gradient(55% 60% at 22% 8%, var(--glow), transparent 70%),
+    radial-gradient(45% 55% at 82% 0%, var(--glow), transparent 72%);
+  filter: blur(32px);
+  animation: ae-aurora-drift 24s var(--ease-in-out) infinite alternate;
+}
+
+@keyframes ae-aurora-drift {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 2%, 0) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ae-aurora__glow {
+    animation: none;
+  }
+}

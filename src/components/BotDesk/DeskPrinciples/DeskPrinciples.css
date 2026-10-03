@@ -1,0 +1,63 @@
+/* "How this bot works" explainer — quiet by default, token-driven like the
+   rest of the desk so all three themes (light / aurora / contrast) inherit. */
+
+.ae-principles {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-1);
+  margin-top: 12px;
+}
+
+.ae-principles__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.ae-principles__chevron {
+  font-size: 0.9rem;
+  opacity: 0.6;
+}
+
+.ae-principles__body {
+  padding: 0 14px 14px;
+}
+
+.ae-principles__intro {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  opacity: 0.75;
+}
+
+.ae-principles__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ae-principles__item h4 {
+  margin: 0 0 2px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ae-principles__item p {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  opacity: 0.75;
+}
