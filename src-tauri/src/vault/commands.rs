@@ -87,10 +87,16 @@ pub fn vault_lock(app: AppHandle, vault: State<VaultManager>) -> Result<VaultSta
     Ok(vault.status(&vault_path(&app)?))
 }
 
+pub const VAULT_RESET_CONFIRMATION: &str = "RESET";
+
 /// Destroys the vault + keychain salt (no password recovery — this is the
 /// escape hatch). Returns the fresh Absent status so the UI shows "create".
+/// Needs the typed word from the reset dialog, checked here too.
 #[tauri::command]
-pub fn vault_reset(app: AppHandle, vault: State<VaultManager>) -> Result<VaultStatus, String> {
+pub fn vault_reset(app: AppHandle, vault: State<VaultManager>, confirmation: String) -> Result<VaultStatus, String> {
+    if confirmation.trim() != VAULT_RESET_CONFIRMATION {
+        return Err("resetConfirmRequired".to_string());
+    }
     let path = vault_path(&app)?;
     vault.reset(&path)?;
     Ok(vault.status(&path))

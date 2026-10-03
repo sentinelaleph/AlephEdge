@@ -112,8 +112,11 @@ export function onVaultAutoLocked(handler: (status: VaultStatus) => void): Promi
   return listenEvent<VaultStatus>("vault:auto-locked", handler);
 }
 
+/** The word the reset dialog makes the user type; the backend checks it too. */
+export const VAULT_RESET_CONFIRMATION = "RESET";
+
 /** Destroys the vault + keychain salt (no password recovery). Returns Absent. */
-export function vaultReset(): Promise<VaultStatus> {
-  return inTauri() ? invoke<VaultStatus>("vault_reset") : devMock(() => import("./vault.mock"), (m) => m.mock.reset());
+export function vaultReset(confirmation: string): Promise<VaultStatus> {
+  return inTauri() ? invoke<VaultStatus>("vault_reset", { confirmation }) : devMock(() => import("./vault.mock"), (m) => m.mock.reset());
 }
 

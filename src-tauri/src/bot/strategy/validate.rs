@@ -488,6 +488,18 @@ pub fn preview(cfg: &StrategyConfig, price: f64, max_leverage: u8) -> PreviewDto
             if p.stop_out_pct.is_none() {
                 warnings.push("noStopOut");
             }
+            // A relative range is validated scale-free, so its trail limit can
+            // only be compared with the band once a price is known.
+            if let (Some(limit), true, GridRange::Relative { .. }) = (p.trail_up_limit, p.trailing_up, p.range) {
+                if limit <= upper {
+                    warnings.push("trailLimitInsideRange");
+                }
+            }
+            // An absolute range passes at its mid; started at this price the
+            // driver would hold it until the liquidation leaves the band.
+            if matches!(p.range, GridRange::Absolute { .. }) && !grid_liq_clear_at(cfg, p, price) {
+                warnings.push("gridLiqInsideBandNow");
+            }
             GridPreview {
                 lower,
                 upper,
@@ -749,6 +761,26 @@ mod tests {
         assert_eq!(code(&c, 2), Some("tpInvalid"));
         c.side = Side::Long;
         assert_eq!(code(&c, 2), None, "a long's 100% TP is a real price");
+    }
+
+    #[test]
+    fn preview_warns_where_a_grid_only_fails_at_the_real_price() {
+        let mut c = grid_cfg();
+        c.side = Side::Long;
+        c.leverage = 10;
+        assert_eq!(code(&c, 10), None, "passes at the range mid");
+        assert!(preview(&c, 109.0, 10).warnings.contains(&"gridLiqInsideBandNow"));
+        assert!(!preview(&c, 99.5, 10).warnings.contains(&"gridLiqInsideBandNow"));
+
+        let mut c = with_grid(|p| {
+            p.range = GridRange::Relative { lower_pct: 10.0, upper_pct: 10.0 };
+            p.trailing_up = true;
+            p.trail_up_limit = Some(105.0);
+        });
+        c.side = Side::Long;
+        assert_eq!(code(&c, 2), None);
+        assert!(preview(&c, 100.0, 2).warnings.contains(&"trailLimitInsideRange"));
+        assert!(!preview(&c, 50.0, 2).warnings.contains(&"trailLimitInsideRange"));
     }
 
     #[test]

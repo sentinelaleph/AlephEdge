@@ -1,6 +1,6 @@
 {
   "name": "aleph-edge",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Aleph Edge — Sentinel Aleph automated trading bot (Tauri desktop)",
   "type": "module",
   "private": true,

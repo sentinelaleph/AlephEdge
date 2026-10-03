@@ -1329,7 +1329,9 @@
       "leveraged": "Alavancagem acima de 1x: as perdas crescem junto.",
       "noDrawdownStop": "Este bot não tem stop por drawdown.",
       "noStopLoss": "Sem stop: a perda não tem limite.",
-      "noStopOut": "Sem stop: a perda do estoque não tem limite."
+      "noStopOut": "Sem stop: a perda do estoque não tem limite.",
+      "trailLimitInsideRange": "O limite de arrasto fica dentro do intervalo a este preço: o intervalo nunca se move.",
+      "gridLiqInsideBandNow": "A liquidação estimada entra na faixa a este preço: o bot espera até que saia."
     },
     "detail": {
       "preset": "Preset",
@@ -1403,7 +1405,7 @@
       "remoteKill": "Celular: fechar tudo",
       "manual": "Fechado por você",
       "end": "Fim dos dados",
-      "sizeDown": "As ordens ficaram abaixo do mínimo da corretora"
+      "sizeDown": "Perdas reduziram as ordens"
     },
     "role": {
       "base": "Ordem base",
@@ -1592,14 +1594,15 @@
       "outOfRange": "Preço fora da faixa do grid",
       "cooldown": "Espera antes do próximo ciclo.",
       "maxCyclesReached": "Máximo de ciclos atingido: o bot parou.",
-      "sizeDownDead": "Orçamento abaixo de 1% após perdas: o bot foi encerrado.",
+      "sizeDownDead": "Orçamento abaixo de 1% após perdas: o bot terminou.",
       "ddStop": "Stop por drawdown do bot atingido: o bot parou.",
       "fundingUnknown": "Taxa de funding indisponível: cobrado 0",
       "endReached": "Horário de término atingido: sem ciclos novos.",
       "priceBandWait": "Preço fora da proteção por faixa: aguardando.",
       "cycleClosed": "Ciclo fechado: {{reason}}",
       "storeReadFailed": "Não foi possível ler o armazenamento de estratégias.",
-      "storeWriteFailed": "Não foi possível salvar no armazenamento de estratégias."
+      "storeWriteFailed": "Não foi possível salvar no armazenamento de estratégias.",
+      "sizeDownBelowMin": "As ordens ficaram abaixo do mínimo da corretora após perdas: o bot terminou."
     },
     "errors": {
       "nameInvalid": "Nome: de 1 a 40 caracteres.",
@@ -1790,7 +1793,13 @@
     "vaultIdleInvalid": "Escolha um dos tempos de bloqueio oferecidos.",
     "keyExchangeUnverified": "Só é possível verificar permissões de chaves da Binance, então só chaves da Binance são aceitas ({{detail}}).",
     "keyCheckUnavailable": "Não foi possível contatar a Binance para verificar as permissões desta chave. Tente de novo em instantes.",
-    "liveNeedsVerifiedKey": "Esta chave foi salva antes da verificação de permissões. Renove em Configurações, Chaves de corretora, e depois ative o modo real."
+    "liveNeedsVerifiedKey": "Esta chave foi salva antes da verificação de permissões. Renove em Configurações, Chaves de corretora, e depois ative o modo real.",
+    "updateCheckFailed": "Não foi possível verificar atualizações.",
+    "updateInstallFailed": "A atualização não pôde ser instalada.",
+    "updateNone": "Nenhuma atualização disponível.",
+    "updateConfirmRequired": "Digite {{detail}} para instalar a atualização.",
+    "closeConfirmRequired": "Digite {{detail}} para fechar.",
+    "resetConfirmRequired": "Digite {{detail}} para redefinir o cofre."
   },
   "status": {
     "running": "Em execução",
@@ -1818,5 +1827,25 @@
     "englishOnly": "Por enquanto este guia está em inglês.",
     "formLink": "O que cada ajuste faz?",
     "presetsLink": "Como escolher um modelo"
+  },
+  "update": {
+    "title": "Atualizações",
+    "available": "Aleph Edge {{version}} está disponível",
+    "availableChip": "{{version}} disponível",
+    "install": "Instalar e reiniciar",
+    "installing": "Instalando…",
+    "later": "Depois",
+    "downloading": "Baixando {{pct}}%",
+    "downloadingNoSize": "Baixando…",
+    "restartNote": "O app reinicia; bots, posições e ciclos são restaurados ao abrir.",
+    "check": "Verificar atualizações",
+    "checking": "Verificando…",
+    "upToDate": "Atualizado",
+    "checkFailed": "Falha na verificação",
+    "current": "Versão instalada",
+    "latest": "Versão mais recente",
+    "checkedAt": "Última verificação",
+    "notChecked": "Ainda não verificado",
+    "signedNote": "Cada atualização é verificada com a chave de assinatura embutida no app antes de instalar."
   }
 }

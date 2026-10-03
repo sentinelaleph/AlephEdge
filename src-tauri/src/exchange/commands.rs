@@ -59,7 +59,9 @@ pub async fn exchange_close_position(
     exchange: State<'_, ExchangeManager>,
     exchange_id: String,
     symbol: String,
+    confirmation: String,
 ) -> Result<(), String> {
+    check_close_confirmation(&confirmation)?;
     let cred = binance_credential(&vault, &exchange_id)?;
     exchange
         .close_position(&cred.api_key, &cred.api_secret, &symbol)
@@ -74,12 +76,26 @@ pub async fn exchange_close_all(
     vault: State<'_, VaultManager>,
     exchange: State<'_, ExchangeManager>,
     exchange_id: String,
+    confirmation: String,
 ) -> Result<usize, String> {
+    check_close_confirmation(&confirmation)?;
     let cred = binance_credential(&vault, &exchange_id)?;
     exchange
         .close_all(&cred.api_key, &cred.api_secret)
         .await
         .map_err(explain)
+}
+
+/// The word the close dialogs make the user type. Checked here as well, so a
+/// stray or scripted invoke cannot place a real close order on its own.
+pub const CLOSE_CONFIRMATION: &str = "CLOSE";
+
+fn check_close_confirmation(confirmation: &str) -> Result<(), String> {
+    if confirmation.trim() == CLOSE_CONFIRMATION {
+        Ok(())
+    } else {
+        Err("closeConfirmRequired".to_string())
+    }
 }
 
 /// Resolves the vaulted Binance credential, rejecting non-Binance ids (the only
@@ -117,6 +133,13 @@ fn explain(e: BinanceKeyCheckError) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_close_without_the_typed_word_is_refused() {
+        assert_eq!(check_close_confirmation(""), Err("closeConfirmRequired".to_string()));
+        assert_eq!(check_close_confirmation("close"), Err("closeConfirmRequired".to_string()));
+        assert_eq!(check_close_confirmation(" CLOSE "), Ok(()));
+    }
 
     #[test]
     fn binance_failures_are_codes_with_binance_text_as_detail() {

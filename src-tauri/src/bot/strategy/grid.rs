@@ -227,6 +227,18 @@ impl GridState {
         self.pos * (p - self.a)
     }
 
+    /// The bot drawdown stop as a price for the inventory held now: the price
+    /// at which cash + pos * (p - a) reaches the driver's floor. Same rule as
+    /// the DCA walk: it fills inside the bar at its level, not at the close.
+    fn dd_price(&self, core: &CycleCore) -> Option<f64> {
+        let floor = core.dd_floor?;
+        if self.pos == 0.0 {
+            return None;
+        }
+        let px = self.a + (floor - core.cash) / self.pos;
+        (px.is_finite() && px > 0.0).then_some(px)
+    }
+
     /// Signed trade `dq` at `px`; realises P&L on the closing part.
     fn trade(&mut self, core: &mut CycleCore, dq: f64, px: f64, liq: Liquidity, role: &str) {
         let pos = self.pos;
@@ -298,7 +310,8 @@ impl GridState {
                 }
             }
             let liq_lv = if self.pos > 0.0 { self.liq } else { None };
-            for (lv, pr, kd) in [(self.lo_stop, 1, 1u8), (liq_lv, 0, 2u8)] {
+            let dd_lv = if self.pos > 0.0 { self.dd_price(core) } else { None };
+            for (lv, pr, kd) in [(self.lo_stop, 1, 1u8), (liq_lv, 0, 2u8), (dd_lv, 1, 4u8)] {
                 if let Some(lv) = lv {
                     if lv >= b {
                         let cand = (lv.min(cur), -pr, kd, lv);
@@ -324,6 +337,7 @@ impl GridState {
                     cur = key;
                 }
                 2 => self.liquidate(core, z),
+                4 => close_market(core, self, if gap { b } else { key }, ExitReason::Ddstop),
                 _ => close_market(core, self, if gap { b } else { key }, ExitReason::Stop),
             }
         }
@@ -347,7 +361,8 @@ impl GridState {
                 }
             }
             let liq_lv = if self.pos < 0.0 { self.liq } else { None };
-            for (lv, pr, kd) in [(self.hi_stop, 1, 1u8), (liq_lv, 0, 2u8), (tl, 3, 3u8)] {
+            let dd_lv = if self.pos < 0.0 { self.dd_price(core) } else { None };
+            for (lv, pr, kd) in [(self.hi_stop, 1, 1u8), (liq_lv, 0, 2u8), (tl, 3, 3u8), (dd_lv, 1, 4u8)] {
                 if let Some(lv) = lv {
                     if lv <= b {
                         let cand = (-lv.max(cur), -pr, kd, lv);
@@ -378,6 +393,7 @@ impl GridState {
                     self.shift_up(z, core.legs);
                     cur = key;
                 }
+                4 => close_market(core, self, if gap { b } else { key }, ExitReason::Ddstop),
                 _ => close_market(core, self, if gap { b } else { key }, ExitReason::Stop),
             }
         }

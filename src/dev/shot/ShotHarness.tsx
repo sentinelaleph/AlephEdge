@@ -54,6 +54,7 @@ const SHOT_ROUTES = {
   settings: "/bots/signal-futures?tab=settings",
   "settings-page": "/settings",
   "settings-devices": "/settings?tab=devices",
+  "settings-about": "/settings?tab=about",
   account: "/account",
   "not-found": "/no-such-page",
   // Older shot names, kept so existing screenshot scripts still resolve.

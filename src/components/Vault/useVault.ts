@@ -12,6 +12,7 @@ import {
   vaultRenameCredential,
   vaultReplaceCredential,
   vaultReset,
+  VAULT_RESET_CONFIRMATION,
   vaultSetIdleMinutes,
   vaultStatus,
   vaultUnlock,
@@ -162,8 +163,9 @@ export function useVault(): VaultController {
   const reset = useCallback(
     () =>
       run(async () => {
+        const next = await vaultReset(VAULT_RESET_CONFIRMATION);
         setCredentials([]);
-        setStatus(await vaultReset());
+        setStatus(next);
       }),
     [run],
   );

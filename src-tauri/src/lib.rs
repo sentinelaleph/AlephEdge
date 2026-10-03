@@ -21,6 +21,7 @@ mod vault;
 
 use app::cockpit::{cockpit_exchange, cockpit_sentinel};
 use app::commands::{app_version, get_endpoints, get_health_snapshot};
+use app::update::{app_check_update, app_install_update};
 use bot::strategy::commands::{
     strategy_archive, strategy_close, strategy_close_all, strategy_create, strategy_cycles,
     strategy_default, strategy_detail, strategy_equity, strategy_export_csv, strategy_fills,
@@ -104,6 +105,8 @@ pub fn run() {
             get_health_snapshot,
             get_endpoints,
             app_version,
+            app_check_update,
+            app_install_update,
             vault_status,
             vault_create,
             vault_unlock,

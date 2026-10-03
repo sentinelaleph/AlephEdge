@@ -4,6 +4,7 @@ import { useDeskContext } from "@/app/DeskProvider";
 import { useQueryParam } from "@/app/router/router";
 import { PairingPanel } from "@/components/Link/PairingPanel/PairingPanel";
 import { ExchangeKeysTab } from "./ExchangeKeysTab";
+import { UpdatePanel } from "./UpdatePanel";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
 import { LanguageSelect } from "@/components/ui/LanguageSelect/LanguageSelect";
 import { PageShell } from "@/components/ui/PageShell/PageShell";
@@ -126,6 +127,8 @@ export function SettingsPage() {
         ) : tab === "keys" ? (
           <ExchangeKeysTab />
         ) : (
+          <>
+          <UpdatePanel />
           <Panel title={t("settings.tabs.about")}>
             <FactList
               rows={[
@@ -136,6 +139,7 @@ export function SettingsPage() {
               ]}
             />
           </Panel>
+          </>
         )}
       </Tabs>
     </PageShell>

@@ -1329,7 +1329,9 @@
       "leveraged": "Leverage above 1x: losses grow with it.",
       "noDrawdownStop": "No drawdown stop on this bot.",
       "noStopLoss": "No stop: loss is open-ended.",
-      "noStopOut": "No stop: inventory loss is open-ended."
+      "noStopOut": "No stop: inventory loss is open-ended.",
+      "trailLimitInsideRange": "Trail limit sits inside the range at this price: the range never trails.",
+      "gridLiqInsideBandNow": "Est. liquidation enters the band at this price: the bot waits until it leaves."
     },
     "detail": {
       "preset": "Preset",
@@ -1403,7 +1405,7 @@
       "remoteKill": "Phone: close all",
       "manual": "Closed by you",
       "end": "Data end",
-      "sizeDown": "Orders shrank below the exchange minimum"
+      "sizeDown": "Losses shrank the orders"
     },
     "role": {
       "base": "Base order",
@@ -1599,7 +1601,8 @@
       "priceBandWait": "Price outside the range guard: waiting.",
       "cycleClosed": "Cycle closed: {{reason}}",
       "storeReadFailed": "Could not read the strategy store.",
-      "storeWriteFailed": "Could not save to the strategy store."
+      "storeWriteFailed": "Could not save to the strategy store.",
+      "sizeDownBelowMin": "Orders shrank below the exchange minimum after losses: the bot ended."
     },
     "errors": {
       "nameInvalid": "Name: 1 to 40 characters.",
@@ -1790,7 +1793,13 @@
     "vaultIdleInvalid": "Choose one of the offered auto-lock times.",
     "keyExchangeUnverified": "Only Binance keys can be checked for permissions, so only Binance keys are accepted ({{detail}}).",
     "keyCheckUnavailable": "Binance could not be reached to check this key's permissions. Try again in a moment.",
-    "liveNeedsVerifiedKey": "This key was stored before permissions were verified. Renew it in Settings, Exchange keys, then switch live on."
+    "liveNeedsVerifiedKey": "This key was stored before permissions were verified. Renew it in Settings, Exchange keys, then switch live on.",
+    "updateCheckFailed": "Could not check for updates.",
+    "updateInstallFailed": "The update could not be installed.",
+    "updateNone": "No update is available.",
+    "updateConfirmRequired": "Type {{detail}} to install the update.",
+    "closeConfirmRequired": "Type {{detail}} to close.",
+    "resetConfirmRequired": "Type {{detail}} to reset the vault."
   },
   "status": {
     "running": "Running",
@@ -1818,5 +1827,25 @@
     "englishOnly": "This guide is in English for now.",
     "formLink": "What does each setting do?",
     "presetsLink": "How to choose a template"
+  },
+  "update": {
+    "title": "Updates",
+    "available": "Aleph Edge {{version}} is available",
+    "availableChip": "{{version}} available",
+    "install": "Install and restart",
+    "installing": "Installing…",
+    "later": "Later",
+    "downloading": "Downloading {{pct}}%",
+    "downloadingNoSize": "Downloading…",
+    "restartNote": "The app restarts; bots, positions and cycles are restored after it starts.",
+    "check": "Check for updates",
+    "checking": "Checking…",
+    "upToDate": "Up to date",
+    "checkFailed": "Check failed",
+    "current": "Installed version",
+    "latest": "Latest version",
+    "checkedAt": "Last checked",
+    "notChecked": "Not checked yet",
+    "signedNote": "Every update is verified against the signing key built into the app before it installs."
   }
 }

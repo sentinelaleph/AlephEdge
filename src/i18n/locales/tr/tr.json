@@ -1329,7 +1329,9 @@
       "leveraged": "1x üstü kaldıraç: kayıplar onunla büyür.",
       "noDrawdownStop": "Bu botta düşüş durdurucusu yok.",
       "noStopLoss": "Stop yok: kayıp sınırsız.",
-      "noStopOut": "Stop yok: envanter kaybı sınırsız."
+      "noStopOut": "Stop yok: envanter kaybı sınırsız.",
+      "trailLimitInsideRange": "Takip sınırı bu fiyatta aralığın içinde: aralık hiç kaymaz.",
+      "gridLiqInsideBandNow": "Tahmini likidasyon bu fiyatta bandın içine giriyor: bot bant dışına çıkana kadar bekler."
     },
     "detail": {
       "preset": "Hazır ayar",
@@ -1403,7 +1405,7 @@
       "remoteKill": "Telefon: tümünü kapat",
       "manual": "Siz kapattınız",
       "end": "Veri sonu",
-      "sizeDown": "Emirler borsanın asgari tutarının altına düştü"
+      "sizeDown": "Zararlar emirleri küçülttü"
     },
     "role": {
       "base": "Ana emir",
@@ -1592,14 +1594,15 @@
       "outOfRange": "Fiyat grid aralığının dışında",
       "cooldown": "Sonraki döngüden önce bekleme.",
       "maxCyclesReached": "En fazla döngüye ulaşıldı: bot durdu.",
-      "sizeDownDead": "Kayıplardan sonra bütçe %1'in altında: bot sona erdi.",
+      "sizeDownDead": "Zararlardan sonra bütçe %1'in altına indi: bot sona erdi.",
       "ddStop": "Bot düşüş durdurucusu tetiklendi: bot durdu.",
       "fundingUnknown": "Fonlama oranı yok: 0 tahsil edildi",
       "endReached": "Bitiş zamanına ulaşıldı: yeni döngü yok.",
       "priceBandWait": "Fiyat aralık korumasının dışında: bekleniyor.",
       "cycleClosed": "Döngü kapandı: {{reason}}",
       "storeReadFailed": "Strateji deposu okunamadı.",
-      "storeWriteFailed": "Strateji deposuna kaydedilemedi."
+      "storeWriteFailed": "Strateji deposuna kaydedilemedi.",
+      "sizeDownBelowMin": "Zararlardan sonra emirler borsa alt sınırının altına küçüldü: bot sona erdi."
     },
     "errors": {
       "nameInvalid": "Ad: 1 ile 40 karakter.",
@@ -1790,7 +1793,13 @@
     "vaultIdleInvalid": "Sunulan otomatik kilit sürelerinden birini seçin.",
     "keyExchangeUnverified": "Yalnızca Binance anahtarlarının izinleri doğrulanabiliyor; bu yüzden yalnızca Binance anahtarı kabul edilir ({{detail}}).",
     "keyCheckUnavailable": "Bu anahtarın izinlerini doğrulamak için Binance'e ulaşılamadı. Biraz sonra tekrar deneyin.",
-    "liveNeedsVerifiedKey": "Bu anahtar izinler doğrulanmadan önce kaydedilmiş. Ayarlar, Borsa anahtarları bölümünden yenileyin, sonra canlıyı açın."
+    "liveNeedsVerifiedKey": "Bu anahtar izinler doğrulanmadan önce kaydedilmiş. Ayarlar, Borsa anahtarları bölümünden yenileyin, sonra canlıyı açın.",
+    "updateCheckFailed": "Güncellemeler denetlenemedi.",
+    "updateInstallFailed": "Güncelleme kurulamadı.",
+    "updateNone": "Yeni güncelleme yok.",
+    "updateConfirmRequired": "Güncellemeyi kurmak için {{detail}} yazın.",
+    "closeConfirmRequired": "Kapatmak için {{detail}} yazın.",
+    "resetConfirmRequired": "Kasayı sıfırlamak için {{detail}} yazın."
   },
   "status": {
     "running": "Çalışıyor",
@@ -1818,5 +1827,25 @@
     "englishOnly": "Bu rehber şimdilik İngilizce.",
     "formLink": "Her ayar ne işe yarar?",
     "presetsLink": "Şablon nasıl seçilir"
+  },
+  "update": {
+    "title": "Güncellemeler",
+    "available": "Aleph Edge {{version}} yayında",
+    "availableChip": "{{version}} yayında",
+    "install": "Kur ve yeniden başlat",
+    "installing": "Kuruluyor…",
+    "later": "Sonra",
+    "downloading": "İndiriliyor %{{pct}}",
+    "downloadingNoSize": "İndiriliyor…",
+    "restartNote": "Uygulama yeniden başlar; botlar, pozisyonlar ve döngüler açılışta geri yüklenir.",
+    "check": "Güncellemeleri denetle",
+    "checking": "Denetleniyor…",
+    "upToDate": "Güncel",
+    "checkFailed": "Denetlenemedi",
+    "current": "Kurulu sürüm",
+    "latest": "En yeni sürüm",
+    "checkedAt": "Son denetim",
+    "notChecked": "Henüz denetlenmedi",
+    "signedNote": "Her güncelleme, kurulmadan önce uygulamanın içindeki imza anahtarıyla doğrulanır."
   }
 }

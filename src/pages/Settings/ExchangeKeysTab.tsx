@@ -13,11 +13,11 @@ import { localeForLanguage } from "@/i18n";
 import { errorMessage } from "@/lib/ipc/bridge";
 import { cockpitExchange, cockpitSentinel, type PingResult } from "@/lib/ipc/cockpit/cockpit";
 import { exchangeName } from "@/lib/ipc/exchange/exchange";
-import { IDLE_MINUTE_CHOICES } from "@/lib/ipc/vault/vault";
+import { IDLE_MINUTE_CHOICES, VAULT_RESET_CONFIRMATION } from "@/lib/ipc/vault/vault";
 import { localizeError } from "@/lib/errorText";
 import "./ExchangeKeysTab.css";
 
-const RESET_WORD = "RESET";
+const RESET_WORD = VAULT_RESET_CONFIRMATION;
 /** Same rule as `vault::commands::MIN_VAULT_PASSWORD_CHARS`. */
 const MIN_PASSWORD_CHARS = 8;
 

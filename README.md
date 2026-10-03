@@ -124,7 +124,7 @@ Simulated positions and DCA/Grid cycles on one tab, the real exchange account on
 | Ambitious | 10x | −10% | 60% |
 | Greedy | 20x | −15% | 80% |
 
-- A **daily stop** on realized losses stops the signal bots and can close their positions (DCA and Grid are accounted for separately).
+- A **daily stop** on realized losses stops the signal bots and can close their open positions; they cannot be started again until the next UTC day (DCA and Grid are accounted for separately).
 - A **portfolio breaker** closes the DCA and Grid bots inside it when their combined loss reaches 15% of their budgets.
 - The **BTC regime** read is shown live and gates entries.
 - The **LIVE gate** states whether this build can place real orders at all.

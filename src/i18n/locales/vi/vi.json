@@ -1329,7 +1329,9 @@
       "leveraged": "Đòn bẩy trên 1x: khoản lỗ tăng theo.",
       "noDrawdownStop": "Bot này không có dừng theo sụt giảm.",
       "noStopLoss": "Không có dừng: khoản lỗ không giới hạn.",
-      "noStopOut": "Không có dừng: lỗ trên hàng tồn không giới hạn."
+      "noStopOut": "Không có dừng: lỗ trên hàng tồn không giới hạn.",
+      "trailLimitInsideRange": "Giới hạn trượt nằm trong vùng giá ở mức giá này: vùng sẽ không trượt.",
+      "gridLiqInsideBandNow": "Thanh lý ước tính rơi vào dải ở mức giá này: bot chờ đến khi ra khỏi dải."
     },
     "detail": {
       "preset": "Cấu hình mẫu",
@@ -1403,7 +1405,7 @@
       "remoteKill": "Điện thoại: đóng tất cả",
       "manual": "Bạn đã đóng",
       "end": "Hết dữ liệu",
-      "sizeDown": "Lệnh đã nhỏ hơn mức tối thiểu của sàn"
+      "sizeDown": "Thua lỗ làm lệnh nhỏ lại"
     },
     "role": {
       "base": "Lệnh cơ sở",
@@ -1599,7 +1601,8 @@
       "priceBandWait": "Giá nằm ngoài vùng bảo vệ: đang chờ.",
       "cycleClosed": "Chu kỳ đã đóng: {{reason}}",
       "storeReadFailed": "Không đọc được kho dữ liệu chiến lược.",
-      "storeWriteFailed": "Không lưu được vào kho dữ liệu chiến lược."
+      "storeWriteFailed": "Không lưu được vào kho dữ liệu chiến lược.",
+      "sizeDownBelowMin": "Lệnh nhỏ hơn mức tối thiểu của sàn sau thua lỗ: bot đã kết thúc."
     },
     "errors": {
       "nameInvalid": "Tên: từ 1 đến 40 ký tự.",
@@ -1790,7 +1793,13 @@
     "vaultIdleInvalid": "Chọn một trong các thời gian tự khóa có sẵn.",
     "keyExchangeUnverified": "Chỉ kiểm tra được quyền của khóa Binance, nên chỉ chấp nhận khóa Binance ({{detail}}).",
     "keyCheckUnavailable": "Không kết nối được Binance để kiểm tra quyền của khóa này. Hãy thử lại sau ít phút.",
-    "liveNeedsVerifiedKey": "Khóa này được lưu trước khi kiểm tra quyền. Hãy gia hạn trong Cài đặt, Khóa sàn, rồi bật chế độ thật."
+    "liveNeedsVerifiedKey": "Khóa này được lưu trước khi kiểm tra quyền. Hãy gia hạn trong Cài đặt, Khóa sàn, rồi bật chế độ thật.",
+    "updateCheckFailed": "Không thể kiểm tra cập nhật.",
+    "updateInstallFailed": "Không thể cài bản cập nhật.",
+    "updateNone": "Không có bản cập nhật.",
+    "updateConfirmRequired": "Nhập {{detail}} để cài bản cập nhật.",
+    "closeConfirmRequired": "Nhập {{detail}} để đóng.",
+    "resetConfirmRequired": "Nhập {{detail}} để đặt lại kho."
   },
   "status": {
     "running": "Đang chạy",
@@ -1818,5 +1827,25 @@
     "englishOnly": "Hiện hướng dẫn này bằng tiếng Anh.",
     "formLink": "Mỗi cài đặt làm gì?",
     "presetsLink": "Cách chọn mẫu"
+  },
+  "update": {
+    "title": "Cập nhật",
+    "available": "Đã có Aleph Edge {{version}}",
+    "availableChip": "Có bản {{version}}",
+    "install": "Cài đặt và khởi động lại",
+    "installing": "Đang cài…",
+    "later": "Để sau",
+    "downloading": "Đang tải {{pct}}%",
+    "downloadingNoSize": "Đang tải…",
+    "restartNote": "Ứng dụng khởi động lại; bot, vị thế và chu kỳ được khôi phục khi mở.",
+    "check": "Kiểm tra cập nhật",
+    "checking": "Đang kiểm tra…",
+    "upToDate": "Đã mới nhất",
+    "checkFailed": "Kiểm tra thất bại",
+    "current": "Phiên bản đã cài",
+    "latest": "Phiên bản mới nhất",
+    "checkedAt": "Lần kiểm tra cuối",
+    "notChecked": "Chưa kiểm tra",
+    "signedNote": "Mỗi bản cập nhật được xác minh bằng khóa ký tích hợp trong ứng dụng trước khi cài."
   }
 }

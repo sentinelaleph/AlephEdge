@@ -7,7 +7,7 @@ import { Panel } from "@/components/ui/Panel/Panel";
 import { Section } from "@/components/ui/Section/Section";
 import { localeForLanguage } from "@/i18n";
 import { formatPrice } from "@/lib/format";
-import { exchangeName } from "@/lib/ipc/exchange/exchange";
+import { CLOSE_CONFIRMATION, exchangeName } from "@/lib/ipc/exchange/exchange";
 import { useExchangeCatalog } from "@/lib/ipc/exchange/useExchangeCatalog";
 import { useAccount } from "../useAccount";
 import "./AccountPanel.css";
@@ -156,7 +156,7 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "up
 
 /** Real close orders wait for the typed word, never a stray click. Shared
  *  with the bot positions table, whose LIVE close is also a real order. */
-export const CLOSE_WORD = "CLOSE";
+export const CLOSE_WORD = CLOSE_CONFIRMATION;
 
 /** Snapshots older than this disable the close buttons (prices may have moved). */
 const STALE_MS = 60_000;

@@ -1,0 +1,34 @@
+.ae-update {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  /* Opaque even with a translucent accent tint: content scrolls under it. */
+  background: var(--bg);
+  box-shadow: inset 0 0 0 9999px var(--accent-subtle);
+  font-size: var(--text-xs);
+  color: var(--text);
+}
+
+.ae-update__text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  min-width: 0;
+}
+
+.ae-update__sub {
+  color: var(--text-muted);
+}
+
+.ae-update__actions {
+  display: flex;
+  gap: var(--space-1);
+}

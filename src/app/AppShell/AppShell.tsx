@@ -28,6 +28,8 @@ import { RiskPage } from "@/pages/Risk/RiskPage";
 import { SettingsPage } from "@/pages/Settings/SettingsPage";
 import { SignalsPage } from "@/pages/Signals/SignalsPage";
 import { AlertsDrawer } from "./AlertsDrawer";
+import { UpdateBanner } from "./UpdateBanner";
+import { useUpdateChecks } from "@/app/update";
 import { Header } from "./Header";
 import { NUMBER_SHORTCUTS } from "./navModel";
 import { ShellSlotsContext } from "./shellSlots";
@@ -156,6 +158,7 @@ export function AppShell() {
   const { t } = useTranslation();
   const ctx = useDeskContext();
   const route = useRoute();
+  useUpdateChecks();
   const width = useWindowWidth();
   const [collapsed, setCollapsed] = useState(() => readFlag(COLLAPSED_KEY));
   const [pinnedOpen, setPinnedOpen] = useState(() => readFlag(PINNED_KEY));
@@ -315,6 +318,7 @@ export function AppShell() {
           onAlerts={openAlerts}
         />
         <main className="ae-shell__main" tabIndex={-1}>
+          <UpdateBanner />
           <Suspense fallback={<p className="ae-shell__loading">{t("workspace.loading")}</p>}>
             {heading ? <div key={route.path} className="ae-shell__page">{renderRoute(route)}</div> : null}
           </Suspense>

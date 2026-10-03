@@ -1329,7 +1329,9 @@
       "leveraged": "Leverage di atas 1x: kerugian ikut membesar.",
       "noDrawdownStop": "Bot ini tidak punya stop drawdown.",
       "noStopLoss": "Tanpa stop: kerugian tak terbatas.",
-      "noStopOut": "Tanpa stop: kerugian inventaris tak terbatas."
+      "noStopOut": "Tanpa stop: kerugian inventaris tak terbatas.",
+      "trailLimitInsideRange": "Batas trail berada di dalam rentang pada harga ini: rentang tidak pernah bergeser.",
+      "gridLiqInsideBandNow": "Perkiraan likuidasi masuk ke pita pada harga ini: bot menunggu hingga keluar."
     },
     "detail": {
       "preset": "Preset",
@@ -1403,7 +1405,7 @@
       "remoteKill": "Ponsel: tutup semua",
       "manual": "Ditutup oleh Anda",
       "end": "Akhir data",
-      "sizeDown": "Order menyusut di bawah minimum bursa"
+      "sizeDown": "Kerugian mengecilkan order"
     },
     "role": {
       "base": "Order dasar",
@@ -1592,14 +1594,15 @@
       "outOfRange": "Harga di luar rentang grid",
       "cooldown": "Jeda sebelum siklus berikutnya.",
       "maxCyclesReached": "Maks. siklus tercapai: bot berhenti.",
-      "sizeDownDead": "Anggaran di bawah 1% setelah rugi: bot selesai.",
+      "sizeDownDead": "Anggaran di bawah 1% setelah rugi: bot berakhir.",
       "ddStop": "Stop drawdown bot tercapai: bot berhenti.",
       "fundingUnknown": "Funding rate tidak tersedia: dibebankan 0",
       "endReached": "Waktu selesai tercapai: tidak ada siklus baru.",
       "priceBandWait": "Harga di luar penjaga rentang: menunggu.",
       "cycleClosed": "Siklus ditutup: {{reason}}",
       "storeReadFailed": "Penyimpanan strategi tidak bisa dibaca.",
-      "storeWriteFailed": "Tidak bisa menyimpan ke penyimpanan strategi."
+      "storeWriteFailed": "Tidak bisa menyimpan ke penyimpanan strategi.",
+      "sizeDownBelowMin": "Order mengecil di bawah minimum bursa setelah rugi: bot berakhir."
     },
     "errors": {
       "nameInvalid": "Nama: 1 sampai 40 karakter.",
@@ -1790,7 +1793,13 @@
     "vaultIdleInvalid": "Pilih salah satu waktu kunci otomatis yang tersedia.",
     "keyExchangeUnverified": "Hanya izin kunci Binance yang bisa diverifikasi, jadi hanya kunci Binance yang diterima ({{detail}}).",
     "keyCheckUnavailable": "Binance tidak dapat dihubungi untuk memeriksa izin kunci ini. Coba lagi sebentar lagi.",
-    "liveNeedsVerifiedKey": "Kunci ini disimpan sebelum izin diverifikasi. Perbarui di Pengaturan, Kunci exchange, lalu aktifkan live."
+    "liveNeedsVerifiedKey": "Kunci ini disimpan sebelum izin diverifikasi. Perbarui di Pengaturan, Kunci exchange, lalu aktifkan live.",
+    "updateCheckFailed": "Tidak dapat memeriksa pembaruan.",
+    "updateInstallFailed": "Pembaruan tidak dapat dipasang.",
+    "updateNone": "Tidak ada pembaruan.",
+    "updateConfirmRequired": "Ketik {{detail}} untuk memasang pembaruan.",
+    "closeConfirmRequired": "Ketik {{detail}} untuk menutup.",
+    "resetConfirmRequired": "Ketik {{detail}} untuk mengatur ulang brankas."
   },
   "status": {
     "running": "Berjalan",
@@ -1818,5 +1827,25 @@
     "englishOnly": "Panduan ini untuk sementara berbahasa Inggris.",
     "formLink": "Apa fungsi tiap pengaturan?",
     "presetsLink": "Cara memilih template"
+  },
+  "update": {
+    "title": "Pembaruan",
+    "available": "Aleph Edge {{version}} tersedia",
+    "availableChip": "{{version}} tersedia",
+    "install": "Pasang dan mulai ulang",
+    "installing": "Memasang…",
+    "later": "Nanti",
+    "downloading": "Mengunduh {{pct}}%",
+    "downloadingNoSize": "Mengunduh…",
+    "restartNote": "Aplikasi dimulai ulang; bot, posisi, dan siklus dipulihkan saat terbuka.",
+    "check": "Periksa pembaruan",
+    "checking": "Memeriksa…",
+    "upToDate": "Terbaru",
+    "checkFailed": "Pemeriksaan gagal",
+    "current": "Versi terpasang",
+    "latest": "Versi terbaru",
+    "checkedAt": "Terakhir diperiksa",
+    "notChecked": "Belum diperiksa",
+    "signedNote": "Setiap pembaruan diverifikasi dengan kunci tanda tangan di dalam aplikasi sebelum dipasang."
   }
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  CLOSE_CONFIRMATION,
   exchangeAccount,
   exchangeCloseAll,
   exchangeClosePosition,
@@ -99,11 +100,11 @@ export function useAccount(exchangeId: string | null): AccountState {
   );
 
   const closePosition = useCallback(
-    (symbol: string) => runClose(symbol, () => exchangeClosePosition(exchangeId!, symbol)),
+    (symbol: string) => runClose(symbol, () => exchangeClosePosition(exchangeId!, symbol, CLOSE_CONFIRMATION)),
     [exchangeId, runClose],
   );
   const closeAll = useCallback(
-    () => runClose("*", () => exchangeCloseAll(exchangeId!)),
+    () => runClose("*", () => exchangeCloseAll(exchangeId!, CLOSE_CONFIRMATION)),
     [exchangeId, runClose],
   );
 

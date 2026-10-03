@@ -60,18 +60,21 @@ export function exchangeAccount(exchangeId: string): Promise<FuturesAccount> {
   return mock((m) => m.account());
 }
 
+/** The word the close dialogs make the user type; the backend checks it too. */
+export const CLOSE_CONFIRMATION = "CLOSE";
+
 /** Closes ONE open futures position at market (reduce-only). A REAL order on
  * the user's real account — user-initiated, gated behind the vaulted key. The
  * browser fallback is a no-op so `npm run dev` never touches an exchange. */
-export function exchangeClosePosition(exchangeId: string, symbol: string): Promise<void> {
-  if (inTauri()) return invoke<void>("exchange_close_position", { exchangeId, symbol });
+export function exchangeClosePosition(exchangeId: string, symbol: string, confirmation: string): Promise<void> {
+  if (inTauri()) return invoke<void>("exchange_close_position", { exchangeId, symbol, confirmation });
   return mock(() => Promise.resolve());
 }
 
 /** Kill switch: closes EVERY open futures position at market. Resolves to the
  * number closed. Real orders (see above); dev fallback returns 0. */
-export function exchangeCloseAll(exchangeId: string): Promise<number> {
-  if (inTauri()) return invoke<number>("exchange_close_all", { exchangeId });
+export function exchangeCloseAll(exchangeId: string, confirmation: string): Promise<number> {
+  if (inTauri()) return invoke<number>("exchange_close_all", { exchangeId, confirmation });
   return mock(() => Promise.resolve(0));
 }
 

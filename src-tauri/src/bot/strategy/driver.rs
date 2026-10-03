@@ -115,7 +115,7 @@ fn try_start(
     if accounting::is_dead(scale) || below_min {
         bot.state = BotRunState::Dead;
         bot.dead_reason = Some(ExitReason::SizeDown);
-        out.notes.push(("sizeDownDead", None));
+        out.notes.push((if accounting::is_dead(scale) { "sizeDownDead" } else { "sizeDownBelowMin" }, None));
         return None;
     }
     let st = CycleStart {
@@ -697,6 +697,33 @@ pub(crate) mod tests {
         let mid = minute_bars(&[(99.5, 99.7, 99.3, 99.5)]);
         on_bar(&mut bot2, &mut cyc, &mid[0], None);
         assert!(cyc.is_some(), "the same grid opens near its mid");
+    }
+
+    #[test]
+    fn a_grid_drawdown_stop_fills_inside_the_bar_too() {
+        use crate::bot::strategy::model::{GridParams, GridRange, Spacing};
+        let mut bot = sample_bot();
+        bot.cfg.max_drawdown_pct = Some(10.0);
+        bot.cfg.params = StrategyParams::Grid(GridParams {
+            range: GridRange::Absolute { lower: 80.0, upper: 120.0 },
+            n_grids: 10,
+            spacing: Spacing::Arith,
+            stop_out_pct: None,
+            trailing_up: false,
+            trail_up_limit: None,
+            take_profit_pct: None,
+            max_duration_min: None,
+        });
+        let bars = minute_bars(&[(100.0, 100.1, 99.9, 100.0), (100.0, 100.0, 40.0, 45.0)]);
+        let mut cyc = None;
+        on_bar(&mut bot, &mut cyc, &bars[0], None);
+        assert!(cyc.is_some());
+        let out = on_bar(&mut bot, &mut cyc, &bars[1], None);
+        let closed = out.closed.expect("closed by the dd stop");
+        assert_eq!(closed.core.exit, Some(ExitReason::Ddstop));
+        let loss = -bot.realized_quote;
+        assert!((95.0..110.0).contains(&loss), "loss {loss}");
+        assert_eq!(bot.state, BotRunState::Stopped);
     }
 
     #[test]

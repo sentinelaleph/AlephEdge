@@ -7,3 +7,4 @@ pub mod cockpit;
 pub mod commands;
 pub mod endpoints;
 pub mod health;
+pub mod update;
