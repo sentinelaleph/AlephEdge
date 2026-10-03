@@ -34,6 +34,7 @@ Aleph Edge is a Rust + [Tauri 2](https://tauri.app) desktop application with a R
 - [Simulation and real orders](#simulation-and-real-orders)
 - [What this is not](#what-this-is-not)
 - [Honesty](#honesty)
+- [Download](#download)
 - [Build](#build)
 - [Configuration](#configuration)
 - [Security surfaces](#security-surfaces)
@@ -194,6 +195,15 @@ The placebo is the one that matters: 1,335 real signals against 6,581 random-tim
 **The one positive result is position management, not entry.** Managing an open position measured better than not managing it. That is what this desk implements.
 
 **Failures are real and visible.** Wins land near +2.3%, losses near −3.8%. A run of stop-outs is the expected behaviour of a system with no entry edge, not a malfunction.
+
+---
+
+## Download
+
+The Windows x64 installer is on the [Releases](https://github.com/sentinelaleph/AlephEdge/releases) page. It is the default build: paper trading only, with the manual close buttons described above.
+
+- The installer is not Authenticode-signed yet. Windows SmartScreen shows a warning: choose **More info**, then **Run anyway**. Each release lists the installer's SHA-256.
+- Updates install from inside the app. It checks the feed at launch and every 6 hours, and **Settings → About** has a manual check. An update installs only if its signature matches the public key built into the app.
 
 ---
 
