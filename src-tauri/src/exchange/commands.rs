@@ -44,7 +44,7 @@ pub async fn exchange_account(
 ) -> Result<FuturesAccount, String> {
     let cred = binance_credential(&vault, &exchange_id)?;
     exchange
-        .futures_account(&cred.api_key, &cred.api_secret)
+        .futures_account(&cred)
         .await
         .map_err(explain)
 }
@@ -63,14 +63,18 @@ pub async fn exchange_close_position(
 ) -> Result<(), String> {
     check_close_confirmation(&confirmation)?;
     let cred = binance_credential(&vault, &exchange_id)?;
-    exchange
-        .close_position(&cred.api_key, &cred.api_secret, &symbol)
-        .await
-        .map_err(explain)
+    match exchange.close_position(&cred, &symbol).await {
+        Ok(true) => Ok(()),
+        // Closed; its stop / take-profit is still on the exchange.
+        Ok(false) => Err(format!("closeCleanupFailed|{symbol}")),
+        Err(e) => Err(explain(e)),
+    }
 }
 
-/// Kill switch: closes EVERY open futures position at market. Returns how many
-/// were closed. Real orders on the user's real account (see above).
+/// Kill switch: closes EVERY open futures position at market, each one
+/// attempted. Returns how many were closed; any position left open (or
+/// closed with its orders left behind) is named in the error instead.
+/// Real orders on the user's real account (see above).
 #[tauri::command]
 pub async fn exchange_close_all(
     vault: State<'_, VaultManager>,
@@ -80,10 +84,8 @@ pub async fn exchange_close_all(
 ) -> Result<usize, String> {
     check_close_confirmation(&confirmation)?;
     let cred = binance_credential(&vault, &exchange_id)?;
-    exchange
-        .close_all(&cred.api_key, &cred.api_secret)
-        .await
-        .map_err(explain)
+    let report = exchange.close_all(&cred).await.map_err(explain)?;
+    super::close::close_all_verdict(&report)
 }
 
 /// The word the close dialogs make the user type. Checked here as well, so a
@@ -110,7 +112,7 @@ fn binance_credential(
     vault: &VaultManager,
     exchange_id: &str,
 ) -> Result<ExchangeCredential, String> {
-    if exchange_id != "binance" {
+    if !super::has_order_path(exchange_id) {
         return Err("exchangeBinanceOnly".to_string());
     }
     vault

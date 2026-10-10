@@ -48,9 +48,12 @@ export interface BotConfig {
    */
   engines?: string[];
   /**
-   * Per-position loss cap in percent: a position is closed once its
-   * unrealized NET loss reaches −maxLossPct% (e.g. 2 = close at −2% net).
-   * Applies at all times, independent of the BTC regime. Absent = off.
+   * Per-position loss cap in percent OF THE BOT'S CAPITAL: a position is
+   * closed once its unrealized NET loss (after leverage and both fees)
+   * reaches −maxLossPct%. 2 at fixed 3x ≈ a 0.57% price move; in risk
+   * sizing a cap at or above the risk % never fires (the stop is first).
+   * See `maxLossEffect` in lib/sizing.ts. Applies at all times, independent
+   * of the BTC regime. Absent = off.
    */
   maxLossPct?: number;
   /**
@@ -148,6 +151,41 @@ export interface OpenPosition {
   tpTarget: string;
   /** The configured target when the signal lacked it and a lower one was used. */
   tpFallbackFrom: string | null;
+  /** Opened by the user on one signal (Execute), not by the bot's loop. Absent = false. */
+  manual?: boolean;
+}
+
+/**
+ * What "Open position" on one signal would do now (mirrors `TakePreview` in
+ * bot/engine/manual.rs): the paper fill at the live price, the bot's sizing
+ * and target, NET loss at the stop and gain at the target with both fees.
+ */
+export interface TakePreview {
+  botKind: BotKind;
+  signalId: string;
+  symbol: string;
+  direction: string;
+  /** Paper fill at the live price (at market inside the stop–target band). */
+  entry: number;
+  /** The signal's published entry. */
+  publishedEntry: number;
+  stop: number;
+  target: number;
+  tpTarget: string;
+  /** Reward:risk at the fill, and to the same target from the published entry. */
+  rrAtFill: number;
+  rrPublished: number;
+  /** `rrAtFill` below 0.5 (Rust `LOW_RR_AT_FILL`). */
+  rrLow: boolean;
+  notionalUsdt: number;
+  capital: number;
+  effectiveLeverage: number;
+  riskCapped: boolean;
+  /** Negative, fees included. */
+  lossAtStopUsdt: number;
+  gainAtTargetUsdt: number;
+  /** Both taker fees on the notional. */
+  feesUsdt: number;
 }
 
 export interface SkipNote {
@@ -178,6 +216,27 @@ export interface BotDeskStatus {
   killSwitchTripped: boolean;
   /** Sentinel's BTC regime as the engine last read it. */
   btcRegime: "normal" | "break" | "unknown";
+  /** Real entries left in the live Futures bot's pilot (0 = full size). */
+  pilotLeft?: number;
+  /**
+   * Venues real money can be switched on for now (Rust `live_venues`): those
+   * whose order path passed a test-network dry run, every order venue in the
+   * sandbox. Absent before the first status (see `liveVenueAllowed`).
+   */
+  liveVenues?: string[];
+  /**
+   * Bybit / OKX orders go to their demo / test networks, not to a real
+   * account (Rust `ALEPH_EDGE_VENUE_SANDBOX=1`).
+   */
+  venueSandbox?: boolean;
+}
+
+/** Largest real entry while a signal bot's pilot runs (model.rs PILOT_NOTIONAL_USDT). */
+export const PILOT_NOTIONAL_USDT = 50;
+
+/** Ends a live bot's pilot: entries go back to full size. */
+export function botEndPilot(kind: BotKind): Promise<BotDeskStatus> {
+  return inTauri() ? invoke<BotDeskStatus>("bot_end_pilot", { kind }) : mock((m) => m.mock.status());
 }
 
 export function botStatus(): Promise<BotDeskStatus> {
@@ -214,6 +273,21 @@ export function botClosePosition(signalId: string, kind: BotKind): Promise<BotDe
   return inTauri()
     ? invoke<BotDeskStatus>("bot_close_position", { signalId, kind })
     : mock((m) => m.mock.closePosition(signalId, kind));
+}
+
+/**
+ * Opens one signal on a signal bot's PAPER book now (mirrors
+ * `bot_take_signal`). The bot's own filters are skipped, its risk limits
+ * are not. Rejects with a code (`key` or `key|detail`): `manualTakePaperOnly`
+ * for a bot on real money, a skip reason (`bots.skipReasons.*`) otherwise.
+ */
+export function botTakeSignal(kind: BotKind, signalId: string): Promise<OpenPosition> {
+  return inTauri() ? invoke<OpenPosition>("bot_take_signal", { kind, signalId }) : mock((m) => m.mock.takeSignal(kind));
+}
+
+/** What `botTakeSignal` would open now, or the same refusal. */
+export function botPreviewTake(kind: BotKind, signalId: string): Promise<TakePreview> {
+  return inTauri() ? invoke<TakePreview>("bot_preview_take", { kind, signalId }) : mock((m) => m.mock.takeSignal(kind));
 }
 
 /** The exact text the user types to switch a bot to real money (mirrors

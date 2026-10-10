@@ -70,7 +70,7 @@ impl DeskControl for DeskBridge {
         let bots = self.app.state::<BotManager>();
         let kinds = Self::kinds(bot);
         for k in &kinds {
-            bots.stop(*k);
+            bots.stop(&self.app, *k);
         }
         if Self::includes_strategy(bot) {
             strategy_engine::stop_all(&self.app).await;
@@ -92,7 +92,7 @@ impl DeskControl for DeskBridge {
         let oncesi = {
             let bots = self.app.state::<BotManager>();
             for k in &kinds {
-                bots.stop(*k);
+                bots.stop(&self.app, *k);
             }
             acik(&bots)
         };
@@ -235,7 +235,6 @@ impl DeskControl for DeskBridge {
 fn start_refusal(code: &str) -> AckReply {
     AckReply::new(match code {
         "botDailyLossTripped" => ack_code::KILL_SWITCH_TRIPPED,
-        "botPumpNeedsAmbitious" => ack_code::PUMP_NEEDS_AMBITIOUS,
         "botNotConfigured" => ack_code::NOTHING_TO_START,
         _ => ack_code::START_FAILED,
     })
@@ -301,7 +300,6 @@ mod tests {
     #[test]
     fn baslatma_reddi_kararli_koda_cevrilir() {
         assert_eq!(start_refusal("botDailyLossTripped").code, ack_code::KILL_SWITCH_TRIPPED);
-        assert_eq!(start_refusal("botPumpNeedsAmbitious").code, ack_code::PUMP_NEEDS_AMBITIOUS);
         assert_eq!(start_refusal("botNotConfigured").code, ack_code::NOTHING_TO_START);
         assert_eq!(start_refusal("somethingNew").code, ack_code::START_FAILED);
     }

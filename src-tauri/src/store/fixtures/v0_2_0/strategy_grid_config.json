@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "name": "Grid Neutral",
+  "exchangeId": "binance",
+  "market": "futures",
+  "symbol": "ETHUSDT",
+  "side": "neutral",
+  "budget": 1000.0,
+  "leverage": 2,
+  "start": {
+    "type": "immediately"
+  },
+  "restart": {
+    "cooldownMin": 0,
+    "maxCycles": null,
+    "afterStop": true,
+    "afterLiquidation": false,
+    "priceBand": null,
+    "endAtMs": null
+  },
+  "maxDrawdownPct": null,
+  "pauseOnBtcBreak": false,
+  "portfolioBreaker": false,
+  "params": {
+    "kind": "grid",
+    "range": {
+      "type": "relative",
+      "lowerPct": 10.0,
+      "upperPct": 10.0
+    },
+    "nGrids": 20,
+    "spacing": "geom",
+    "stopOutPct": 5.0,
+    "trailingUp": false,
+    "trailUpLimit": null,
+    "takeProfitPct": null,
+    "maxDurationMin": 20160
+  },
+  "presetId": null
+}

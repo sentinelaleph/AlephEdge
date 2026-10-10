@@ -168,3 +168,24 @@ fn spot_and_one_x_longs_have_no_liquidation() {
     let short = sized_position(&fixed(1), "short", 107.0, 1);
     assert!(liquidation_price(&short).unwrap() > 190.0, "1x short liquidates near 2x");
 }
+
+// 9 Oct 2026: a 100 USDT balance at Cautious caps a position at 2 USDT. Binance
+// refuses orders under ~5 USDT, so the app's paper book refuses them too
+// instead of filling trades the exchange never would. plan_entry itself keeps
+// planning them: the VDS paper runner shares it and its arms must not shift.
+#[test]
+fn entries_below_the_exchange_minimum_are_refused_on_paper_too() {
+    use super::entry_rules::exchange_minimum_gate;
+    let sig = signal("long", 100.0, 110.0, 93.0);
+    let mut small = fixed(1);
+    small.capital = 2.0;
+    let plan = plan_entry(&small, &sig, Some(100.0), now(), 1).unwrap().expect("runner path unchanged");
+    let skip = exchange_minimum_gate(&plan).unwrap_err();
+    assert_eq!(skip.key, "belowExchangeMinimum");
+    assert_eq!(skip.detail.as_deref(), Some("2.00"));
+
+    let mut enough = fixed(1);
+    enough.capital = crate::bot::model::EXCHANGE_MIN_ORDER_USDT;
+    let plan = plan_entry(&enough, &sig, Some(100.0), now(), 1).unwrap().unwrap();
+    assert!(exchange_minimum_gate(&plan).is_ok());
+}

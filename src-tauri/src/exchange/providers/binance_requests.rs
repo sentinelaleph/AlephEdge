@@ -109,6 +109,10 @@ pub fn order_by_client_id_query(symbol: &str, client_id: &str, ts: u64) -> Strin
     format!("symbol={symbol}&origClientOrderId={client_id}&timestamp={ts}")
 }
 
+pub fn order_by_id_query(symbol: &str, order_id: i64, ts: u64) -> String {
+    format!("symbol={symbol}&orderId={order_id}&timestamp={ts}")
+}
+
 /// Initial leverage for the symbol (1–125).
 pub fn leverage_query(symbol: &str, leverage: u8, ts: u64) -> String {
     format!("symbol={symbol}&leverage={leverage}&timestamp={ts}")

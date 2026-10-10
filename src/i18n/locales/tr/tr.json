@@ -3,7 +3,9 @@
     "name": "Aleph Edge",
     "betaBadge": "Beta",
     "testnetBadge": "Testnet borsa",
-    "testnetTooltip": "Canlı emirler Binance üretim ortamına değil, {{host}} adresine gider."
+    "testnetTooltip": "Canlı emirler Binance üretim ortamına değil, {{host}} adresine gider.",
+    "sandboxBadge": "Demo borsalar",
+    "sandboxTooltip": "Bybit ve OKX emirleri demo / test ağlarına gider, gerçek hesaba değil."
   },
   "health": {
     "vaultLocked": "Kilitli",
@@ -114,13 +116,19 @@
     "renameSubmit": "Etiketi kaydet",
     "withdrawStored": "Çekim izni açık: bu anahtarı yalnız işlem izinli bir anahtarla yenileyin.",
     "tradeOnlyRule": "Yalnız işlem izinli anahtarlar kabul edilir. Borsada anahtarın çekim iznini kapatın.",
-    "minutes": "{{minutes}} dk",
-    "autoLockHint": "{{minutes}} dk kullanılmazsa kilitlenir.",
+    "autoLockHint": "{{duration}} işlem yapılmazsa kilitlenir. Anahtar içermeyen kasa açık kalır.",
     "changePassword": "Şifreyi değiştir",
     "changingPassword": "Değiştiriliyor…",
     "currentPassword": "Mevcut şifre",
     "newPassword": "Yeni şifre",
-    "passwordChanged": "Şifre değiştirildi."
+    "passwordChanged": "Şifre değiştirildi.",
+    "duration": {
+      "min": "{{count}} dk",
+      "hour": "{{count}} saat",
+      "week": "1 hafta",
+      "month": "1 ay (30 gün)"
+    },
+    "venueNotDryRun": "{{exchange}} için gerçek para, emir yolu borsanın kendi test ağında uçtan uca denenene kadar kapalı kalır. Anahtar yine de hesabı okuyabilir ve pozisyonları kapatabilir."
   },
   "workspace": {
     "loading": "Yükleniyor…"
@@ -130,7 +138,7 @@
       "long": "Long",
       "short": "Short"
     },
-    "evidenceScoreTooltip": "100 üzerinden kesişim faktörleri · hedefe ulaşma olasılığı değil"
+    "evidenceScoreTooltip": "Sentinel'in 0–100 sinyal puanı: kurulum, indikatörler, kesişim ve BTC rejimi, ağırlıklı · olasılık değil · geçmiş sinyallerde test edildi: kazananı kaybedenden ayırmıyor (AUC 0.496)"
   },
   "risk": {
     "title": "Risk seviyesi",
@@ -173,9 +181,11 @@
     "noPositions": "Açık pozisyon yok.",
     "skips": "Atlanan işlemler",
     "noSkips": "Henüz atlanan işlem yok.",
+    "manualBadge": "Elle",
+    "manualBadgeTooltip": "Execute ile elle açıldı · bot filtreleri atlandı, risk limitleri geçerli",
     "skipReasons": {
       "spotLongOnly": "Short sinyal · spot yalnızca long",
-      "belowConfidence": "Kanıt puanı filtresinin altında ({{detail}})",
+      "belowConfidence": "Sentinel puanı filtresinin altında ({{detail}})",
       "directionFiltered": "Yön filtresine takıldı",
       "symbolFiltered": "Sembol beyaz listede değil",
       "comboFiltered": "Kombo listede değil ({{detail}})",
@@ -189,7 +199,7 @@
       "frUnavailable": "Funding verisi yok (katı mod)",
       "ldTooThin": "Emir defteri çok sığ ({{detail}})",
       "ldUnavailable": "Likidite verisi yok (katı mod)",
-      "maxPositions": "Pozisyon limiti doldu ({{detail}})",
+      "maxPositions": "Bu bot pozisyon limitine ulaştı ({{detail}})",
       "capitalCap": "Pozisyon tavanının üstünde ({{detail}} USDT)",
       "priceUnavailable": "Canlı fiyat alınamadı",
       "spotOnlyExchange": "Borsanın vadeli piyasası yok",
@@ -212,12 +222,12 @@
       "liveOrderFailed": "Borsa emri reddetti.",
       "storeWriteFailed": "Yerel işlem veritabanına kaydedilemedi.",
       "storeReadFailed": "Yerel işlem veritabanı okunamadı.",
-      "liveSymbolHasOrders": "Atlandı: bu sembolün Binance'te zaten açık emirleri var.",
+      "liveSymbolHasOrders": "Atlandı: bu sembolün borsada zaten açık emirleri var.",
       "liveStopBeyondLiquidation": "Atlandı: bu kaldıraçta likidasyon stoptan önce gelir.",
-      "liveOrderUnconfirmed": "Binance girişi onaylamadı; pozisyonu Binance'te kontrol et.",
+      "liveOrderUnconfirmed": "Borsa girişi onaylamadı; pozisyonu borsada kontrol et.",
       "liveUnprotected": "Gerçek bir pozisyonun borsada stopu yok; şimdi kapatılıyor.",
       "liveProtectiveStopFailed": "Koruyucu stop borsaya konamadı · pozisyon kapatıldı",
-      "hedgeModeUnsupported": "Binance hesabın Hedge Mode'da; canlı işlem yapmak için One-way Mode'a geç.",
+      "hedgeModeUnsupported": "Borsa hesabın Hedge Mode'da; canlı işlem yapmak için One-way Mode'a geç.",
       "liveSymbolHeld": "Bu sembolde borsada açık pozisyon var · atlandı",
       "liveExchangeCheckFailed": "Emir vermeden önce borsa hesabı doğrulanamadı.",
       "sizingInvalidStop": "Geçersiz stop mesafesi · pozisyon boyutlandırılamadı",
@@ -235,17 +245,26 @@
       "tpCustomInvalid": "Özel kâr al %{{detail}} bu işleme uygulanamıyor",
       "tpNotBeyondFill": "Kâr al {{detail}} giriş fiyatının ötesinde değil",
       "tooOld": "Sinyal, botun yaş sınırından eski",
-      "liveLeverageRejected": "Atlandı: Binance bu sembol için kaldıracı reddetti.",
-      "liveMarginTypeRejected": "Atlandı: Binance bu sembolü izole marjine geçirmedi (sembolde açık emir ya da pozisyon var).",
-      "liveSymbolNotTrading": "Atlandı: bu sembol Binance Futures'ta işleme açık değil.",
+      "liveLeverageRejected": "Atlandı: borsa bu sembol için kaldıracı reddetti.",
+      "liveMarginTypeRejected": "Atlandı: borsa bu sembolü izole marjine geçirmedi (sembolde açık emir ya da pozisyon var).",
+      "liveSymbolNotTrading": "Atlandı: bu sembol borsanın vadeli piyasasında işleme açık değil.",
       "liveOwnEntryAdopted": "Başarısız görünen bir giriş borsada doldu; artık stop'uyla birlikte izleniyor.",
-      "liveOwnEntryFlattened": "Başarısız görünen bir giriş borsada doldu ve planlandığı gibi korunamadı; piyasa fiyatından kapatıldı."
+      "liveOwnEntryFlattened": "Başarısız görünen bir giriş borsada doldu ve planlandığı gibi korunamadı; piyasa fiyatından kapatıldı.",
+      "signalOtherMarket": "{{detail}} piyasası için yayınlandı · bu botun piyasası değil",
+      "botNotResumed": "Yeniden başlatmadan sonra devam etmedi",
+      "liveBreakevenAppOnly": "Başabaş yalnızca uygulamada tutuluyor · uygulama kapalıyken borsada ilk stop geçerli",
+      "restoreRowUnreadable": "Kayıtlı veri açılışta okunamadı ({{detail}}) · diskte tutuldu, kullanılmadı",
+      "restoreLiveBlocked": "Gerçek para verisi açılışta okunamadı ({{detail}}) · bot devam ettirilmedi",
+      "restoreConfigInvalid": "Kayıtlı bot ayarları bir kontrolden geçmiyor ({{detail}}) · botu başlatmak için düzeltip kaydet",
+      "settledPositionDropped": "Geçmiş'te zaten kapalı · artakalan açık satırı açılışta silindi",
+      "belowExchangeMinimum": "Borsanın minimum emrinin altında ({{detail}} USDT, Binance yaklaşık 5 ister)",
+      "manualOpened": "Execute ile elle açıldı · simüle"
     },
     "exchange": "Borsa",
     "signalFilter": "Sinyal filtresi",
     "maxSignalAge": "En fazla sinyal yaşı (saat)",
     "maxSignalAgeHint": "Sadece bundan genç sinyallere girilir, en yeni önce. 0 = sınır yok.",
-    "minConfidence": "Min kanıt puanı (%)",
+    "minConfidence": "Min Sentinel puanı (%)",
     "direction": "Yön",
     "dir": {
       "all": "Hepsi",
@@ -257,15 +276,14 @@
     "comboWhitelist": "Bu botun işleyebileceği kurulumlar",
     "engineWhitelist": "Motor beyaz listesi",
     "engineWhitelistHint": "Virgülle ayrılmış birincil motor kimlikleri. Boş = tüm motorlar.",
-    "pumpNote": "Yalnızca vadeli · Sentinel pump motoru sinyalleri · en agresif tür",
-    "pumpLocked": "Pump, Hırslı risk seviyesi veya üstünü gerektirir.",
+    "pumpNote": "Test edilmedi: bu kural için geçmiş veri ya da ileriye dönük bir test yok. Sentinel pump motorunun, aynı zamanda yapı kırılımı (MSB veya CHoCH) ve order block ya da FVG gösteren vadeli sinyalleri. Yalnızca simülasyon, mevcut risk seviyesinin sınırları içinde.",
     "principles": {
       "title": "Bu bot nasıl çalışır",
       "intro": "Her satır çalışan kodun bir özelliği · doğru olmaktan çıkarsa silinir",
       "items": {
         "evidence": {
-          "title": "Kanıt-öncelikli sinyaller",
-          "body": "Her işlem bir Sentinel sinyaliyle başlar · yayımlanmış giriş, stop ve hedefler · ribqa.com'da açık defter"
+          "title": "Sentinel'den gelen sinyaller",
+          "body": "Her işlem bir Sentinel sinyaliyle başlar · yayımlanmış giriş, stop ve hedefler · ribqa.com'da açık defter · giriş seçimi test edildi: ölçülebilir avantaj yok (AUC 0.496)"
         },
         "noSilentSkips": {
           "title": "Sessiz atlama yok",
@@ -273,7 +291,7 @@
         },
         "honestFills": {
           "title": "Dürüst dolgular ve net PnL",
-          "body": "Simüle girişler borsandaki canlı fiyattan dolar · PnL taker komisyonları düşülmüş"
+          "body": "Simüle girişler borsandaki canlı fiyattan dolar · stop ve hedefler kendi seviyesinden, izlenmeyen bir boşluktan sonra ise ilk görülen fiyattan · PnL taker komisyonları düşülmüş"
         },
         "veto": {
           "title": "Rejim vetosu kapatır; geçersizleşme hâlâ tutar",
@@ -290,8 +308,8 @@
       }
     },
     "maxLossPct": "Pozisyon başına maks. zarar (%)",
-    "maxLossPctHint": "Bundan fazla kaybeden pozisyonlar her zaman otomatik kapatılır. Boş bırakırsan devre dışı.",
-    "btcBreak": "BTC kırılımı · yeni long girişler duraklatıldı · short devam · pozisyon başına maks. zarar geçerli",
+    "maxLossPctHint": "Pozisyon başına bot sermayesinin %'si, kaldıraç ve komisyon dahil · boş = kapalı",
+    "btcBreak": "BTC kırılımı · yeni long girişler duraklatıldı · short devam",
     "comboLoadFailed": "Kurulum kataloğu yüklenemedi. Bağlantını kontrol edip paneli yeniden aç.",
     "comboLive": "Yayında",
     "comboBacktest": "Geriye dönük",
@@ -367,14 +385,34 @@
       "typePrompt": "Onaylamak için {{word}} yaz",
       "confirm": "Gerçek parayı onayla",
       "cancel": "Vazgeç",
-      "failed": "Gerçek para ayarı değiştirilemedi."
+      "failed": "Gerçek para ayarı değiştirilemedi.",
+      "sizingTurnedOff": "Sermaye, kaldıraç veya pozisyon sınırı değiştiği için LIVE kapatıldı. Yeni boyutu LIVE yazarak tekrar onaylayın.",
+      "pilot": "Pilot: işlem başına en fazla {{cap}} USDT ile {{count}} gerçek giriş kaldı.",
+      "endPilot": "Pilotu bitir",
+      "targetVenue": "Emirler {{exchange}} borsasına, gerçek hesabınıza gider.",
+      "targetVenueSandbox": "Emirler {{exchange}} demo / test ağına gider, gerçek hesaba değil."
     },
     "vetoReason": {
       "btc_regime_turn_bullish": "BTC rejimi yükselişe döndü",
       "btc_regime_turn_bearish": "BTC rejimi düşüşe döndü",
       "btc_extreme_move_up": "BTC'de sert yükseliş",
       "btc_extreme_move_down": "BTC'de sert düşüş"
-    }
+    },
+    "untested": "Test edilmedi",
+    "exchangeLocked": "Bu bot gerçek parayla işlem yaparken veya gerçek pozisyon tutarken borsası değiştirilemez.",
+    "capitalCapHint": "Risk seviyende pozisyon başına tavan: {{cap}}",
+    "capitalAboveCap": "Pozisyon başına {{cap}} tavanının üstünde. Düşür ya da Risk ve güvenlik sayfasında bakiyeyi veya risk seviyesini yükselt.",
+    "maxLoss": {
+      "fixed": "pozisyonun aleyhine {{move}} fiyat hareketinde kapatır",
+      "immediate": "{{leverage}}x'te yalnızca komisyonlar buna ulaşır: girişten hemen sonra kapatır",
+      "riskInert": "etkisi yok: stop önce kapatır, sermayenin yaklaşık −%{{risk}} kadarında",
+      "riskActive": "stopa giden yolun yaklaşık {{share}} kadarında kapatır"
+    },
+    "filtersApplyPending": "Kaydedilen değişiklikler, eski ayarların atladığı bekleyen sinyallere de uygulanır.",
+    "minConfidenceHint": "Geçmiş sinyallerde test edildi: puan kazananı kaybedenden ayırmıyor (AUC 0.496)",
+    "capitalBelowMinimum": "Binance yaklaşık 5 USDT altındaki emirleri reddeder: bu tutarla bot her sinyali atlar. Bakiyeyi ya da risk seviyesini yükselt.",
+    "maxPositionsLevelHint": "Risk seviyen sinyal botu başına en fazla {{max}} pozisyona izin veriyor",
+    "maxPositionsAboveLevel": "Risk seviyen sinyal botu başına {{max}} pozisyona izin veriyor: bu bot en fazla {{max}} tutar. Daha fazlası için Risk ve güvenlik'ten seviyeyi yükselt."
   },
   "pnl": {
     "exportCsv": "CSV dışa aktar",
@@ -485,7 +523,7 @@
       "botConfigured": "Bir bot yapılandırıldı",
       "botRunning": "Bir bot çalışıyor",
       "botRunningHint": "Yapılandırılmış bir botu başlat",
-      "botConfiguredOnCard": "Sinyal botu kartı · borsa, sermaye, pozisyon büyüklüğü"
+      "firstPreset": "Önerilen ilk bot: {{name}} · testini geçti"
     },
     "liveLockedNote": "Canlı işlem: kilitli · Yalnızca simüle",
     "liveAvailableNote": "Canlı işlem: mevcut · bot bazında açılana kadar kapalı"
@@ -540,7 +578,8 @@
     },
     "summaryPanel": "Özet paneli",
     "more": "Daha fazla",
-    "guide": "Rehber"
+    "guide": "Rehber",
+    "faq": "SSS"
   },
   "page": {
     "botNew": "Yeni bot",
@@ -574,7 +613,7 @@
     "exchange": "Borsa",
     "direction": "Yön",
     "timeframe": "Zaman dilimi",
-    "minEvidence": "Min. kanıt",
+    "minEvidence": "Min. puan",
     "age": "Yaş",
     "bot": "Bot",
     "range": "Aralık",
@@ -634,7 +673,8 @@
     "allPairs": "Tüm pariteler",
     "blocked": {
       "killSwitch": "Başlatma reddedildi: günlük stop tetiklendi. 00:00 UTC sonrası yeniden başlatılabilir.",
-      "notConfigured": "Başlatmak için kayıtlı ayar gerekir: botu açıp ayarları kaydet."
+      "notConfigured": "Başlatmak için kayıtlı ayar gerekir: botu açıp ayarları kaydet.",
+      "capitalAboveCap": "Pozisyon başına sermaye risk seviyesinin tavanının üstünde: botun ayarlarından düşür."
     },
     "totals": {
       "bots": "Bot",
@@ -649,8 +689,6 @@
     "selectedCount": "Seçili: {{count}}",
     "bulkStop": "Seçilenleri durdur ({{count}} çalışıyor)",
     "liveOrders": "Canlı emir",
-    "liveNotAvailable": "Yok",
-    "paperOnlyLine": "Yalnız simüle: canlı fiyattan simüle dolum, ücretler dahil. Gerçek emir yok.",
     "dca": {
       "empty": "Henüz DCA botu yok",
       "new": "Yeni DCA botu",
@@ -677,8 +715,8 @@
       "range": "Yatay"
     },
     "mode": {
-      "signal": "Simüle, LIVE isteğe bağlı (Vadeli, Binance)",
-      "paperOnly": "Yalnız simüle"
+      "signal": "Simüle, LIVE isteğe bağlı (Vadeli: Binance, Bybit, OKX)",
+      "paperOnly": "Simüle: canlı fiyatlarla simüle dolumlar, ücretler dahil"
     },
     "presetsLink": "Bu türün hazır ayarları",
     "create": "Oluştur"
@@ -717,7 +755,9 @@
       "realizedToday": "Bugün gerçekleşen",
       "netAll": "Net K/Z, tüm zamanlar",
       "dailyLossUsed": "Kullanılan günlük zarar",
-      "capitalInUse": "Kullanılan sermaye"
+      "capitalInUse": "Kullanılan sermaye",
+      "split": "Sinyal {{signal}} · DCA/Grid {{strategy}}, ücretler sonrası",
+      "signalWinRate": "Sinyal kazanç oranı"
     },
     "afterFees": "{{scope}}, ücretler düşülmüş",
     "noTradesToday": "Bugün işlem yok",
@@ -739,7 +779,8 @@
     "closedTodayOf": "{{kind}}: bugün kapanan",
     "skipSummary": "Atlama nedenleri",
     "streamDown": "Sinyal akışı kesildi: botlar yeni sinyal almıyor.",
-    "liveActive": "En az bir botta LIVE açık: emirleri gerçek."
+    "liveActive": "En az bir botta LIVE açık: emirleri gerçek.",
+    "capitalAboveCap": "{{kind}}: {{capital}} sermaye, pozisyon başına {{cap}} tavanının üstünde · her sinyal atlanıyor · Ayarlar'dan düşür"
   },
   "signalsPage": {
     "status": {
@@ -747,7 +788,7 @@
       "expired": "Süresi doldu"
     },
     "last24h": "Son 24 sa",
-    "evidence": "Kanıt",
+    "evidence": "Puan",
     "expiresAt": "Bitiş",
     "confluence": "Konfluans",
     "plan": "Yönetim planı",
@@ -760,7 +801,51 @@
     "selectHint": "Ayrıntı için bir sinyal seç.",
     "empty": "Arabellekte sinyal yok",
     "noMatch": "Bu filtrelere uyan sinyal yok",
-    "combo": "Kombinasyon"
+    "combo": "Kombinasyon",
+    "execute": {
+      "button": "Çalıştır",
+      "rowLabel": "{{symbol}} için çalıştır",
+      "title": "{{symbol}} · {{side}}",
+      "close": "Kapat",
+      "signalBot": "Sinyal botu",
+      "signalBotLine": "Sinyal botları Sentinel sinyallerini filtreleri içinde kendileri de alır.",
+      "botSettings": "{{bot}} bot ayarları",
+      "dcaTemplates": "DCA hazır ayarları",
+      "gridTemplates": "Grid hazır ayarları",
+      "noTemplates": "{{symbol}} için bu yönde hazır ayar yok.",
+      "openWith": "{{symbol}} ile aç",
+      "blank": "Boş form",
+      "blankDca": "Boş DCA · {{symbol}}",
+      "blankGrid": "Boş Grid · {{symbol}}",
+      "note": "Hazır ayarlar kendi parite seçimlerinde test edildi. {{symbol}} üzerinde test edilmedi. Botlar simüle çalışır; gerçek para yalnızca canlı derlemede ve LIVE yazılıp onaylanınca."
+    },
+    "take": {
+      "title": "Bu sinyali şimdi al · simüle",
+      "line": "Bot filtreleri atlanır · risk limitleri geçerli · gerçek para Execute ile açılmaz",
+      "pricing": "Fiyatlanıyor…",
+      "fill": "Şimdi dolum",
+      "publishedEntry": "Sinyal girişi",
+      "rr": "Ödül:risk",
+      "rrValue": "dolumda {{fill}} · yayında {{published}}",
+      "size": "Büyüklük",
+      "sizeValue": "{{amount}} · {{leverage}}x",
+      "lossAtStop": "Stopta zarar {{price}}",
+      "gainAtTarget": "{{target}} kârı {{price}}",
+      "fees": "Komisyon",
+      "rrLow": "İşlem hareket etti · ödülün çoğu gitti",
+      "open": "Pozisyon aç",
+      "opening": "Açılıyor…",
+      "opened": "Açıldı · {{symbol}} {{price}} · simüle",
+      "botPage": "{{bot}} botu",
+      "noBot": "Bu piyasa ve yönü alan sinyal botu yok.",
+      "refusal": {
+        "manualTakePaperOnly": "Bu bot gerçek parayla işlem yapıyor · Execute yalnızca simüle pozisyon açar",
+        "signalNotFound": "Sinyal artık akışta değil",
+        "marketHeld": "Bu botun bu sembolde zaten pozisyonu var",
+        "stopPassed": "Fiyat stopu çoktan geçti",
+        "targetPassedBeforeEntry": "Fiyat girişten önce hedefi ({{detail}}) geçti"
+      }
+    }
   },
   "backtest": {
     "run": "Testi çalıştır",
@@ -800,7 +885,8 @@
       "feesIncluded": "Komisyonlar dahil",
       "noFunding": "Fonlama dahil değil",
       "noGates": "BTC kırılımı ve risk kapıları simüle edilmez",
-      "coverage": "Kapsam {{value}}"
+      "coverage": "Kapsam {{value}}",
+      "barCloses": "Düşüş {{interval}} mum kapanışlarında okunur; simüle botlar 1 dakikalık mum kullanır"
     },
     "kpi": {
       "net": "Net K/Z",
@@ -861,13 +947,16 @@
     "deleteAll": "Tümünü sil",
     "deleteAllTitle": "{{n}} çalıştırma silinsin mi?",
     "deleteAllBody": "Kayıtlı tüm backtest çalıştırmaları silinir. Geri alınamaz.",
-    "deleteRun": "{{name}} çalıştırmasını sil"
+    "deleteRun": "{{name}} çalıştırmasını sil",
+    "hint": {
+      "interval": "Simüle botlar 1 dakikalık mumlarla çalışır. Daha uzun mumlar düşüşü daha az kapanışta okur ve daha azını gösterir."
+    }
   },
   "positions": {
     "tabPaper": "Simüle",
     "tabExchange": "Borsa",
     "noPaper": "Açık simüle pozisyon yok",
-    "noKey": "Kasada Binance anahtarı yok",
+    "noKey": "Kasada borsa anahtarı yok",
     "realZone": "Gerçek borsa hesabı: işlemler gerçek emir verir",
     "totals": "Toplamlar",
     "notional": "Nominal",
@@ -890,14 +979,22 @@
       "realNote": "Borsadaki gerçek pozisyonlara dokunulmaz: onları Borsa sekmesinden kapatın.",
       "confirm": "Tümünü kapat",
       "done": "Kapandı: {{closed}} · kapanmayan: {{failed}}",
-      "failed": "Kapatma başarısız."
+      "failed": "Kapatma başarısız.",
+      "strategyLiveNote": "Gerçek paradaki botlar: borsadaki pozisyonları bir sonraki turda piyasa fiyatından kapatılır."
     }
   },
   "history": {
     "byBot": "Bota göre",
     "byExit": "Çıkış nedenine göre",
     "loadedScope": "Son yüklenen {{count}} işlem üzerinden sayım.",
-    "filtersNote": "Filtreler işlem listesine uygulanır ({{total}} içinden {{shown}}); istatistikler tüm kapsamı kapsar."
+    "filtersNote": "Filtreler işlem listesine uygulanır ({{total}} içinden {{shown}}); istatistikler tüm kapsamı kapsar.",
+    "exportSkips": "Atlanan sinyalleri dışa aktar",
+    "cycles": {
+      "title": "DCA/Grid döngüleri",
+      "deleted": "Silindi",
+      "none": "Henüz kapanmış döngü yok.",
+      "netNote": "Ücretler ve fonlama sonrası, silinen botlar dahil"
+    }
   },
   "accounts": {
     "vault": "Kasa",
@@ -926,7 +1023,8 @@
       "killSwitch": "Günlük stop",
       "regime": "BTC rejim kapısı",
       "live": "LIVE kapısı",
-      "emergency": "Acil durum"
+      "emergency": "Acil durum",
+      "preflight": "Canlıya hazırlık"
     },
     "level": {
       "title": "Risk seviyesi"
@@ -963,7 +1061,7 @@
     "live": {
       "notThisBuild": "Bu sürüm gerçek emir veremez.",
       "build": "Sürümde canlı özellik var",
-      "binanceKey": "Kasada Binance anahtarı",
+      "binanceKey": "Kasada işlem anahtarı",
       "endpoint": "Emir uç noktası",
       "turnOff": "LIVE'ı kapat",
       "onWhere": "LIVE bot bazında açılır/kapanır:"
@@ -976,7 +1074,14 @@
       "realCloses": "Gerçek pozisyonlar: Pozisyonlar > Borsa"
     },
     "exposure": "Maruziyet",
-    "remote": "Telefondan uzaktan kontrol"
+    "remote": "Telefondan uzaktan kontrol",
+    "scope": {
+      "leverageAll": "En fazla kaldıraç (tüm botlar)",
+      "positionsSignal": "Sinyal botu başına en fazla pozisyon",
+      "dailyStopSignal": "Günlük stop (sinyal botları)",
+      "strategyBudget": "DCA/Grid bütçe tavanı",
+      "strategyBreaker": "DCA/Grid freni"
+    }
   },
   "settings": {
     "tabs": {
@@ -1054,7 +1159,10 @@
       "regime": "BTC rejimi"
     },
     "strategyBreaker": "DCA/Grid portföy kesicisi devreye girdi",
-    "strategyBreakerDetail": "K/Z zirvesinden düşüş, kesicinin kapsadığı botların bütçesinin %{{pct}} seviyesine ulaştı. Bu botların döngüleri kapatıldı; yeniden kurulana kadar başlatmaları engelli."
+    "strategyBreakerDetail": "K/Z zirvesinden düşüş, kesicinin kapsadığı botların bütçesinin %{{pct}} seviyesine ulaştı. Bu botların döngüleri kapatıldı; yeniden kurulana kadar başlatmaları engelli.",
+    "cycleStopsToday": "Bugün stopla kapanan DCA/Grid döngüsü: {{count}}",
+    "cyclesClosedToday": "Bugün kapanan DCA/Grid döngüsü: {{count}}",
+    "strategyDead": "{{name}} sona erdi"
   },
   "statusbar": {
     "label": "Durum",
@@ -1067,7 +1175,7 @@
     "latency": "Gecikme",
     "priceUnavailable": "Fiyat yok",
     "reconnect": "Yeniden bağlan",
-    "autoLock": "{{minutes}} dk boşta kalınca otomatik kilit",
+    "autoLock": "{{duration}} boşta kalınca otomatik kilit",
     "regime": {
       "normal": "Normal",
       "break": "Kırılım",
@@ -1085,27 +1193,35 @@
       "stop": "Duraklat",
       "close": "Döngüyü kapat ve durdur",
       "archive": "Sil",
-      "clone": "Kopyala"
+      "clone": "Kopyala",
+      "startFirst": "Başlat"
     },
     "confirm": {
       "start": {
         "title": "{{name}} sürdürülsün mü?",
-        "body": "Bot yeni kağıt döngüleri açabilir. Bütçesi strateji sınırı altında ayrılır."
+        "body": "Bot yeni kağıt döngüleri açabilir. Bütçesi strateji sınırı altında ayrılır.",
+        "bodyLive": "Bu bot gerçek parada: yeni döngüler borsanın vadeli piyasasında alım ve satım yapar. Gerçek para yeniden başlatmadan sonra da açık kalır."
       },
       "stop": {
         "title": "{{name}} duraklatılsın mı?",
-        "body": "Yeni döngü açılmaz. Açık bir döngü kapanana kadar kâr al ve stop emirlerini korur."
+        "body": "Yeni döngü açılmaz. Açık bir döngü kapanana kadar kâr al ve stop emirlerini korur.",
+        "bodyLive": "Yeni döngü açılmaz. Açık döngü, kâr al veya stopuna kadar borsada işlem görmeye devam eder."
       },
       "close": {
         "title": "{{name}} döngüsü kapatılsın mı?",
-        "body": "Açık kağıt döngü piyasa fiyatından kapanır (taker ücreti ve kayma) ve bot durur."
+        "body": "Açık kağıt döngü piyasa fiyatından kapanır (taker ücreti ve kayma) ve bot durur.",
+        "bodyLive": "Döngü piyasa fiyatından kapanır ve botun borsadaki pozisyonu bir sonraki turda (birkaç saniye) kapatılır. Bot durur."
       },
       "archive": {
         "title": "{{name}} silinsin mi?",
-        "body": "Bot masadan çıkar. Döngüleri ve dolumları CSV dışa aktarımında kalır."
+        "body": "Bot masadan çıkar. Döngüleri ve dolumları CSV dışa aktarımında kalır.",
+        "bodyOpen": "Açık döngü piyasa fiyatından kapanır, bot durur ve listeden kalkar. Döngüleri ve dolumları CSV dışa aktarımında kalır."
       },
       "closeAll": {
         "body": "Tüm açık DCA ve Grid kağıt döngüleri piyasa fiyatından kapanır ve botları durur. Güncel fiyatı olmayan döngü açık kalır."
+      },
+      "startFirst": {
+        "title": "{{name}} başlatılsın mı?"
       }
     },
     "state": {
@@ -1141,7 +1257,8 @@
       "orders": "Emirler",
       "fills": "Dolumlar",
       "settings": "Ayarlar",
-      "log": "Kayıt"
+      "log": "Kayıt",
+      "real": "Gerçek ve paper"
     },
     "form": {
       "section": {
@@ -1156,16 +1273,25 @@
       "save": "Değişiklikleri kaydet",
       "saved": "Kaydedildi.",
       "notANumber": "Bu alan için geçerli bir sayı değil.",
-      "fromPreset": "{{id}} hazır ayarından: ayarlar tarihsel simülasyonuyla aynı.",
+      "fromPreset": "{{id}} hazır ayarından: ayarlar tarihsel simülasyonuyla aynı; simülasyon {{universe}} üzerinde yapıldı. Paritenizin bu listede olup olmadığı denetlenmez.",
       "presetDiffers": "{{id}} hazır ayarından değiştirildi: tarihsel simülasyonu artık bu ayarları anlatmıyor. Bot hazır ayar bağı olmadan kaydedilir.",
       "presetUnknown": "{{id}} hazır ayarı bulunamadı",
       "presetKind": "{{id}} hazır ayarı başka bir bot türü için",
       "copyName": "{{name}} kopya",
-      "cycleLocked": "Bir döngü açık: yalnızca ad, başlangıç, yeniden başlatma ve koruma ayarları değişebilir.",
+      "cycleLocked": "Bir döngü açık: yalnızca ad, başlangıç, yeniden başlatma ve koruma ayarları değişebilir. Diğerlerini şimdi değiştirmek için Döngüyü kapat ve durdur'u kullanın (piyasa fiyatından kapanır), düzenleyin, sonra Başlat'a basın.",
       "slotLocked": "Bot çalışıyor: piyasa, parite veya yönü değiştirmek için duraklatın.",
       "leaveTitle": "Kaydedilmemiş değişiklikler silinsin mi?",
       "discard": "Değişiklikleri sil",
-      "presetFailed": "Bu şablon kontrollerini geçemedi ({{reasons}}). Ayarları öğrenmek için duruyor; önce backtest'te deneyin."
+      "presetFailed": "Bu şablon kontrollerini geçemedi ({{reasons}}). Ayarları öğrenmek için duruyor; önce backtest'te deneyin.",
+      "fromPresetPairChecked": "{{id}} hazır ayarından: ayarlar ve parite tarihsel simülasyonuyla aynı ({{universe}}).",
+      "budgetShort": "Asgari bütçe {{min}} USDT (her emir en az 5 USDT); DCA/Grid bütçe sınırında {{free}} USDT boş. Simüle bakiyeyi ya da risk seviyesini yükseltin:",
+      "custom": {
+        "base": "Özel ayarlar: tarihsel simülasyon yok.",
+        "passed": "Özel ayarlar: tarihsel simülasyon yok. Geçmişi geçen şablonlar, 1 Kasım'a kadar incelemede: {{names}}.",
+        "noneDca": "Özel ayarlar: tarihsel simülasyon yok. {{total}} DCA şablonundan 0'ı kontrolleri geçti.",
+        "noneGrid": "Özel ayarlar: tarihsel simülasyon yok. {{total}} grid şablonundan 0'ı kontrolleri geçti."
+      },
+      "presetPairOnly": "{{id}} hazır ayarı yalnızca BTCUSDT üzerinde test edildi, {{symbol}} ile açılmaz."
     },
     "field": {
       "name": "Ad",
@@ -1241,7 +1367,7 @@
       "volumeScale": "1,0 = eşit güvenlik emri boyutları.",
       "volumeScaleGrows": "Emir boyutları her güvenlik emrinde büyür: en kötü durumdaki sermaye artar.",
       "tp": "Dolumdan sonra ortalama girişten.",
-      "sl": "Son güvenlik emrinin ötesinde olmalı.",
+      "sl": "Son güvenlik emrinin ötesinde ve likidasyon fiyatından önce olmalı.",
       "rangeRelative": "Her döngü başladığında fiyatın etrafına kurulur.",
       "rangeAbsolute": "Sabit fiyatlar.",
       "nGrids": "{{levels}} fiyat seviyesi.",
@@ -1255,7 +1381,8 @@
       "endAt": "Açık döngüler çıkışlarına kadar sürer.",
       "ddStop": "Özkaynak zirvesinden bu kayıpta döngüyü kapatır ve botu durdurur.",
       "btcGate": "Sentinel BTC kırılımı bildirirken yeni döngü açılmaz. Açık döngüler sürer.",
-      "portfolioBreakerOff": "Portföy kesicisinin dışında: hesaba katılmaz, tetiklendiğinde kapatılmaz ve bekletilmez."
+      "portfolioBreakerOff": "Portföy kesicisinin dışında: hesaba katılmaz, tetiklendiğinde kapatılmaz ve bekletilmez.",
+      "maxDuration": "Süre dolunca döngüyü piyasa fiyatından kapatır. Çalışan bot, bekleme süresinden sonra yeni döngüyü açar."
     },
     "sizing": {
       "weights": "Bütçeye ölçekli",
@@ -1290,13 +1417,13 @@
       "totalNotional": "Hepsi dolarsa nominal",
       "liqPrice": "Tahmini likidasyon",
       "liqDistance": "Son emirden likidasyona",
-      "noLiq": "1x'te yok",
       "worstLoss": "En kötü durum",
       "worstOpen": "Sınırsız: stop yok",
       "basis": {
         "sl": "zarar durdurda",
         "liq": "likidasyonda",
-        "none": "stop yok"
+        "none": "stop yok",
+        "ddStop": "düşüş durdurucusunda"
       },
       "deviation": "Sapma",
       "avgEntry": "Ort. giriş",
@@ -1323,7 +1450,9 @@
       "slippage": "Kayma",
       "funding": "Fonlama",
       "fundingCharged": "Binance geçmişinden tahsil edilir",
-      "fundingNone": "Yok (spot)"
+      "fundingNone": "Yok (spot)",
+      "minBudget": "Asgari bütçe",
+      "noLiqAt": "{{leverage}}x'te yok"
     },
     "warnings": {
       "leveraged": "1x üstü kaldıraç: kayıplar onunla büyür.",
@@ -1331,7 +1460,8 @@
       "noStopLoss": "Stop yok: kayıp sınırsız.",
       "noStopOut": "Stop yok: envanter kaybı sınırsız.",
       "trailLimitInsideRange": "Takip sınırı bu fiyatta aralığın içinde: aralık hiç kaymaz.",
-      "gridLiqInsideBandNow": "Tahmini likidasyon bu fiyatta bandın içine giriyor: bot bant dışına çıkana kadar bekler."
+      "gridLiqInsideBandNow": "Tahmini likidasyon bu fiyatta bandın içine giriyor: bot bant dışına çıkana kadar bekler.",
+      "ddStopOnly": "Kaybı yalnızca bot düşüş durdurucusu sınırlar."
     },
     "detail": {
       "preset": "Hazır ayar",
@@ -1462,7 +1592,7 @@
       "rearmBody": "Tetiklenmeden sonraki UTC gününden itibaren mümkün. K/Z zirvesi mevcut K/Z'ye sıfırlanır."
     },
     "emergency": {
-      "title": "DCA ve Grid (kağıt)",
+      "title": "DCA ve Grid",
       "pauseAll": "Tüm DCA ve Grid botlarını duraklat ({{count}})",
       "closeAll": "Tüm DCA ve Grid döngülerini kapat ({{count}})",
       "paused": "Duraklatıldı: {{count}}",
@@ -1475,15 +1605,16 @@
         "dca": "Kontrolleri geçen DCA hazır ayarı yok",
         "grid": "Kontrolleri geçen grid hazır ayarı yok"
       },
-      "testMean": "Test: bot-ay başına ortalama",
-      "testMeanNote": "Test = hazır ayar seçilirken dışarıda tutulan son veri penceresi.",
+      "testMean": "Test: bot-ay başına ortalama (her ay parite başına yeni bir 1000 USDT bot)",
+      "testMeanNote": "Test = hazır ayar seçilirken dışarıda tutulan son veri penceresi. Her rakam bot-ay başınadır: her ay parite başına yeni bir 1000 USDT bot; ay sonunda açık kalan döngü kapanana kadar sürer. Aylarca çalışan tek bir bot değildir.",
       "ci95": "%95 aralık",
       "monthsPositive": "Pozitif aylar",
       "worstBotDd": "En kötü bot düşüşü",
       "verdict": "Karar",
       "verdicts": {
         "presetReady": "Kontrolleri geçti",
-        "failed": "Geçemedi"
+        "failed": "Geçemedi",
+        "underReview": "{{end}} tarihine kadar geçti · {{date}} yeniden okuma"
       },
       "use": "Hazır ayarı kullan",
       "settings": "Ayarlar",
@@ -1504,7 +1635,7 @@
       "excluded": "Hariç",
       "capitalModel": "Sermaye modeli",
       "capital": {
-        "onePersistentBotPerSymbol": "Parite başına bir bot, sabit bütçe"
+        "botPerSymbolMonth": "Her ay parite başına yeni bir 1000 USDT bot; ay sonunda açık döngü kapanana kadar sürer"
       },
       "method": "Yöntem",
       "simulator": "Simülatör",
@@ -1533,9 +1664,9 @@
       "openAtEnd": "Veri sonunda açık döngüler",
       "liquidations": "Likidasyonlar",
       "stoppedDeals": "Stop olan döngüler",
-      "parityNote": "Ad, parite veya bütçe dışında bir ayarı değiştirmek bu sayıların botu artık anlatmamasına yol açar.",
+      "parityNote": "Ad ya da bütçe dışında bir ayarı değiştirmek ya da test edilen seçimin dışında bir parite kullanmak bu sayıların botu artık anlatmamasına yol açar.",
       "col": {
-        "testMean": "Test ort./ay"
+        "testMean": "Test, bot-ay başına"
       },
       "names": {
         "dca_long_classic": "DCA Long Klasik",
@@ -1580,7 +1711,25 @@
         "confirm": "Yine de kullan"
       },
       "failedBanner": "Kontrolleri geçemedi:",
-      "passedBanner": "Dört kontrolün dördünü de geçti: her dönem pozitif, test aralığı sıfırın üstünde, her test ayı pozitif, tasfiye yok."
+      "passedBanner": "Dört kontrolün dördünü de geçti: her dönem pozitif, test aralığı sıfırın üstünde, her test ayı pozitif, tasfiye yok.",
+      "live": {
+        "col": "{{since}} tarihinden beri gölge",
+        "tip": "Başlangıçtan beri toplam getiri, aylık değil (Test sütunu bot-ay başınadır). Şablonlar, geçmiş rakamları üreten simülatörle sunucuda ileriye doğru çalışır; içinde para yoktur. Açık döngüler son fiyattan değerlenir. 30 gün dolmadan sıralanmaz.",
+        "collecting": "Veri birikiyor {{days}}/{{min}} g",
+        "unavailable": "Gölge kayıt okunamadı: ribqa.com yanıt vermedi.",
+        "line": "Gölge kayıt (simülasyon) {{since}} tarihinden beri · {{min}} günün {{days}}. günü, henüz sıralanmıyor · güncellendi {{updated}}",
+        "lineReady": "Gölge kayıt (simülasyon) {{since}} tarihinden beri · {{days}} gün · güncellendi {{updated}}",
+        "title": "Gölge kayıt (simülasyon)",
+        "early": "{{min}} günün {{days}}. günü: şablonları karşılaştırmak için erken. Rakamlar gösterilir, sıralanmaz.",
+        "return": "{{since}} tarihinden beri toplam getiri, sermayeye göre (aylık değil)",
+        "medianDd": "Ortanca bot düşüşü",
+        "bots": "Bot",
+        "cycles": "Döngü",
+        "open": "{{count}} açık",
+        "method": "Geçmiş testle aynı simülatör ve ayarlar: her ay parite başına yeni bir 1000 USDT bot, 1x, aylık coin listeleri; ücret, kayma ve funding dahil; açık döngüler son kapanıştan değerlenir."
+      },
+      "checksToWindow": "Dört kontrol {{date}} tarihine kadarki test penceresinde geçti",
+      "recheckBanner": "Dört kontrol {{windowEnd}} tarihine kadarki test penceresinde geçti. {{month}} şimdiye kadar ({{days}} gün) bot-ay başına ortalama %{{mean}}, işlemler hâlâ açık; bu yüzden her test ayı henüz pozitif değil. Ay tamamlanınca, {{nextRead}} tarihinde kontroller yeniden okunur. Garanti değildir."
     },
     "notes": {
       "portfolioDdTripped": "Portföy kesicisi tetiklendi: kapsamındaki botların döngüleri kapandı. Ertesi UTC gününden yeniden kurun.",
@@ -1602,7 +1751,29 @@
       "cycleClosed": "Döngü kapandı: {{reason}}",
       "storeReadFailed": "Strateji deposu okunamadı.",
       "storeWriteFailed": "Strateji deposuna kaydedilemedi.",
-      "sizeDownBelowMin": "Zararlardan sonra emirler borsa alt sınırının altına küçüldü: bot sona erdi."
+      "sizeDownBelowMin": "Zararlardan sonra emirler borsa alt sınırının altına küçüldü: bot sona erdi.",
+      "liveClosedOnExchange": "Pozisyon borsada kapandı (stop, likidasyon veya elle): bot durdu.",
+      "liveMismatch": "Borsadaki pozisyon botun gönderdiğiyle uyuşmuyor: bot durdu. Pozisyonu borsada kontrol edin.",
+      "liveHedgeMode": "Borsa hesabı hedge modunda; gerçek para için tek yönlü mod gerekir.",
+      "liveBuildRequired": "Gerçek para sürümünden kalan canlı bot: bu sürüm borsaya ulaşamaz, bot durdu.",
+      "liveQtyBelowMinimum": "Döngünün ilk emri borsa minimumunun altında: döngü kapatıldı, bot durdu.",
+      "livePartialBelowMinimum": "Emir borsa minimumunun altında: daha büyük bir adım bekleniyor.",
+      "liveVaultLocked": "Kasa kilitli: gerçek emirler kilit açılana kadar bekler. Kaçırılan emirle 2 dakika geçerse bot durur.",
+      "liveExchangeCheckFailed": "Borsa okunamadı; yeniden denenecek.",
+      "liveLeverageRejected": "Borsa bu sembol için izole marjini veya kaldıracı reddetti.",
+      "liveOrderFailed": "Borsa emri reddetti.",
+      "livePartialFailed": "Kısmi kapanış borsada başarısız; yeniden denenecek.",
+      "liveCloseFailed": "Kapanış borsada başarısız; yeniden denenecek.",
+      "liveProtectiveStopFailed": "Borsa stopu konamadı.",
+      "liveUnprotected": "Borsaya stop konamadı ve kapanış henüz doğrulanmadı. Yeniden deneniyor; açık kalırsa Pozisyonlar → Borsa'dan kapatın.",
+      "liveStopFilled": "Borsa stopu pozisyonu stop seviyesinde kapattı; bot çalışmaya devam ediyor.",
+      "liveMissedOrders": "Bot simülasyonda işlem yaparken borsaya 2 dakikadan uzun süre ulaşılamadı: bot bugünkü fiyattan telafi etmek yerine durdu.",
+      "liveSymbolHasOrders": "Sembolün borsada açık emirleri var (eski bir stop veya kendi emriniz): bot durdu. Önce borsada iptal edin.",
+      "resumeRefused": "Yeniden başlatmadan sonra devam ettirilmedi. {{reason}}",
+      "leverageAboveCeiling": "Kaldıraç risk seviyenizin üst sınırının üstünde: yeni döngüler bekletiliyor.",
+      "liveVenueNotDryRun": "Gerçek para durdu: bu borsanın emir yolu test ağında denenmedi. Gerçek pozisyon stop'u altında kalır; Pozisyonlar ve emirler sayfasından kapatın.",
+      "cycleRestoreFailed": "Açık döngü açılışta okunamadı · bot devam ettirilmedi",
+      "liveStateUnreadable": "Gerçek para durumu açılışta okunamadı · bot devam ettirilmedi"
     },
     "errors": {
       "nameInvalid": "Ad: 1 ile 40 karakter.",
@@ -1662,15 +1833,101 @@
       "membershipInactive": "Üyelik aktif değil.",
       "storeReadFailed": "Strateji deposu okunamadı.",
       "trailingAboveTp": "İzleme sapması: kâr alın altında olmalı.",
-      "slInsideLadder": "Zarar durdur: merdivenin her adımında bir sonraki güvenlik emrinin ötesinde olmalı."
+      "slInsideLadder": "Zarar durdur: merdivenin her adımında bir sonraki güvenlik emrinin ötesinde olmalı.",
+      "liveBuildDisabled": "Bu sürüm yalnızca paper işlem yapar.",
+      "liveFuturesBinanceOnly": "Gerçek para yalnızca Binance vadeli işlem botlarında kullanılabilir.",
+      "liveConfirmRequired": "Onaylamak için {{detail}} yazın.",
+      "liveNeedsTradeKey": "Önce kasayı bu borsanın işlem anahtarıyla açın.",
+      "liveNeedsVerifiedKey": "Bu anahtar izinler doğrulanmadan önce kaydedilmiş. Ayarlar, Borsa anahtarları bölümünden yenileyin.",
+      "liveNeedsIdleBot": "Açık paper döngüsünü kapatın veya bitmesini bekleyin, sonra gerçek paraya geçin.",
+      "liveNeedsStop": "Önce bir zarar durdur, grid stop-out veya drawdown stopu ayarlayın: borsa stopu orada durur.",
+      "liveSymbolBusy": "Bu sembolü borsada zaten başka bir canlı bot veya pozisyon kullanıyor.",
+      "liveCloseFirst": "Önce botun gerçek pozisyonunu kapatın, sonra paper'a dönün.",
+      "liveOrderBelowMinNotional": "Botun en küçük emri bu sembol için borsa minimumunun ({{detail}} USDT) altında.",
+      "liveSymbolNotTrading": "Bu sembol borsanın vadeli piyasasında işleme açık değil.",
+      "liveExchangeCheckFailed": "Borsaya ulaşılamadı. Tekrar deneyin.",
+      "liveEditLocked": "Bu botta gerçek para açık. Düzenlemeden veya silmeden önce paper'a döndürün.",
+      "liveHaltedStart": "Bu bot gerçek parada kendini durdurdu. Borsadaki pozisyonunu kontrol edin, sonra yeniden başlatmadan önce paper'a döndürün.",
+      "budgetCapDetail": "DCA/Grid bütçe sınırı aşıldı: {{limit}} USDT sınırın {{free}} USDT'si boş. Risk ve güvenlik sayfasında simüle bakiyeyi ya da risk seviyesini yükseltin.",
+      "slBeyondLiquidation": "Zarar durdur likidasyon fiyatında ya da ötesinde: hiç tetiklenmez. Daha yakın bir stop ya da daha düşük kaldıraç kullanın.",
+      "budgetBelowMinNotionalMin": "Bir emir 5 USDT asgarisinin altında kalır. Asgari bütçe: {{min}} USDT.",
+      "liveVenueNotDryRun": "Bu borsada gerçek para henüz kullanılamıyor: emir yolu borsanın test ağında uçtan uca denenmedi. Oradaki pozisyonlar yine de kapatılabilir."
     },
     "leverageConfirm": {
-      "title": "Stopsuz kaldıraç",
+      "title": "Likidasyon mümkün, stop yok",
       "body_long": "{{leverage}}x, zarar durdur kapalı. Fiyat son güvenlik emrinden %{{pct}} daha düşerse ({{price}}) pozisyon tasfiye olur ve döngü bütçesinin tamamı kaybedilir.",
       "body_short": "{{leverage}}x, zarar durdur kapalı. Fiyat son güvenlik emrinden %{{pct}} daha yükselirse ({{price}}) pozisyon tasfiye olur ve döngü bütçesinin tamamı kaybedilir.",
       "bodyGeneric": "{{leverage}}x, zarar durdur kapalı. Son güvenlik emrinden sonra pozisyonu tasfiyeden önce kapatacak bir şey yok ve döngü bütçesinin tamamı kaybedilir.",
       "hint": "Zarar durdur açmak ya da 1x kaldıraç bu riski kaldırır.",
-      "confirm": "Stopsuz devam et"
+      "confirm": "Stopsuz devam et",
+      "body_grid": "{{leverage}}x grid, aralık dışında durdur kapalı. Tahmini likidasyon alt / üst: {{price}}. Fiyat oraya ulaşırsa pozisyon tasfiye olur ve döngü bütçesinin tamamı kaybedilir.",
+      "bodyGenericGrid": "{{leverage}}x grid, aralık dışında durdur kapalı. Aralığın dışında pozisyonu tasfiyeden önce kapatacak bir şey yok ve döngü bütçesinin tamamı kaybedilir.",
+      "hintShort": "Bu riski yalnızca zarar durdur kaldırır: short 1x'te de, fiyat yaklaşık iki katına çıkınca tasfiye olur.",
+      "hintGrid": "Aralık dışında durdur bu riski kaldırır."
+    },
+    "live": {
+      "title": "Gerçek para",
+      "paper": "Paper",
+      "on": "LIVE",
+      "halted": "Durdu",
+      "realQty": "Gerçek pozisyon",
+      "entry": "Giriş",
+      "unrealized": "Gerçekleşmemiş",
+      "stop": "Borsa stopu",
+      "realized": "Gerçekleşen (brüt)",
+      "fees": "Komisyon (tahmini %0,05)",
+      "fills": "Gerçek dolum",
+      "lastSync": "Son eşitleme",
+      "enable": "Gerçek paraya geç",
+      "disable": "Paper'a dön",
+      "confirmTitle": "{{name}} için gerçek para",
+      "confirmBody": "Bu botun simülasyonda yaptığı her alım ve satım, {{symbol}} için Binance Futures'a piyasa emri olarak gönderilir (izole marjin, {{leverage}}x). Botun stop seviyesinde borsada bir stop durur. Binance'teki pozisyon bot dışında değişirse bot durur. Taker komisyonu uygulanır.",
+      "buildOff": "Bu sürüm yalnızca paper işlem yapar.",
+      "futuresOnly": "Gerçek para yalnızca Binance Futures botlarında var.",
+      "goKeys": "Borsa anahtarları",
+      "goSettings": "Bot ayarları",
+      "goExchange": "Pozisyonlar → Borsa",
+      "goGuide": "Gerçek para rehberi",
+      "req": {
+        "title": "Gerçek paradan önce",
+        "key": "Doğrulanmış işlem anahtarı (Binance, Bybit ya da OKX)",
+        "stop": "Zarar durdur, grid stop-out veya drawdown stopu",
+        "idle": "Açık paper döngüsü yok"
+      },
+      "listLine": "Varsayılan paper: canlı fiyatlarla, ücretler dahil simüle dolumlar. Gerçek para Binance, Bybit ya da OKX vadeli işlemlerinde bot başına isteğe bağlı.",
+      "pilot": "Pilot: simüle boyutun %{{pct}}'i ile {{count}} döngü kaldı. Bitirirseniz bir sonraki döngüden itibaren geçerli olur.",
+      "endPilot": "Pilotu bitir",
+      "venue": "Emir borsası",
+      "confirmBodyVenue": "Bu botun simüle ettiği her alım ve satım, {{symbol}} için {{exchange}} vadeli işlemlerine piyasa emri olarak gönderilir; izole marjin, {{leverage}}x. Kararlar yine Binance fiyatlarıyla verilir. Botun stop seviyesinde borsada bir stop durur. Borsadaki pozisyon botun dışında değişirse bot durur. Taker komisyonu uygulanır.",
+      "confirmBudget": "Bot bütçesi: {{budget}} USDT, kaldıraç {{leverage}}x."
+    },
+    "report": {
+      "title": "Gerçek ve simüle dolumlar",
+      "cycle": "Döngü",
+      "side": {
+        "buy": "Alış",
+        "sell": "Satış"
+      },
+      "kind": "Emir",
+      "kinds": {
+        "open": "Giriş / ekleme",
+        "reduce": "Azaltma",
+        "close": "Kapanış",
+        "external": "Borsa stopu / dışarıda"
+      },
+      "qty": "Gerçek miktar",
+      "real": "Gerçek fiyat",
+      "sim": "Simüle fiyat",
+      "slippage": "Kayma",
+      "cost": "Maliyet",
+      "delay": "Gecikme",
+      "avgSlippage": "Ortalama kayma",
+      "totalCost": "Kayma maliyeti",
+      "fees": "Komisyon (tahmini %0,05)",
+      "avgDelay": "Ortalama gecikme",
+      "matched": "Eşleşen dolum",
+      "note": "Pozitif kayma maliyettir: alışta daha pahalı, satışta daha ucuz. Tek piyasa emri birden fazla simüle dolumu karşılayabilir.",
+      "empty": "Henüz gerçek dolum yok."
     }
   },
   "errors": {
@@ -1694,8 +1951,8 @@
     "vaultWriteFailed": "Kasa dosyası kaydedilemedi.",
     "keychainWriteFailed": "Kasa tuzu sistem anahtarlığına kaydedilemedi.",
     "keychainSaltMissing": "Kasa tuzu bu bilgisayarın anahtarlığında yok. Bu kasa başka bir cihaza ya da kullanıcı hesabına ait.",
-    "keyNoFutures": "Bu anahtarın Futures izni yok. Binance'te Futures'ı aç, sonra tekrar ekle.",
-    "keyRejected": "Binance bu API anahtarı ve gizli anahtar çiftini reddetti. Yazım hatası olup olmadığını kontrol et.",
+    "keyNoFutures": "Bu anahtarın Futures izni yok. Borsada Futures'ı aç, sonra tekrar ekle.",
+    "keyRejected": "Borsa bu API anahtarı ve gizli anahtar çiftini reddetti. Yazım hatası olup olmadığını kontrol et.",
     "sentinelUnreachable": "Sentinel'e ulaşılamadı. Bağlantını kontrol et.",
     "unexpectedResponse": "Sentinel beklenmeyen bir yanıt gönderdi.",
     "serverRejected": "Sentinel isteği reddetti: {{detail}}",
@@ -1705,32 +1962,31 @@
     "refreshFailed": "Oturum yenilenemedi.",
     "accountLookupFailed": "Hesabın okunamadı.",
     "botDailyLossTripped": "Günlük zarar sınırına ulaşıldı. Botlar bir sonraki UTC gününde yeniden başlatılabilir.",
-    "botPumpNeedsAmbitious": "Pump botu Hırslı ya da daha yüksek risk seviyesi ister.",
     "botNotConfigured": "Bu botun henüz kayıtlı ayarı yok.",
     "botMaxPositionsRange": "En fazla pozisyon {{detail}} aralığında olmalı.",
     "exchangeUnknown": "Bilinmeyen borsa: {{detail}}",
     "exchangeNoFutures": "{{detail}} borsasında vadeli piyasa yok.",
     "botSaveFirst": "Önce botun ayarlarını kaydet.",
     "liveBuildDisabled": "Bu sürüm yalnızca simülasyon yapar.",
-    "liveFuturesBinanceOnly": "Gerçek parayla işlem yalnızca Binance Futures botunda var.",
+    "liveFuturesBinanceOnly": "Gerçek parayla işlem yalnızca Futures botunda var.",
     "liveConfirmRequired": "Onaylamak için {{detail}} yaz.",
-    "liveNeedsTradeKey": "Önce kasayı Binance Trade anahtarıyla aç.",
+    "liveNeedsTradeKey": "Önce kasayı bu borsanın işlem anahtarıyla aç.",
     "botMaxPositionsMin": "En fazla pozisyon en az 1 olmalı.",
     "botCapitalInvalid": "Pozisyon başına sermaye 0'dan büyük olmalı.",
     "botLeverageMin": "Kaldıraç en az 1 olmalı.",
-    "botConfidenceRange": "Asgari güven %0 ile %100 arasında olmalı.",
+    "botConfidenceRange": "Min Sentinel puanı %0 ile %100 arasında olmalı.",
     "botMaxLossInvalid": "Azami zarar %0'dan büyük olmalı.",
     "botDirectionInvalid": "Yön tümü, long ya da short olmalı.",
     "botRiskRange": "İşlem başına risk aralık dışında.",
     "botTakeProfitRange": "Özel kâr al hedefi aralık dışında.",
     "botTakeProfitSymbol": "Kâr al istisnası için bir sembol gerekli.",
-    "exchangeBinanceOnly": "Hesap işlemleri yalnızca Binance için var.",
+    "exchangeBinanceOnly": "Hesap işlemleri yalnızca Binance, Bybit ve OKX için var.",
     "noVaultedKey": "Kasada bu borsa için anahtar yok. Kasayı açıp bir anahtar ekle.",
-    "binanceKeyRejected": "Binance isteği reddetti. Anahtarın Futures ya da Trade izni eksik olabilir.",
-    "binanceUnreachable": "Binance'e ulaşılamadı.",
-    "binanceRefused": "Binance reddetti: {{detail}}",
-    "binanceRateLimited": "Binance istek sınırına ulaşıldı. İstekler bir dakika duraklatıldı.",
-    "binanceUnconfirmed": "Binance sonucu doğrulamadı. Tekrar denemeden önce pozisyonu kontrol et.",
+    "binanceKeyRejected": "Borsa isteği reddetti. Anahtarın Futures ya da Trade izni eksik olabilir.",
+    "binanceUnreachable": "Borsaya ulaşılamadı.",
+    "binanceRefused": "Borsa reddetti: {{detail}}",
+    "binanceRateLimited": "Borsa istek sınırına ulaşıldı. İstekler bir dakika duraklatıldı.",
+    "binanceUnconfirmed": "Borsa sonucu doğrulamadı. Tekrar denemeden önce pozisyonu kontrol et.",
     "probeClientUnavailable": "Bağlantı kontrolü başlatılamadı.",
     "cockpitReachable": "Erişilebilir",
     "cockpitUnreachable": "Erişilemiyor",
@@ -1791,15 +2047,25 @@
     "credentialLabelInvalid": "Etiket: 1 ile {{detail}} karakter.",
     "vaultPasswordUnchanged": "Yeni şifre mevcut şifreyle aynı.",
     "vaultIdleInvalid": "Sunulan otomatik kilit sürelerinden birini seçin.",
-    "keyExchangeUnverified": "Yalnızca Binance anahtarlarının izinleri doğrulanabiliyor; bu yüzden yalnızca Binance anahtarı kabul edilir ({{detail}}).",
-    "keyCheckUnavailable": "Bu anahtarın izinlerini doğrulamak için Binance'e ulaşılamadı. Biraz sonra tekrar deneyin.",
+    "keyExchangeUnverified": "Bu borsanın anahtar izinleri henüz doğrulanamıyor; bu yüzden anahtarları kabul edilmiyor ({{detail}}).",
+    "keyCheckUnavailable": "Bu anahtarın izinlerini doğrulamak için borsaya ulaşılamadı. Biraz sonra tekrar deneyin.",
     "liveNeedsVerifiedKey": "Bu anahtar izinler doğrulanmadan önce kaydedilmiş. Ayarlar, Borsa anahtarları bölümünden yenileyin, sonra canlıyı açın.",
     "updateCheckFailed": "Güncellemeler denetlenemedi.",
     "updateInstallFailed": "Güncelleme kurulamadı.",
     "updateNone": "Yeni güncelleme yok.",
     "updateConfirmRequired": "Güncellemeyi kurmak için {{detail}} yazın.",
     "closeConfirmRequired": "Kapatmak için {{detail}} yazın.",
-    "resetConfirmRequired": "Kasayı sıfırlamak için {{detail}} yazın."
+    "resetConfirmRequired": "Kasayı sıfırlamak için {{detail}} yazın.",
+    "vaultBusyLive": "Gerçek para kullanımda. Kasayı kilitlemeden veya anahtar değiştirmeden önce gerçek pozisyonları kapatın ve canlıyı kapatın.",
+    "updateBlockedLive": "Gerçek para kullanımda. Güncellemeyi kurmadan önce gerçek pozisyonları kapatın ve canlıyı kapatın.",
+    "trendUnavailable": "Trend okunamadı: Binance yanıt vermedi.",
+    "liveVenueNotDryRun": "Bu borsada gerçek para henüz kullanılamıyor: emir yolu borsanın test ağında uçtan uca denenmedi. Oradaki pozisyonlar yine de kapatılabilir.",
+    "botHasLivePositions": "Bu botun {{detail}} üzerinde gerçek pozisyonları var. Borsasını değiştirmeden önce bunları kapatın.",
+    "liveExchangeLocked": "Borsasını değiştirmeden önce bu botu simülasyona döndürün: gerçek para {{detail}} için onaylandı.",
+    "closeAllPartial": "Tümünü kapat her pozisyonu kapatamadı. Hâlâ açık: {{detail}}. Listeyi kontrol edip yeniden ya da borsada kapatın.",
+    "closeCleanupFailed": "Kapatıldı, ancak {{detail}} üzerindeki stop veya kâr al emirleri iptal edilemedi. Bunları borsada iptal edin.",
+    "botCapitalAboveCap": "Pozisyon başına sermaye, risk seviyenin {{detail}} USDT tavanının üstünde. Düşür ya da Risk ve güvenlik sayfasında simüle bakiyeyi veya risk seviyesini yükselt.",
+    "vaultSaltMismatch": "Bu kasanın sistem anahtar zincirindeki tuzu başka bir Aleph Edge derlemesi tarafından değiştirildi; hiçbir şifre onu açamaz. \"Parolanı mı unuttun? Kasayı sıfırla\" seçeneğini kullan ve borsa anahtarlarını yeniden ekle."
   },
   "status": {
     "running": "Çalışıyor",
@@ -1820,7 +2086,8 @@
     "down": "Kapalı",
     "killSwitch": "Günlük stop",
     "disconnected": "Bağlantı yok",
-    "locked": "Kilitli"
+    "locked": "Kilitli",
+    "underReview": "İncelemede"
   },
   "guide": {
     "contents": "İçindekiler",
@@ -1847,5 +2114,104 @@
     "checkedAt": "Son denetim",
     "notChecked": "Henüz denetlenmedi",
     "signedNote": "Her güncelleme, kurulmadan önce uygulamanın içindeki imza anahtarıyla doğrulanır."
+  },
+  "preflight": {
+    "title": "Canlıya hazırlık",
+    "run": "Kontrol et",
+    "running": "Kontrol ediliyor…",
+    "checkedAt": "Kontrol: {{time}}",
+    "result": "Sonuç",
+    "check": "Kontrol",
+    "value": "Değer",
+    "detail": "Ayrıntı",
+    "fix": "Düzelt",
+    "note": "Yalnızca okuma: kasadaki anahtarla hesap okunur. Emir gönderilmez.",
+    "verdict": {
+      "ok": "Tamam",
+      "warn": "Bak",
+      "fail": "Engel"
+    },
+    "overall": {
+      "ok": "Hazır",
+      "warn": "Uyarılarla hazır",
+      "fail": "Hazır değil"
+    },
+    "checks": {
+      "build": "Canlı sürüm",
+      "endpoint": "{{exchange}} adresi",
+      "key": "Yalnızca işlem anahtarı",
+      "clock": "Saat farkı (Binance)",
+      "account": "Futures bakiyesi (kullanılabilir / toplam)",
+      "positionMode": "Pozisyon modu",
+      "positions": "Botun tutmadığı pozisyonlar",
+      "killSwitch": "Günlük durdurma",
+      "btcRegime": "BTC rejimi",
+      "membership": "Üyelik",
+      "stream": "Sentinel sinyal akışı",
+      "liveBots": "Canlı botlar (sinyal + DCA/Grid)",
+      "venue": "Emir yolu"
+    },
+    "codes": {
+      "buildOff": "Bu sürümde gerçek para işlemi yok",
+      "production": "Gerçek (production)",
+      "testnet": "Testnet: emirler gerçek para değil",
+      "keyNotVerified": "Anahtar yalnızca işlem olarak doğrulanmadı",
+      "noKey": "Kasada {{exchange}} anahtarı yok",
+      "noVault": "Henüz kasa yok",
+      "vaultLocked": "Kasa kilitli",
+      "unreachable": "Binance'e ulaşılamıyor",
+      "clockDrift": "Bilgisayar saati kayık; imza bunu düzeltiyor",
+      "needsKey": "Açık bir yalnızca işlem anahtarı gerekli",
+      "lowBalance": "Kullanılabilir teminat düşük",
+      "hedgeMode": "Hedge modu: {{exchange}} vadeli hesabını Tek yönlü moda alın",
+      "oneWay": "Tek yönlü",
+      "foreignPositions": "Botlar bu sembolleri atlar",
+      "tripped": "Tetiklendi: bugün yeni giriş yok",
+      "normal": "Normal",
+      "break": "Kırılım: yeni girişler bekletiliyor",
+      "unknown": "Bilinmiyor",
+      "expiring": "Süresi yakında doluyor",
+      "signedOut": "Giriş yapılmadı: sinyal botları sinyal almaz",
+      "streamDown": "Bağlı değil: sinyal botları sinyal almaz",
+      "halted": "Bir canlı bot durdu",
+      "binanceKeyRejected": "{{exchange}} anahtarı reddetti",
+      "binanceUnreachable": "{{exchange}} ulaşılamıyor",
+      "binanceRefused": "{{exchange}} reddetti ({{code}})",
+      "binanceRateLimited": "{{exchange}} istek sınırı",
+      "binanceUnconfirmed": "Cevap doğrulanamadı",
+      "preflightFailed": "Kontrol başarısız",
+      "venueDryRun": "Test ağında uçtan uca denendi",
+      "venueNotDryRun": "{{exchange}} test ağında henüz denenmedi: gerçek para kapalı",
+      "venueUnsupported": "Bu borsa için emir yolu yok"
+    },
+    "exchange": "Borsa"
+  },
+  "trend": {
+    "title": "Piyasa trendi",
+    "chip": "BTC trendi: {{state}} · {{days}} g",
+    "chipTooltip": "BTC günlük kapanışı ile 50 günlük ortalaması. Yalnızca bilgi: hiçbir bot bunu okumaz.",
+    "state": {
+      "up": "Yükseliş",
+      "down": "Düşüş"
+    },
+    "since": "Başlangıç",
+    "days": "{{count}} gün",
+    "close": "BTC günlük kapanış",
+    "sma50": "50 günlük ortalama",
+    "gap": "Ortalamaya uzaklık",
+    "switches": "Son 12 ayda yön değişimi",
+    "switchesInfo": "Trendin kaç kez döndüğü. Sayı yüksekse trend, hareket kazandırmadan önce sık sık döner.",
+    "rule": "Günlük kapanış ile 50 günlük ortalama; yön değişimi için üst üste 2 kapanış.",
+    "history": {
+      "dca": "Test edildi, DCA: düşüş trendinde yeni döngü açmamak en kötü düşüşü 5–7 puan, getiriyi yaklaşık üçte bir azalttı.",
+      "signal": "Test edildi, sinyal botları: trendle açılan işlemler daha az kaybetti, üç dönemin ikisinde yine de zarar etti."
+    },
+    "infoOnly": "Yalnızca bilgi: hiçbir bot kendiliğinden değişmez.",
+    "more": "Nasıl okunur",
+    "formNow": "Şu an BTC trendi: {{state}}, {{days}} gündür.",
+    "warn": {
+      "longInDown": "BTC 50 günlük düşüş trendinde ({{days}} gündür) ve bu bot long alım yapıyor.",
+      "shortInUp": "BTC 50 günlük yükseliş trendinde ({{days}} gündür) ve bu bot short satış yapıyor."
+    }
   }
 }

@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useDeskContext } from "@/app/DeskProvider";
 import { Link, navigate } from "@/app/router/router";
 import { Button } from "@/components/ui/Button/Button";
 import { Chip } from "@/components/ui/Chip/Chip";
@@ -10,15 +11,23 @@ interface TypeCard {
   id: "signal" | "dca" | "grid";
   markets: ("spot" | "futures")[];
   suitsKey: string;
-  modeKey: string;
   to: string;
 }
 
 const CARDS: TypeCard[] = [
-  { id: "signal", markets: ["spot", "futures"], suitsKey: "botCreate.suits.signal", modeKey: "botCreate.mode.signal", to: "/bots/signal" },
-  { id: "dca", markets: ["spot", "futures"], suitsKey: "botCreate.suits.trend", modeKey: "botCreate.mode.paperOnly", to: "/bots/dca/new" },
-  { id: "grid", markets: ["spot", "futures"], suitsKey: "botCreate.suits.range", modeKey: "botCreate.mode.paperOnly", to: "/bots/grid/new" },
+  { id: "signal", markets: ["spot", "futures"], suitsKey: "botCreate.suits.signal", to: "/bots/signal" },
+  { id: "dca", markets: ["spot", "futures"], suitsKey: "botCreate.suits.trend", to: "/bots/dca/new" },
+  { id: "grid", markets: ["spot", "futures"], suitsKey: "botCreate.suits.range", to: "/bots/grid/new" },
 ];
+
+/**
+ * The mode line of a bot type. Real money is offered only by a build that
+ * can place real orders (`--features live`); the public build is paper only
+ * and says so, without advertising an opt-in it does not have.
+ */
+export function modeKey(liveTradingEnabled: boolean): string {
+  return liveTradingEnabled ? "botCreate.mode.signal" : "botCreate.mode.paperOnly";
+}
 
 /**
  * #/bots/new: the bot type catalog. Presets exist for DCA and Grid only
@@ -27,6 +36,8 @@ const CARDS: TypeCard[] = [
  */
 export function BotNewPage() {
   const { t } = useTranslation();
+  const { desk } = useDeskContext();
+  const mode = modeKey(desk.loaded && desk.status.liveTradingEnabled);
   return (
     <PageShell title={t("page.botNew")} crumbs={[{ label: t("nav.groups.bots"), to: "/bots" }]} single>
       <div className="ae-typegrid">
@@ -45,7 +56,7 @@ export function BotNewPage() {
             <FactList
               rows={[
                 { label: t("botCreate.suitsLabel"), value: t(c.suitsKey) },
-                { label: t("table.mode"), value: t(c.modeKey) },
+                { label: t("table.mode"), value: t(mode) },
               ]}
             />
             <div className="ae-typegrid__foot">

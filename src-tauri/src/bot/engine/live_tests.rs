@@ -9,9 +9,10 @@ use super::live_close::{
 use super::live_manage::{
     drop_partial, plan_breakeven_move, plan_partial, PartialPlan, StopAction,
 };
+use crate::exchange::BreakevenMove::{MoveInPlace, StopBeside};
 use super::reconcile::{
-    claim_flat, exchange_state, infer_exit_reason, is_due, plan_reconcile, reference_exit, ExchangeSide,
-    ReconcilePlan, RECONCILE_INTERVAL_MS,
+    claim_flat, exchange_state, infer_exit_reason, is_due, plan_reconcile, plan_reconcile_on, reconcile_venues,
+    reference_exit, ExchangeSide, ReconcilePlan, RECONCILE_INTERVAL_MS,
 };
 use super::test_fixtures::{plan, position, signal};
 use crate::bot::model::OpenPosition;
@@ -35,10 +36,10 @@ fn live_short() -> OpenPosition {
 #[test]
 fn breakeven_places_new_stop_before_cancelling_old() {
     let mut p = live_short();
-    assert!(plan_breakeven_move(&p).is_empty(), "not armed yet");
+    assert!(plan_breakeven_move(&p, StopBeside).is_empty(), "not armed yet");
     p.breakeven_armed = true;
     assert_eq!(
-        plan_breakeven_move(&p),
+        plan_breakeven_move(&p, StopBeside),
         vec![
             StopAction::Place { trigger: 150.2 },
             StopAction::Cancel { algo_id: 71 }
@@ -47,22 +48,51 @@ fn breakeven_places_new_stop_before_cancelling_old() {
     );
     p.stop_at_breakeven = true;
     assert!(
-        plan_breakeven_move(&p).is_empty(),
+        plan_breakeven_move(&p, StopBeside).is_empty(),
         "already moved: nothing to resend"
     );
 
     let mut no_old = live_short();
     (no_old.breakeven_armed, no_old.stop_algo_id) = (true, None);
     assert_eq!(
-        plan_breakeven_move(&no_old),
+        plan_breakeven_move(&no_old, StopBeside),
         vec![StopAction::Place { trigger: 150.2 }]
     );
 
     let mut paper = live_short();
     (paper.live, paper.breakeven_armed) = (false, true);
+    for how in [StopBeside, MoveInPlace] {
+        assert!(
+            plan_breakeven_move(&paper, how).is_empty(),
+            "paper never touches the exchange"
+        );
+    }
+}
+
+// Bybit / OKX: the position-level stop moves in place, one step, and is
+// never followed by a cancel (on Bybit the cancel writes "0" into the slot
+// that was just moved, leaving the position with no stop at all).
+#[test]
+fn bybit_okx_breakeven_moves_the_stop_in_place_without_a_cancel() {
+    let mut p = live_short();
+    p.exchange_id = "okx".into();
+    assert!(plan_breakeven_move(&p, MoveInPlace).is_empty(), "not armed yet");
+    p.breakeven_armed = true;
+    let plan = plan_breakeven_move(&p, MoveInPlace);
+    assert_eq!(plan, vec![StopAction::Move { algo_id: 71, trigger: 150.2 }]);
     assert!(
-        plan_breakeven_move(&paper).is_empty(),
-        "paper never touches the exchange"
+        !plan.iter().any(|a| matches!(a, StopAction::Cancel { .. } | StopAction::Place { .. })),
+        "no cancel, no quantity stop"
+    );
+    p.stop_at_breakeven = true;
+    assert!(plan_breakeven_move(&p, MoveInPlace).is_empty(), "already moved");
+
+    // No stop on record: a whole-position stop at entry, nothing to cancel.
+    let mut no_old = live_short();
+    (no_old.breakeven_armed, no_old.stop_algo_id) = (true, None);
+    assert_eq!(
+        plan_breakeven_move(&no_old, MoveInPlace),
+        vec![StopAction::PlaceWhole { trigger: 150.2 }]
     );
 }
 
@@ -252,18 +282,44 @@ fn reconcile_settles_only_positions_it_could_claim() {
     assert!(!bots.claim_open(&p.signal_id, p.bot_kind), "held by reconcile");
 }
 
+#[test]
+fn a_position_is_never_settled_from_another_venues_account() {
+    // A Binance live position; the bot now trades Bybit (an exchange change
+    // used to keep LIVE on). The Bybit account does not list the symbol.
+    let mut on_binance = live_short();
+    (on_binance.signal_id, on_binance.exchange_id) = ("bn".into(), "binance".into());
+    let bybit_account = vec![("ETHUSDT".to_string(), 1.0)];
+    let plan = plan_reconcile_on("bybit", std::slice::from_ref(&on_binance), &bybit_account);
+    assert!(plan.closed.is_empty(), "not flat: it is on another account");
+    assert_eq!(plan.untracked, vec!["ETHUSDT".to_string()]);
+    // Its own venue still settles it once flat there.
+    let plan = plan_reconcile_on("binance", std::slice::from_ref(&on_binance), &[]);
+    assert_eq!(plan.closed, vec!["bn".to_string()]);
+    // Each venue holding a live position is read, plus the live bot's venue.
+    let mut on_okx = live_short();
+    on_okx.exchange_id = "okx".into();
+    let mut paper = live_short();
+    (paper.exchange_id, paper.live) = ("bitget".into(), false);
+    let book = [on_binance.clone(), on_okx, on_binance, paper];
+    assert_eq!(reconcile_venues(Some("bybit"), &book), ["binance", "okx", "bybit"]);
+    assert_eq!(reconcile_venues(Some("binance"), &book), ["binance", "okx"]);
+    assert_eq!(reconcile_venues(None, &[]), Vec::<String>::new());
+}
+
 // The default build must not be able to send a signed ORDER from the engine.
 // The gates (`live_trading_allowed`, `is_live`) are tested above; this pins
 // WHERE the order-sending calls may live, so a new call site elsewhere (a
 // strategy, a command, a helper) fails here instead of slipping past them.
 // The manual flatten in `exchange/mod.rs` (`close_position` / `close_all`,
-// user-invoked, reduce-only) is the one documented exception.
+// user-invoked, reduce-only, now in `exchange/close.rs`) is the one
+// documented exception.
 #[test]
 fn order_sending_calls_live_only_behind_the_live_gates() {
     const SENDERS: &[&str] = &[
         ".open_market(",
         ".place_protective(",
         ".place_reduce_stop(",
+        ".move_stop(",
         ".reduce_market(",
         ".reduce_market_all(",
         ".cancel_algo(",
@@ -275,8 +331,17 @@ fn order_sending_calls_live_only_behind_the_live_gates() {
         "bot/engine/live.rs",
         "bot/engine/live_close.rs",
         "bot/engine/live_manage.rs",
+        // DCA / Grid real-money mirror: gated by LIVE_TRADING_ENABLED and a
+        // per-bot typed LIVE (strategy_set_live), like the signal path.
+        "bot/strategy_live.rs",
         "exchange/live_orders.rs",
         "exchange/mod.rs",
+        // The manual Close / Close all and the confirmed flatten (user-
+        // invoked or behind the live gates, reduce-only).
+        "exchange/close.rs",
+        // The order router and the Bybit / OKX venues behind it.
+        "exchange/orders.rs",
+        "exchange/venue/ccxt.rs",
     ];
     fn walk(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
         for e in std::fs::read_dir(dir).expect("src readable").flatten() {
@@ -313,7 +378,7 @@ fn order_sending_calls_live_only_behind_the_live_gates() {
 mod untracked {
     use super::super::live::Protection;
     use super::super::reconcile::{
-        adopted_position, attribute_position, is_own_client_id, signal_for, untracked_action,
+        adopted_position, attribute_position, is_own_client_id, own_entry_id, signal_for, untracked_action,
         OwnEntry, UntrackedAction,
     };
     use super::super::take_profit::TpResolution;
@@ -355,6 +420,40 @@ mod untracked {
         ] {
             assert!(!is_own_client_id(foreign, &[]), "{foreign}");
         }
+    }
+
+    #[test]
+    fn lost_entries_are_recognised_on_every_order_venue() {
+        // The audit's repro: a real signal id from the testnet DB.
+        let mut sig = signal("short", 150.0, 146.0, 160.0);
+        sig.id = "5ded7193-2335-436c-ba17-9bd2b5f8e87e".into();
+        for venue in ["binance", "bybit", "okx"] {
+            // What the venue's order history shows for our entry.
+            let cid = own_entry_id(venue, &sig.id);
+            assert!(is_own_client_id(&cid, &[]), "{venue}: {cid}");
+            let got = attribute_position(-10.0, &[order(2, &cid, false, 10.0, 200)], &[]).expect(venue);
+            assert_eq!(
+                signal_for(&got, &sig.symbol, std::slice::from_ref(&sig), venue).map(|s| s.id.as_str()),
+                Some(sig.id.as_str()),
+                "{venue}: the signal behind it is found"
+            );
+        }
+        assert_eq!(own_entry_id("binance", &sig.id), "ae5ded71932335436cba179bd2b5f8e87e");
+        assert_eq!(own_entry_id("okx", &sig.id), "ae5ded71932335436cba179bd2b5f8e8", "cut to 32");
+        // The short form is ours only behind our prefix, in lowercase hex.
+        for foreign in [
+            "xe5ded71932335436cba179bd2b5f8e8",
+            "AE5DED71932335436CBA179BD2B5F8E8",
+            "ae5ded71932335436cba179bd2b5f8g8",
+            "ae5ded71932335436cba179bd2b5f8e",
+        ] {
+            assert!(!is_own_client_id(foreign, &[]), "{foreign}");
+        }
+        // A buffered non-UUID signal id maps the same way on both sides.
+        let mut short_id = signal("long", 100.0, 106.0, 93.0);
+        short_id.id = "sig-1".into();
+        let known = vec![own_entry_id("okx", &short_id.id)];
+        assert!(is_own_client_id(&known[0], &known));
     }
 
     #[test]
@@ -420,8 +519,8 @@ mod untracked {
     fn adopted_position_is_live_sized_by_the_real_fill_and_finds_its_signal() {
         let sig = signal("long", 100.0, 106.0, 93.0);
         let o = own(&entry_client_id(&sig.id));
-        assert_eq!(signal_for(&o, "SOLUSDT", std::slice::from_ref(&sig)).map(|s| s.id.as_str()), Some("sig-1"));
-        assert!(signal_for(&o, "BTCUSDT", std::slice::from_ref(&sig)).is_none(), "symbol must match");
+        assert_eq!(signal_for(&o, "SOLUSDT", std::slice::from_ref(&sig), "binance").map(|s| s.id.as_str()), Some("sig-1"));
+        assert!(signal_for(&o, "BTCUSDT", std::slice::from_ref(&sig), "binance").is_none(), "symbol must match");
 
         let tp = TpResolution::signal_tp1(&sig);
         let protected = Protection { stop_algo_id: Some(71), tp_algo_id: Some(72), tp: tp.clone() };
@@ -436,4 +535,22 @@ mod untracked {
         let p = adopted_position(&cfg(), &sig, &o, 3, &bare, 5_000);
         assert!(p.unprotected, "the book flattens it every tick");
     }
+}
+
+#[test]
+fn real_money_exposure_is_seen_from_a_position_or_a_live_bot() {
+    use crate::bot::model::{BotConfig, BotKind};
+    use crate::bot::BotManager;
+    let bots = BotManager::new();
+    assert!(!bots.has_live_exposure());
+    bots.add_position(live_short());
+    assert!(bots.has_live_exposure(), "an open real position blocks updates and key changes");
+
+    let bots = BotManager::new();
+    let mut cfg = BotConfig::new_default(BotKind::Futures, "binance");
+    bots.configure(cfg.clone());
+    assert!(!bots.has_live_exposure(), "a paper bot is not exposure");
+    cfg.live = true;
+    bots.configure(cfg);
+    assert!(bots.has_live_exposure(), "a bot switched to live is exposure");
 }

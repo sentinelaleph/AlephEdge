@@ -3,7 +3,9 @@
     "name": "Aleph Edge",
     "betaBadge": "Beta",
     "testnetBadge": "Testnet exchange",
-    "testnetTooltip": "Live orders go to {{host}}, not Binance production."
+    "testnetTooltip": "Live orders go to {{host}}, not Binance production.",
+    "sandboxBadge": "Demo exchanges",
+    "sandboxTooltip": "Bybit and OKX orders go to their demo / test networks, not to a real account."
   },
   "common": {
     "simulatedBadgeTooltip": "Paper fill · no exchange order · no real money",
@@ -22,7 +24,7 @@
       "botConfigured": "A bot is configured",
       "botRunning": "A bot is running",
       "botRunningHint": "Start a configured bot",
-      "botConfiguredOnCard": "Signal bot card · exchange, capital, position size"
+      "firstPreset": "Recommended first bot: {{name}} · passed its test"
     },
     "liveLockedNote": "Live trading: locked · Paper only",
     "liveAvailableNote": "Live trading: available · off until enabled per bot"
@@ -136,13 +138,19 @@
     "renameSubmit": "Save label",
     "withdrawStored": "Withdrawals enabled: renew this key with a trade-only key.",
     "tradeOnlyRule": "Only trade-only keys are accepted. Turn off withdrawals for the key on the exchange.",
-    "minutes": "{{minutes}} min",
-    "autoLockHint": "Locks after {{minutes}} min without use.",
+    "autoLockHint": "Locks after {{duration}} without activity. A vault with no key stays unlocked.",
     "changePassword": "Change password",
     "changingPassword": "Changing…",
     "currentPassword": "Current password",
     "newPassword": "New password",
-    "passwordChanged": "Password changed."
+    "passwordChanged": "Password changed.",
+    "duration": {
+      "min": "{{count}} min",
+      "hour": "{{count}} h",
+      "week": "1 week",
+      "month": "1 month (30 days)"
+    },
+    "venueNotDryRun": "Real money on {{exchange}} stays off until its order path passes an end-to-end run on the exchange's own test network. The key can still read the account and close positions."
   },
   "workspace": {
     "loading": "Loading…"
@@ -152,7 +160,7 @@
       "long": "Long",
       "short": "Short"
     },
-    "evidenceScoreTooltip": "Confluence factors out of 100 · not a probability of reaching the target"
+    "evidenceScoreTooltip": "Sentinel's 0–100 signal score: setup, indicators, confluence and BTC regime, weighted · not a probability · tested on past signals: does not separate winners from losers (AUC 0.496)"
   },
   "risk": {
     "title": "Risk level",
@@ -209,9 +217,11 @@
     "noPositions": "No open positions.",
     "skips": "Skipped trades",
     "noSkips": "Nothing skipped yet.",
+    "manualBadge": "Manual",
+    "manualBadgeTooltip": "Opened by hand from Execute · bot filters skipped, risk limits kept",
     "skipReasons": {
       "spotLongOnly": "Short signal · spot is long-only",
-      "belowConfidence": "Below evidence-score filter ({{detail}})",
+      "belowConfidence": "Below the Sentinel score filter ({{detail}})",
       "directionFiltered": "Filtered by direction",
       "symbolFiltered": "Symbol not in whitelist",
       "comboFiltered": "Combo not in whitelist ({{detail}})",
@@ -225,7 +235,7 @@
       "frUnavailable": "Funding data unavailable (strict mode)",
       "ldTooThin": "Order book too thin ({{detail}})",
       "ldUnavailable": "Liquidity data unavailable (strict mode)",
-      "maxPositions": "Position limit reached ({{detail}})",
+      "maxPositions": "This bot reached its position limit ({{detail}})",
       "capitalCap": "Above per-position cap ({{detail}} USDT)",
       "priceUnavailable": "Live price unavailable",
       "spotOnlyExchange": "Exchange has no futures market",
@@ -248,12 +258,12 @@
       "liveOrderFailed": "The exchange rejected the order.",
       "storeWriteFailed": "Could not save to the local trade database.",
       "storeReadFailed": "Could not read the local trade database.",
-      "liveSymbolHasOrders": "Skipped: the symbol already has open orders on Binance.",
+      "liveSymbolHasOrders": "Skipped: the symbol already has open orders on the exchange.",
       "liveStopBeyondLiquidation": "Skipped: at this leverage liquidation would come before the stop.",
-      "liveOrderUnconfirmed": "Binance did not confirm the entry; check the position on Binance.",
+      "liveOrderUnconfirmed": "The exchange did not confirm the entry; check the position on the exchange.",
       "liveUnprotected": "A real position has no exchange stop; closing it now.",
       "liveProtectiveStopFailed": "Protective stop not placed on the exchange · position closed",
-      "hedgeModeUnsupported": "Your Binance account is in Hedge Mode; switch to One-way Mode to trade live.",
+      "hedgeModeUnsupported": "Your exchange account is in Hedge Mode; switch to One-way Mode to trade live.",
       "liveSymbolHeld": "Exchange position already open on this symbol · skipped",
       "liveExchangeCheckFailed": "Couldn't verify the exchange account before placing the order.",
       "sizingInvalidStop": "Invalid stop distance · position not sized",
@@ -271,17 +281,26 @@
       "tpCustomInvalid": "Custom take-profit {{detail}}% cannot apply to this trade",
       "tpNotBeyondFill": "Take-profit {{detail}} is not beyond the entry price",
       "tooOld": "Signal older than this bot's age limit",
-      "liveLeverageRejected": "Skipped: Binance refused the leverage for this symbol.",
-      "liveMarginTypeRejected": "Skipped: Binance would not switch this symbol to isolated margin (an open order or position on it).",
-      "liveSymbolNotTrading": "Skipped: this symbol is not open for trading on Binance Futures.",
+      "liveLeverageRejected": "Skipped: the exchange refused the leverage for this symbol.",
+      "liveMarginTypeRejected": "Skipped: the exchange would not switch this symbol to isolated margin (an open order or position on it).",
+      "liveSymbolNotTrading": "Skipped: this symbol is not open for trading on the exchange's futures market.",
       "liveOwnEntryAdopted": "An entry that looked failed did fill on the exchange; it is now tracked with its stop.",
-      "liveOwnEntryFlattened": "An entry that looked failed did fill on the exchange and could not be protected as planned; it was closed at market."
+      "liveOwnEntryFlattened": "An entry that looked failed did fill on the exchange and could not be protected as planned; it was closed at market.",
+      "signalOtherMarket": "Published for the {{detail}} market · not this bot's market",
+      "botNotResumed": "Not resumed after restart",
+      "liveBreakevenAppOnly": "Breakeven kept by the app only · with the app closed the exchange holds the original stop",
+      "restoreRowUnreadable": "Saved data could not be read at startup ({{detail}}) · kept on disk, not used",
+      "restoreLiveBlocked": "Real-money data could not be read at startup ({{detail}}) · bot not resumed",
+      "restoreConfigInvalid": "Saved bot settings fail a check ({{detail}}) · fix and save them to start the bot",
+      "settledPositionDropped": "Already closed in History · its leftover open row was removed at startup",
+      "belowExchangeMinimum": "Below the exchange minimum order ({{detail}} USDT, Binance needs about 5)",
+      "manualOpened": "Opened by hand from Execute · paper"
     },
     "exchange": "Exchange",
     "signalFilter": "Signal filter",
     "maxSignalAge": "Max signal age (hours)",
     "maxSignalAgeHint": "Only signals younger than this are entered, newest first. 0 = no limit.",
-    "minConfidence": "Min evidence score (%)",
+    "minConfidence": "Min Sentinel score (%)",
     "direction": "Direction",
     "dir": {
       "all": "All",
@@ -293,15 +312,14 @@
     "comboWhitelist": "Setups this bot may trade",
     "engineWhitelist": "Engine whitelist",
     "engineWhitelistHint": "Comma-separated primary engine ids. Empty = all engines.",
-    "pumpNote": "Futures only · Sentinel pump-engine signals · most aggressive type",
-    "pumpLocked": "Pump requires the Ambitious risk level or higher.",
+    "pumpNote": "Untested: no replay or forward test of this rule exists. Futures signals from Sentinel's pump engine that also show a structure break (MSB or CHoCH) and an order block or FVG. Paper only, within the current risk level's limits.",
     "principles": {
       "title": "How this bot works",
       "intro": "Each line is a property of the running code · deleted if it stops being true",
       "items": {
         "evidence": {
-          "title": "Evidence-first signals",
-          "body": "Every trade starts from a Sentinel signal · published entry, stop and targets · public ledger at ribqa.com"
+          "title": "Signals from Sentinel",
+          "body": "Every trade starts from a Sentinel signal · published entry, stop and targets · public ledger at ribqa.com · entry selection tested: no measurable edge (AUC 0.496)"
         },
         "noSilentSkips": {
           "title": "No silent skips",
@@ -309,7 +327,7 @@
         },
         "honestFills": {
           "title": "Honest fills and net PnL",
-          "body": "Paper entries fill at the live price on your exchange · PnL net of taker fees"
+          "body": "Paper entries fill at the live price on your exchange · stops and targets at their level, or at the first price seen after an unwatched gap · PnL net of taker fees"
         },
         "veto": {
           "title": "Invalidations don't close trades",
@@ -326,8 +344,8 @@
       }
     },
     "maxLossPct": "Max loss per position (%)",
-    "maxLossPctHint": "Positions losing more than this are closed automatically, at all times. Leave empty to disable.",
-    "btcBreak": "BTC breakdown · new longs paused · shorts continue · max loss per position applies",
+    "maxLossPctHint": "% of the bot's capital per position, after leverage and fees · empty = off",
+    "btcBreak": "BTC breakdown · new longs paused · shorts continue",
     "comboLoadFailed": "Could not load the setup catalogue. Check your connection and reopen this panel.",
     "comboLive": "Published",
     "comboBacktest": "Backtest",
@@ -389,14 +407,34 @@
       "typePrompt": "Type {{word}} to confirm",
       "confirm": "Confirm real money",
       "cancel": "Cancel",
-      "failed": "Could not change the real-money setting."
+      "failed": "Could not change the real-money setting.",
+      "sizingTurnedOff": "LIVE was switched off because capital, leverage or the position cap changed. Confirm the new sizing with LIVE again.",
+      "pilot": "Pilot: {{count}} real entries left at up to {{cap}} USDT each.",
+      "endPilot": "End pilot",
+      "targetVenue": "Orders go to {{exchange}}, on your real account.",
+      "targetVenueSandbox": "Orders go to the {{exchange}} demo / test network, not to a real account."
     },
     "vetoReason": {
       "btc_regime_turn_bullish": "BTC regime turned bullish",
       "btc_regime_turn_bearish": "BTC regime turned bearish",
       "btc_extreme_move_up": "BTC extreme move up",
       "btc_extreme_move_down": "BTC extreme move down"
-    }
+    },
+    "untested": "Untested",
+    "exchangeLocked": "The exchange stays fixed while this bot trades real money or holds real positions.",
+    "capitalCapHint": "Cap per position at your risk level: {{cap}}",
+    "capitalAboveCap": "Above the {{cap}} cap per position. Lower it, or raise the balance or risk level on Risk & safety.",
+    "maxLoss": {
+      "fixed": "closes at a {{move}} price move against the position",
+      "immediate": "fees alone reach it at {{leverage}}x: closes right after entry",
+      "riskInert": "no effect: the stop closes first, at about −{{risk}}% of capital",
+      "riskActive": "closes at about {{share}} of the way to the stop"
+    },
+    "filtersApplyPending": "Saved changes also apply to pending signals the old settings skipped.",
+    "minConfidenceHint": "Tested on past signals: the score does not separate winners from losers (AUC 0.496)",
+    "capitalBelowMinimum": "Binance refuses orders under about 5 USDT: at this size the bot skips every signal. Raise the balance or the risk level.",
+    "maxPositionsLevelHint": "Your risk level allows up to {{max}} per signal bot",
+    "maxPositionsAboveLevel": "Your risk level allows {{max}} per signal bot: this bot holds at most {{max}}. Raise the level on Risk & safety for more."
   },
   "pnl": {
     "exportCsv": "Export CSV",
@@ -540,7 +578,8 @@
     },
     "summaryPanel": "Summary panel",
     "more": "More",
-    "guide": "Guide"
+    "guide": "Guide",
+    "faq": "FAQ"
   },
   "page": {
     "botNew": "New bot",
@@ -574,7 +613,7 @@
     "exchange": "Exchange",
     "direction": "Direction",
     "timeframe": "Timeframe",
-    "minEvidence": "Min. evidence",
+    "minEvidence": "Min. score",
     "age": "Age",
     "bot": "Bot",
     "range": "Range",
@@ -634,7 +673,8 @@
     "allPairs": "All pairs",
     "blocked": {
       "killSwitch": "Start refused: the daily stop tripped. Restart unlocks after 00:00 UTC.",
-      "notConfigured": "Start needs saved settings: open the bot and save them."
+      "notConfigured": "Start needs saved settings: open the bot and save them.",
+      "capitalAboveCap": "Capital per position is above the risk level's cap: lower it in the bot's settings."
     },
     "totals": {
       "bots": "Bots",
@@ -649,8 +689,6 @@
     "selectedCount": "Selected: {{count}}",
     "bulkStop": "Stop selected ({{count}} running)",
     "liveOrders": "Live orders",
-    "liveNotAvailable": "Not available",
-    "paperOnlyLine": "Paper only: simulated fills at live prices, fees included. No real orders.",
     "dca": {
       "empty": "No DCA bots yet",
       "new": "New DCA bot",
@@ -677,8 +715,8 @@
       "range": "Range"
     },
     "mode": {
-      "signal": "Paper, LIVE opt-in (Futures, Binance)",
-      "paperOnly": "Paper only"
+      "signal": "Paper, LIVE opt-in (Futures: Binance, Bybit, OKX)",
+      "paperOnly": "Paper: simulated fills at live prices, fees included"
     },
     "presetsLink": "Presets for this type",
     "create": "Create"
@@ -717,7 +755,9 @@
       "realizedToday": "Realized today",
       "netAll": "Net P&L, all time",
       "dailyLossUsed": "Daily loss used",
-      "capitalInUse": "Capital in use"
+      "capitalInUse": "Capital in use",
+      "split": "Signal {{signal}} · DCA/Grid {{strategy}}, after fees",
+      "signalWinRate": "Signal win rate"
     },
     "afterFees": "{{scope}}, after fees",
     "noTradesToday": "No trades today",
@@ -739,7 +779,8 @@
     "closedTodayOf": "{{kind}}: closed today",
     "skipSummary": "Skip reasons",
     "streamDown": "Signal stream disconnected: bots receive no new signals.",
-    "liveActive": "LIVE is on for at least one bot: its orders are real."
+    "liveActive": "LIVE is on for at least one bot: its orders are real.",
+    "capitalAboveCap": "{{kind}}: capital {{capital}} is above the {{cap}} cap per position · every signal is skipped · lower it in Settings"
   },
   "signalsPage": {
     "status": {
@@ -747,7 +788,7 @@
       "expired": "Expired"
     },
     "last24h": "Last 24 h",
-    "evidence": "Evidence",
+    "evidence": "Score",
     "expiresAt": "Expires",
     "confluence": "Confluence",
     "plan": "Management plan",
@@ -760,7 +801,51 @@
     "selectHint": "Select a signal to see its detail.",
     "empty": "No signals in the buffer",
     "noMatch": "No signals match these filters",
-    "combo": "Combo"
+    "combo": "Combo",
+    "execute": {
+      "button": "Execute",
+      "rowLabel": "Execute {{symbol}}",
+      "title": "{{symbol}} · {{side}}",
+      "close": "Close",
+      "signalBot": "Signal bot",
+      "signalBotLine": "Signal bots also take Sentinel signals by themselves, within their filters.",
+      "botSettings": "{{bot}} bot settings",
+      "dcaTemplates": "DCA templates",
+      "gridTemplates": "Grid templates",
+      "noTemplates": "No template for this side on {{symbol}}.",
+      "openWith": "Open with {{symbol}}",
+      "blank": "Blank form",
+      "blankDca": "Blank DCA · {{symbol}}",
+      "blankGrid": "Blank Grid · {{symbol}}",
+      "note": "Templates were tested on their own pair selection. On {{symbol}} they are untested. Bots run on paper unless the build is live and LIVE is typed to confirm."
+    },
+    "take": {
+      "title": "Take this signal now · paper",
+      "line": "Bot filters skipped · risk limits kept · real money not via Execute",
+      "pricing": "Pricing…",
+      "fill": "Fill now",
+      "publishedEntry": "Signal entry",
+      "rr": "R:R",
+      "rrValue": "{{fill}} at fill · {{published}} published",
+      "size": "Size",
+      "sizeValue": "{{amount}} · {{leverage}}x",
+      "lossAtStop": "Loss at stop {{price}}",
+      "gainAtTarget": "Gain at {{target}} {{price}}",
+      "fees": "Fees",
+      "rrLow": "The trade has moved · most of the reward is gone",
+      "open": "Open position",
+      "opening": "Opening…",
+      "opened": "Opened · {{symbol}} at {{price}} · paper",
+      "botPage": "{{bot}} bot",
+      "noBot": "No signal bot takes this market and side.",
+      "refusal": {
+        "manualTakePaperOnly": "This bot trades real money · Execute opens paper positions only",
+        "signalNotFound": "Signal no longer in the feed",
+        "marketHeld": "This bot already holds a position on this symbol",
+        "stopPassed": "Price already passed the stop",
+        "targetPassedBeforeEntry": "Price already passed the target ({{detail}}) before entry"
+      }
+    }
   },
   "backtest": {
     "run": "Run backtest",
@@ -800,7 +885,8 @@
       "feesIncluded": "Fees included",
       "noFunding": "Funding not included",
       "noGates": "BTC-break and risk gates not simulated",
-      "coverage": "Coverage {{value}}"
+      "coverage": "Coverage {{value}}",
+      "barCloses": "Drawdown read at {{interval}} candle closes; paper bots use 1-minute candles"
     },
     "kpi": {
       "net": "Net P&L",
@@ -861,13 +947,16 @@
     "deleteAll": "Delete all",
     "deleteAllTitle": "Delete {{n}} runs?",
     "deleteAllBody": "Every stored backtest run is deleted. This cannot be undone.",
-    "deleteRun": "Delete run {{name}}"
+    "deleteRun": "Delete run {{name}}",
+    "hint": {
+      "interval": "Paper bots run on 1-minute candles. Longer candles read the drawdown at fewer closes and show less of it."
+    }
   },
   "positions": {
     "tabPaper": "Paper",
     "tabExchange": "Exchange",
     "noPaper": "No open paper positions",
-    "noKey": "No Binance key in the vault",
+    "noKey": "No exchange key in the vault",
     "realZone": "Real exchange account: actions place real orders",
     "totals": "Totals",
     "notional": "Notional",
@@ -890,14 +979,22 @@
       "realNote": "Real exchange positions are not touched: close them on the Exchange tab.",
       "confirm": "Close all",
       "done": "Closed: {{closed}} · not closed: {{failed}}",
-      "failed": "Closing failed."
+      "failed": "Closing failed.",
+      "strategyLiveNote": "Bots on real money: their exchange position is closed at market on the next pass."
     }
   },
   "history": {
     "byBot": "By bot",
     "byExit": "By exit reason",
     "loadedScope": "Counts over the latest {{count}} loaded trades.",
-    "filtersNote": "Filters apply to the trade list ({{shown}} of {{total}}); the stats cover the whole scope."
+    "filtersNote": "Filters apply to the trade list ({{shown}} of {{total}}); the stats cover the whole scope.",
+    "exportSkips": "Export skipped signals",
+    "cycles": {
+      "title": "DCA/Grid cycles",
+      "deleted": "Deleted",
+      "none": "No closed cycles yet.",
+      "netNote": "After fees and funding, deleted bots included"
+    }
   },
   "accounts": {
     "vault": "Vault",
@@ -926,7 +1023,8 @@
       "killSwitch": "Daily stop",
       "regime": "BTC regime gate",
       "live": "LIVE gate",
-      "emergency": "Emergency"
+      "emergency": "Emergency",
+      "preflight": "Live readiness"
     },
     "level": {
       "title": "Risk level"
@@ -963,7 +1061,7 @@
     "live": {
       "notThisBuild": "This build cannot place real orders.",
       "build": "Build has the live feature",
-      "binanceKey": "Binance key in the vault",
+      "binanceKey": "Trade key in the vault",
       "endpoint": "Order endpoint",
       "turnOff": "Turn LIVE off",
       "onWhere": "LIVE on/off per bot:"
@@ -976,7 +1074,14 @@
       "realCloses": "Real positions: Positions > Exchange"
     },
     "exposure": "Exposure",
-    "remote": "Phone remote control"
+    "remote": "Phone remote control",
+    "scope": {
+      "leverageAll": "Max leverage (all bots)",
+      "positionsSignal": "Max positions per signal bot",
+      "dailyStopSignal": "Daily stop (signal bots)",
+      "strategyBudget": "DCA/Grid budget cap",
+      "strategyBreaker": "DCA/Grid breaker"
+    }
   },
   "settings": {
     "tabs": {
@@ -1054,7 +1159,10 @@
       "regime": "BTC regime"
     },
     "strategyBreaker": "DCA/Grid portfolio breaker tripped",
-    "strategyBreakerDetail": "Drawdown from the P&L peak reached {{pct}}% of the budgets of the bots inside the breaker. Their cycles closed; their starts blocked until re-armed."
+    "strategyBreakerDetail": "Drawdown from the P&L peak reached {{pct}}% of the budgets of the bots inside the breaker. Their cycles closed; their starts blocked until re-armed.",
+    "cycleStopsToday": "DCA/Grid cycles closed by a stop today: {{count}}",
+    "cyclesClosedToday": "DCA/Grid cycles closed today: {{count}}",
+    "strategyDead": "{{name}} ended"
   },
   "statusbar": {
     "label": "Status",
@@ -1067,7 +1175,7 @@
     "latency": "Latency",
     "priceUnavailable": "Price unavailable",
     "reconnect": "Reconnect",
-    "autoLock": "auto-lock after {{minutes}} min idle",
+    "autoLock": "auto-lock after {{duration}} idle",
     "regime": {
       "normal": "Normal",
       "break": "Break",
@@ -1085,27 +1193,35 @@
       "stop": "Pause",
       "close": "Close cycle and stop",
       "archive": "Delete",
-      "clone": "Clone"
+      "clone": "Clone",
+      "startFirst": "Start"
     },
     "confirm": {
       "start": {
         "title": "Resume {{name}}?",
-        "body": "The bot may open new paper cycles. Its budget is reserved under the strategy cap."
+        "body": "The bot may open new paper cycles. Its budget is reserved under the strategy cap.",
+        "bodyLive": "This bot is on real money: new cycles buy and sell on the exchange's futures market. Real money stays on after a restart."
       },
       "stop": {
         "title": "Pause {{name}}?",
-        "body": "No new cycles open. An open cycle keeps its take profit and stop until it closes."
+        "body": "No new cycles open. An open cycle keeps its take profit and stop until it closes.",
+        "bodyLive": "No new cycles open. The open cycle keeps trading on the exchange until its take profit or stop."
       },
       "close": {
         "title": "Close the cycle of {{name}}?",
-        "body": "The open paper cycle closes at market (taker fee and slippage) and the bot stops."
+        "body": "The open paper cycle closes at market (taker fee and slippage) and the bot stops.",
+        "bodyLive": "The cycle closes at market and the bot's exchange position is closed on the next pass (a few seconds). The bot stops."
       },
       "archive": {
         "title": "Delete {{name}}?",
-        "body": "The bot leaves the desk. Its cycles and fills stay in the CSV export."
+        "body": "The bot leaves the desk. Its cycles and fills stay in the CSV export.",
+        "bodyOpen": "The open cycle closes at market, the bot stops and leaves the desk. Its cycles and fills stay in the CSV export."
       },
       "closeAll": {
         "body": "Every open DCA and Grid paper cycle closes at market and its bot stops. A cycle without a current price stays open."
+      },
+      "startFirst": {
+        "title": "Start {{name}}?"
       }
     },
     "state": {
@@ -1141,7 +1257,8 @@
       "orders": "Orders",
       "fills": "Fills",
       "settings": "Settings",
-      "log": "Log"
+      "log": "Log",
+      "real": "Real vs paper"
     },
     "form": {
       "section": {
@@ -1156,16 +1273,25 @@
       "save": "Save changes",
       "saved": "Saved.",
       "notANumber": "Not a valid number for this field.",
-      "fromPreset": "From preset {{id}}: settings match its historical simulation.",
+      "fromPreset": "From preset {{id}}: settings match its historical simulation, run on {{universe}}. Your pair is not checked against that list.",
       "presetDiffers": "Changed from preset {{id}}: its historical simulation no longer describes these settings. The bot is saved without the preset link.",
       "presetUnknown": "Preset {{id}} not found",
       "presetKind": "Preset {{id}} is for another bot type",
       "copyName": "{{name}} copy",
-      "cycleLocked": "A cycle is open: only name, start, restart and protection settings can change.",
+      "cycleLocked": "A cycle is open: only name, start, restart and protection settings can change. To change the rest now, use Close cycle and stop (closes at market), edit, then Start.",
       "slotLocked": "The bot is running: pause it to change market, pair or side.",
       "leaveTitle": "Discard unsaved changes?",
       "discard": "Discard changes",
-      "presetFailed": "This template did not pass its checks ({{reasons}}). Its settings are kept for learning; try them in a backtest first."
+      "presetFailed": "This template did not pass its checks ({{reasons}}). Its settings are kept for learning; try them in a backtest first.",
+      "fromPresetPairChecked": "From preset {{id}}: settings and pair match its historical simulation ({{universe}}).",
+      "budgetShort": "Minimum budget {{min}} USDT (every order at least 5 USDT); {{free}} USDT free under the DCA/Grid budget cap. Raise the simulated balance or the risk level:",
+      "custom": {
+        "base": "Custom settings: no historical simulation.",
+        "passed": "Custom settings: no historical simulation. Templates with a passing history, under review until 1 Nov: {{names}}.",
+        "noneDca": "Custom settings: no historical simulation. 0 of {{total}} DCA templates passed their checks.",
+        "noneGrid": "Custom settings: no historical simulation. 0 of {{total}} grid templates passed their checks."
+      },
+      "presetPairOnly": "Preset {{id}} was tested on BTCUSDT only and does not open with {{symbol}}."
     },
     "field": {
       "name": "Name",
@@ -1241,7 +1367,7 @@
       "volumeScale": "1.0 = equal safety order sizes.",
       "volumeScaleGrows": "Order sizes grow with each safety order: worst-case capital rises.",
       "tp": "From the average entry, after the fill.",
-      "sl": "Must sit beyond the last safety order.",
+      "sl": "Must sit beyond the last safety order and before the liquidation price.",
       "rangeRelative": "Set around the price when each cycle starts.",
       "rangeAbsolute": "Fixed prices.",
       "nGrids": "{{levels}} price levels.",
@@ -1255,7 +1381,8 @@
       "endAt": "Open cycles still run to their exit.",
       "ddStop": "Closes the cycle and stops the bot at this loss from its equity peak.",
       "btcGate": "No new cycle while Sentinel reports a BTC break. Open cycles continue.",
-      "portfolioBreakerOff": "Outside the portfolio breaker: not counted, not closed or held when it trips."
+      "portfolioBreakerOff": "Outside the portfolio breaker: not counted, not closed or held when it trips.",
+      "maxDuration": "Closes the cycle at market when reached. A running bot starts the next cycle after the cooldown."
     },
     "sizing": {
       "weights": "Scaled to budget",
@@ -1290,13 +1417,13 @@
       "totalNotional": "Notional if all fill",
       "liqPrice": "Est. liquidation",
       "liqDistance": "Last order to liquidation",
-      "noLiq": "None at 1x",
       "worstLoss": "Worst case",
       "worstOpen": "Open-ended: no stop",
       "basis": {
         "sl": "at the stop loss",
         "liq": "at liquidation",
-        "none": "no stop"
+        "none": "no stop",
+        "ddStop": "at the drawdown stop"
       },
       "deviation": "Deviation",
       "avgEntry": "Avg entry",
@@ -1323,7 +1450,9 @@
       "slippage": "Slippage",
       "funding": "Funding",
       "fundingCharged": "Charged from Binance history",
-      "fundingNone": "None (spot)"
+      "fundingNone": "None (spot)",
+      "minBudget": "Minimum budget",
+      "noLiqAt": "None at {{leverage}}x"
     },
     "warnings": {
       "leveraged": "Leverage above 1x: losses grow with it.",
@@ -1331,7 +1460,8 @@
       "noStopLoss": "No stop: loss is open-ended.",
       "noStopOut": "No stop: inventory loss is open-ended.",
       "trailLimitInsideRange": "Trail limit sits inside the range at this price: the range never trails.",
-      "gridLiqInsideBandNow": "Est. liquidation enters the band at this price: the bot waits until it leaves."
+      "gridLiqInsideBandNow": "Est. liquidation enters the band at this price: the bot waits until it leaves.",
+      "ddStopOnly": "Only the bot drawdown stop limits the loss."
     },
     "detail": {
       "preset": "Preset",
@@ -1462,7 +1592,7 @@
       "rearmBody": "Allowed from the next UTC day after a trip. The P&L peak resets to the current P&L."
     },
     "emergency": {
-      "title": "DCA and Grid (paper)",
+      "title": "DCA and Grid",
       "pauseAll": "Pause all DCA and Grid bots ({{count}})",
       "closeAll": "Close all DCA and Grid cycles ({{count}})",
       "paused": "Paused: {{count}}",
@@ -1475,15 +1605,16 @@
         "dca": "No DCA preset passed the checks",
         "grid": "No grid preset passed the checks"
       },
-      "testMean": "Test: mean per bot-month",
-      "testMeanNote": "Test = the last data window, held out while the preset was chosen.",
+      "testMean": "Test: mean per bot-month (a new 1000 USDT bot per pair each month)",
+      "testMeanNote": "Test = the last data window, held out while the preset was chosen. Every figure is per bot-month: a new 1000 USDT bot per pair each month, a cycle open at month end left to run on. Not one bot kept running.",
       "ci95": "95% interval",
       "monthsPositive": "Months positive",
       "worstBotDd": "Worst bot drawdown",
       "verdict": "Verdict",
       "verdicts": {
         "presetReady": "Passed checks",
-        "failed": "Did not pass"
+        "failed": "Did not pass",
+        "underReview": "Passed to {{end}} · re-read {{date}}"
       },
       "use": "Use preset",
       "settings": "Settings",
@@ -1504,7 +1635,7 @@
       "excluded": "Excluded",
       "capitalModel": "Capital model",
       "capital": {
-        "onePersistentBotPerSymbol": "One bot per pair, fixed budget"
+        "botPerSymbolMonth": "A new 1000 USDT bot per pair each month; a cycle open at month end runs on until it closes"
       },
       "method": "Method",
       "simulator": "Simulator",
@@ -1533,9 +1664,9 @@
       "openAtEnd": "Cycles open at data end",
       "liquidations": "Liquidations",
       "stoppedDeals": "Stopped cycles",
-      "parityNote": "Changing any setting except name, pair or budget makes these numbers no longer describe the bot.",
+      "parityNote": "Changing any setting except name or budget, or a pair outside the tested selection, makes these numbers no longer describe the bot.",
       "col": {
-        "testMean": "Test mean/mo"
+        "testMean": "Test per bot-month"
       },
       "names": {
         "dca_long_classic": "DCA Long Classic",
@@ -1580,7 +1711,25 @@
         "confirm": "Use anyway"
       },
       "failedBanner": "Did not pass its checks:",
-      "passedBanner": "Passed all four checks: every period positive, the test interval above zero, every test month positive, no liquidation."
+      "passedBanner": "Passed all four checks: every period positive, the test interval above zero, every test month positive, no liquidation.",
+      "live": {
+        "col": "Ghost since {{since}}",
+        "tip": "Total return since the start, not per month (the Test column is per bot-month). The templates run forward on the server by the simulator behind the historical numbers; no money is involved. Open cycles marked at the last price. Not ranked before 30 days.",
+        "collecting": "Collecting {{days}}/{{min}} d",
+        "unavailable": "Ghost track unavailable: ribqa.com did not answer.",
+        "line": "Ghost track (simulated) since {{since}} · day {{days}} of {{min}}, not ranked yet · updated {{updated}}",
+        "lineReady": "Ghost track (simulated) since {{since}} · {{days}} days · updated {{updated}}",
+        "title": "Ghost track (simulated)",
+        "early": "Day {{days}} of {{min}}: too early to compare templates. The numbers are shown, not ranked.",
+        "return": "Total return since {{since}}, of capital (not per month)",
+        "medianDd": "Median bot drawdown",
+        "bots": "Bots",
+        "cycles": "Cycles",
+        "open": "{{count}} open",
+        "method": "Same simulator and parameters as the historical test: a new 1000 USDT bot per pair each month, 1x, monthly coin lists, fees, slippage and funding included, open cycles marked at the last close."
+      },
+      "checksToWindow": "All four checks passed on the test window to {{date}}",
+      "recheckBanner": "Passed all four checks on the test window to {{windowEnd}}. In {{month}} so far ({{days}} days) the mean is {{mean}}% per bot-month with deals still open, so not every test month is positive yet. The checks are read again on {{nextRead}}, when the month is complete. Not a guarantee."
     },
     "notes": {
       "portfolioDdTripped": "Portfolio breaker tripped: cycles of the bots inside it closed. Re-arm from the next UTC day.",
@@ -1602,7 +1751,29 @@
       "cycleClosed": "Cycle closed: {{reason}}",
       "storeReadFailed": "Could not read the strategy store.",
       "storeWriteFailed": "Could not save to the strategy store.",
-      "sizeDownBelowMin": "Orders shrank below the exchange minimum after losses: the bot ended."
+      "sizeDownBelowMin": "Orders shrank below the exchange minimum after losses: the bot ended.",
+      "liveClosedOnExchange": "The position was closed on the exchange (stop, liquidation or manual): the bot stopped.",
+      "liveMismatch": "The exchange position no longer matches what the bot sent: the bot stopped. Check the position on the exchange.",
+      "liveHedgeMode": "The exchange account is in hedge mode; real money needs one-way mode.",
+      "liveBuildRequired": "A live bot from a real-money build: this build cannot reach the exchange, the bot stopped.",
+      "liveQtyBelowMinimum": "The cycle's first order is under the exchange minimum: the cycle was closed and the bot stopped.",
+      "livePartialBelowMinimum": "An order is under the exchange minimum: waiting for a larger step.",
+      "liveVaultLocked": "Vault locked: real orders wait until it is unlocked. After 2 minutes with missed orders the bot stops.",
+      "liveExchangeCheckFailed": "The exchange could not be read; retrying.",
+      "liveLeverageRejected": "The exchange refused isolated margin or the leverage for this symbol.",
+      "liveOrderFailed": "The exchange refused the order.",
+      "livePartialFailed": "A partial close failed on the exchange; retrying.",
+      "liveCloseFailed": "The close failed on the exchange; retrying.",
+      "liveProtectiveStopFailed": "The exchange stop could not be placed.",
+      "liveUnprotected": "No stop could be placed on the exchange and the close has not confirmed yet. Retrying; if it stays open, close it on Positions → Exchange.",
+      "liveStopFilled": "The exchange stop closed the position at the stop level; the bot stays armed.",
+      "liveMissedOrders": "The exchange could not be reached for over 2 minutes while the bot traded on paper: the bot stopped instead of catching up at today's price.",
+      "liveSymbolHasOrders": "The symbol has open orders on the exchange (an old stop or your own order): the bot stopped. Cancel them on the exchange first.",
+      "resumeRefused": "Not resumed after the restart. {{reason}}",
+      "leverageAboveCeiling": "Leverage above your risk level's maximum: new cycles held.",
+      "liveVenueNotDryRun": "Real money stopped: this exchange's order path has not passed a run on its test network. The real position stays under its stop; close it on the Positions & orders page.",
+      "cycleRestoreFailed": "The open cycle could not be read at startup · bot not resumed",
+      "liveStateUnreadable": "Real-money state could not be read at startup · bot not resumed"
     },
     "errors": {
       "nameInvalid": "Name: 1 to 40 characters.",
@@ -1662,15 +1833,101 @@
       "membershipInactive": "Membership inactive.",
       "storeReadFailed": "Could not read the strategy store.",
       "trailingAboveTp": "Trailing deviation: below the take profit.",
-      "slInsideLadder": "Stop loss: beyond the next safety order at every step of the ladder."
+      "slInsideLadder": "Stop loss: beyond the next safety order at every step of the ladder.",
+      "liveBuildDisabled": "This build trades on paper only.",
+      "liveFuturesBinanceOnly": "Real money is available for Binance futures bots only.",
+      "liveConfirmRequired": "Type {{detail}} to confirm.",
+      "liveNeedsTradeKey": "Unlock the vault with a trade key for this exchange first.",
+      "liveNeedsVerifiedKey": "This key was stored before permissions were verified. Renew it in Settings, Exchange keys.",
+      "liveNeedsIdleBot": "Close or wait for the open paper cycle to end, then switch to real money.",
+      "liveNeedsStop": "Set a stop-loss, grid stop-out or drawdown stop first: the exchange stop rests there.",
+      "liveSymbolBusy": "Another live bot or position already uses this symbol on the exchange.",
+      "liveCloseFirst": "Close the bot's real position first, then go back to paper.",
+      "liveOrderBelowMinNotional": "The bot's smallest order is under the exchange minimum ({{detail}} USDT) for this symbol.",
+      "liveSymbolNotTrading": "This symbol is not trading on the exchange's futures market.",
+      "liveExchangeCheckFailed": "The exchange could not be reached. Try again.",
+      "liveEditLocked": "Real money is on for this bot. Switch it back to paper before editing or deleting it.",
+      "liveHaltedStart": "This bot stopped itself on real money. Check its exchange position, then switch it back to paper before starting it again.",
+      "budgetCapDetail": "Over the DCA/Grid budget cap: {{free}} USDT free of {{limit}} USDT. Raise the simulated balance or the risk level on Risk & safety.",
+      "slBeyondLiquidation": "Stop loss at or past the liquidation price: it would never fire. Use a closer stop or lower leverage.",
+      "budgetBelowMinNotionalMin": "An order would be below the 5 USDT minimum. Minimum budget: {{min}} USDT.",
+      "liveVenueNotDryRun": "Real money is not available on this exchange yet: its order path has not passed a run on the exchange's test network. Positions there can still be closed."
     },
     "leverageConfirm": {
-      "title": "Leverage with no stop loss",
+      "title": "Liquidation possible, no stop",
       "body_long": "{{leverage}}x, stop loss off. If price falls {{pct}}% below the last safety order ({{price}}), the position is liquidated and the cycle's whole budget is lost.",
       "body_short": "{{leverage}}x, stop loss off. If price rises {{pct}}% above the last safety order ({{price}}), the position is liquidated and the cycle's whole budget is lost.",
       "bodyGeneric": "{{leverage}}x, stop loss off. Past the last safety order nothing closes the position before liquidation, and the cycle's whole budget is lost.",
       "hint": "A stop loss or 1x leverage removes this risk.",
-      "confirm": "Continue without a stop"
+      "confirm": "Continue without a stop",
+      "body_grid": "Grid at {{leverage}}x, stop-out off. Est. liquidation low / high: {{price}}. If price reaches it, the position is liquidated and the cycle's whole budget is lost.",
+      "bodyGenericGrid": "Grid at {{leverage}}x, stop-out off. Outside the range nothing closes the position before liquidation, and the cycle's whole budget is lost.",
+      "hintShort": "Only a stop loss removes this risk: a short is liquidated at 1x too, when price about doubles.",
+      "hintGrid": "A stop-out removes this risk."
+    },
+    "live": {
+      "title": "Real money",
+      "paper": "Paper",
+      "on": "LIVE",
+      "halted": "Stopped",
+      "realQty": "Real position",
+      "entry": "Entry",
+      "unrealized": "Unrealized",
+      "stop": "Exchange stop",
+      "realized": "Realized (gross)",
+      "fees": "Fees (est. 0.05%)",
+      "fills": "Real fills",
+      "lastSync": "Last sync",
+      "enable": "Switch to real money",
+      "disable": "Back to paper",
+      "confirmTitle": "Real money for {{name}}",
+      "confirmBody": "Every buy and sell this bot simulates is sent to Binance futures as a market order on {{symbol}}, isolated margin, {{leverage}}x. A stop stays on the exchange at the bot's stop level. If the position on Binance changes outside the bot, the bot stops. Taker fees apply.",
+      "buildOff": "This build trades on paper only.",
+      "futuresOnly": "Real money is available for Binance futures bots only.",
+      "goKeys": "Exchange keys",
+      "goSettings": "Bot settings",
+      "goExchange": "Positions → Exchange",
+      "goGuide": "Real money guide",
+      "req": {
+        "title": "Before real money",
+        "key": "A verified trade key (Binance, Bybit or OKX)",
+        "stop": "A stop loss, grid stop-out or drawdown stop",
+        "idle": "No open paper cycle"
+      },
+      "listLine": "Paper by default: simulated fills at live prices, fees included. Real money is opt-in per bot on Binance, Bybit or OKX futures.",
+      "pilot": "Pilot: {{count}} cycles left at {{pct}}% of the simulated size. Ending it takes effect from the next cycle.",
+      "endPilot": "End pilot",
+      "venue": "Order exchange",
+      "confirmBodyVenue": "Every buy and sell this bot simulates is sent to {{exchange}} futures as a market order on {{symbol}}, isolated margin, {{leverage}}x. Decisions still use Binance prices. A stop stays on the exchange at the bot's stop level. If the position on the exchange changes outside the bot, the bot stops. Taker fees apply.",
+      "confirmBudget": "Bot budget: {{budget}} USDT, leverage {{leverage}}x."
+    },
+    "report": {
+      "title": "Real vs simulated fills",
+      "cycle": "Cycle",
+      "side": {
+        "buy": "Buy",
+        "sell": "Sell"
+      },
+      "kind": "Order",
+      "kinds": {
+        "open": "Entry / add",
+        "reduce": "Reduce",
+        "close": "Close",
+        "external": "Exchange stop / outside"
+      },
+      "qty": "Real qty",
+      "real": "Real price",
+      "sim": "Simulated price",
+      "slippage": "Slippage",
+      "cost": "Cost",
+      "delay": "Delay",
+      "avgSlippage": "Average slippage",
+      "totalCost": "Slippage cost",
+      "fees": "Fees (est. 0.05%)",
+      "avgDelay": "Average delay",
+      "matched": "Matched fills",
+      "note": "Positive slippage is a cost: paid more on a buy, received less on a sell. One market order can mirror several simulated fills.",
+      "empty": "No real fills yet."
     }
   },
   "errors": {
@@ -1694,8 +1951,8 @@
     "vaultWriteFailed": "Could not save the vault file.",
     "keychainWriteFailed": "Could not save the vault salt to the system keychain.",
     "keychainSaltMissing": "The vault salt is missing from this computer's keychain. This vault belongs to another device or user account.",
-    "keyNoFutures": "This key has no Futures permission. Enable Futures on Binance, then add it again.",
-    "keyRejected": "Binance rejected this API key and secret. Check for typos.",
+    "keyNoFutures": "This key has no Futures permission. Enable Futures on the exchange, then add it again.",
+    "keyRejected": "The exchange rejected this API key and secret. Check for typos.",
     "sentinelUnreachable": "Could not reach Sentinel. Check your connection.",
     "unexpectedResponse": "Sentinel sent an unexpected response.",
     "serverRejected": "Sentinel refused the request: {{detail}}",
@@ -1705,32 +1962,31 @@
     "refreshFailed": "Could not refresh the session.",
     "accountLookupFailed": "Could not read your account.",
     "botDailyLossTripped": "Daily loss limit reached. Bots can restart on the next UTC day.",
-    "botPumpNeedsAmbitious": "The Pump bot needs the Ambitious risk level or higher.",
     "botNotConfigured": "This bot has no saved settings yet.",
     "botMaxPositionsRange": "Max positions must be between {{detail}}.",
     "exchangeUnknown": "Unknown exchange: {{detail}}",
     "exchangeNoFutures": "{{detail}} has no futures market.",
     "botSaveFirst": "Save the bot's settings first.",
     "liveBuildDisabled": "This build is simulation-only.",
-    "liveFuturesBinanceOnly": "Real-money trading is available for the Binance Futures bot only.",
+    "liveFuturesBinanceOnly": "Real-money trading is available for the Futures bot only.",
     "liveConfirmRequired": "Type {{detail}} to confirm.",
-    "liveNeedsTradeKey": "Unlock the vault with a Binance Trade key first.",
+    "liveNeedsTradeKey": "Unlock the vault with a trade key for this exchange first.",
     "botMaxPositionsMin": "Max positions must be at least 1.",
     "botCapitalInvalid": "Capital per position must be above 0.",
     "botLeverageMin": "Leverage must be at least 1.",
-    "botConfidenceRange": "Minimum confidence must be between 0% and 100%.",
+    "botConfidenceRange": "Min Sentinel score must be between 0% and 100%.",
     "botMaxLossInvalid": "Max loss must be above 0%.",
     "botDirectionInvalid": "Direction must be all, long or short.",
     "botRiskRange": "Risk per trade is out of range.",
     "botTakeProfitRange": "Custom take-profit is out of range.",
     "botTakeProfitSymbol": "A take-profit override needs a symbol.",
-    "exchangeBinanceOnly": "Account actions are available for Binance only.",
+    "exchangeBinanceOnly": "Account actions are available for Binance, Bybit and OKX only.",
     "noVaultedKey": "No key for this exchange in the vault. Unlock the vault and add one.",
-    "binanceKeyRejected": "Binance rejected the request. The key may lack Futures or Trade access.",
-    "binanceUnreachable": "Could not reach Binance.",
-    "binanceRefused": "Binance refused it: {{detail}}",
-    "binanceRateLimited": "Binance rate limit hit. Requests are paused for a minute.",
-    "binanceUnconfirmed": "Binance did not confirm the result. Check the position before retrying.",
+    "binanceKeyRejected": "The exchange rejected the request. The key may lack Futures or Trade access.",
+    "binanceUnreachable": "Could not reach the exchange.",
+    "binanceRefused": "The exchange refused it: {{detail}}",
+    "binanceRateLimited": "Exchange rate limit hit. Requests are paused for a minute.",
+    "binanceUnconfirmed": "The exchange did not confirm the result. Check the position before retrying.",
     "probeClientUnavailable": "The connection check could not start.",
     "cockpitReachable": "Reachable",
     "cockpitUnreachable": "Unreachable",
@@ -1791,15 +2047,25 @@
     "credentialLabelInvalid": "Label: 1 to {{detail}} characters.",
     "vaultPasswordUnchanged": "The new password is the same as the current one.",
     "vaultIdleInvalid": "Choose one of the offered auto-lock times.",
-    "keyExchangeUnverified": "Only Binance keys can be checked for permissions, so only Binance keys are accepted ({{detail}}).",
-    "keyCheckUnavailable": "Binance could not be reached to check this key's permissions. Try again in a moment.",
+    "keyExchangeUnverified": "This exchange's key permissions cannot be checked yet, so its keys are not accepted ({{detail}}).",
+    "keyCheckUnavailable": "The exchange could not be reached to check this key's permissions. Try again in a moment.",
     "liveNeedsVerifiedKey": "This key was stored before permissions were verified. Renew it in Settings, Exchange keys, then switch live on.",
     "updateCheckFailed": "Could not check for updates.",
     "updateInstallFailed": "The update could not be installed.",
     "updateNone": "No update is available.",
     "updateConfirmRequired": "Type {{detail}} to install the update.",
     "closeConfirmRequired": "Type {{detail}} to close.",
-    "resetConfirmRequired": "Type {{detail}} to reset the vault."
+    "resetConfirmRequired": "Type {{detail}} to reset the vault.",
+    "vaultBusyLive": "Real money is in play. Close the real positions and switch live off before locking the vault or changing keys.",
+    "updateBlockedLive": "Real money is in play. Close the real positions and switch live off before installing an update.",
+    "trendUnavailable": "Trend unavailable: Binance did not answer.",
+    "liveVenueNotDryRun": "Real money is not available on this exchange yet: its order path has not passed a run on the exchange's test network. Positions there can still be closed.",
+    "botHasLivePositions": "This bot holds real positions on {{detail}}. Close them before changing its exchange.",
+    "liveExchangeLocked": "Switch this bot back to simulated before changing its exchange: real money was confirmed for {{detail}}.",
+    "closeAllPartial": "Close all did not close every position. Still open: {{detail}}. Check the list and close them again, or on the exchange.",
+    "closeCleanupFailed": "Closed, but the stop or take-profit orders on {{detail}} could not be cancelled. Cancel them on the exchange.",
+    "botCapitalAboveCap": "Capital per position is above your risk level's cap of {{detail}} USDT. Lower it, or raise the simulated balance or the risk level on Risk & safety.",
+    "vaultSaltMismatch": "This vault's salt in the system keychain was replaced by another Aleph Edge build, so no password can open it. Choose \"Forgot your password? Reset vault\" and add your exchange keys again."
   },
   "status": {
     "running": "Running",
@@ -1820,7 +2086,8 @@
     "down": "Down",
     "killSwitch": "Daily stop",
     "disconnected": "Disconnected",
-    "locked": "Locked"
+    "locked": "Locked",
+    "underReview": "Under review"
   },
   "guide": {
     "contents": "Contents",
@@ -1847,5 +2114,104 @@
     "checkedAt": "Last checked",
     "notChecked": "Not checked yet",
     "signedNote": "Every update is verified against the signing key built into the app before it installs."
+  },
+  "preflight": {
+    "title": "Live readiness",
+    "run": "Check now",
+    "running": "Checking…",
+    "checkedAt": "Checked {{time}}",
+    "result": "Result",
+    "check": "Check",
+    "value": "Value",
+    "detail": "Detail",
+    "fix": "Fix",
+    "note": "Read-only: account reads with your vaulted key. No order is sent.",
+    "verdict": {
+      "ok": "OK",
+      "warn": "Check",
+      "fail": "Blocks"
+    },
+    "overall": {
+      "ok": "Ready",
+      "warn": "Ready with warnings",
+      "fail": "Not ready"
+    },
+    "checks": {
+      "build": "Live build",
+      "endpoint": "{{exchange}} endpoint",
+      "key": "Trade-only key",
+      "clock": "Clock vs Binance",
+      "account": "Futures balance (available / total)",
+      "positionMode": "Position mode",
+      "positions": "Positions not held by a bot",
+      "killSwitch": "Daily stop",
+      "btcRegime": "BTC regime",
+      "membership": "Membership",
+      "stream": "Sentinel signal stream",
+      "liveBots": "Live bots (signal + DCA/Grid)",
+      "venue": "Order path"
+    },
+    "codes": {
+      "buildOff": "This build has no real-money trading",
+      "production": "Production",
+      "testnet": "Testnet: orders are not real money",
+      "keyNotVerified": "Key not verified as trade-only",
+      "noKey": "No {{exchange}} key in the vault",
+      "noVault": "No vault yet",
+      "vaultLocked": "Vault locked",
+      "unreachable": "Binance unreachable",
+      "clockDrift": "PC clock drifts; signing compensates",
+      "needsKey": "Needs an unlocked trade-only key",
+      "lowBalance": "Low available margin",
+      "hedgeMode": "Hedge mode: switch {{exchange}} futures to One-way",
+      "oneWay": "One-way",
+      "foreignPositions": "Bots skip these symbols",
+      "tripped": "Tripped: no new entries today",
+      "normal": "Normal",
+      "break": "Break: new entries held",
+      "unknown": "Unknown",
+      "expiring": "Expiring soon",
+      "signedOut": "Not signed in: signal bots get no signals",
+      "streamDown": "Not connected: signal bots get no signals",
+      "halted": "A live bot halted",
+      "binanceKeyRejected": "{{exchange}} rejected the key",
+      "binanceUnreachable": "{{exchange}} unreachable",
+      "binanceRefused": "{{exchange}} refused ({{code}})",
+      "binanceRateLimited": "{{exchange}} rate limit",
+      "binanceUnconfirmed": "Answer not confirmed",
+      "preflightFailed": "Check failed",
+      "venueDryRun": "Run end to end on the test network",
+      "venueNotDryRun": "Not yet run on {{exchange}}'s test network: real money stays off",
+      "venueUnsupported": "No order path for this exchange"
+    },
+    "exchange": "Exchange"
+  },
+  "trend": {
+    "title": "Market trend",
+    "chip": "BTC trend: {{state}} · {{days}} d",
+    "chipTooltip": "BTC daily close vs its 50-day average. Information only: no bot reads it.",
+    "state": {
+      "up": "Up",
+      "down": "Down"
+    },
+    "since": "Since",
+    "days": "{{count}} days",
+    "close": "BTC daily close",
+    "sma50": "50-day average",
+    "gap": "Distance to the average",
+    "switches": "Direction changes, last 12 months",
+    "switchesInfo": "How often the trend flipped. A high number means it often turns before a move pays.",
+    "rule": "Daily close vs the 50-day average; 2 closes in a row to change.",
+    "history": {
+      "dca": "Tested, DCA: no new deals in a downtrend cut the worst drawdown by 5–7 points and the return by about a third.",
+      "signal": "Tested, signal bots: trades with the trend lost less, and still lost in 2 of 3 periods."
+    },
+    "infoOnly": "Information only: no bot changes by itself.",
+    "more": "How it is read",
+    "formNow": "BTC trend now: {{state}}, {{days}} days.",
+    "warn": {
+      "longInDown": "BTC is in a 50-day downtrend ({{days}} days) and this bot buys long.",
+      "shortInUp": "BTC is in a 50-day uptrend ({{days}} days) and this bot sells short."
+    }
   }
 }

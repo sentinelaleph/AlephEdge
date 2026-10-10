@@ -1,6 +1,7 @@
 /**
  * In-app alerts, derived in TS from state the desk already polls (bot_status,
- * signal_health, trades_list) plus the vault auto-lock event. Nothing here is
+ * signal_health, trades_list, strategy_list, strategy_pnl) plus the vault
+ * auto-lock event. Nothing here is
  * invented: an alert exists only while its source says so.
  */
 
@@ -57,6 +58,9 @@ function utcDayStart(now: number): number {
   const d = new Date(now);
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
+
+/** DCA / Grid exits that a protective level forced (strategy.exit.*). */
+const CYCLE_STOP_EXITS = new Set<string>(["sl", "liq", "stop", "ddstop", "portfolioDd", "dailyStop"]);
 
 /** Current alerts, newest first, at most 20. */
 export function deriveAlerts(ctx: DeskContextValue, t: TFunction, lockedAt: number | null, now = Date.now()): DeskAlert[] {
@@ -140,6 +144,43 @@ export function deriveAlerts(ctx: DeskContextValue, t: TFunction, lockedAt: numb
       at: Math.max(...closedToday.map((tr) => tr.closedAt)),
     });
   }
+  // DCA / Grid (paper): cycles closed today, those a stop closed, and bots a
+  // stop or liquidation ended. They write no trade rows, so the alerts above
+  // never saw them.
+  const cyclesToday = (ctx.strategy.pnl?.recent ?? []).filter((c) => c.closedAt >= today);
+  const stoppedToday = cyclesToday.filter((c) => c.exitReason !== null && CYCLE_STOP_EXITS.has(c.exitReason));
+  if (stoppedToday.length > 0) {
+    out.push({
+      key: "cycleStop",
+      category: "stopLoss",
+      severity: stoppedToday.some((c) => c.exitReason === "liq") ? "danger" : "warn",
+      title: t("alerts.cycleStopsToday", { count: stoppedToday.length }),
+      count: stoppedToday.length,
+      at: Math.max(...stoppedToday.map((c) => c.closedAt)),
+    });
+  }
+  const closedCycles = ctx.strategy.pnl?.totals.todayCycles ?? 0;
+  if (closedCycles > 0) {
+    out.push({
+      key: "cycleClosed",
+      category: "dealClosed",
+      severity: "info",
+      title: t("alerts.cyclesClosedToday", { count: closedCycles }),
+      count: closedCycles,
+      at: cyclesToday.length > 0 ? Math.max(...cyclesToday.map((c) => c.closedAt)) : undefined,
+    });
+  }
+  for (const b of ctx.strategy.bots ?? []) {
+    if (b.runState !== "dead") continue;
+    out.push({
+      key: `strategyDead:${b.id}`,
+      category: "botError",
+      severity: "danger",
+      title: t("alerts.strategyDead", { name: b.name }),
+      detail: b.deadReason ? t(`strategy.exit.${b.deadReason}`, { defaultValue: b.deadReason }) : undefined,
+    });
+  }
+
   if (lockedAt !== null) {
     out.push({ key: "vaultAutoLock", category: "vaultAutoLock", severity: "info", title: t("alerts.vaultAutoLocked"), at: lockedAt });
   }

@@ -6,6 +6,7 @@ import { TextField } from "@/components/ui/TextField/TextField";
 import { exchangeName as catalogName } from "@/lib/ipc/exchange/exchange";
 import { useExchangeCatalog } from "@/lib/ipc/exchange/useExchangeCatalog";
 import type { AddCredentialInput, CredentialPermission } from "@/lib/ipc/vault/vault";
+import { venueNotDryRun } from "@/lib/venues";
 import { MAX_LABEL_CHARS } from "../KeyList/KeyList";
 import "./AddKeyForm.css";
 
@@ -18,7 +19,9 @@ interface AddKeyFormProps {
 }
 
 /** Exchanges whose key permissions the vault can verify (vault/commands.rs). */
-const VERIFIED_EXCHANGES = new Set(["binance"]);
+const VERIFIED_EXCHANGES = new Set(["binance", "bybit", "okx"]);
+/** Exchanges whose API keys come with a passphrase. */
+const PASSPHRASE_REQUIRED = new Set(["okx"]);
 
 const EMPTY = {
   exchangeId: "binance",
@@ -44,7 +47,9 @@ export function AddKeyForm({ onAdd, busy, error, onCancel }: AddKeyFormProps) {
   // if left blank it defaults to the exchange's display name so a missing label
   // never blocks adding a key (it only needs to disambiguate multiple keys).
   // The catalog must have loaded: the exchange picker IS the catalog.
-  const canSubmit = form.apiKey.trim() && form.apiSecret.trim() && !busy && catalog.exchanges !== null;
+  const needsPassphrase = PASSPHRASE_REQUIRED.has(form.exchangeId);
+  const canSubmit =
+    form.apiKey.trim() && form.apiSecret.trim() && (!needsPassphrase || form.passphrase.trim()) && !busy && catalog.exchanges !== null;
 
   const exchangeName = catalogName(form.exchangeId, catalog.exchanges);
 
@@ -121,7 +126,7 @@ export function AddKeyForm({ onAdd, busy, error, onCancel }: AddKeyFormProps) {
           disabled={busy}
         />
         <TextField
-          label={`${t("vault.passphrase")} ${t("vault.passphraseOptional")}`}
+          label={needsPassphrase ? `${t("vault.passphrase")} *` : `${t("vault.passphrase")} ${t("vault.passphraseOptional")}`}
           type="password"
           autoComplete="off"
           value={form.passphrase}
@@ -130,6 +135,7 @@ export function AddKeyForm({ onAdd, busy, error, onCancel }: AddKeyFormProps) {
         />
 
         <p className="ae-subtle">{t("vault.tradeOnlyRule")}</p>
+        {venueNotDryRun(undefined, form.exchangeId) ? <p className="ae-error" role="note">{t("vault.venueNotDryRun", { exchange: exchangeName })}</p> : null}
 
         {catalog.error ? (
           <>

@@ -141,6 +141,15 @@
   min-height: 0;
   overflow-y: auto;
   padding: var(--space-2) 0;
+  /* Scroll cue: an edge shade appears only where items are cut off. The two
+     "local" layers scroll with the list and cover the shade at either end;
+     the two "scroll" layers stay put at the edges. */
+  background:
+    linear-gradient(var(--surface-1) 30%, transparent) center top / 100% 24px no-repeat local,
+    linear-gradient(transparent, var(--surface-1) 70%) center bottom / 100% 24px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, var(--border-strong), transparent) center top / 100% 8px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, var(--border-strong), transparent) center bottom / 100% 8px no-repeat scroll,
+    var(--surface-1);
 }
 .ae-sidebar__group + .ae-sidebar__group {
   margin-top: var(--space-2);
@@ -742,6 +751,44 @@ button.ae-sidebar__grouphead[aria-disabled="true"] {
 .ae-alerts__empty {
   font-size: var(--text-sm);
   color: var(--text-subtle);
+}
+
+/* Short windows (1280x800, a maximized 1366x768): tighter rows so the whole
+   list, Risk & safety included, fits or scrolls with a visible cue. */
+@media (max-height: 860px) {
+  .ae-sidebar:not([data-mode="rail"]) .ae-navitem,
+  .ae-sidebar:not([data-mode="rail"]) .ae-sidebar__new {
+    height: 28px;
+  }
+  .ae-sidebar:not([data-mode="rail"]) .ae-sidebar__group + .ae-sidebar__group {
+    margin-top: var(--space-1);
+  }
+  .ae-sidebar:not([data-mode="rail"]) .ae-sidebar__grouphead {
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+  .ae-sidebar:not([data-mode="rail"]) .ae-sidebar__footer {
+    padding-top: var(--space-1);
+    padding-bottom: var(--space-1);
+  }
+}
+/* A maximized 1366x768 leaves about 690px: one step tighter, still a 26px target. */
+@media (max-height: 720px) {
+  .ae-sidebar:not([data-mode="rail"]) .ae-navitem,
+  .ae-sidebar:not([data-mode="rail"]) .ae-sidebar__new {
+    height: 26px;
+  }
+  .ae-sidebar:not([data-mode="rail"]) .ae-sidebar__scroll {
+    padding-top: var(--space-1);
+    padding-bottom: var(--space-1);
+  }
+  .ae-sidebar:not([data-mode="rail"]) .ae-sidebar__group + .ae-sidebar__group {
+    margin-top: 2px;
+  }
+  .ae-sidebar:not([data-mode="rail"]) .ae-sidebar__grouphead {
+    padding-top: 1px;
+    padding-bottom: 1px;
+  }
 }
 
 /* Rail: where the icon list fits the window, let tooltips escape the list

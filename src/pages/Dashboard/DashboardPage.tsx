@@ -6,6 +6,7 @@ import { useDeskContext } from "@/app/DeskProvider";
 import { Link, navigate } from "@/app/router/router";
 import { useAccount } from "@/components/Account/useAccount";
 import { KillSwitchCard, RegimeCard, StreamCard } from "@/components/Desk/Readouts";
+import { checklistState } from "@/components/Shell/FirstRunChecklist/checklist";
 import { FirstRunChecklist } from "@/components/Shell/FirstRunChecklist/FirstRunChecklist";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber/AnimatedNumber";
 import { Button } from "@/components/ui/Button/Button";
@@ -29,14 +30,15 @@ import {
   NO_VALUE,
   pnlToneAttr,
 } from "@/lib/format";
-import type { TradeRecord } from "@/lib/ipc/trades/trades";
-import { isActive, type StrategyBotView, type StrategyKind } from "@/lib/ipc/strategy/strategy";
-import { runStateText, sideText } from "@/lib/strategyText";
+import type { PnlStats, TradeRecord } from "@/lib/ipc/trades/trades";
+import { isActive, type StrategyBotView, type StrategyKind, type StrategyPnlTotals } from "@/lib/ipc/strategy/strategy";
+import { runActionKey, runStateText, sideText } from "@/lib/strategyText";
 import { signalBotRows, type BotRow } from "@/pages/Bots/botRows";
 import { BotStateChip, SignalRowAction } from "@/pages/Bots/BotsTable";
 import { runStatusKind, totalPnlPct } from "@/pages/Bots/strategy/StrategyBotsTable";
 import { useStrategyActions } from "@/pages/Bots/strategy/useStrategyActions";
 import "@/pages/Bots/bots.css";
+import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
 
 /** One row of the dashboard's bot table: a signal bot or a DCA / Grid bot. */
 interface DashBotRow {
@@ -46,6 +48,30 @@ interface DashBotRow {
 }
 
 const CHECKLIST_KEY = "aleph-edge-setup-dismissed";
+
+/** The Dashboard's money tiles: signal trades plus closed DCA / Grid cycles. */
+export interface DeskMoney {
+  /** Any closed trade or cycle ever; without one the tiles show a dash. */
+  anyResult: boolean;
+  hasCycles: boolean;
+  /** Null while the signal stats load. */
+  realizedToday: number | null;
+  netAll: number | null;
+}
+
+/**
+ * Sums the signal stats and the cycle totals. `cycles` is null where they do
+ * not belong (a live build's real-money scope) or have not loaded.
+ */
+export function deskMoney(stats: PnlStats | null, cycles: StrategyPnlTotals | null): DeskMoney {
+  const hasCycles = (cycles?.cycles ?? 0) > 0;
+  return {
+    anyResult: (stats?.totalTrades ?? 0) > 0 || hasCycles,
+    hasCycles,
+    realizedToday: stats ? stats.todayPnlQuote + (cycles?.todayQuote ?? 0) : null,
+    netAll: stats ? stats.netPnlQuote + (cycles?.netQuote ?? 0) : null,
+  };
+}
 
 function readDismissed(): boolean {
   try {
@@ -76,7 +102,7 @@ export function DashboardPage() {
   );
 
   const s = desk.status;
-  const rows = desk.loaded ? signalBotRows(s, risk.state?.allowsPump ?? false) : [];
+  const rows = desk.loaded ? signalBotRows(s, risk.state?.maxCapitalQuote ?? null) : [];
   const configured = rows.filter((r) => r.config);
   const running = rows.filter((r) => r.running);
   const liveBots = rows.filter((r) => r.live);
@@ -87,7 +113,9 @@ export function DashboardPage() {
   const capitalInUse = s.openPositions.reduce((n, p) => n + p.capital, 0);
   // DCA / Grid bots (paper only); null until the first strategy list arrives.
   const strategyBots = strategy.bots;
-  const strategyActive = strategyBots ? strategyBots.filter(isActive).length : 0;
+  const { liveIds: strategyLiveIds } = useStrategyLive();
+  const strategyActive = strategyBots ? strategyBots.filter((b) => isActive(b) && !strategyLiveIds.has(b.id)).length : 0;
+  const strategyLiveActive = strategyBots ? strategyBots.filter((b) => isActive(b) && strategyLiveIds.has(b.id)).length : 0;
   const strategyCycles = strategyBots ? strategyBots.filter((b) => b.openCycle !== null).length : 0;
   const strategyCount = (kind: StrategyKind) => {
     if (!strategyBots) return NO_VALUE;
@@ -96,6 +124,13 @@ export function DashboardPage() {
   };
   const usdt = (n: number) => formatPnl(n, locale).text;
   const decided = stats ? stats.wins + stats.losses : 0;
+  // DCA / Grid money: closed paper cycles, deleted bots included. Summed with
+  // the signal trades only where both are paper money (a live build's real
+  // scope stays signal-only; real DCA / Grid results are reported per bot).
+  const cycleMoney = !pnl.split || pnl.scope === "simulated" ? (strategy.pnl?.totals ?? null) : null;
+  const { anyResult, hasCycles, realizedToday, netAll } = deskMoney(stats, cycleMoney);
+  const splitNote = (signal: number, cycles: number) =>
+    t("dashboard.kpi.split", { signal: usdt(signal), strategy: usdt(cycles) });
 
   const botRows: DashBotRow[] = [
     ...configured.map((r) => ({ id: r.id, signal: r })),
@@ -164,7 +199,8 @@ export function DashboardPage() {
       id: "pnl",
       header: t("strategy.col.totalPnl"),
       numeric: true,
-      priority: 3,
+      // Shown wherever Type and Pairs are: the only DCA / Grid result in this table.
+      priority: 2,
       cell: (r) => (r.bot ? formatSignedPercent(totalPnlPct(r.bot), locale) : NO_VALUE),
       tone: (r) => (r.bot ? pnlToneAttr(totalPnlPct(r.bot)) : "muted"),
     },
@@ -220,7 +256,10 @@ export function DashboardPage() {
       /* not remembered */
     }
   };
-  const allDone = feed.health.connected && configured.length > 0 && running.length > 0;
+  // One rule for the checklist and its hide gate: every bot type counts. A
+  // hidden checklist comes back only if the desk has no bot at all.
+  const checklist = checklistState(s, strategyBots, feed.health.connected);
+  const showChecklist = !dismissed || (desk.loaded && strategyBots !== null && !checklist.botConfigured);
 
   const left = (
     <>
@@ -228,7 +267,11 @@ export function DashboardPage() {
         <FactList
           rows={[
             { label: t("dashboard.paperRunning"), value: running.filter((r) => !r.live).length + strategyActive },
-            { label: t("dashboard.liveRunning"), value: running.filter((r) => r.live).length, tone: liveBots.length ? "danger" : undefined },
+            {
+              label: t("dashboard.liveRunning"),
+              value: running.filter((r) => r.live).length + strategyLiveActive,
+              tone: liveBots.length || strategyLiveActive ? "danger" : undefined,
+            },
           ]}
         />
       </Panel>
@@ -280,22 +323,41 @@ export function DashboardPage() {
       left={left}
       right={right}
     >
-      {!(dismissed && allDone) ? (
-        <FirstRunChecklist desk={desk} streamConnected={feed.health.connected} onDismiss={dismiss} />
+      {showChecklist ? (
+        <FirstRunChecklist
+          desk={desk}
+          strategyBots={strategyBots}
+          streamConnected={feed.health.connected}
+          onDismiss={dismiss}
+        />
       ) : null}
 
       <KpiGrid>
         <KpiTile
           label={t("dashboard.kpi.realizedToday")}
-          value={stats === null ? null : stats.totalTrades === 0 ? NO_VALUE : <AnimatedNumber value={stats.todayPnlQuote} format={usdt} />}
-          tone={pnlToneAttr(today)}
-          note={stats && stats.totalTrades === 0 ? t("dashboard.noTradesToday") : t("dashboard.afterFees", { scope: scopeNote })}
+          value={stats === null || realizedToday === null ? null : !anyResult ? NO_VALUE : <AnimatedNumber value={realizedToday} format={usdt} />}
+          tone={pnlToneAttr(anyResult ? realizedToday : null)}
+          note={
+            stats === null
+              ? undefined
+              : !anyResult
+                ? t("dashboard.noTradesToday")
+                : hasCycles && cycleMoney
+                  ? splitNote(stats.todayPnlQuote, cycleMoney.todayQuote)
+                  : t("dashboard.afterFees", { scope: scopeNote })
+          }
         />
         <KpiTile
           label={t("dashboard.kpi.netAll")}
-          value={stats === null ? null : stats.totalTrades === 0 ? NO_VALUE : <AnimatedNumber value={stats.netPnlQuote} format={usdt} />}
-          tone={pnlToneAttr(stats?.netPnlQuote)}
-          note={stats ? t("dashboard.tradesN", { count: stats.totalTrades }) : undefined}
+          value={stats === null || netAll === null ? null : !anyResult ? NO_VALUE : <AnimatedNumber value={netAll} format={usdt} />}
+          tone={pnlToneAttr(anyResult ? netAll : null)}
+          note={
+            stats === null
+              ? undefined
+              : hasCycles && cycleMoney
+                ? splitNote(stats.netPnlQuote, cycleMoney.netQuote)
+                : t("dashboard.tradesN", { count: stats.totalTrades })
+          }
         />
         <KpiTile
           label={t("dashboard.kpi.dailyLossUsed")}
@@ -317,7 +379,8 @@ export function DashboardPage() {
           note={balance ? t("dashboard.ofBalance", { pct: formatNumber((capitalInUse / balance) * 100, locale, { maximumFractionDigits: 1 }) }) : undefined}
         />
         <KpiTile
-          label={t("pnl.winRate")}
+          // Wins and losses are signal take-profit / stop-loss exits only.
+          label={t("dashboard.kpi.signalWinRate")}
           value={stats === null ? null : decided === 0 ? NO_VALUE : formatPercent((stats.wins / decided) * 100, locale, 1)}
           tone={decided > 0 && decided < 30 ? "muted" : undefined}
           note={decided > 0 ? (decided < 30 ? t("states.tooFew", { n: decided }) : `n=${decided}`) : undefined}
@@ -369,7 +432,7 @@ export function DashboardPage() {
                   disabled={strategy.busyId === r.bot.id}
                   onClick={() => r.bot && strategyActions.request(r.bot, isActive(r.bot) ? "stop" : "start")}
                 >
-                  {t(isActive(r.bot) ? "strategy.actions.stop" : "strategy.actions.start")}
+                  {t(runActionKey(r.bot))}
                 </Button>
               ) : null
             }

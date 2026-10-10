@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Chip, LiveChip } from "@/components/ui/Chip/Chip";
+import { Chip, LiveChip, ManualChip } from "@/components/ui/Chip/Chip";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
 import { Section } from "@/components/ui/Section/Section";
 import { localeForLanguage } from "@/i18n";
@@ -38,6 +38,7 @@ export function DeskFeed({ positions, skips }: DeskFeedProps) {
           </span>
           {p.symbol}
           {isLivePosition(p) ? <LiveChip /> : null}
+          {p.manual ? <ManualChip /> : null}
         </span>
       ),
     },

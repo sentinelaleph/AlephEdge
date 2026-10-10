@@ -263,6 +263,38 @@ impl CycleState {
         }
     }
 
+    /// The nearest adverse exit the cycle would take now (DCA stop-loss,
+    /// grid stop-out, bot drawdown stop) as a price; None when flat or when
+    /// none is configured. The real-money mirror rests it on the exchange, so
+    /// a position still exits if the app is closed or offline.
+    pub fn protective_stop(&self) -> Option<f64> {
+        let qty = self.signed_qty();
+        if qty == 0.0 {
+            return None;
+        }
+        let long = qty > 0.0;
+        let mut cands: Vec<f64> = Vec::new();
+        match &self.engine {
+            Engine::Dca(d) => {
+                cands.extend(d.sl);
+                if let Some(floor) = self.core.dd_floor {
+                    if d.q > 0.0 {
+                        cands.push((d.n + d.s * (floor - self.core.cash)) / d.q);
+                    }
+                }
+            }
+            Engine::Grid(g) => {
+                cands.extend(if long { g.lo_stop } else { g.hi_stop });
+                cands.extend(g.dd_price(&self.core));
+            }
+        }
+        // Reached first: the highest for a long, the lowest for a short.
+        cands
+            .into_iter()
+            .filter(|p| p.is_finite() && *p > 0.0)
+            .reduce(|a, b| if long { a.max(b) } else { a.min(b) })
+    }
+
     pub fn liq_price(&self) -> Option<f64> {
         match &self.engine {
             Engine::Dca(d) => d.liq,
@@ -333,7 +365,7 @@ impl Walker for CycleState {
 
     fn can_protect(&self) -> bool {
         match &self.engine {
-            Engine::Dca(d) => d.sl.is_some() || d.liq.is_some(),
+            Engine::Dca(d) => d.sl.is_some() || d.liq.is_some() || self.core.dd_floor.is_some(),
             Engine::Grid(_) => true,
         }
     }

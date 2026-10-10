@@ -233,8 +233,11 @@ export interface DcaPreview {
   liqPrice: number | null;
   liqDistancePct: number | null;
   totalNotional: number;
+  /** Loss of the full ladder at whichever exit comes first. */
   worstLossQuote: number | null;
-  worstLossBasis: "sl" | "liq" | "none";
+  worstLossBasis: "sl" | "ddStop" | "liq" | "none";
+  /** The stop loss proposed when it is switched on; null = none fits. */
+  suggestedSlPct: number | null;
 }
 
 export interface GridLevelRow {
@@ -275,6 +278,8 @@ export interface PreviewDto {
   kind: StrategyKind;
   referencePrice: number;
   requiredCapital: number;
+  /** Smallest budget at which every order clears the 5 USDT minimum; null = the budget cannot fix it. */
+  minBudget: number | null;
   costs: CostModel;
   dca: DcaPreview | null;
   grid: GridPreview | null;
@@ -307,6 +312,41 @@ export interface OrderRow {
   seq: number;
   order: SimOrder;
   updatedAt: number;
+}
+
+/** Net result of closed paper DCA / Grid cycles, deleted bots included (strategy_pnl). */
+export interface StrategyPnlTotals {
+  cycles: number;
+  /** Net: realized minus fees and funding, USDT. */
+  netQuote: number;
+  /** Cycles closed since the UTC day start. */
+  todayCycles: number;
+  todayQuote: number;
+}
+
+/** One closed cycle with its bot's name (History, alerts). */
+export interface ClosedCycleRow {
+  botId: string;
+  botName: string;
+  kind: StrategyKind;
+  market: MarketKind;
+  symbol: string;
+  side: StrategySide;
+  seq: number;
+  openedAt: number;
+  closedAt: number;
+  exitReason: ExitReason | null;
+  /** Net: realized minus fees and funding, USDT. */
+  pnlQuote: number;
+  pnlPctBudget: number | null;
+  /** The bot was deleted; its history stays. */
+  archived: boolean;
+}
+
+export interface StrategyPnl {
+  totals: StrategyPnlTotals;
+  /** Newest first. */
+  recent: ClosedCycleRow[];
 }
 
 export interface FillRow {
@@ -407,6 +447,17 @@ export interface HistoricalSimulation {
   openDealsAtDataEnd: number;
   liquidations: number;
   stoppedDeals: number;
+  /** A later re-run that did not confirm every check (Rust presets::Recheck). */
+  recheck: PresetRecheck | null;
+}
+
+export interface PresetRecheck {
+  runOn: string;
+  testWindowEnd: string;
+  partialMonth: string;
+  partialMonthDays: number;
+  partialMonthMeanPct: number;
+  nextRead: string;
 }
 
 export interface PresetUniverse {
@@ -456,6 +507,8 @@ export const strategyPreview = (config: StrategyConfig, lastPrice: number | null
 export interface ValidationReport {
   ok: boolean;
   error: StrategyErrorDto | null;
+  /** As PreviewDto.minBudget (price-free). */
+  minBudget: number | null;
 }
 
 /** Bounds check without a price (used when the preview has no price). */
@@ -498,6 +551,9 @@ export const strategyEquity = (id: string, fromMs?: number) =>
 export const strategyStats = (scope: "bot" | "all", id?: string) =>
   call<StrategyStats>("strategy_stats", { scope, id: id ?? null }, (m) => m.stats(id));
 
+export const strategyPnl = (limit?: number) =>
+  call<StrategyPnl>("strategy_pnl", limit === undefined ? undefined : { limit }, (m) => m.pnl());
+
 export const strategyExportCsv = () => call<ExportPaths>("strategy_export_csv", undefined, (m) => m.exportCsv());
 
 export const strategyRiskGet = () => call<StrategyRiskView>("strategy_risk_get", undefined, (m) => m.risk());
@@ -528,3 +584,75 @@ export function parseStrategyError(raw: string): StrategyErrorDto {
 export function isActive(v: StrategyBotView): boolean {
   return v.acceptingNewCycles && v.runState !== "dead";
 }
+
+/** Real-money state of one DCA / Grid bot (bot/strategy_live.rs). */
+export interface StrategyLiveView {
+  botId: string;
+  enabled: boolean;
+  /** i18n key under strategy.notes when the mirror stopped acting. */
+  halted: string | null;
+  realQty: number;
+  entryPrice: number;
+  unrealizedUsdt: number;
+  stopPrice: number | null;
+  lastSyncMs: number;
+  /** Closed cycles' cash flow from real fills, before fees. */
+  realizedGrossUsdt: number;
+  /** 0.05% taker estimate over every real fill. */
+  feesEstUsdt: number;
+  fills: number;
+  /** Pilot cycles left (0 = full size) and the current real / simulated size. */
+  pilotCyclesLeft: number;
+  cycleFactor: number;
+  /** Exchange the real orders go to. */
+  venue: string;
+}
+
+/** The word typed to switch a DCA / Grid bot to real money. */
+export const STRATEGY_LIVE_WORD = "LIVE";
+
+export const strategyLiveStatus = () =>
+  call<StrategyLiveView[]>("strategy_live_status", undefined, async () => []);
+
+/** `venue`: the exchange real orders go to (decisions stay on Binance prices). */
+export const strategySetLive = (id: string, enabled: boolean, confirmation: string, venue?: string) =>
+  call<StrategyLiveView[]>("strategy_set_live", { id, enabled, confirmation, venue: venue ?? null }, async () => {
+    throw "liveBuildDisabled";
+  });
+
+/** One real fill against the simulated fills it mirrored (strategy_live_report). */
+export interface StrategyDiffRow {
+  seq: number;
+  ts: number;
+  kind: string;
+  side: "buy" | "sell";
+  realQty: number;
+  realPrice: number;
+  /** null: the exchange made the fill (its own stop) or nothing matched. */
+  simPrice: number | null;
+  /** Positive = worse than the simulation. */
+  slippageBps: number | null;
+  slippageUsdt: number | null;
+  delayS: number | null;
+}
+
+export interface StrategyDiffReport {
+  rows: StrategyDiffRow[];
+  summary: {
+    matched: number;
+    unmatched: number;
+    avgSlippageBps: number | null;
+    slippageUsdt: number;
+    avgDelayS: number | null;
+    feesEstUsdt: number;
+  };
+}
+
+export const strategyLiveReport = (id: string) =>
+  call<StrategyDiffReport>("strategy_live_report", { id }, async () => ({
+    rows: [],
+    summary: { matched: 0, unmatched: 0, avgSlippageBps: null, slippageUsdt: 0, avgDelayS: null, feesEstUsdt: 0 },
+  }));
+
+/** Ends the pilot: full size from the next cycle. */
+export const strategyEndPilot = (id: string) => call<StrategyLiveView[]>("strategy_end_pilot", { id }, async () => []);

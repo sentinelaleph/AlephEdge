@@ -4,7 +4,9 @@
  * this module. It never trades anything and invents no position or skip.
  */
 
+import { capitalAboveCap, defaultCapitalWithin } from "@/lib/botLimits";
 import { DEFAULT_RISK_PCT, MAX_RISK_PCT, MIN_RISK_PCT } from "@/lib/sizing";
+import { mock as riskMock } from "../risk/risk.mock";
 import { customPctValid, MAX_CUSTOM_TP_PCT, MIN_CUSTOM_TP_PCT } from "@/lib/takeProfit";
 import { LIVE_CONFIRMATION, type BotConfig, type BotDeskStatus, type BotKind } from "./bot";
 
@@ -26,9 +28,16 @@ export const mock = (() => {
   const clone = () => Promise.resolve({ ...state, openPositions: [...state.openPositions], recentSkips: [...state.recentSkips] });
   const configKey = { futures: "futures", spot: "spot", pump: "pump" } as const;
   const runKey = { futures: "futuresRunning", spot: "spotRunning", pump: "pumpRunning" } as const;
+  // Like check_capital_cap in bot/commands.rs, against the preview's risk state.
+  const capRefusal = async (capital: number) => {
+    const cap = (await riskMock.state()).maxCapitalQuote;
+    return capitalAboveCap(capital, cap) ? `botCapitalAboveCap|${cap >= 1 ? Math.floor(cap) : Math.floor(cap * 100) / 100}` : null;
+  };
   return {
     status: clone,
-    configure(config: BotConfig) {
+    async configure(config: BotConfig) {
+      const refused = await capRefusal(config.capital);
+      if (refused) return Promise.reject(refused);
       // Mirrors BotConfig::validate() in bot/model.rs so the browser mock
       // rejects an out-of-range risk % exactly like the real command does.
       if (
@@ -67,7 +76,11 @@ export const mock = (() => {
       state[configKey[kind]] = { ...cfg, live: false };
       return clone();
     },
-    start(kind: BotKind) {
+    async start(kind: BotKind) {
+      const cfg = state[configKey[kind]];
+      if (!cfg) return Promise.reject("botNotConfigured");
+      const refused = await capRefusal(cfg.capital);
+      if (refused) return Promise.reject(refused);
       state[runKey[kind]] = true;
       return clone();
     },
@@ -83,12 +96,18 @@ export const mock = (() => {
       state.openPositions.splice(i, 1);
       return clone();
     },
-    defaultConfig(kind: BotKind, exchangeId: string): Promise<BotConfig> {
+    takeSignal(kind: BotKind): Promise<never> {
+      // The preview has no market data: a configured bot cannot price the
+      // entry, as bot_take_signal answers without a live quote.
+      return Promise.reject(state[configKey[kind]] ? "priceUnavailable" : "botNotConfigured");
+    },
+    async defaultConfig(kind: BotKind, exchangeId: string): Promise<BotConfig> {
+      const cap = (await riskMock.state()).maxCapitalQuote;
       return Promise.resolve({
         kind,
         exchangeId,
         maxPositions: 3,
-        capital: 100,
+        capital: defaultCapitalWithin(cap),
         leverage: kind === "spot" ? 1 : 3,
         symbols: [],
         combos: [],

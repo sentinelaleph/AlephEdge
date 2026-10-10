@@ -21,7 +21,7 @@ use crate::store::{utc_day_start_ms, StoreManager};
 use super::engine::{self, now_ms};
 use super::limits::{budget_cap_pct, DEFAULT_BOT_DD_STOP_PCT, MAX_STRATEGY_BOTS, PORTFOLIO_DD_STOP_PCT};
 use super::model::{
-    BotRunState, DcaParams, GridParams, GridRange, MarketKind, RestartPolicy, Side, SimOrder,
+    BotRunState, GridParams, GridRange, MarketKind, RestartPolicy, Side, SimOrder,
     Spacing, StartCondition, StrategyBot, StrategyConfig, StrategyKind, StrategyNote,
     StrategyParams, Utilisation, CONFIG_SCHEMA_VERSION,
 };
@@ -58,6 +58,13 @@ fn effective_cap_pct(app: &AppHandle, risk: &StrategyRisk) -> f64 {
         Some(v) if v.is_finite() && v > 0.0 => v.min(level),
         _ => level,
     }
+}
+
+/// `budgetCapReached|<field>|<free>|<limit>`: the refusal carries what is
+/// still free under the cap and the cap itself (USDT), so the UI can say how
+/// far over the budget is without re-deriving the rule.
+fn cap_refusal(field: &str, limit: f64, used: f64) -> String {
+    format!("budgetCapReached|{field}|{:.0}|{:.0}", (limit - used).max(0.0).floor(), limit)
 }
 
 fn check(cfg: &StrategyConfig, app: &AppHandle) -> Result<(), String> {
@@ -109,23 +116,11 @@ pub fn strategy_detail(mgr: State<StrategyManager>, id: String) -> Result<Strate
 /// Rust-served defaults so the form mirrors no bounds.
 pub fn default_config(kind: StrategyKind, exchange_id: String, symbol: String) -> StrategyConfig {
     let (side, params) = match kind {
-        StrategyKind::Dca => (
-            Side::Long,
-            StrategyParams::Dca(DcaParams {
-                base_order: None,
-                safety_order: None,
-                base_weight: Some(1.0),
-                safety_weight: Some(1.0),
-                max_so: 6,
-                so_step_pct: 1.5,
-                step_scale: 1.0,
-                volume_scale: 1.5,
-                tp_pct: 1.5,
-                trailing_pct: None,
-                sl_pct: None,
-                max_duration_min: None,
-            }),
-        ),
+        // The ladder of dca_long_classic, a template that passed its checks
+        // (8 orders, 59.6% coverage). The protections below (drawdown stop,
+        // BTC gate, breaker) are the manual defaults (owner decision), so
+        // this config is still not that template and carries no preset id.
+        StrategyKind::Dca => (Side::Long, presets::dca_long_classic().config.params),
         StrategyKind::Grid => (
             Side::Neutral,
             StrategyParams::Grid(GridParams {
@@ -199,6 +194,9 @@ pub async fn strategy_preview(
 pub struct ValidationReport {
     pub ok: bool,
     pub error: Option<StrategyError>,
+    /// Smallest budget at which every order clears the exchange minimum
+    /// (price-free: orders scale with the budget).
+    pub min_budget: Option<f64>,
 }
 
 #[tauri::command]
@@ -207,7 +205,18 @@ pub fn strategy_validate(app: AppHandle, config: StrategyConfig) -> Result<Valid
     Ok(ValidationReport {
         ok: error.is_none(),
         error,
+        min_budget: validate::min_budget(&config),
     })
+}
+
+/// The preset id stays only while the config still describes that preset's
+/// historical simulation: an edit, or a clone that changed a setting, drops
+/// it, or the bot detail would name a preset its settings have left.
+fn with_provenance(mut config: StrategyConfig) -> StrategyConfig {
+    if config.preset_id.is_some() && !presets::keeps_provenance(&config) {
+        config.preset_id = None;
+    }
+    config
 }
 
 #[tauri::command]
@@ -217,12 +226,14 @@ pub async fn strategy_create(
     config: StrategyConfig,
 ) -> Result<StrategyBotView, String> {
     check(&config, &app)?;
+    let config = with_provenance(config);
     if mgr.bots().len() >= MAX_STRATEGY_BOTS {
         return Err("maxBots".into());
     }
     let cap = effective_cap_pct(&app, &mgr.risk());
-    if config.budget > app.state::<RiskManager>().balance() * cap / 100.0 {
-        return Err("budgetCapReached|budget".into());
+    let limit = app.state::<RiskManager>().balance() * cap / 100.0;
+    if config.budget > limit {
+        return Err(cap_refusal("budget", limit, 0.0));
     }
     check_symbol(&app, &config).await?;
     let now = now_ms();
@@ -279,12 +290,15 @@ fn budget_fits(
 ) -> Result<(), String> {
     let limit = balance * cap_pct / 100.0;
     if new_budget > limit {
-        return Err("budgetCapReached|budget".into());
+        return Err(cap_refusal("budget", limit, 0.0));
     }
     if driver::is_running(bot.state) || mgr.has_open_cycle(&bot.id) {
-        let reserved = mgr.reserved_budget(Some(&bot.id)) + new_budget;
-        if reserved > limit || reserved + signal_capital > balance {
-            return Err("budgetCapReached|budget".into());
+        let others = mgr.reserved_budget(Some(&bot.id));
+        if others + new_budget > limit {
+            return Err(cap_refusal("budget", limit, others));
+        }
+        if others + new_budget + signal_capital > balance {
+            return Err(cap_refusal("budget", balance, others + signal_capital));
         }
     }
     Ok(())
@@ -299,7 +313,13 @@ pub async fn strategy_update(
 ) -> Result<StrategyBotView, String> {
     let _guard = mgr.op_lock.lock().await;
     let mut bot = mgr.bot(&id).ok_or("botUnknown")?;
+    // Real money is on (or still held): the checks made when it was switched
+    // on would no longer hold after an edit. Back to paper first.
+    if crate::bot::strategy_live::locks_bot(&app, &id) {
+        return Err("liveEditLocked".into());
+    }
     check(&config, &app)?;
+    let config = with_provenance(config);
     if mgr.has_open_cycle(&id) {
         if !runtime_safe(&bot.cfg, &config) {
             return Err("cycleOpenLocked".into());
@@ -368,6 +388,9 @@ pub async fn strategy_start(app: AppHandle, mgr: State<'_, StrategyManager>, id:
     if !app.state::<MembershipManager>().view().active {
         return Err("membershipInactive".into());
     }
+    if let Some(code) = crate::bot::strategy_live::start_refusal(&app, &id) {
+        return Err(code.into());
+    }
     check(&bot.cfg, &app)?;
     // One running bot per (symbol, market, side): grids must not cross themselves.
     if mgr.bots().iter().any(|b| {
@@ -379,21 +402,7 @@ pub async fn strategy_start(app: AppHandle, mgr: State<'_, StrategyManager>, id:
     }) {
         return Err("symbolBusy".into());
     }
-    let balance = app.state::<RiskManager>().balance();
-    let cap = effective_cap_pct(&app, &mgr.risk());
-    let reserved = mgr.reserved_budget(Some(&id)) + bot.cfg.budget;
-    if reserved > balance * cap / 100.0 {
-        return Err("budgetCapReached".into());
-    }
-    let signal_capital: f64 = app
-        .state::<BotManager>()
-        .positions_snapshot()
-        .iter()
-        .map(|p| p.capital)
-        .sum();
-    if reserved + signal_capital > balance {
-        return Err("budgetCapReached".into());
-    }
+    reservation_check(&app, &mgr, &bot)?;
     bot.state = BotRunState::Armed;
     bot.next_decision_ms = now_ms();
     bot.chain_cycles = 0;
@@ -403,6 +412,46 @@ pub async fn strategy_start(app: AppHandle, mgr: State<'_, StrategyManager>, id:
     mgr.clear_last_note(&id);
     app.state::<BotManager>().ensure_loop(app.clone());
     view(&mgr, &id)
+}
+
+/// The budget a running bot reserves must fit the DCA/Grid cap together
+/// with every other reservation, and the balance together with the signal
+/// bots' capital. Pure: `others` = what the other bots reserve.
+pub(super) fn fits_reservation(budget: f64, others: f64, balance: f64, cap_pct: f64, signal_capital: f64) -> Result<(), String> {
+    let reserved = others + budget;
+    let limit = balance * cap_pct / 100.0;
+    if reserved > limit {
+        return Err(cap_refusal("", limit, others));
+    }
+    if reserved + signal_capital > balance {
+        return Err(cap_refusal("", balance, others + signal_capital));
+    }
+    Ok(())
+}
+
+fn reservation_check(app: &AppHandle, mgr: &StrategyManager, bot: &StrategyBot) -> Result<(), String> {
+    let signal_capital: f64 = app
+        .state::<BotManager>()
+        .positions_snapshot()
+        .iter()
+        .map(|p| p.capital)
+        .sum();
+    fits_reservation(
+        bot.cfg.budget,
+        mgr.reserved_budget(Some(&bot.id)),
+        app.state::<RiskManager>().balance(),
+        effective_cap_pct(app, &mgr.risk()),
+        signal_capital,
+    )
+}
+
+/// The Start checks that depend on the risk settings, run again for a bot
+/// that was running before a restart: every bound with the level's
+/// leverage ceiling (`validate`), then the budget cap and the balance.
+/// Err = the refusal code; the bot then stays Stopped.
+pub(super) fn resume_refusal(app: &AppHandle, mgr: &StrategyManager, bot: &StrategyBot) -> Result<(), String> {
+    check(&bot.cfg, app)?;
+    reservation_check(app, mgr, bot)
 }
 
 /// Stops NEW cycles only; an open cycle keeps being managed.
@@ -460,20 +509,30 @@ pub async fn strategy_close_all(app: AppHandle, reason: Option<String>) -> Resul
     Ok(CloseAllReport { closed, unpriced })
 }
 
-/// Hides a stopped, flat bot. History stays (ledger: filter, never delete).
+/// Deletes (hides) a paper bot in one step: an open cycle closes at market
+/// first (as Close cycle does), a running bot stops. History stays (ledger:
+/// filter, never delete). A bot on real money is refused: it goes back to
+/// paper first, so no real position is closed from a delete.
 #[tauri::command]
 pub async fn strategy_archive(app: AppHandle, mgr: State<'_, StrategyManager>, id: String) -> Result<(), String> {
     let _guard = mgr.op_lock.lock().await;
-    let bot = mgr.bot(&id).ok_or("botUnknown")?;
-    if driver::is_running(bot.state) {
-        return Err("stopFirst".into());
+    mgr.bot(&id).ok_or("botUnknown")?;
+    if crate::bot::strategy_live::locks_bot(&app, &id) {
+        return Err("liveEditLocked".into());
     }
+    if mgr.has_open_cycle(&id) {
+        engine::close_one_locked(&app, &mgr, &id, super::model::ExitReason::Manual, false).await?;
+    }
+    let bot = mgr.bot(&id).ok_or("botUnknown")?;
     if mgr.has_open_cycle(&id) {
         return Err("cycleOpenLocked".into());
     }
     let pnl = bot.realized_quote;
     let covered = bot.cfg.portfolio_breaker;
     let mut bot = bot;
+    if bot.state != BotRunState::Dead {
+        bot.state = BotRunState::Stopped;
+    }
     bot.archived_at = Some(now_ms());
     engine::save_bot(&app, &bot);
     mgr.remove_bot(&id);
@@ -557,6 +616,38 @@ pub fn strategy_stats(
         }));
     }
     Ok(stats::compute(&bots, &cycles))
+}
+
+/// Paper DCA / Grid money for the Dashboard, History and alerts: totals over
+/// every closed cycle (deleted bots included) and the newest closed cycles.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StrategyPnl {
+    pub totals: db::StrategyPnlTotals,
+    pub recent: Vec<db::ClosedCycleRow>,
+}
+
+#[tauri::command]
+pub fn strategy_pnl(app: AppHandle, limit: Option<u32>) -> Result<StrategyPnl, String> {
+    let dir = data_dir(&app)?;
+    // Paper money only. In a live build a bot on real money keeps its
+    // simulated cycles as the decision book; its real result is reported
+    // apart (strategy_live_report), and the two are never summed.
+    // An unreadable real-money state excludes nothing here: this is a report,
+    // and the bots it would hide are already refused a resume (engine.rs).
+    let exclude = if crate::bot::model::LIVE_TRADING_ENABLED {
+        crate::bot::strategy_live::stored_live_ids(&app).unwrap_or_default()
+    } else {
+        Default::default()
+    };
+    let day = utc_day_start_ms();
+    let limit = limit.unwrap_or(50).min(500);
+    app.state::<StoreManager>().strategy(&dir, |c| {
+        Ok(StrategyPnl {
+            totals: db::pnl_totals(c, day, &exclude)?,
+            recent: db::recent_closed_cycles(c, limit, &exclude)?,
+        })
+    })
 }
 
 #[derive(Serialize)]
@@ -702,13 +793,13 @@ mod tests {
         mgr.put_bot(b);
         assert_eq!(
             budget_fits(&mgr, &a, 200.0, 1000.0, 20.0, 0.0),
-            Err("budgetCapReached|budget".to_string()),
+            Err("budgetCapReached|budget|100|200".to_string()),
             "200 + 100 reserved > 200"
         );
         assert_eq!(budget_fits(&mgr, &a, 100.0, 1000.0, 20.0, 0.0), Ok(()));
         assert_eq!(
             budget_fits(&mgr, &a, 100.0, 1000.0, 20.0, 850.0),
-            Err("budgetCapReached|budget".to_string()),
+            Err("budgetCapReached|budget|50|1000".to_string()),
             "signal capital shares the balance"
         );
         // a stopped, flat bot reserves nothing: only its own cap applies
@@ -716,6 +807,36 @@ mod tests {
         mgr.put_bot(a.clone());
         assert_eq!(budget_fits(&mgr, &a, 150.0, 1000.0, 20.0, 0.0), Ok(()));
         assert!(budget_fits(&mgr, &a, 201.0, 1000.0, 20.0, 0.0).is_err());
+    }
+
+    #[test]
+    fn default_dca_ladder_is_the_tested_one() {
+        let c = default_config(StrategyKind::Dca, "binance".into(), "BTCUSDT".into());
+        assert_eq!(c.params, presets::dca_long_classic().config.params);
+        let StrategyParams::Dca(p) = &c.params else { unreachable!() };
+        assert!(*super::super::dca::deviations(p).last().unwrap() > 50.0);
+        // the manual protections stay (owner decision), so no preset id
+        assert_eq!(c.max_drawdown_pct, Some(DEFAULT_BOT_DD_STOP_PCT));
+        assert!(c.pause_on_btc_break && c.portfolio_breaker);
+        assert_eq!(c.preset_id, None);
+    }
+
+    #[test]
+    fn a_changed_preset_config_loses_its_preset_id() {
+        let mut c = presets::dca_long_classic().config;
+        c.symbol = "BTCUSDT".into();
+        c.name = "Renamed".into();
+        assert_eq!(with_provenance(c.clone()).preset_id.as_deref(), Some("dca_long_classic"));
+        c.leverage = 2;
+        assert_eq!(with_provenance(c).preset_id, None);
+    }
+
+    #[test]
+    fn the_reservation_check_is_the_start_rule() {
+        // balance 1000 at 20%: 200 for every DCA/Grid budget together
+        assert_eq!(fits_reservation(200.0, 0.0, 1000.0, 20.0, 0.0), Ok(()));
+        assert_eq!(fits_reservation(150.0, 100.0, 1000.0, 20.0, 0.0), Err("budgetCapReached||100|200".to_string()));
+        assert_eq!(fits_reservation(100.0, 0.0, 1000.0, 20.0, 950.0), Err("budgetCapReached||50|1000".to_string()));
     }
 
     #[test]

@@ -155,6 +155,30 @@ fn static_skip_stays_judged() {
     assert!(!ledger.is_judged(BotKind::Spot, &sig.id));
 }
 
+// The KAS case (testnet, 7-8 Oct): a short refused under direction=long
+// stayed refused after the user allowed both directions, until an unrelated
+// restart. A settings save now re-judges it; lifecycle verdicts stay.
+#[test]
+fn a_settings_change_lifts_a_settings_refusal_only() {
+    let mut c = cfg();
+    c.direction = Some("long".into());
+    let sig = signal("short", 100.0, 94.0, 110.0);
+    let mut ledger = JudgeLedger::default();
+    let skip = pre_price_gate(&gate_input(&c, &sig, BtcRegime::Normal)).unwrap();
+    assert_eq!(skip.key, "directionFiltered");
+    assert!(settle_skip(&mut ledger, BotKind::Futures, &sig.id, &skip));
+    let crossed = super::precheck::Skip::new("fillCrossedLevel");
+    assert!(settle_skip(&mut ledger, BotKind::Futures, "crossed", &crossed));
+    assert!(settle_skip(&mut ledger, BotKind::Spot, &sig.id, &skip));
+
+    assert_eq!(ledger.clear_settings_verdicts(BotKind::Futures), 1);
+    assert!(!ledger.is_judged(BotKind::Futures, &sig.id));
+    assert!(ledger.is_judged(BotKind::Futures, "crossed"), "lifecycle verdict kept");
+    assert!(ledger.is_judged(BotKind::Spot, &sig.id), "another bot untouched");
+    c.direction = None;
+    assert!(pre_price_gate(&gate_input(&c, &sig, BtcRegime::Normal)).is_none(), "new settings pass it");
+}
+
 #[test]
 fn held_market_and_caps_are_transient() {
     let c = cfg();
@@ -196,4 +220,21 @@ fn regime_veto_refuses_entry_finally() {
     let skip = pre_price_gate(&input).expect("refused");
     assert_eq!(skip.key, "vetoedByRegime");
     assert!(is_final(skip.key));
+}
+
+#[test]
+fn a_bot_takes_only_signals_for_its_own_market() {
+    use super::entry::market_mismatch;
+
+    use crate::bot::model::BotKind;
+    let mut s = signal("long", 100.0, 110.0, 95.0);
+    assert!(market_mismatch(BotKind::Futures, &s).is_none(), "no market (older payload) passes");
+    s.market_type = Some("spot".into());
+    let skip = market_mismatch(BotKind::Futures, &s).expect("spot signal refused by the futures bot");
+    assert_eq!(skip.key, "signalOtherMarket");
+    assert!(market_mismatch(BotKind::Spot, &s).is_none());
+    s.market_type = Some("Futures".into());
+    assert!(market_mismatch(BotKind::Futures, &s).is_none());
+    assert!(market_mismatch(BotKind::Pump, &s).is_none());
+    assert!(market_mismatch(BotKind::Spot, &s).is_some());
 }

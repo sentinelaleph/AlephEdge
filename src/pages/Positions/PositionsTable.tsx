@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CLOSE_WORD } from "@/components/Account/AccountPanel/AccountPanel";
 import { Button } from "@/components/ui/Button/Button";
-import { Chip, LiveChip } from "@/components/ui/Chip/Chip";
+import { Chip, LiveChip, ManualChip } from "@/components/ui/Chip/Chip";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState/EmptyState";
@@ -56,6 +56,7 @@ export function PositionsTable({
         <span className="ae-postable__sym">
           {p.symbol}
           {p.live ? <LiveChip /> : null}
+          {p.manual ? <ManualChip /> : null}
           {p.live && p.unprotected ? (
             <Chip tone="danger" title={t("bots.skipReasons.liveUnprotected")}>
               {t("pnl.exit.unprotected")}

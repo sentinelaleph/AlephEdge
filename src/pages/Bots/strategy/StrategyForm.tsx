@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useDeskContext } from "@/app/DeskProvider";
 import { Link, useNavigationGuard } from "@/app/router/router";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
-import { LeverageRiskDialog, needsLeverageConfirm } from "./LeverageRiskDialog";
+import { LeverageRiskDialog, needsLiquidationConfirm } from "./LeverageRiskDialog";
 import { Button } from "@/components/ui/Button/Button";
 import { ReadOnlyField } from "@/components/ui/ReadOnlyField/ReadOnlyField";
 import { Panel } from "@/components/ui/Panel/Panel";
@@ -25,10 +25,11 @@ import {
   type StrategyKind,
   type StrategySide,
 } from "@/lib/ipc/strategy/strategy";
-import { strategyErrorText } from "@/lib/strategyText";
+import { configErrorText, presetName, strategyErrorText, universeText } from "@/lib/strategyText";
 import { CheckRow, FieldShell, NumField, Segmented } from "./formControls";
 import { StrategyLevelsTable } from "./StrategyPreviewPanel";
 import "./StrategyForm.css";
+import { TrendMismatchNote } from "@/components/Desk/MarketTrend";
 
 /** Wire-type ceilings of the Rust config (u8 / u16 / u32). Not bounds. */
 const U8 = 255;
@@ -43,6 +44,11 @@ export interface StrategyFormProps {
   bot?: StrategyBotView;
   /** The preset the form was opened from (parity check). */
   preset?: Preset | null;
+  /**
+   * Every template (strategy_presets), for the note on a form opened with
+   * no preset: custom settings have no historical simulation.
+   */
+  templates?: Preset[] | null;
   /** Called with the config to save; resolves to a raw error code or null. */
   onSubmit: (cfg: StrategyConfig, startAfter: boolean) => Promise<string | null>;
   onCancel: () => void;
@@ -67,6 +73,8 @@ export interface StrategyFormProps {
 
 export interface FormActions {
   canSubmit: boolean;
+  /** Create and start: the budget must also be free now (strategy_start). */
+  canStart: boolean;
   saving: boolean;
   /** Stable across renders; runs the current submit. */
   submit: (startAfter: boolean) => void;
@@ -80,10 +88,17 @@ export interface FormPreview {
   available: number | null;
 }
 
-/** Does `cfg` still describe the preset's historical simulation? */
+/**
+ * Does `cfg` still describe the preset's historical simulation? Name and
+ * budget are free. A single-pair universe (BTCUSDT only) must keep its pair;
+ * a top-N universe is a monthly volume list the app does not have, so the
+ * pair is not checked there and the banner says so. presets.rs
+ * `keeps_provenance` is the same rule.
+ */
 export function matchesPreset(cfg: StrategyConfig, preset: Preset): boolean {
   const a = preset.config;
   return (
+    (preset.universe.rule !== "btcOnly" || cfg.symbol === "BTCUSDT") &&
     JSON.stringify(a.params) === JSON.stringify(cfg.params) &&
     a.market === cfg.market &&
     a.side === cfg.side &&
@@ -111,7 +126,7 @@ function localInput(ms: number): string {
  * StrategyConfig; Rust validates on each change (strategy_preview) and the
  * first refusal is shown on its field. PAPER ONLY: there is no live control.
  */
-export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, onPreview, onDirty, mode = "bot", onState, onActions }: StrategyFormProps) {
+export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, onCancel, onPreview, onDirty, mode = "bot", onState, onActions }: StrategyFormProps) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const { strategy, catalog } = useDeskContext();
@@ -121,7 +136,11 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
   const [previewError, setPreviewError] = useState<string | null>(null);
   /** Rust's verdict on the current config: undefined while unknown. */
   const [verdict, setVerdict] = useState<StrategyErrorDto | null | undefined>(undefined);
+  /** Smallest budget whose orders all clear 5 USDT (Rust); null = unknown or not a budget matter. */
+  const [minBudget, setMinBudget] = useState<number | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // A refused save describes the config it was sent; any edit makes it stale.
+  useEffect(() => setSubmitError(null), [cfg]);
   const [saving, setSaving] = useState(false);
   const [symbols, setSymbols] = useState<string[] | null>(null);
   const [symbolsError, setSymbolsError] = useState(false);
@@ -187,6 +206,7 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
           setPreview(p);
           setPreviewError(null);
           setVerdict(p.error);
+          setMinBudget(p.minBudget);
         })
         .catch((e: unknown) => {
           if (id !== seq.current) return;
@@ -194,7 +214,11 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
           setPreviewError(errorMessage(e, "priceUnavailable"));
           // No price for the preview: Rust still judges the bounds.
           strategyValidate(cfg)
-            .then((r) => id === seq.current && setVerdict(r.error))
+            .then((r) => {
+              if (id !== seq.current) return;
+              setVerdict(r.error);
+              setMinBudget(r.minBudget);
+            })
             .catch(() => id === seq.current && setVerdict(undefined));
         });
     }, 250);
@@ -211,7 +235,7 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
 
   // The first Rust refusal, on its field (the summary repeats it).
   const rustError = verdict ?? null;
-  const err = (field: string) => (rustError && rustError.field === field ? strategyErrorText(t, rustError.code) : null);
+  const err = (field: string) => (rustError && rustError.field === field ? configErrorText(t, rustError.code, minBudget, locale) : null);
   const invalidText = t("strategy.form.notANumber");
   const usdt = (v: number) => `${formatNumber(v, locale, { maximumFractionDigits: 2 })} USDT`;
 
@@ -232,6 +256,22 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
         (bot && (bot.acceptingNewCycles || bot.openCycle) ? bot.budget : 0)
       : null;
 
+  // What Rust checks on save: the cap alone for a bot that reserves nothing
+  // (create, a stopped flat bot), with every other reservation for one that
+  // does. Start (Create and start) needs the budget free now.
+  const capLimit = strategy.risk !== null ? (strategy.risk.balance * strategy.risk.budgetCapPct) / 100 : null;
+  const reserves = !!bot && (bot.acceptingNewCycles || bot.openCycle !== null);
+  const saveRoom = reserves ? available : capLimit;
+  const budgetFits = backtest || saveRoom === null || cfg.budget <= saveRoom + 1e-9;
+  const startFits = backtest || available === null || cfg.budget <= available + 1e-9;
+  const budgetCapText =
+    !budgetFits && saveRoom !== null && capLimit !== null
+      ? t("strategy.errors.budgetCapDetail", {
+          free: formatNumber(Math.max(0, Math.floor(saveRoom)), locale, { maximumFractionDigits: 0 }),
+          limit: formatNumber(capLimit, locale, { maximumFractionDigits: 0 }),
+        })
+      : null;
+
   useEffect(() => {
     onPreview({ preview, error: previewError, cfg, available });
   }, [preview, previewError, cfg, available, onPreview]);
@@ -241,10 +281,10 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
     onState?.({ cfg: { ...cfg, name: cfg.name.trim() }, ok: accepted });
   }, [cfg, accepted, onState]);
 
-  // A leveraged DCA without a stop is confirmed first (LeverageRiskDialog).
+  // A reachable liquidation with no stop in front of it is confirmed first (LeverageRiskDialog).
   const [riskHeld, setRiskHeld] = useState<boolean | null>(null);
   const submit = async (startAfter: boolean, confirmed = false) => {
-    if (!confirmed && needsLeverageConfirm(cfg)) {
+    if (!confirmed && needsLiquidationConfirm(cfg, preview)) {
       setRiskHeld(startAfter);
       return;
     }
@@ -265,7 +305,8 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
   const submitField = submitError ? parseStrategyError(submitError).field : null;
   const fieldError = (field: string) => err(field) ?? (submitField === field && submitError ? strategyErrorText(t, submitError) : null);
 
-  const canSubmit = invalid.size === 0 && !saving && verdict === null && (!edit || dirty);
+  const canSubmit = invalid.size === 0 && !saving && verdict === null && (!edit || dirty) && budgetFits;
+  const canStart = canSubmit && startFits;
   const p = cfg.params;
 
   const submitRef = useRef(submit);
@@ -276,8 +317,10 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
     if (canSubmitRef.current) void submitRef.current(startAfter);
   }, []);
   useEffect(() => {
-    onActions?.({ canSubmit, saving, submit: stableSubmit });
-  }, [canSubmit, saving, stableSubmit, onActions]);
+    onActions?.({ canSubmit, canStart, saving, submit: stableSubmit });
+  }, [canSubmit, canStart, saving, stableSubmit, onActions]);
+  const universe = preset ? universeText(t, preset.universe) : null;
+  const dd = cfg.maxDrawdownPct !== null;
 
   return (
     <>
@@ -295,10 +338,14 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
         </p>
         {preset ? (
           <p className="ae-banner" data-tone={presetParity ? "info" : "warn"}>
-            {presetParity
-              ? t("strategy.form.fromPreset", { id: preset.id })
-              : t("strategy.form.presetDiffers", { id: preset.id })}
+            {!presetParity
+              ? t("strategy.form.presetDiffers", { id: preset.id })
+              : preset.universe.rule === "btcOnly"
+                ? t("strategy.form.fromPresetPairChecked", { id: preset.id, universe })
+                : t("strategy.form.fromPreset", { id: preset.id, universe })}
           </p>
+        ) : !edit && !backtest ? (
+          <CustomSettingsNote kind={kind} templates={templates ?? null} />
         ) : null}
         {preset && preset.verdict === "failed" ? (
           <p className="ae-banner" data-tone="danger">
@@ -316,6 +363,7 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
             {t("strategy.form.slotLocked")}
           </p>
         ) : null}
+        {backtest ? null : <TrendMismatchNote long={cfg.side === "long"} short={cfg.side === "short"} />}
 
         <Panel title={t("strategy.form.section.general")}>
           <div className="ae-sform__grid">
@@ -376,9 +424,7 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
               hint={
                 symbolsError
                   ? t("strategy.errors.symbolListUnavailable")
-                  : preset
-                    ? t(`strategy.preset.universe.${preset.universe.rule}`, { n: preset.universe.topN, days: preset.universe.volumeWindowDays })
-                    : t("strategy.hint.pairUsdt")
+                  : (universe ?? t("strategy.hint.pairUsdt"))
               }
             >
               <input
@@ -406,7 +452,7 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
               onChange={(budget) => set({ budget })}
               onInvalid={inv("budget")}
               invalidText={invalidText}
-              error={fieldError("budget")}
+              error={fieldError("budget") ?? budgetCapText}
               hint={available !== null && !backtest ? t("strategy.hint.budgetAvailable", { value: usdt(Math.max(0, available)) }) : undefined}
             />
             {!spot ? (
@@ -493,13 +539,20 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
                 label={t("strategy.field.sl")}
                 checked={p.slPct !== null}
                 disabled={paramLocked}
-                onChange={(on) => setDca({ slPct: on ? Math.min(90, Math.round((preview?.dca?.maxCoveragePct ?? 10) + 5)) : null })}
-                hint={p.slPct === null ? <span className="ae-warntext">{t("strategy.warnings.noStopLoss")}</span> : undefined}
+                // Rust's proposal fits every rung (inside the next safety
+                // order, before liquidation); without a preview, coverage + 5
+                // and Rust judges it.
+                onChange={(on) =>
+                  setDca({
+                    slPct: on ? (preview?.dca?.suggestedSlPct ?? Math.min(90, Math.round((preview?.dca?.maxCoveragePct ?? 10) + 5))) : null,
+                  })
+                }
+                hint={p.slPct === null ? <span className="ae-warntext">{t(dd ? "strategy.warnings.ddStopOnly" : "strategy.warnings.noStopLoss")}</span> : undefined}
               />
               {p.slPct !== null ? (
                 <NumField label={t("strategy.field.slPct")} unit="%" value={p.slPct} disabled={paramLocked} onChange={(slPct) => setDca({ slPct })} onInvalid={inv("slPct")} invalidText={invalidText} error={fieldError("slPct")} hint={t("strategy.hint.sl")} />
               ) : null}
-              <CheckRow label={t("strategy.field.maxDuration")} checked={p.maxDurationMin !== null} disabled={paramLocked} onChange={(on) => setDca({ maxDurationMin: on ? 168 * 60 : null })} />
+              <CheckRow label={t("strategy.field.maxDuration")} checked={p.maxDurationMin !== null} disabled={paramLocked} onChange={(on) => setDca({ maxDurationMin: on ? 168 * 60 : null })} hint={t("strategy.hint.maxDuration")} />
               {p.maxDurationMin !== null ? (
                 <NumField label={t("strategy.field.maxDurationHours")} unit="h" value={toHours(p.maxDurationMin)} disabled={paramLocked} onChange={(h) => setDca({ maxDurationMin: toMin(h) })} onInvalid={inv("maxDurationMin")} invalidText={invalidText} error={fieldError("maxDurationMin")} />
               ) : null}
@@ -554,7 +607,7 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
                 checked={p.stopOutPct !== null}
                 disabled={paramLocked}
                 onChange={(on) => setGrid({ stopOutPct: on ? 3 : null })}
-                hint={p.stopOutPct === null ? <span className="ae-warntext">{t("strategy.warnings.noStopOut")}</span> : undefined}
+                hint={p.stopOutPct === null ? <span className="ae-warntext">{t(dd ? "strategy.warnings.ddStopOnly" : "strategy.warnings.noStopOut")}</span> : undefined}
               />
               {p.stopOutPct !== null ? (
                 <NumField label={t("strategy.field.stopOutPct")} unit="%" value={p.stopOutPct} disabled={paramLocked} onChange={(stopOutPct) => setGrid({ stopOutPct })} onInvalid={inv("stopOutPct")} invalidText={invalidText} error={fieldError("stopOutPct")} hint={t("strategy.hint.stopOut")} />
@@ -576,7 +629,7 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
               {p.takeProfitPct !== null ? (
                 <NumField label={t("strategy.field.gridTpPct")} unit="%" value={p.takeProfitPct} disabled={paramLocked} onChange={(takeProfitPct) => setGrid({ takeProfitPct })} onInvalid={inv("takeProfitPct")} invalidText={invalidText} error={fieldError("takeProfitPct")} hint={t("strategy.hint.gridTp")} />
               ) : null}
-              <CheckRow label={t("strategy.field.maxDuration")} checked={p.maxDurationMin !== null} disabled={paramLocked} onChange={(on) => setGrid({ maxDurationMin: on ? 168 * 60 : null })} />
+              <CheckRow label={t("strategy.field.maxDuration")} checked={p.maxDurationMin !== null} disabled={paramLocked} onChange={(on) => setGrid({ maxDurationMin: on ? 168 * 60 : null })} hint={t("strategy.hint.maxDuration")} />
               {p.maxDurationMin !== null ? (
                 <NumField label={t("strategy.field.maxDurationHours")} unit="h" value={toHours(p.maxDurationMin)} disabled={paramLocked} onChange={(h) => setGrid({ maxDurationMin: toMin(h) })} onInvalid={inv("maxDurationMin")} invalidText={invalidText} error={fieldError("maxDurationMin")} />
               ) : null}
@@ -721,7 +774,7 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
             </Button>
             <span className="ae-toolbar__spacer" />
             {!edit ? (
-              <Button variant="secondary" size="sm" disabled={!canSubmit} onClick={() => void submit(true)}>
+              <Button variant="secondary" size="sm" disabled={!canStart} onClick={() => void submit(true)}>
                 {t("strategy.form.createAndStart")}
               </Button>
             ) : null}
@@ -757,6 +810,32 @@ export function StrategyForm({ kind, initial, bot, preset, onSubmit, onCancel, o
         onCancel={() => setHeld(null)}
       />
     </>
+  );
+}
+
+/**
+ * A form opened with no preset (New DCA / New Grid, a clone of a custom
+ * bot): its settings have no historical simulation. Names the templates of
+ * this type that passed their checks, or how many did not, from
+ * strategy_presets.
+ */
+function CustomSettingsNote({ kind, templates }: { kind: StrategyKind; templates: Preset[] | null }) {
+  const { t } = useTranslation();
+  const own = templates?.filter((p) => p.config.params.kind === kind) ?? null;
+  const passed = own?.filter((p) => p.verdict === "presetReady") ?? null;
+  const text =
+    own === null || passed === null
+      ? t("strategy.form.custom.base")
+      : passed.length > 0
+        ? t("strategy.form.custom.passed", { names: passed.map((p) => presetName(t, p)).join(", ") })
+        : t(kind === "grid" ? "strategy.form.custom.noneGrid" : "strategy.form.custom.noneDca", { total: own.length });
+  return (
+    <p className="ae-banner" data-tone={passed !== null && passed.length === 0 ? "warn" : "info"}>
+      {text}{" "}
+      <Link to={`/presets?type=${kind}`} className="ae-link">
+        {t("botCreate.presetsLink")}
+      </Link>
+    </p>
   );
 }
 

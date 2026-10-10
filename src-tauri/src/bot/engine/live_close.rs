@@ -146,6 +146,7 @@ pub fn live_trade_record(
         veto_reason_text: None,
         tp_target: Some(pos.tp_target.clone()),
         tp_fallback_from: pos.tp_fallback_from.clone(),
+        manual: pos.manual,
     }
 }
 
@@ -163,9 +164,8 @@ pub async fn close_live(
     let Some(cred) = app.state::<VaultManager>().credential(&pos.exchange_id) else {
         return Err(SKIP_VAULT_LOCKED);
     };
-    let (key, secret) = (cred.api_key.as_str(), cred.api_secret.as_str());
     let account = exchange
-        .futures_account(key, secret)
+        .futures_account(&cred)
         .await
         .map_err(|_| SKIP_CLOSE_FAILED)?;
     let amt = account
@@ -176,19 +176,22 @@ pub async fn close_live(
     let long = pos.direction == "long";
     match exchange_state(long, amt) {
         ExchangeSide::Mismatch => Err(NOTE_DIRECTION_MISMATCH),
-        ExchangeSide::Flat => Ok(settle_closed(app, key, secret, pos, book_price).await),
+        ExchangeSide::Flat => Ok(settle_closed(app, &cred, pos, book_price).await),
         ExchangeSide::Open => {
-            // Size from Binance itself: step-compliant, and it is what is
-            // actually held after any partial.
+            // Size from the exchange itself: step-compliant, and it is what
+            // is actually held after any partial. Done only once the account
+            // reads flat (a remainder gets one more reduce): a short fill used
+            // to cancel the stop and book a close that left exposure behind.
+            // Not flat = nothing recorded, the stop stays, the next tick retries.
             let size = amt.unwrap_or_default().abs();
             let fill = exchange
-                .reduce_market_all(key, secret, &pos.symbol, long, size)
+                .flatten(&cred, &pos.symbol, long, size)
                 .await
                 .map_err(|_| SKIP_CLOSE_FAILED)?;
             let _ = exchange
-                .cancel_symbol_orders(key, secret, &pos.symbol)
+                .cancel_symbol_orders(&cred, &pos.symbol)
                 .await;
-            Ok(settle(app, key, secret, pos, reason, fill.avg_price, true).await)
+            Ok(settle(app, &cred, pos, reason, fill.avg_price, true).await)
         }
     }
 }
@@ -197,8 +200,7 @@ pub async fn close_live(
 /// fired decides the reason; leftovers on the symbol are cancelled.
 pub async fn settle_closed(
     app: &AppHandle,
-    key: &str,
-    secret: &str,
+    cred: &crate::vault::model::ExchangeCredential,
     pos: &OpenPosition,
     book_price: f64,
 ) -> TradeRecord {
@@ -208,7 +210,7 @@ pub async fn settle_closed(
         async move {
             match id {
                 Some(id) => exchange
-                    .algo_status(key, secret, id)
+                    .algo_status(cred, &pos.symbol, id)
                     .await
                     .is_ok_and(|s| crate::exchange::providers::binance_parse::algo_fired(&s)),
                 None => false,
@@ -219,16 +221,15 @@ pub async fn settle_closed(
     let tp_fired = fired(pos.tp_algo_id).await;
     let reason = infer_exit_reason(stop_fired, tp_fired, pos.stop_at_breakeven);
     let _ = exchange
-        .cancel_symbol_orders(key, secret, &pos.symbol)
+        .cancel_symbol_orders(cred, &pos.symbol)
         .await;
     let exit = reference_exit(pos, reason).unwrap_or(book_price);
-    settle(app, key, secret, pos, reason, exit, false).await
+    settle(app, cred, pos, reason, exit, false).await
 }
 
 async fn settle(
     app: &AppHandle,
-    key: &str,
-    secret: &str,
+    cred: &crate::vault::model::ExchangeCredential,
     pos: &OpenPosition,
     reason: &str,
     final_exit: f64,
@@ -238,7 +239,7 @@ async fn settle(
     let start = pos.opened_at.saturating_sub(FILL_WINDOW_SLACK_MS);
     let summary = app
         .state::<ExchangeManager>()
-        .user_trades(key, secret, &pos.symbol, start)
+        .user_trades(cred, &pos.symbol, start)
         .await
         .ok()
         .and_then(|trades| summarize_fills(&trades, pos.direction == "long", pos.entry_order_id));

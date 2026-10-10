@@ -19,7 +19,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::exchange::providers::binance_parse::{OrderFill, RecentOrder};
 use crate::exchange::providers::binance_requests::{entry_client_id, ENTRY_CLIENT_PREFIX};
-use crate::exchange::ExchangeManager;
+use crate::exchange::{venue_order_client_id, ExchangeManager};
 use crate::risk::RiskManager;
 use crate::signal::model::{Direction, Signal};
 use crate::signal::SignalManager;
@@ -131,6 +131,29 @@ pub fn plan_reconcile(book: &[OpenPosition], exchange: &[(String, f64)]) -> Reco
     plan
 }
 
+/// `plan_reconcile` for ONE venue's account snapshot: only the book
+/// positions that sit on `venue` are judged. A position is never marked flat
+/// from another venue's account (a Binance position is absent from every
+/// Bybit snapshot, and was settled as closed while still open).
+pub fn plan_reconcile_on(venue: &str, book: &[OpenPosition], exchange: &[(String, f64)]) -> ReconcilePlan {
+    let mine: Vec<OpenPosition> = book.iter().filter(|p| p.exchange_id == venue).cloned().collect();
+    plan_reconcile(&mine, exchange)
+}
+
+/// The venues one reconcile pass reads: every venue a live book position
+/// sits on, plus the live bot's own venue (lost entries of its own may sit
+/// there), in that order, each once.
+pub fn reconcile_venues(bot_venue: Option<&str>, book: &[OpenPosition]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let held = book.iter().filter(|p| p.live).map(|p| p.exchange_id.as_str());
+    for v in held.chain(bot_venue) {
+        if !out.iter().any(|o| o == v) {
+            out.push(v.to_string());
+        }
+    }
+    out
+}
+
 /// The flat positions of `plan` this pass may settle, each under the close
 /// claim (the caller releases it). One already claimed — a veto or a remote
 /// kill closing it right now — is left to that close: settling it here too
@@ -169,16 +192,24 @@ pub struct OwnEntry {
 
 /// Whether `cid` is one of this app's entry client ids: the "ae" prefix and
 /// either the id of a signal still in the buffer or the shape every Sentinel
-/// id takes (a UUID: 32 lowercase hex characters once the dashes go).
+/// id takes (a UUID: 32 lowercase hex characters once the dashes go). The
+/// ccxt venues store the id cut to 32 characters (`venue_client_id`), which
+/// leaves 30 of the UUID's hex characters.
 pub fn is_own_client_id(cid: &str, known: &[String]) -> bool {
     let Some(body) = cid.strip_prefix(ENTRY_CLIENT_PREFIX) else {
         return false;
     };
-    let uuid_shape = body.len() == 32
+    let uuid_shape = matches!(body.len(), 30 | 32)
         && body
             .chars()
             .all(|c| c.is_ascii_digit() || ('a'..='f').contains(&c));
     uuid_shape || known.iter().any(|k| k == cid)
+}
+
+/// The client id the entry for `signal_id` carries in `exchange_id`'s order
+/// history: what `open_live` sent, as that venue stores it.
+pub fn own_entry_id(exchange_id: &str, signal_id: &str) -> String {
+    venue_order_client_id(exchange_id, &entry_client_id(signal_id))
 }
 
 /// Attributes an untracked position (`amt` = signed positionAmt) to our own
@@ -207,11 +238,11 @@ pub fn attribute_position(amt: f64, orders: &[RecentOrder], known: &[String]) ->
     })
 }
 
-/// The buffered signal an own entry was sent for.
-pub fn signal_for<'a>(own: &OwnEntry, symbol: &str, signals: &'a [Signal]) -> Option<&'a Signal> {
+/// The buffered signal an own entry was sent for, on `exchange_id`.
+pub fn signal_for<'a>(own: &OwnEntry, symbol: &str, signals: &'a [Signal], exchange_id: &str) -> Option<&'a Signal> {
     signals
         .iter()
-        .find(|s| s.symbol == symbol && entry_client_id(&s.id) == own.client_id)
+        .find(|s| s.symbol == symbol && own_entry_id(exchange_id, &s.id) == own.client_id)
 }
 
 /// What reconcile does with one untracked exchange position.
@@ -317,16 +348,29 @@ pub async fn reconcile_phase(app: &AppHandle) {
     // the interval, not every 4s tick.
     LAST_RECONCILE_MS.store(now, Ordering::Relaxed);
 
-    // Live trading is Binance-only (see live_trading_allowed).
-    let Some(cred) = app.state::<VaultManager>().credential("binance") else {
-        for p in positions.iter().filter(|p| p.is_live()) {
+    // Each live position is reconciled against the account of the venue it
+    // sits on; the live bot's own venue is read too (lost entries).
+    let bot_venue = bots
+        .config_for(BotKind::Futures)
+        .filter(|c| live_trading_allowed(c, BotKind::Futures))
+        .map(|c| c.exchange_id);
+    let live_positions: Vec<OpenPosition> = positions.iter().filter(|p| p.is_live()).cloned().collect();
+    for venue in reconcile_venues(bot_venue.as_deref(), &live_positions) {
+        reconcile_venue(app, &venue, &live_positions).await;
+    }
+}
+
+/// One venue's pass: its account against the live book positions on it.
+async fn reconcile_venue(app: &AppHandle, venue: &str, positions: &[OpenPosition]) {
+    let bots = app.state::<BotManager>();
+    let Some(cred) = app.state::<VaultManager>().credential(venue) else {
+        for p in positions.iter().filter(|p| p.exchange_id == venue) {
             bots.skip_once(p.bot_kind, &p.signal_id, &p.symbol, SKIP_VAULT_LOCKED, None);
         }
         return;
     };
-    let (key, secret) = (cred.api_key.as_str(), cred.api_secret.as_str());
     let exchange = app.state::<ExchangeManager>();
-    let Ok(account) = exchange.futures_account(key, secret).await else {
+    let Ok(account) = exchange.futures_account(&cred).await else {
         bots.push_skip("", NOTE_RECONCILE_FAILED, None);
         return;
     };
@@ -335,13 +379,13 @@ pub async fn reconcile_phase(app: &AppHandle) {
         .iter()
         .map(|p| (p.symbol.clone(), p.position_amt))
         .collect();
-    let plan = plan_reconcile(&positions, &held);
+    let plan = plan_reconcile_on(venue, positions, &held);
 
-    for pos in claim_flat(&bots, &positions, &plan) {
+    for pos in claim_flat(&bots, positions, &plan) {
         let price = live_price(&exchange, &pos.exchange_id, &pos.symbol, pos.bot_kind)
             .await
             .unwrap_or(pos.entry);
-        let record = live_close::settle_closed(app, key, secret, &pos, price).await;
+        let record = live_close::settle_closed(app, &cred, &pos, price).await;
         book::close_with_record(app, &pos, &record);
         bots.closing.release(&pos.signal_id, pos.bot_kind);
     }
@@ -356,12 +400,14 @@ pub async fn reconcile_phase(app: &AppHandle) {
             None,
         );
     }
-    for symbol in &plan.untracked {
+    // A live DCA / Grid bot's position is reconciled by its own mirror
+    // (bot/strategy_live.rs), not reported here as a stranger's.
+    for symbol in plan.untracked.iter().filter(|s| !crate::bot::strategy_live::owns_symbol(app, s)) {
         let amt = held
             .iter()
             .find(|(s, _)| s == symbol)
             .map_or(0.0, |(_, a)| *a);
-        handle_untracked(app, key, secret, symbol, amt).await;
+        handle_untracked(app, &cred, symbol, amt).await;
     }
 }
 
@@ -380,21 +426,22 @@ fn report_untracked(bots: &BotManager, symbol: &str) {
 /// One untracked exchange position: attributed by the symbol's order
 /// history, then reported (not ours), adopted with its stop, or flattened.
 /// An unreadable history is reported only: "cannot tell" is never "ours".
-async fn handle_untracked(app: &AppHandle, key: &str, secret: &str, symbol: &str, amt: f64) {
+async fn handle_untracked(app: &AppHandle, cred: &crate::vault::model::ExchangeCredential, symbol: &str, amt: f64) {
     let bots = app.state::<BotManager>();
     let exchange = app.state::<ExchangeManager>();
     let signals = app.state::<SignalManager>().recent();
-    let known: Vec<String> = signals.iter().map(|s| entry_client_id(&s.id)).collect();
-    let own = match exchange.recent_orders(key, secret, symbol).await {
+    let known: Vec<String> = signals.iter().map(|s| own_entry_id(&cred.exchange_id, &s.id)).collect();
+    let own = match exchange.recent_orders(cred, symbol).await {
         Ok(orders) => attribute_position(amt, &orders, &known),
         Err(_) => None,
     };
     let Some(own) = own else {
         return report_untracked(&bots, symbol);
     };
+    // Only the live bot trading THIS venue may hold the adopted position.
     let cfg = bots
         .running_config(BotKind::Futures)
-        .filter(|c| live_trading_allowed(c, BotKind::Futures));
+        .filter(|c| live_trading_allowed(c, BotKind::Futures) && c.exchange_id == cred.exchange_id);
     let bot_can_hold = cfg.is_some() && !bots.kill_switch_tripped();
     let cap = cfg.as_ref().map_or(1, |c| {
         precheck::effective_leverage(c, &app.state::<RiskManager>().limits())
@@ -402,14 +449,14 @@ async fn handle_untracked(app: &AppHandle, key: &str, secret: &str, symbol: &str
     let leverage = cfg
         .as_ref()
         .map_or(cap, |c| exchange_leverage(own.qty * own.avg_price, c.capital, cap));
-    let sig = signal_for(&own, symbol, &signals);
-    let price = live_price(&exchange, "binance", symbol, BotKind::Futures).await;
+    let sig = signal_for(&own, symbol, &signals, &cred.exchange_id);
+    let price = live_price(&exchange, &cred.exchange_id, symbol, BotKind::Futures).await;
     let action = untracked_action(amt, Some(&own), sig, bot_can_hold, price, leverage);
 
     if let (UntrackedAction::Adopt, Some(cfg), Some(sig)) = (action, cfg.as_ref(), sig) {
         // The tick is needed to place the stop; without it the position
         // cannot be protected, so it is flattened below.
-        if let Ok(rules) = exchange.symbol_rules(symbol).await {
+        if let Ok(rules) = exchange.symbol_rules(cred, symbol).await {
             let fill = OrderFill {
                 order_id: own.order_id,
                 avg_price: own.avg_price,
@@ -418,7 +465,7 @@ async fn handle_untracked(app: &AppHandle, key: &str, secret: &str, symbol: &str
             let target = cfg.take_profit_for(&sig.symbol);
             let reference = price.unwrap_or(own.avg_price);
             match live::protect_fill(
-                &exchange, &bots, key, secret, sig, target, &fill, reference, rules.tick,
+                &exchange, &bots, cred, sig, target, &fill, reference, rules.tick,
             )
             .await
             {
@@ -437,7 +484,7 @@ async fn handle_untracked(app: &AppHandle, key: &str, secret: &str, symbol: &str
     // Ours, but not protectable as its signal planned (or the rules were
     // unreadable): flatten. A flatten that does not confirm is said loudly
     // and retried on the next reconcile pass.
-    if live::flatten_confirmed(&exchange, key, secret, symbol, amt > 0.0, amt.abs()).await {
+    if live::flatten_confirmed(&exchange, cred, symbol, amt > 0.0, amt.abs()).await {
         bots.push_skip(symbol, NOTE_OWN_ENTRY_FLATTENED, None);
     } else {
         bots.push_skip(symbol, NOTE_UNPROTECTED, None);

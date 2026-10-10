@@ -21,6 +21,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AppShell } from "@/app/AppShell/AppShell";
 import { DeskContextProvider } from "@/app/DeskProvider";
 import { SAMPLE_DESK_CONTEXT } from "./shot.mock";
@@ -45,6 +46,7 @@ const SHOT_ROUTES = {
   preset: "/presets/dca_long_classic",
   backtest: "/backtest",
   guide: "/guide?s=dca",
+  faq: "/faq?s=dca-bots",
   "backtest-report": "/backtest/sample",
   positions: "/positions",
   "positions-exchange": "/positions?tab=exchange",
@@ -70,7 +72,15 @@ export function isShotName(v: string | null): v is ShotName {
   return v !== null && v in SHOT_ROUTES;
 }
 
+/** The sample-data label in the shot's language (FAQ screenshots are per language). */
+const SAMPLE_LABEL: Record<string, string> = {
+  en: "Sample data · simulated fills · not a trading record",
+  tr: "Örnek veri · simüle dolumlar · işlem kaydı değil",
+};
+
 export function ShotHarness({ shot }: { shot: ShotName }) {
+  const { i18n } = useTranslation();
+  const lang = (i18n.resolvedLanguage ?? "en").split("-")[0];
   // Put the shot's route in the hash once, before the shell reads it.
   useState(() => {
     window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}#${SHOT_ROUTES[shot]}`);
@@ -83,7 +93,7 @@ export function ShotHarness({ shot }: { shot: ShotName }) {
           <AppShell />
         </DeskContextProvider>
       </div>
-      <p className="ae-shot__label">Sample data · simulated fills · not a trading record</p>
+      <p className="ae-shot__label">{SAMPLE_LABEL[lang] ?? SAMPLE_LABEL.en}</p>
     </>
   );
 }

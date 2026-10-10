@@ -23,7 +23,8 @@ interface ConfirmDialogProps {
    * danger variant. Row triggers stay quiet (secondary xs); the red lives here.
    */
   danger?: boolean;
-  onConfirm: () => void;
+  /** Runs with what was typed (trimmed), so the backend can re-check it. */
+  onConfirm: (typed: string) => void;
   onCancel: () => void;
 }
 
@@ -79,7 +80,7 @@ export function ConfirmDialog({ open, title, body, word, confirmLabel, busy, liv
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (matches && !busy) onConfirm();
+    if (matches && !busy) onConfirm(typed.trim());
   };
 
   return createPortal(

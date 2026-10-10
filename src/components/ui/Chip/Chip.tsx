@@ -41,6 +41,26 @@ export function PaperChip() {
   );
 }
 
+/** "Untested": no replay or forward test exists for what this bot does. */
+export function UntestedChip({ title }: { title?: string }) {
+  const { t } = useTranslation();
+  return (
+    <Chip tone="warn" title={title}>
+      {t("bots.untested")}
+    </Chip>
+  );
+}
+
+/** "Manual": opened by hand on one signal (Execute), not by the bot's loop. */
+export function ManualChip() {
+  const { t } = useTranslation();
+  return (
+    <Chip tone="accent" title={t("bots.manualBadgeTooltip")}>
+      {t("bots.manualBadge")}
+    </Chip>
+  );
+}
+
 /** "LIVE": real orders. The word stays untranslated on purpose. */
 export function LiveChip() {
   const { t } = useTranslation();

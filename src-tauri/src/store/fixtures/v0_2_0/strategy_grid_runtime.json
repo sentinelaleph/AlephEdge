@@ -1,0 +1,11 @@
+{
+  "nextDecisionMs": 1791449077871,
+  "chainCycles": 1,
+  "startTriggered": false,
+  "util": {
+    "marginBars": 69622.23727723442,
+    "commitBars": 695000.0,
+    "bars": 695.0
+  },
+  "maxDdQuote": -11.836390607216572
+}

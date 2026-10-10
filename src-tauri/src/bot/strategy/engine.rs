@@ -21,7 +21,7 @@ use crate::store::{utc_day_start_ms, StoreManager};
 
 use super::cycle::CycleState;
 use super::driver::{self, EquityPoint};
-use super::limits::PRICE_STALE_MS;
+use super::limits::{leverage_ceiling, PRICE_STALE_MS};
 use super::model::{Bar, BotId, ExitReason, Fill, MarketKind, StrategyBot};
 use super::venue::{OrderVenue, PaperVenue};
 use super::{Feed, StrategyManager, StrategyRisk};
@@ -29,6 +29,8 @@ use super::{Feed, StrategyManager, StrategyRisk};
 const META_RISK: &str = "strategy_risk";
 const META_PEAK: &str = "strategy_portfolio_peak";
 const META_TRIPPED: &str = "strategy_portfolio_tripped_day";
+/// Forced closes still owed, JSON {botId: exitReason}.
+pub const META_PENDING_CLOSE: &str = "strategy_pending_close";
 const EQUITY_KEEP_MINUTE_MS: u64 = 7 * 86_400_000;
 const FUNDING_EVERY_MS: u64 = 8 * 3_600_000;
 
@@ -66,14 +68,28 @@ fn note_all(mgr: &StrategyManager, bots: &[StrategyBot], key: &str, now: u64) {
     }
 }
 
-/// Reloads bots, open cycles, venues, cursors and the risk state. Every bot
-/// comes back Stopped unless it holds an open cycle (managed, not re-armed).
+/// Reloads bots, open cycles, venues, cursors and the risk state. A paper bot
+/// that was running comes back running (a DCA that silently stopped cycling
+/// after an update or reboot was the worse failure), once it passes the
+/// Start checks again (leverage ceiling, bounds, budget cap, balance): the
+/// risk level or balance may have been lowered meanwhile. A bot that fails
+/// them, or one tied to real money, comes back Stopped: its open cycle stays
+/// managed, new cycles wait for the user. Forced closes still owed (no price
+/// when they were asked) are reloaded and retried on the first tick.
 pub fn restore(app: &AppHandle) {
     let mgr = app.state::<StrategyManager>();
     let Some(dir) = dir(app) else {
         return;
     };
     let store = app.state::<StoreManager>();
+    let meta = |k: &str| store.get_meta(&dir, k).ok().flatten();
+    // The user's own budget cap is part of the resume checks: load it first.
+    let risk = meta(META_RISK)
+        .and_then(|v| serde_json::from_str::<StrategyRisk>(&v).ok())
+        .unwrap_or_default();
+    let tripped = meta(META_TRIPPED).and_then(|v| v.parse().ok()).unwrap_or(0);
+    let peak = meta(META_PEAK).and_then(|v| v.parse().ok()).unwrap_or(0.0);
+    mgr.set_risk(risk, tripped, peak);
     let loaded = store.strategy(&dir, |c| {
         let bots = db::load_bots(c)?;
         let cycles = db::load_open_cycles(c)?;
@@ -94,40 +110,125 @@ pub fn restore(app: &AppHandle) {
                 ));
             }
         }
-        Ok((bots, cycles, venues, cursors))
+        let unreadable = crate::store::restore_check::unreadable_rows(c)?;
+        Ok((bots, cycles, venues, cursors, unreadable))
     });
     match loaded {
-        Ok((bots, cycles, venues, cursors)) => {
-            // Persist the forced Stopped state right away.
-            let forced: Vec<StrategyBot> = bots
+        Ok((bots, cycles, venues, cursors, unreadable)) => {
+            let live = crate::bot::strategy_live::stored_live_ids(app);
+            let was_running: Vec<StrategyBot> = bots
                 .iter()
                 .filter(|b| driver::is_running(b.state))
                 .cloned()
                 .collect();
             mgr.load(bots, cycles, venues, cursors);
-            for b in forced {
+            let lost_cycle = note_unreadable(app, &unreadable);
+            if live.is_none() && !was_running.is_empty() {
+                note_all(&mgr, &was_running, "liveStateUnreadable", now_ms());
+            }
+            // Not resumed: tied to real money (or the real-money state cannot
+            // be read), or its open cycle was lost (a resumed bot would open
+            // cycle `cycles_done + 1` over the unread one). The rest resume
+            // only when they pass the Start checks again.
+            let paper: Vec<StrategyBot> = was_running
+                .iter()
+                .filter(|b| live.as_ref().is_some_and(|ids| !ids.contains(&b.id)) && !lost_cycle.contains(&b.id))
+                .cloned()
+                .collect();
+            resume_checked(&mgr, &paper, |m, b| super::commands::resume_refusal(app, m, b), now_ms());
+            // Persist the restored state right away.
+            for b in was_running {
                 if let Some(cur) = mgr.bot(&b.id) {
                     save_bot(app, &cur);
                 }
             }
+            if let Some(v) = meta(META_PENDING_CLOSE) {
+                for (id, reason) in pending_from_meta(&v, |id| mgr.has_open_cycle(id)) {
+                    mgr.mark_pending_close(&id, reason);
+                }
+                save_pending_closes(app, &mgr);
+            }
         }
         Err(e) => mgr.note("", "—", "storeReadFailed", Some(e), now_ms()),
     }
-    let meta = |k: &str| store.get_meta(&dir, k).ok().flatten();
-    let risk = meta(META_RISK)
-        .and_then(|v| serde_json::from_str::<StrategyRisk>(&v).ok())
-        .unwrap_or_default();
-    let tripped = meta(META_TRIPPED).and_then(|v| v.parse().ok()).unwrap_or(0);
-    let peak = meta(META_PEAK).and_then(|v| v.parse().ok()).unwrap_or(0.0);
-    mgr.set_risk(risk, tripped, peak);
     let day = utc_day_start_ms();
     let stored = meta(&day_key(day)).and_then(|v| serde_json::from_str(&v).ok());
     if stored.is_some() {
         mgr.roll_day(day, stored);
     }
-    if mgr.open_cycle_count() > 0 {
+    if mgr.any_active() {
         app.state::<BotManager>().ensure_loop(app.clone());
     }
+}
+
+/// Re-arms the bots that were running before the restart, oldest first,
+/// each only when `refusal` (the Start checks) passes; the bots resumed
+/// before it already count in the reservations it checks. A refused bot
+/// stays Stopped with a `resumeRefused` note (detail = the refusal code);
+/// an open cycle it holds is still managed.
+fn resume_checked(
+    mgr: &StrategyManager,
+    was_running: &[StrategyBot],
+    refusal: impl Fn(&StrategyManager, &StrategyBot) -> Result<(), String>,
+    now: u64,
+) {
+    let mut order: Vec<&StrategyBot> = was_running.iter().collect();
+    order.sort_by(|a, b| a.created_at.cmp(&b.created_at).then(a.id.cmp(&b.id)));
+    for before in order {
+        let Some(cur) = mgr.bot(&before.id) else { continue };
+        match refusal(mgr, &cur) {
+            Ok(()) => mgr.resume(&before.id, before.state),
+            Err(code) => mgr.note(&cur.id, &cur.cfg.symbol, "resumeRefused", Some(code), now),
+        }
+    }
+}
+
+/// The owed forced closes as stored: {botId: exitReason}. Ids whose cycle
+/// is no longer open, and anything unreadable, are dropped.
+fn pending_from_meta(json: &str, open: impl Fn(&str) -> bool) -> Vec<(BotId, ExitReason)> {
+    let parsed: BTreeMap<BotId, ExitReason> = serde_json::from_str(json).unwrap_or_default();
+    parsed.into_iter().filter(|(id, _)| open(id)).collect()
+}
+
+fn pending_to_meta(pending: &[(BotId, ExitReason)]) -> String {
+    let map: BTreeMap<&str, ExitReason> = pending.iter().map(|(id, r)| (id.as_str(), *r)).collect();
+    serde_json::to_string(&map).unwrap_or_else(|_| "{}".into())
+}
+
+/// Rewrites the stored list of owed forced closes.
+pub fn save_pending_closes(app: &AppHandle, mgr: &StrategyManager) {
+    set_meta(app, META_PENDING_CLOSE, &pending_to_meta(&mgr.pending_closes()));
+}
+
+/// A forced close that found no price: owed, retried every tick
+/// (`retry_pending_closes`) and kept across a restart, instead of the cycle
+/// being managed on (safety orders filling) as if the close was never asked.
+pub fn owe_close(app: &AppHandle, mgr: &StrategyManager, id: &str, reason: ExitReason) {
+    mgr.mark_pending_close(id, reason);
+    save_pending_closes(app, mgr);
+}
+
+/// Names every stored row restore could not use (see store::restore_check):
+/// on the bot's own notes and in the desk feed, which raises an alert.
+/// Returns the bots whose open cycle was lost; they are not resumed.
+fn note_unreadable(app: &AppHandle, rows: &crate::store::restore_check::UnreadableRows) -> HashSet<BotId> {
+    if rows.is_empty() {
+        return HashSet::new();
+    }
+    let mgr = app.state::<StrategyManager>();
+    let bots = app.state::<BotManager>();
+    for id in &rows.configs {
+        bots.push_skip("—", "restoreRowUnreadable", Some(format!("{id} config")));
+    }
+    let mut lost = HashSet::new();
+    for (id, seq) in &rows.cycles {
+        let sym = mgr.bot(id).map(|b| b.cfg.symbol).unwrap_or_default();
+        mgr.note(id, &sym, "cycleRestoreFailed", Some(seq.to_string()), now_ms());
+        let feed_sym = if sym.is_empty() { "—" } else { sym.as_str() };
+        bots.push_skip(feed_sym, "restoreRowUnreadable", Some(format!("{id} cycle {seq}")));
+        lost.insert(id.clone());
+    }
+    lost
 }
 
 pub fn save_bot(app: &AppHandle, bot: &StrategyBot) {
@@ -211,6 +312,9 @@ struct Gates {
     portfolio: bool,
     membership_inactive: bool,
     btc_break: bool,
+    /// The risk level's leverage ceiling now: a bot above it (the level was
+    /// lowered after Start) opens no new cycle; its open cycle runs on.
+    max_leverage: u8,
 }
 
 impl Gates {
@@ -220,6 +324,7 @@ impl Gates {
             portfolio: mgr.portfolio_tripped(),
             membership_inactive: !app.state::<MembershipManager>().view().active,
             btc_break: bots.btc_regime() == BtcRegime::Break,
+            max_leverage: app.state::<crate::risk::RiskManager>().limits().max_leverage,
         }
     }
 
@@ -228,6 +333,8 @@ impl Gates {
             Some("portfolioDdTripped")
         } else if self.membership_inactive {
             Some("membershipInactive")
+        } else if bot.cfg.leverage > leverage_ceiling(self.max_leverage, bot.cfg.market == MarketKind::Spot) {
+            Some("leverageAboveCeiling")
         } else if self.btc_break && bot.cfg.pause_on_btc_break {
             Some("btcBreak")
         } else {
@@ -564,7 +671,9 @@ pub async fn close_one_locked(app: &AppHandle, mgr: &StrategyManager, id: &str, 
         return Err("botUnknown".into());
     };
     if !mgr.has_open_cycle(id) {
-        mgr.clear_pending_close(id);
+        if mgr.clear_pending_close(id) {
+            save_pending_closes(app, mgr);
+        }
         return Ok(false);
     }
     let price = if at_mark {
@@ -626,7 +735,9 @@ pub async fn close_one_locked(app: &AppHandle, mgr: &StrategyManager, id: &str, 
     );
     let symbol = bot.cfg.symbol.clone();
     mgr.put_state(bot, cycle, venue);
-    mgr.clear_pending_close(id);
+    if mgr.clear_pending_close(id) {
+        save_pending_closes(app, mgr);
+    }
     mgr.note(id, &symbol, "cycleClosed", Some(reason.as_str().to_string()), now);
     Ok(true)
 }
@@ -659,9 +770,7 @@ async fn close_ids_locked(app: &AppHandle, mgr: &StrategyManager, ids: &[BotId],
             Ok(true) => closed += 1,
             Ok(false) => {}
             Err(_) => {
-                // Owed: retried every tick (`retry_pending_closes`) until a
-                // price exists, instead of being managed on as if never asked.
-                mgr.mark_pending_close(id, reason);
+                owe_close(app, mgr, id, reason);
                 unpriced += 1;
             }
         }
@@ -792,6 +901,109 @@ mod tests {
         let mut none = None;
         let (b2, _, opened) = walk_bars(&mut idle, &mut none, &bars[..10], None, bars[9].close_ms);
         assert!(!opened && b2.fills.is_empty() && b2.equity.is_empty());
+    }
+
+    /// Audit 8 Oct: a 5x bot resumed after the level was lowered to 2x.
+    /// Resume runs the Start checks; a refused bot stays Stopped, noted.
+    #[test]
+    fn resume_runs_the_start_checks_oldest_first() {
+        use crate::bot::strategy::commands::fits_reservation;
+        use crate::bot::strategy::driver::tests::{dca_params, sample_bot};
+        use crate::bot::strategy::model::{BotRunState, DcaParams, StrategyParams};
+        use crate::bot::strategy::validate::validate;
+        let mgr = StrategyManager::new();
+        let mut a = sample_bot();
+        a.id = "sb_aaaaaaaaaaaa".into();
+        a.created_at = 1;
+        a.cfg.budget = 150.0;
+        a.cfg.params = StrategyParams::Dca(DcaParams {
+            base_order: Some(50.0),
+            safety_order: Some(50.0),
+            ..dca_params()
+        });
+        a.state = BotRunState::Armed;
+        let mut b = a.clone();
+        b.id = "sb_bbbbbbbbbbbb".into();
+        b.created_at = 2;
+        b.cfg.symbol = "ETHUSDT".into();
+        let mut c = a.clone();
+        c.id = "sb_cccccccccccc".into();
+        c.created_at = 3;
+        c.cfg.symbol = "SOLUSDT".into();
+        c.cfg.budget = 40.0;
+        c.cfg.leverage = 5;
+        let was = vec![c.clone(), b.clone(), a.clone()];
+        mgr.load(was.clone(), vec![], vec![], vec![]);
+        // Cautious after the restart: 2x ceiling, 200 USDT cap of 1000.
+        let refusal = |m: &StrategyManager, bot: &StrategyBot| {
+            validate(&bot.cfg, 2).map_err(|e| e.to_string())?;
+            fits_reservation(bot.cfg.budget, m.reserved_budget(Some(&bot.id)), 1000.0, 20.0, 0.0)
+        };
+        resume_checked(&mgr, &was, refusal, 7);
+        assert_eq!(mgr.bot(&a.id).unwrap().state, BotRunState::Armed, "oldest fits");
+        assert_eq!(mgr.bot(&b.id).unwrap().state, BotRunState::Stopped, "150 + 150 > 200");
+        assert_eq!(mgr.bot(&c.id).unwrap().state, BotRunState::Stopped, "5x above the 2x ceiling");
+        let notes = mgr.notes();
+        let note = |id: &str| notes.iter().find(|n| n.bot_id == id).map(|n| (n.key.clone(), n.detail.clone()));
+        assert_eq!(note(&b.id), Some(("resumeRefused".into(), Some("budgetCapReached||50|200".into()))));
+        assert_eq!(note(&c.id), Some(("resumeRefused".into(), Some("leverageAboveCeiling|leverage".into()))));
+        assert_eq!(note(&a.id), None);
+    }
+
+    #[test]
+    fn a_lowered_leverage_ceiling_holds_new_cycles_only() {
+        use crate::bot::strategy::driver::tests::{sample_bot, wave};
+        let gates = |max_leverage: u8| Gates {
+            portfolio: false,
+            membership_inactive: false,
+            btc_break: false,
+            max_leverage,
+        };
+        let mut bot = sample_bot();
+        bot.cfg.leverage = 5;
+        assert_eq!(gates(2).for_bot(&bot), Some("leverageAboveCeiling"));
+        assert_eq!(gates(5).for_bot(&bot), None);
+        // held: no cycle opens
+        let bars = wave();
+        let mut idle = sample_bot();
+        idle.cfg.leverage = 5;
+        let mut none = None;
+        let gate = gates(2).for_bot(&idle);
+        let (_, notes, opened) = walk_bars(&mut idle, &mut none, &bars[..5], gate, 0);
+        assert!(!opened && none.is_none());
+        assert!(notes.iter().any(|(k, _)| *k == "leverageAboveCeiling"));
+        // an open cycle is walked on under the same gate
+        let mut held = sample_bot();
+        let mut cyc = None;
+        driver::on_bar(&mut held, &mut cyc, &bars[0], None);
+        assert!(cyc.is_some());
+        held.cfg.leverage = 5;
+        let before = held.cycles_done;
+        let gate = gates(2).for_bot(&held);
+        assert_eq!(gate, Some("leverageAboveCeiling"));
+        walk_bars(&mut held, &mut cyc, &bars[1..], gate, 0);
+        assert!(held.cycles_done > before, "the open cycle still reached its exit");
+    }
+
+    #[test]
+    fn owed_closes_survive_a_restart() {
+        let pending = vec![
+            ("sb_aaaaaaaaaaaa".to_string(), ExitReason::RemoteKill),
+            ("sb_bbbbbbbbbbbb".to_string(), ExitReason::Manual),
+        ];
+        let json = pending_to_meta(&pending);
+        assert_eq!(pending_from_meta(&json, |_| true), pending);
+        // a cycle that closed meanwhile is no longer owed
+        assert_eq!(pending_from_meta(&json, |id| id == "sb_bbbbbbbbbbbb"), pending[1..].to_vec());
+        assert!(pending_from_meta("not json", |_| true).is_empty());
+        // into a fresh manager, as restore does
+        let mgr = StrategyManager::new();
+        for (id, r) in pending_from_meta(&json, |_| true) {
+            mgr.mark_pending_close(&id, r);
+        }
+        assert_eq!(mgr.pending_closes(), pending);
+        assert!(mgr.clear_pending_close("sb_aaaaaaaaaaaa"));
+        assert!(!mgr.clear_pending_close("sb_aaaaaaaaaaaa"));
     }
 
     #[test]

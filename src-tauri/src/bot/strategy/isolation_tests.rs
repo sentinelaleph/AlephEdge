@@ -1,5 +1,8 @@
-//! Live isolation: DCA / Grid have no path to real money in v1. These tests
-//! hold under `--features live` too.
+//! Live isolation: the DCA / Grid SIMULATION (this subtree) never reaches the
+//! exchange; it is the decision book, and its rows stay paper rows. Real money
+//! for these bots goes only through `bot/strategy_live.rs` (live builds, typed
+//! LIVE per bot), which mirrors the simulated position with market orders.
+//! These tests hold under `--features live` too.
 
 use std::path::Path;
 

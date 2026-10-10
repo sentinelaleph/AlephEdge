@@ -30,6 +30,8 @@ import { SignalsPage } from "@/pages/Signals/SignalsPage";
 import { AlertsDrawer } from "./AlertsDrawer";
 import { UpdateBanner } from "./UpdateBanner";
 import { useUpdateChecks } from "@/app/update";
+import { useStrategyLivePolling } from "@/pages/Bots/strategy/useStrategyLive";
+import { useVaultActivity } from "@/components/Vault/vaultActivity";
 import { Header } from "./Header";
 import { NUMBER_SHORTCUTS } from "./navModel";
 import { ShellSlotsContext } from "./shellSlots";
@@ -45,6 +47,7 @@ const PresetDetailPage = lazy(() =>
   import("@/pages/Presets/PresetsPage").then((m) => ({ default: m.PresetDetailPage })),
 );
 const GuidePage = lazy(() => import("@/pages/Guide/GuidePage").then((m) => ({ default: m.GuidePage })));
+const FaqPage = lazy(() => import("@/pages/Faq/FaqPage").then((m) => ({ default: m.FaqPage })));
 const BacktestPage = lazy(() => import("@/pages/Backtest/BacktestPage").then((m) => ({ default: m.BacktestPage })));
 const BacktestReportPage = lazy(() =>
   import("@/pages/Backtest/BacktestPage").then((m) => ({ default: m.BacktestReportPage })),
@@ -117,6 +120,8 @@ export function renderRoute(route: ParsedRoute): ReactNode {
       return <BacktestPage />;
     case "guide":
       return <GuidePage />;
+    case "faq":
+      return <FaqPage />;
     case "backtestReport":
       return <BacktestReportPage runId={route.params.runId ?? ""} />;
     case "positions":
@@ -159,6 +164,9 @@ export function AppShell() {
   const ctx = useDeskContext();
   const route = useRoute();
   useUpdateChecks();
+  useStrategyLivePolling();
+  // Auto-lock counts the user's own input as use of the desk.
+  useVaultActivity();
   const width = useWindowWidth();
   const [collapsed, setCollapsed] = useState(() => readFlag(COLLAPSED_KEY));
   const [pinnedOpen, setPinnedOpen] = useState(() => readFlag(PINNED_KEY));

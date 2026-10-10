@@ -74,6 +74,13 @@ pub async fn sync_clock(client: &Client) {
     }
 }
 
+/// The synced offset to Binance's clock (ms), None before a sync succeeded.
+pub fn clock_offset_ms() -> Option<i64> {
+    CLOCK_SYNCED
+        .load(Ordering::Relaxed)
+        .then(|| CLOCK_OFFSET_MS.load(Ordering::Relaxed))
+}
+
 /// Whether signed calls are on hold after a 429/418.
 pub fn rate_limited() -> bool {
     now_millis() < HOLD_UNTIL_MS.load(Ordering::Relaxed)

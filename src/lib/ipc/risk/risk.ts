@@ -31,8 +31,6 @@ export interface RiskState {
   closeOnStop: boolean;
   /** balance × maxCapitalPct / 100 — max capital per position. */
   maxCapitalQuote: number;
-  /** Whether the current level permits the Pump bot (PRD §5.1). */
-  allowsPump: boolean;
   /** The tolerance the user typed, echoed back verbatim (null = not set). */
   dailyLossOverridePct: number | null;
   /**

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Link, navigate, useRoute } from "@/app/router/router";
@@ -9,13 +9,13 @@ import { EmptyState } from "@/components/ui/EmptyState/EmptyState";
 import { FilterGroup } from "@/components/ui/FilterPanel/FilterPanel";
 import { PageShell } from "@/components/ui/PageShell/PageShell";
 import { FactList, Panel, type Fact } from "@/components/ui/Panel/Panel";
-import { StatusChip } from "@/components/ui/StatusChip/StatusChip";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { localeForLanguage } from "@/i18n";
 import { formatNumber, formatPercent, formatSignedPercent, NO_VALUE, pnlToneAttr } from "@/lib/format";
 import { errorMessage } from "@/lib/ipc/bridge";
+import { liveRankable, presetsLive, type LiveTemplate, type PresetsLive } from "@/lib/ipc/strategy/presetsLive";
 import { strategyPresets, type Preset, type StrategyKind } from "@/lib/ipc/strategy/strategy";
-import { sideText, strategyErrorText } from "@/lib/strategyText";
+import { presetName, sideText, strategyErrorText, universeText } from "@/lib/strategyText";
+import { monthName, reasonLines, shortDate, testSplit, useTemplateLauncher, VerdictChip } from "./presetUi";
 import { InfoTip } from "@/components/ui/InfoTip/InfoTip";
 import { MetaLine } from "@/components/ui/MetaLine/MetaLine";
 import "./Presets.css";
@@ -36,6 +36,86 @@ function usePresets() {
     };
   }, [t]);
   return { presets, error };
+}
+
+/** The server's ghost track (null while loading or when unavailable). */
+function usePresetsLive() {
+  const [live, setLive] = useState<PresetsLive | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    presetsLive()
+      .then((v) => alive && setLive(v))
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return { live, failed };
+}
+
+function liveOf(live: PresetsLive | null, id: string): LiveTemplate | null {
+  return live?.templates.find((x) => x.id === id) ?? null;
+}
+
+/** "8 Oct" (UTC day), or with the local time for an update stamp. */
+function liveDate(iso: string, locale: string, time = false): string {
+  return new Date(iso).toLocaleString(locale, time ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short", timeZone: "UTC" });
+}
+
+/** Ghost track status line: start, day count against the 30-day rule, last update. */
+function LiveLine({ live, failed }: { live: PresetsLive | null; failed: boolean }) {
+  const { t, i18n } = useTranslation();
+  const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
+  if (failed) return <p className="ae-subtle">{t("strategy.preset.live.unavailable")}</p>;
+  if (!live) return null;
+  const date = (iso: string, time = false) => liveDate(iso, locale, time);
+  return (
+    <p className="ae-subtle">
+      {t(liveRankable(live) ? "strategy.preset.live.lineReady" : "strategy.preset.live.line", {
+        since: date(live.t0),
+        days: Math.floor(live.days),
+        min: live.minDaysForRanking,
+        updated: date(live.updatedAt, true),
+      })}
+    </p>
+  );
+}
+
+/** One template's ghost track on its own page: always the numbers, with the 30-day note while early. */
+function LivePanel({ live, failed, id }: { live: PresetsLive | null; failed: boolean; id: string }) {
+  const { t, i18n } = useTranslation();
+  const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
+  const l = liveOf(live, id);
+  return (
+    <Panel title={t("strategy.preset.live.title")}>
+      {failed ? (
+        <p className="ae-subtle">{t("strategy.preset.live.unavailable")}</p>
+      ) : !live || !l ? (
+        <p className="ae-subtle">{t("workspace.loading")}</p>
+      ) : (
+        <>
+          {!liveRankable(live) ? (
+            <p className="ae-banner" data-tone="info">
+              {t("strategy.preset.live.early", { days: Math.floor(live.days), min: live.minDaysForRanking })}
+            </p>
+          ) : null}
+          <FactList
+            rows={[
+              // A total since the start, not a per-month figure like the test mean.
+              { label: t("strategy.preset.live.return", { since: liveDate(live.t0, locale) }), value: formatSignedPercent(l.returnPct, locale), tone: l.returnPct >= 0 ? "up" : "down" },
+              { label: t("strategy.preset.worstBotDd"), value: l.worstDdPct === null ? NO_VALUE : formatSignedPercent(l.worstDdPct, locale, 1) },
+              { label: t("strategy.preset.live.medianDd"), value: l.medianDdPct === null ? NO_VALUE : formatSignedPercent(l.medianDdPct, locale, 1) },
+              { label: t("strategy.preset.live.bots"), value: l.bots },
+              { label: t("strategy.preset.live.cycles"), value: `${l.cycles} · ${t("strategy.preset.live.open", { count: l.openCycles })}` },
+            ]}
+          />
+          <LiveLine live={live} failed={false} />
+          <p className="ae-subtle">{t("strategy.preset.live.method")}</p>
+        </>
+      )}
+    </Panel>
+  );
 }
 
 /** Settings of a preset in one line of labels and numbers. */
@@ -78,70 +158,6 @@ function configFacts(t: TFunction, p: Preset, locale: string): Fact[] {
   return rows;
 }
 
-function testSplit(p: Preset) {
-  return p.history.splits.find((s) => s.split === "test") ?? null;
-}
-
-/** The template's name in the user's language; the config name otherwise. */
-export function presetName(t: TFunction, p: Preset): string {
-  return t(`strategy.preset.names.${p.id}`, { defaultValue: p.config.name });
-}
-
-function VerdictChip({ p }: { p: Preset }) {
-  const { t } = useTranslation();
-  return p.verdict === "presetReady" ? (
-    <StatusChip status="ok" label={t("strategy.preset.verdicts.presetReady")} />
-  ) : (
-    <StatusChip status="error" label={t("strategy.preset.verdicts.failed")} />
-  );
-}
-
-/** Why a failed template failed, one line per check. */
-function reasonLines(t: TFunction, p: Preset): ReactNode {
-  return (
-    <ul className="ae-list">
-      {p.failReasons.map((r) => (
-        <li key={r}>{t(`strategy.preset.reason.${r}`, { defaultValue: r })}</li>
-      ))}
-    </ul>
-  );
-}
-
-/**
- * "Use preset" for a template that failed its checks asks first, with the
- * checks it failed; a passed one opens the form directly.
- */
-function useTemplateLauncher() {
-  const { t } = useTranslation();
-  const [held, setHeld] = useState<Preset | null>(null);
-  const go = (p: Preset) => navigate(`/bots/${p.config.params.kind}/new?preset=${p.id}`);
-  const launch = (p: Preset) => (p.verdict === "presetReady" ? go(p) : setHeld(p));
-  const dialog = (
-    <ConfirmDialog
-      open={held !== null}
-      title={t("strategy.preset.failedConfirm.title", { name: held ? presetName(t, held) : "" })}
-      body={
-        held ? (
-          <>
-            <p>{t("strategy.preset.failedConfirm.body")}</p>
-            {reasonLines(t, held)}
-            <p className="ae-subtle">{t("strategy.preset.failedConfirm.hint")}</p>
-          </>
-        ) : null
-      }
-      confirmLabel={t("strategy.preset.failedConfirm.confirm")}
-      danger
-      onCancel={() => setHeld(null)}
-      onConfirm={() => {
-        const p = held;
-        setHeld(null);
-        if (p) go(p);
-      }}
-    />
-  );
-  return { launch, dialog };
-}
-
 /**
  * #/presets. Only presets the engine ships (strategy_presets: verdict
  * PRESET-READY), each with its historical-simulation numbers as served.
@@ -156,6 +172,7 @@ export function PresetsPage() {
   const filter = type === "dca" || type === "grid" ? type : null;
   const rows = presets?.filter((p) => !filter || p.config.params.kind === filter) ?? null;
   const { launch, dialog } = useTemplateLauncher();
+  const { live, failed: liveFailed } = usePresetsLive();
 
   const left = (
     <FilterGroup
@@ -225,6 +242,23 @@ export function PresetsPage() {
       cell: (p) => formatSignedPercent(p.history.testWorstBotDrawdownPct, locale, 1),
     },
     {
+      // A total since the ghost start, not per month: the header says since when.
+      id: "live",
+      header: live ? t("strategy.preset.live.col", { since: liveDate(live.t0, locale) }) : t("strategy.preset.live.title"),
+      headerTip: t("strategy.preset.live.tip"),
+      detailLabel: live ? t("strategy.preset.live.col", { since: liveDate(live.t0, locale) }) : t("strategy.preset.live.title"),
+      numeric: true,
+      cell: (p) => {
+        const l = liveOf(live, p.id);
+        if (!live || !l) return NO_VALUE;
+        if (!liveRankable(live)) {
+          return <span className="ae-subtle">{t("strategy.preset.live.collecting", { days: Math.floor(live.days), min: live.minDaysForRanking })}</span>;
+        }
+        return formatSignedPercent(l.returnPct, locale);
+      },
+      tone: (p) => (live && liveRankable(live) ? pnlToneAttr(liveOf(live, p.id)?.returnPct) : undefined),
+    },
+    {
       id: "verdict",
       header: t("strategy.preset.verdict"),
       // The verdict is the column a beginner needs most: never folded away.
@@ -236,7 +270,12 @@ export function PresetsPage() {
       header: t("strategy.preset.reasonCol"),
       detailOnly: true,
       wrap: true,
-      cell: (p) => (p.failReasons.length ? reasonLines(t, p) : t("strategy.preset.allChecksPassed")),
+      cell: (p) =>
+        p.failReasons.length
+          ? reasonLines(t, p)
+          : p.history.recheck
+            ? t("strategy.preset.checksToWindow", { date: shortDate(p.history.recheck.testWindowEnd, locale) })
+            : t("strategy.preset.allChecksPassed"),
     },
   ];
 
@@ -262,6 +301,7 @@ export function PresetsPage() {
           />
         }
       />
+      <LiveLine live={live} failed={liveFailed} />
       {error ? (
         <EmptyState tone="error" title={error} />
       ) : (
@@ -294,6 +334,7 @@ export function PresetDetailPage({ presetId }: { presetId: string }) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const { presets, error } = usePresets();
+  const { live, failed: liveFailed } = usePresetsLive();
   const crumbs = [
     { label: t("nav.groups.research") },
     { label: t("nav.presets"), to: "/presets" },
@@ -354,7 +395,7 @@ export function PresetDetailPage({ presetId }: { presetId: string }) {
           <Panel title={t("strategy.preset.universeTitle")}>
             <FactList
               rows={[
-                { label: t("strategy.preset.rule"), value: t(`strategy.preset.universe.${p.universe.rule}${p.universe.rankFrom > 1 ? "Ranked" : ""}`, { n: p.universe.topN, from: p.universe.rankFrom, days: p.universe.volumeWindowDays }) },
+                { label: t("strategy.preset.rule"), value: universeText(t, p.universe) },
                 { label: t("strategy.preset.reselect"), value: t(`strategy.preset.reselectEvery.${p.universe.reselect}`, { defaultValue: p.universe.reselect }) },
                 { label: t("strategy.preset.excluded"), value: p.universe.exclude.join(", ") },
                 { label: t("strategy.preset.capitalModel"), value: t(`strategy.preset.capital.${p.capitalModel}`, { defaultValue: p.capitalModel }) },
@@ -377,17 +418,37 @@ export function PresetDetailPage({ presetId }: { presetId: string }) {
     >
       <MetaLine
         items={[{ text: t("backtest.label.historical") }]}
-        aside={<InfoTip label={t("backtest.label.historical")} content={t("strategy.preset.simulationLabel")} />}
+        aside={
+          <InfoTip
+            label={t("backtest.label.historical")}
+            content={
+              <>
+                {t("strategy.preset.simulationLabel")}
+                <br />
+                {t("strategy.preset.testMeanNote")}
+              </>
+            }
+          />
+        }
       />
       <p className="ae-preset__situation-line">{t(`strategy.preset.situation.${p.situation}`, { defaultValue: p.situation })}</p>
+      <LivePanel live={live} failed={liveFailed} id={p.id} />
       {p.verdict === "failed" ? (
         <div className="ae-banner" data-tone="danger" role="note">
           <strong>{t("strategy.preset.failedBanner")}</strong>
           {reasonLines(t, p)}
         </div>
       ) : (
-        <p className="ae-banner" data-tone="info">
-          {t("strategy.preset.passedBanner")}
+        <p className="ae-banner" data-tone={h.recheck ? "warn" : "info"}>
+          {h.recheck
+            ? t("strategy.preset.recheckBanner", {
+                windowEnd: shortDate(h.recheck.testWindowEnd, locale),
+                month: monthName(h.recheck.partialMonth, locale),
+                days: h.recheck.partialMonthDays,
+                mean: h.recheck.partialMonthMeanPct.toFixed(2),
+                nextRead: shortDate(h.recheck.nextRead, locale),
+              })
+            : t("strategy.preset.passedBanner")}
         </p>
       )}
       <Panel title={t("strategy.preset.splits")}>

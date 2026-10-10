@@ -1,9 +1,11 @@
 import { useTranslation } from "react-i18next";
+import { MarketTrendChip } from "@/components/Desk/MarketTrend";
 import { useDeskContext } from "@/app/DeskProvider";
 import { Link } from "@/app/router/router";
 import { Tooltip } from "@/components/ui/Tooltip/Tooltip";
 import { Cockpit, type CockpitReadings } from "@/components/Shell/Cockpit/Cockpit";
 import { streamLabelKey, streamTone } from "@/lib/ipc/signal/streamStatus";
+import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
 import { Icon } from "./icons";
 
 interface HeaderProps {
@@ -25,7 +27,7 @@ interface HeaderProps {
  *
  * PageHeader contract (see PageShell): crumb + title left; page actions
  * right as [secondary…][one primary][panel toggle]; then the global zone
- * [mode chip][testnet][kill switch][alerts][Exchange pill][Sentinel pill]
+ * [mode chip][testnet][demo venues][kill switch][alerts][Exchange pill][Sentinel pill]
  * [account]. The mode chip (Paper / Paper + LIVE) lives HERE ONLY: pages do
  * not repeat a page-level "Paper" / "Simulated fills" chip.
  */
@@ -33,8 +35,9 @@ export function Header({ showMenu, menuOpen, onMenu, headingRef, actionsRef, unr
   const { t } = useTranslation();
   const { desk, endpoints, membership, accountExchange, feed, health } = useDeskContext();
   const s = desk.status;
+  const strategyLive = useStrategyLive().anyLive;
   const liveScope =
-    desk.loaded && s.liveTradingEnabled && [s.futures, s.spot, s.pump].some((c) => c?.live === true);
+    desk.loaded && s.liveTradingEnabled && ([s.futures, s.spot, s.pump].some((c) => c?.live === true) || strategyLive);
   const email = membership.view.email ?? membership.view.displayName ?? "";
   const tone = streamTone(feed.health, feed.loaded);
   const exHealth = accountExchange ? health?.exchanges.find((e) => e.id === accountExchange) : undefined;
@@ -79,6 +82,12 @@ export function Header({ showMenu, menuOpen, onMenu, headingRef, actionsRef, unr
             {t("app.testnetBadge")}
           </span>
         ) : null}
+        {desk.loaded && s.venueSandbox ? (
+          <span className="ae-header__testnet" title={t("app.sandboxTooltip")}>
+            {t("app.sandboxBadge")}
+          </span>
+        ) : null}
+        <MarketTrendChip />
         {desk.loaded && s.killSwitchTripped ? (
           <Link to="/risk" className="ae-header__kill">
             {t("nav.killSwitchTripped")}

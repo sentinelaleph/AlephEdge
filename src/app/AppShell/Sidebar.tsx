@@ -8,6 +8,7 @@ import { useTheme, type ThemeMode } from "@/theme/ThemeProvider";
 import { Icon, type IconName } from "./icons";
 import { activeNavItem, groupOf, NAV_GROUPS, type NavGroupId, type NavItemId } from "./navModel";
 import { streamLabelKey, streamTone } from "@/lib/ipc/signal/streamStatus";
+import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
 
 const GROUPS_KEY = "aleph-edge-nav-groups";
 
@@ -63,6 +64,14 @@ export function Sidebar({ mode, onToggle, onClose }: SidebarProps) {
     if (active) setFocusKey(active);
     // Only a change of the active item drives this, not the stored folds.
   }, [active, activeGroup]);
+
+  // On a short window the list scrolls: keep the current page's item in view
+  // (Ctrl+9 to Risk & safety lands below the fold at 1280x800).
+  useEffect(() => {
+    if (!active) return;
+    const el = navRef.current?.querySelector<HTMLElement>(`.ae-sidebar__scroll [data-nav-key="${active}"]`);
+    el?.scrollIntoView?.({ block: "nearest" });
+  }, [active]);
 
   const setGroup = useCallback((id: NavGroupId, open: boolean) => {
     setOpenGroups((g) => {
@@ -368,12 +377,13 @@ function BadgeView({ badge }: { badge?: Badge }): ReactNode {
 function useBadges(): Partial<Record<NavItemId, Badge>> {
   const { t } = useTranslation();
   const { desk, feed, vault, strategy } = useDeskContext();
+  const strategyLive = useStrategyLive();
   if (!desk.loaded) return {};
   const s = desk.status;
   const running = [s.futuresRunning, s.spotRunning, s.pumpRunning].filter(Boolean).length;
   const paperOpen = s.openPositions.filter((p) => !p.live).length;
-  const realOpen = s.openPositions.some((p) => p.live);
-  const anyLive = [s.futures, s.spot, s.pump].some((c) => c?.live === true);
+  const realOpen = s.openPositions.some((p) => p.live) || strategyLive.views.some((v) => v.realQty !== 0);
+  const anyLive = [s.futures, s.spot, s.pump].some((c) => c?.live === true) || strategyLive.anyLive;
   // Strategy bots arming or holding a cycle (paper only).
   const strategyActive = (kind: "dca" | "grid") =>
     strategy.bots?.filter((b) => b.kind === kind && (b.acceptingNewCycles || b.openCycle !== null)).length ?? 0;
@@ -400,7 +410,11 @@ function useBadges(): Partial<Record<NavItemId, Badge>> {
       countLabel: t("nav.badge.open", { count: openCount }),
       chips: realOpen ? [{ tone: "real", label: "R", title: t("nav.badge.real") }] : undefined,
     },
-    settings: vault.credentials.length === 0 ? { dots: [{ tone: "warn", label: t("nav.badge.noKey") }] } : undefined,
+    // A missing key matters only where a key can trade: the paper build needs none.
+    settings:
+      s.liveTradingEnabled && vault.credentials.length === 0
+        ? { dots: [{ tone: "warn", label: t("nav.badge.noKey") }] }
+        : undefined,
     risk: {
       dots: riskDots,
       chips: anyLive ? [{ tone: "live", label: "LIVE", title: t("nav.badge.live") }] : undefined,

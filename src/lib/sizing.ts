@@ -62,3 +62,45 @@ export function estimateRiskSize(
   const costPctOfCapital = capital > 0 ? (costUsdt / capital) * 100 : 0;
   return { notional, effectiveLeverage, riskCapped, costUsdt, costPctOfCapital };
 }
+
+/**
+ * What a bot's "max loss per position" cap does, mirroring
+ * src-tauri/src/bot/engine/pnl.rs `breaches_cap`: the position closes once
+ * its unrealized NET loss reaches `capPct` % of the bot's capital, measured
+ * at the sized leverage and after both taker fees.
+ *
+ * - fixed sizing: the price move against the position that reaches the cap,
+ *   cap / leverage − 2 × fee (2% at 3x on futures ≈ 0.57%). At or below 0,
+ *   the fees alone reach it and the position closes right after entry.
+ * - risk sizing: the stop loses about `riskPct` % of capital by design, and
+ *   the stop is checked first, so a cap at or above it never fires; below
+ *   it, the cap fires at about cap / risk of the way to the stop.
+ */
+export type MaxLossEffect =
+  | { kind: "fixed"; movePct: number }
+  | { kind: "immediate" }
+  | { kind: "riskInert" }
+  | { kind: "riskActive"; stopShare: number };
+
+export function maxLossEffect(args: {
+  sizing: "fixed" | "risk";
+  capPct: number;
+  leverage: number;
+  riskPct: number;
+  /** Taker fee per side as a fraction (FUTURES_FEE_RATE / SPOT_FEE_RATE in bot/model.rs). */
+  feeRate: number;
+}): MaxLossEffect | null {
+  const { sizing, capPct, leverage, riskPct, feeRate } = args;
+  if (!(Number.isFinite(capPct) && capPct > 0)) return null;
+  if (sizing === "fixed") {
+    const lev = Math.max(1, leverage);
+    const movePct = capPct / lev - 2 * feeRate * 100;
+    return movePct > 0 ? { kind: "fixed", movePct } : { kind: "immediate" };
+  }
+  if (!(riskPct > 0) || capPct >= riskPct) return { kind: "riskInert" };
+  return { kind: "riskActive", stopShare: capPct / riskPct };
+}
+
+/** Taker fee per side (bot/model.rs FUTURES_FEE_RATE, SPOT_FEE_RATE). */
+export const FUTURES_FEE_RATE = 0.0005;
+export const SPOT_FEE_RATE = 0.001;

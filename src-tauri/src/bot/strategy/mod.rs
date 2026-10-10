@@ -93,7 +93,8 @@ struct Inner {
     day_snapshot: (u64, HashMap<BotId, f64>),
     last_compact_ms: u64,
     /// Forced closes (kill switch, breaker, remote kill) that found no
-    /// honest price; retried every tick until the cycle is flat.
+    /// honest price; retried every tick until the cycle is flat. Mirrored
+    /// in the store (`engine::META_PENDING_CLOSE`) so a restart keeps them.
     pending_close: HashMap<BotId, ExitReason>,
 }
 
@@ -216,6 +217,25 @@ impl StrategyManager {
         }
     }
 
+    /// Re-arms a paper bot that was running before a restart (`load` leaves
+    /// every bot Stopped). A bot holding an open cycle comes back InCycle, a
+    /// paused one Paused, any other Armed. Only a Stopped bot is touched.
+    pub fn resume(&self, id: &str, before: BotRunState) {
+        let mut g = self.lock();
+        let has_cycle = g.cycles.contains_key(id);
+        if let Some(b) = g.bots.get_mut(id) {
+            if b.state == BotRunState::Stopped {
+                b.state = if before == BotRunState::Paused {
+                    BotRunState::Paused
+                } else if has_cycle {
+                    BotRunState::InCycle
+                } else {
+                    BotRunState::Armed
+                };
+            }
+        }
+    }
+
     pub fn set_risk(&self, risk: StrategyRisk, tripped_day: u64, peak: f64) {
         let mut g = self.lock();
         g.risk = risk;
@@ -262,8 +282,9 @@ impl StrategyManager {
         self.lock().pending_close.insert(id.to_string(), reason);
     }
 
-    pub fn clear_pending_close(&self, id: &str) {
-        self.lock().pending_close.remove(id);
+    /// True when a close was owed (the stored list must be rewritten).
+    pub fn clear_pending_close(&self, id: &str) -> bool {
+        self.lock().pending_close.remove(id).is_some()
     }
 
     /// Forced closes still owed, oldest bot first.
@@ -562,6 +583,16 @@ impl StrategyManager {
             }
         }
         changed
+    }
+
+    /// What the real-money mirror (bot/strategy_live.rs) reads from a bot's
+    /// open cycle: (cycle seq, signed position qty, protective stop price).
+    pub fn live_target(&self, id: &str) -> Option<(u32, f64, Option<f64>)> {
+        let g = self.lock();
+        g.cycles
+            .get(id)
+            .filter(|c| c.core.open)
+            .map(|c| (c.core.seq, c.signed_qty(), c.protective_stop()))
     }
 
     pub fn views(&self) -> Vec<StrategyBotView> {

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   botClosePosition,
   botConfigure,
+  botEndPilot,
   botSetLive,
   botStart,
   botStatus,
@@ -50,6 +51,8 @@ export interface BotDeskController {
    * throws and never touches the desk-wide `error`.
    */
   setLive: (kind: BotKind, enabled: boolean, confirmation: string) => Promise<string | null>;
+  /** Ends a live bot's pilot (full-size entries again); the rejection text or null. */
+  endPilot: (kind: BotKind) => Promise<string | null>;
   /**
    * Closes one open signal-bot position (exit reason "manual"). Resolves to
    * the localized rejection text, or null once the position has left the
@@ -130,6 +133,19 @@ export function useBotDesk(): BotDeskController {
     [t],
   );
 
+  const endPilot = useCallback(
+    async (kind: BotKind) => {
+      try {
+        const s = await botEndPilot(kind);
+        if (alive.current) setStatus(s);
+        return null;
+      } catch (e) {
+        return errorMessage(e, t("bots.live.failed"));
+      }
+    },
+    [t],
+  );
+
   const closePosition = useCallback(
     async (signalId: string, kind: BotKind) => {
       try {
@@ -147,5 +163,5 @@ export function useBotDesk(): BotDeskController {
     [t],
   );
 
-  return { status, loaded, busy, error, configureAndStart, stop, setLive, closePosition };
+  return { status, loaded, busy, error, configureAndStart, stop, setLive, endPilot, closePosition };
 }

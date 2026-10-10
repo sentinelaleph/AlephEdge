@@ -19,6 +19,7 @@ import type {
   StrategyConfig,
   StrategyDetail,
   StrategyKind,
+  StrategyPnl,
   StrategyNote,
   StrategyRiskView,
   StrategyStats,
@@ -79,11 +80,11 @@ export function defaults(kind: StrategyKind, exchangeId: string, symbol: string)
         safetyOrder: null,
         baseWeight: 1,
         safetyWeight: 1,
-        maxSo: 6,
-        soStepPct: 1.5,
-        stepScale: 1,
-        volumeScale: 1.5,
-        tpPct: 1.5,
+        maxSo: 8,
+        soStepPct: 2.5,
+        stepScale: 1.3,
+        volumeScale: 1.4,
+        tpPct: 2,
         trailingPct: null,
         slPct: null,
         maxDurationMin: null,
@@ -129,9 +130,28 @@ function check(cfg: StrategyConfig): { code: string; field: string } | null {
   return null;
 }
 
-export function validate(cfg: StrategyConfig): Promise<{ ok: boolean; error: { code: string; field: string } | null }> {
+/** Rough stand-in for validate::min_budget (5 USDT smallest order). */
+function minBudget(cfg: StrategyConfig): number | null {
+  const lev = Math.max(1, cfg.leverage);
+  const p = cfg.params;
+  if (p.kind === "dca") {
+    const raw = [p.baseOrder ?? p.baseWeight ?? 1];
+    for (let k = 1; k <= p.maxSo; k += 1) raw.push((p.safetyOrder ?? p.safetyWeight ?? 1) * p.volumeScale ** (k - 1));
+    const sum = raw.reduce((a, b) => a + b, 0);
+    if (p.baseOrder !== null) return Math.min(...raw) >= 5 ? sum / lev : null;
+    return Math.ceil(((5 * sum) / (Math.min(...raw) * lev)) * 100) / 100;
+  }
+  const price = REF_PRICE[cfg.symbol] ?? 100;
+  const lower = p.range.type === "absolute" ? p.range.lower : price * (1 - p.range.lowerPct / 100);
+  const upper = p.range.type === "absolute" ? p.range.upper : price * (1 + p.range.upperPct / 100);
+  const n = Math.max(1, p.nGrids);
+  const levels = Array.from({ length: n + 1 }, (_, i) => (p.spacing === "geom" ? lower * (upper / lower) ** (i / n) : lower + ((upper - lower) * i) / n));
+  return Math.ceil(((5 * levels.slice(1).reduce((a, b) => a + b, 0)) / (lev * levels[0])) * 100) / 100;
+}
+
+export function validate(cfg: StrategyConfig): Promise<{ ok: boolean; error: { code: string; field: string } | null; minBudget: number | null }> {
   const error = check(cfg);
-  return ok({ ok: error === null, error });
+  return ok({ ok: error === null, error, minBudget: minBudget(cfg) });
 }
 
 export function preview(cfg: StrategyConfig): Promise<PreviewDto> {
@@ -147,7 +167,7 @@ export function preview(cfg: StrategyConfig): Promise<PreviewDto> {
       : { maker: 0.001, taker: 0.001, slippage: 0.0002, mmr: 0, funding: false };
   const p = cfg.params;
   if (p.kind === "dca") {
-    if (p.slPct === null) warnings.push("noStopLoss");
+    if (p.slPct === null) warnings.push(cfg.maxDrawdownPct !== null ? "ddStopOnly" : "noStopLoss");
     const s = cfg.side === "short" ? -1 : 1;
     const devs: number[] = [0];
     let gap = p.soStepPct;
@@ -168,10 +188,15 @@ export function preview(cfg: StrategyConfig): Promise<PreviewDto> {
       const avg = cumN / cumQ;
       return { index: k, deviationPct: d, price: px, notional, qty: notional / px, cumNotional: cumN, cumQty: cumQ, avgEntry: avg, tpPrice: avg * (1 + (s * p.tpPct) / 100), liqPrice: null };
     });
+    const worst: [number, "sl" | "ddStop"][] = [];
+    if (p.slPct !== null) worst.push([(cumN * p.slPct) / 100, "sl"]);
+    if (cfg.maxDrawdownPct !== null) worst.push([(cfg.maxDrawdownPct / 100) * cfg.budget, "ddStop"]);
+    worst.sort((a, b) => a[0] - b[0]);
     return ok({
       kind: "dca",
       referencePrice: price,
       requiredCapital: cumN / lev,
+      minBudget: minBudget(cfg),
       costs,
       dca: {
         rungs,
@@ -180,15 +205,16 @@ export function preview(cfg: StrategyConfig): Promise<PreviewDto> {
         liqPrice: null,
         liqDistancePct: null,
         totalNotional: cumN,
-        worstLossQuote: p.slPct !== null ? (cumN * p.slPct) / 100 : null,
-        worstLossBasis: p.slPct !== null ? "sl" : "none",
+        worstLossQuote: worst[0]?.[0] ?? null,
+        worstLossBasis: worst[0]?.[1] ?? "none",
+        suggestedSlPct: Math.min(90, Math.round(devs[devs.length - 1] + 5)),
       },
       grid: null,
       warnings,
       error,
     });
   }
-  if (p.stopOutPct === null) warnings.push("noStopOut");
+  if (p.stopOutPct === null) warnings.push(cfg.maxDrawdownPct !== null ? "ddStopOnly" : "noStopOut");
   const lower = p.range.type === "absolute" ? p.range.lower : price * (1 - p.range.lowerPct / 100);
   const upper = p.range.type === "absolute" ? p.range.upper : price * (1 + p.range.upperPct / 100);
   const n = Math.max(1, p.nGrids);
@@ -206,6 +232,7 @@ export function preview(cfg: StrategyConfig): Promise<PreviewDto> {
     kind: "grid",
     referencePrice: price,
     requiredCapital: cfg.budget,
+    minBudget: minBudget(cfg),
     costs,
     dca: null,
     grid: {
@@ -321,6 +348,8 @@ export function archive(id: string): Promise<void> {
 }
 
 export const cycles = (_id: string): Promise<CycleRow[]> => ok([]);
+export const pnl = (): Promise<StrategyPnl> =>
+  ok({ totals: { cycles: 0, netQuote: 0, todayCycles: 0, todayQuote: 0 }, recent: [] });
 export const orders = (_id: string): Promise<OrderRow[]> => ok([]);
 export const fills = (_id: string): Promise<FillRow[]> => ok([]);
 export const equity = (_id: string): Promise<EquityRow[]> => ok([]);
@@ -431,7 +460,7 @@ function classicPreset(): Promise<Preset> {
           maxDurationMin: null,
         },
       },
-      capitalModel: "onePersistentBotPerSymbol",
+      capitalModel: "botPerSymbolMonth",
       universe: {
         rule: "topUsdtPerpsByQuoteVolume",
         rankFrom: 1,
@@ -450,8 +479,8 @@ function classicPreset(): Promise<Preset> {
         fillRule: "conservativeIntrabar",
         splits: [
           { split: "train", meanPerBotMonthPct: 2.93, ci95LowPct: 2.34, ci95HighPct: 3.44, monthsPositive: 7, months: 7, oneBotReturnPerDayPct: 0.054 },
-          { split: "valid", meanPerBotMonthPct: 1.98, ci95LowPct: 1.19, ci95HighPct: 2.99, monthsPositive: 7, months: 7, oneBotReturnPerDayPct: 0.022 },
-          { split: "test", meanPerBotMonthPct: 1.98, ci95LowPct: 1.52, ci95HighPct: 2.46, monthsPositive: 8, months: 8, oneBotReturnPerDayPct: 0.038 },
+          { split: "valid", meanPerBotMonthPct: 1.86, ci95LowPct: 0.82, ci95HighPct: 2.96, monthsPositive: 7, months: 7, oneBotReturnPerDayPct: 0.022 },
+          { split: "test", meanPerBotMonthPct: 1.90, ci95LowPct: 1.38, ci95HighPct: 2.44, monthsPositive: 8, months: 8, oneBotReturnPerDayPct: 0.038 },
         ],
         testBots: 40,
         testShareBotsPositive: 1,
@@ -465,6 +494,14 @@ function classicPreset(): Promise<Preset> {
         openDealsAtDataEnd: 5,
         liquidations: 0,
         stoppedDeals: 0,
+        recheck: {
+          runOn: "2026-10-09",
+          testWindowEnd: "2026-09-27",
+          partialMonth: "2026-10",
+          partialMonthDays: 8.5,
+          partialMonthMeanPct: -0.44,
+          nextRead: "2026-11-01",
+        },
       },
     }) as Preset);
 }

@@ -42,6 +42,7 @@ fn record(live: bool) -> TradeRecord {
         veto_reason_text: None,
         tp_target: live.then(|| "custom:40".to_string()),
         tp_fallback_from: None,
+        manual: false,
     }
 }
 

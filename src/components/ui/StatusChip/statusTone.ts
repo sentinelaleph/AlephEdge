@@ -24,6 +24,7 @@ export type StatusKind =
   | "retrying"
   | "closingOnly"
   | "budget"
+  | "underReview"
   | "error"
   | "dead"
   | "down"
@@ -46,6 +47,7 @@ export const STATUS_TONE: Record<StatusKind, StatusTone> = {
   retrying: "warning",
   closingOnly: "warning",
   budget: "warning",
+  underReview: "warning",
   error: "negative",
   dead: "negative",
   down: "negative",

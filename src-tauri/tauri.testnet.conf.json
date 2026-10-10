@@ -1,0 +1,20 @@
+{
+  "productName": "Aleph Edge TESTNET",
+  "identifier": "com.sentinelaleph.edge.testnet",
+  "app": {
+    "windows": [
+      {
+        "title": "Aleph Edge TESTNET",
+        "width": 1618,
+        "height": 874,
+        "minWidth": 940,
+        "minHeight": 620,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "theme": null,
+        "decorations": true
+      }
+    ]
+  }
+}

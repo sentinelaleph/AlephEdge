@@ -24,15 +24,23 @@ pub const FUTURES_FEE_RATE: f64 = 0.0005;
 /// Most positions one bot may hold (the risk level caps the total).
 pub const MAX_BOT_POSITIONS: u8 = 20;
 pub const SPOT_FEE_RATE: f64 = 0.001;
+/// Smallest order Binance accepts on most pairs (MIN_NOTIONAL, USDT). Paper
+/// entries below it are refused like live ones: a small account whose cap
+/// sits under it (100 USDT at Cautious = 2 USDT) would otherwise see a paper
+/// book of trades the exchange can never fill.
+pub const EXCHANGE_MIN_ORDER_USDT: f64 = 5.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum BotKind {
     Futures,
     Spot,
-    /// Most aggressive type (PRD §5.1): trades USDT-M futures but only on
-    /// signals where Sentinel's pump/dump engine is a strong contributor;
-    /// gated to the Ambitious+ risk levels.
+    /// Trades USDT-M futures only on signals where Sentinel's pump engine
+    /// contributes together with a structure break and an order block or FVG
+    /// (`precheck_rules::is_pump_signal`). Owner decision 2026-10-09: open at
+    /// every risk level for whoever wants it, paper only and marked untested
+    /// (no replay or forward test exists). It used to need Ambitious+, which
+    /// loosened every other bot's limits too.
     Pump,
 }
 
@@ -169,8 +177,11 @@ pub struct BotConfig {
     /// does nothing. Defaults false; absent in every stored config today.
     #[serde(default)]
     pub live: bool,
-    /// The user's own per-position loss tolerance in percent (e.g. 2.0 =
-    /// close once unrealized NET loss reaches −2%), exit reason "max_loss".
+    /// The user's own per-position loss tolerance in percent of the bot's
+    /// CAPITAL, after leverage and fees (e.g. 2.0 = close once the unrealized
+    /// NET loss reaches −2% of capital: a 0.57% price move at fixed 3x; in
+    /// risk sizing a value at or above the risk % never fires, the stop is
+    /// checked first), exit reason "max_loss".
     /// Independent of the BTC regime: tying it to a BTC-break trigger
     /// recreated the guard close measured at −163 pts. None = feature off.
     #[serde(default)]
@@ -386,6 +397,16 @@ pub struct OpenPosition {
     /// highest one it had was used instead: the REQUESTED target ("tp3").
     #[serde(default)]
     pub tp_fallback_from: Option<String>,
+    /// Opened by the user on one signal (Execute, "Open position"), not by
+    /// the bot's own loop: the bot's signal filters were skipped, its risk
+    /// limits were not. Paper only. Left out of the JSON when false, so every
+    /// other row (and the paper runner's) is written byte for byte as before.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub manual: bool,
+}
+
+fn is_false(v: &bool) -> bool {
+    !*v
 }
 
 fn default_tp_target() -> String {
@@ -440,7 +461,28 @@ pub struct BotDeskStatus {
     /// "unknown". "break" means new LONG entries are refused (shorts still
     /// open); "unknown" refuses both until the macro feed answers.
     pub btc_regime: String,
+    /// Real entries left in the pilot of the live Futures bot (0 = no pilot).
+    #[serde(default)]
+    pub pilot_left: u32,
+    /// Venues real money can be switched on for now: those whose order path
+    /// passed a test-network dry run (`exchange::DRY_RUN_PASSED`), or every
+    /// order venue in the sandbox. Keys for the others still read the
+    /// account and close positions.
+    #[serde(default)]
+    pub live_venues: Vec<String>,
+    /// Bybit / OKX orders go to their demo / test networks
+    /// (`ALEPH_EDGE_VENUE_SANDBOX=1`), not to a real account. The LIVE
+    /// confirmations and the header say so.
+    #[serde(default)]
+    pub venue_sandbox: bool,
 }
+
+/// Pilot (owner 2026-10-05): the first real entries after LIVE is switched
+/// on are capped, so a mistake in setup costs little.
+pub const PILOT_TRADES: u32 = 3;
+/// Largest real entry while the pilot runs (raised to just above Binance's
+/// minimum for the symbol when that is higher).
+pub const PILOT_NOTIONAL_USDT: f64 = 50.0;
 
 #[cfg(test)]
 mod validate_tests {

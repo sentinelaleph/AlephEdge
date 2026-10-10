@@ -101,6 +101,17 @@ pub fn recent_keys(conn: &Connection, since_ms: u64) -> Result<Vec<(String, Stri
     rows.collect::<Result<Vec<_>, _>>().map_err(|_| "storeQueryFailed".to_string())
 }
 
+/// Whether the position opened at `opened_at` by this bot on this signal is
+/// already in the trade table, i.e. its close was recorded.
+pub fn is_settled(conn: &Connection, signal_id: &str, bot_kind: &str, opened_at: u64) -> Result<bool, String> {
+    conn.query_row(
+        "SELECT EXISTS (SELECT 1 FROM trades WHERE signal_id = ?1 AND bot_kind = ?2 AND opened_at = ?3)",
+        params![signal_id, bot_kind, opened_at as i64],
+        |r| r.get::<_, bool>(0),
+    )
+    .map_err(|_| "storeQueryFailed".to_string())
+}
+
 pub fn list(conn: &Connection, limit: u32) -> Result<Vec<TradeRecord>, String> {
     let mut stmt = conn
         .prepare(
@@ -146,6 +157,8 @@ pub fn list(conn: &Connection, limit: u32) -> Result<Vec<TradeRecord>, String> {
                 veto_reason_text: r.get(28)?,
                 tp_target: r.get(29)?,
                 tp_fallback_from: r.get(30)?,
+                // Desktop-only table (store::manual); marked by the caller.
+                manual: false,
                 // Not stored twice: identical to pnl_quote / pnl_pct by
                 // construction, so derived on read (legacy rows included).
                 pnl_usdt: r.get(11)?,
@@ -234,7 +247,7 @@ pub fn stats_scoped(
 /// after it, so the export no longer lined up with its header. A field that
 /// opens with a formula character is prefixed with `'` so a spreadsheet shows
 /// it as text instead of evaluating it.
-fn csv_field(raw: &str) -> String {
+pub(super) fn csv_field(raw: &str) -> String {
     let guarded = if raw.starts_with(['=', '+', '-', '@', '\t', '\r']) {
         format!("'{raw}")
     } else {

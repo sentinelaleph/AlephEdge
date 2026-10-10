@@ -1,0 +1,32 @@
+/* Market trend chip (header) and panel notes. Information only: neutral
+   weight, the direction carried by the arrow and the up/down text colour. */
+.ae-trendchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.ae-trendchip[data-state="up"] > span {
+  color: var(--up);
+}
+.ae-trendchip[data-state="down"] > span {
+  color: var(--down);
+}
+.ae-trendchip:hover {
+  border-color: var(--border-strong, var(--text-subtle));
+}
+.ae-trend__history {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}

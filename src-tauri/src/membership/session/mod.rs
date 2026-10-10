@@ -2,11 +2,16 @@
 //! so the next app launch can restore a signed-in session without a password.
 //! Isolated from the manager so keychain I/O (blocking OS calls) stays out of
 //! the state-machine file.
+//!
+//! One entry per app identifier (`app::keychain`): signing in or out in the
+//! TESTNET build no longer replaces or clears the release build's session.
+//! There is deliberately no copy from the pre-0.2.1 shared entry. Refresh
+//! tokens rotate on every refresh, so two builds holding one token would sign
+//! each other out; a non-release build signs in once instead. The release
+//! build's entry name is unchanged, so its users stay signed in.
 
 use super::model::PersistedSession;
 
-#[cfg_attr(test, allow(dead_code))]
-const KEYCHAIN_SERVICE: &str = "com.sentinelaleph.edge";
 #[cfg_attr(test, allow(dead_code))]
 const KEYCHAIN_SESSION_USER: &str = "membership-session";
 
@@ -28,27 +33,22 @@ pub(super) fn clear_persisted_session() {
     store::clear();
 }
 
-/// The OS keychain entry.
+/// The OS keychain entry, under this build's own service.
 #[cfg(not(test))]
 mod store {
-    use super::{KEYCHAIN_SERVICE, KEYCHAIN_SESSION_USER};
+    use super::KEYCHAIN_SESSION_USER;
+    use crate::app::keychain::{service, OsKeychain, SecretStore};
 
     pub fn set(json: &str) {
-        let _ = keyring::Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_SESSION_USER)
-            .and_then(|e| e.set_password(json));
+        let _ = OsKeychain.set(service(), KEYCHAIN_SESSION_USER, json);
     }
 
     pub fn get() -> Option<String> {
-        keyring::Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_SESSION_USER)
-            .ok()?
-            .get_password()
-            .ok()
+        OsKeychain.get(service(), KEYCHAIN_SESSION_USER)
     }
 
     pub fn clear() {
-        if let Ok(entry) = keyring::Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_SESSION_USER) {
-            let _ = entry.delete_credential();
-        }
+        OsKeychain.delete(service(), KEYCHAIN_SESSION_USER);
     }
 }
 

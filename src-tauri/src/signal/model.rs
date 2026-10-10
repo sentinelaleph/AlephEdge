@@ -46,6 +46,10 @@ pub struct Signal {
     pub symbol: String,
     #[serde(default)]
     pub timeframe: Option<String>,
+    /// "spot" | "futures": the Binance market the signal was published
+    /// on (its candles, its outcome). Absent on older payloads.
+    #[serde(default)]
+    pub market_type: Option<String>,
     pub direction: Direction,
     /// "smc_only" | "ind_only" | "hybrid" | … — open-ended on purpose: a new
     /// mode upstream must not make every signal unparseable.

@@ -78,11 +78,16 @@ export function StreamCard() {
   );
 }
 
-/** Compact risk level readout, linking to #/risk. */
+/**
+ * Compact risk level readout, linking to #/risk. Each row names the bots it
+ * covers: the position cap and the daily stop hold signal bots only; DCA and
+ * Grid bots sit under their own budget cap and portfolio breaker.
+ */
 export function RiskReadout() {
   const { t } = useTranslation();
-  const { risk } = useDeskContext();
+  const { risk, strategy } = useDeskContext();
   const s = risk.state;
+  const sr = strategy.risk;
   return (
     <Panel
       title={t("safety.level.title")}
@@ -99,9 +104,15 @@ export function RiskReadout() {
           </span>
           <FactList
             rows={[
-              { label: t("safety.limits.leverage"), value: `${s.limits.maxLeverage}x` },
-              { label: t("safety.limits.positions"), value: s.limits.maxConcurrentPositions },
-              { label: t("safety.dailyStop"), value: `${s.effectiveDailyLossPct}%` },
+              { label: t("safety.scope.leverageAll"), value: `${s.limits.maxLeverage}x` },
+              { label: t("safety.scope.positionsSignal"), value: s.limits.maxConcurrentPositions },
+              { label: t("safety.scope.dailyStopSignal"), value: `${s.effectiveDailyLossPct}%` },
+              ...(sr
+                ? [
+                    { label: t("safety.scope.strategyBudget"), value: `${sr.budgetCapPct}%` },
+                    { label: t("safety.scope.strategyBreaker"), value: `${sr.portfolioDdPct}%` },
+                  ]
+                : []),
             ]}
           />
         </>

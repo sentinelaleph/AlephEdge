@@ -27,6 +27,8 @@ export interface Signal {
   id: string;
   symbol: string;
   timeframe?: string;
+  /** "spot" | "futures": the Binance market it was published on. Absent on older payloads. */
+  market_type?: string | null;
   direction: SignalDirection;
   mode: string;
   entry: number;

@@ -7,6 +7,7 @@ import type { BotKind } from "@/lib/ipc/bot/bot";
 import { errorMessage } from "@/lib/ipc/bridge";
 import { isActive, strategyCloseAll } from "@/lib/ipc/strategy/strategy";
 import { localizeError } from "@/lib/errorText";
+import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
 
 const KINDS: BotKind[] = ["futures", "spot", "pump"];
 
@@ -19,6 +20,7 @@ const KINDS: BotKind[] = ["futures", "spot", "pump"];
 export function PaperCloseAll() {
   const { t } = useTranslation();
   const { desk, strategy } = useDeskContext();
+  const strategyLive = useStrategyLive().anyLive;
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -94,6 +96,7 @@ export function PaperCloseAll() {
               })}
             </p>
             <p className="ae-subtle">{t("positions.closeAllPaper.realNote")}</p>
+            {strategyLive ? <p className="ae-error">{t("positions.closeAllPaper.strategyLiveNote")}</p> : null}
           </>
         }
         word="CLOSE"

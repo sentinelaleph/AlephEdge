@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useDeskContext } from "@/app/DeskProvider";
 import { navigate, useQueryParam, useRouter } from "@/app/router/router";
 import { Button } from "@/components/ui/Button/Button";
-import { LiveChip } from "@/components/ui/Chip/Chip";
+import { LiveChip, ManualChip, UntestedChip } from "@/components/ui/Chip/Chip";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState/EmptyState";
 import { KpiGrid } from "@/components/ui/KpiGrid/KpiGrid";
@@ -102,7 +102,7 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
     );
   }
 
-  const row = signalBotRows(desk.status, risk.state?.allowsPump ?? false).find((r) => r.kind === kind)!;
+  const row = signalBotRows(desk.status, risk.state?.maxCapitalQuote ?? null).find((r) => r.kind === kind)!;
   const positions = desk.status.openPositions.filter((p) => p.botKind === kind);
   const trades = pnl.trades.filter((tr) => tr.botKind === kind);
   const s = desk.status;
@@ -128,7 +128,8 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
   ) : null;
 
   const left = (
-    <Panel title={t("botDetail.facts")}>
+    <Panel title={t("botDetail.facts")} aside={row.untested ? <UntestedChip title={t("bots.pumpNote")} /> : undefined}>
+      {row.untested ? <p className="ae-muted">{t("bots.pumpNote")}</p> : null}
       <FactList
         rows={[
           { label: t("table.type"), value: t("botsList.type.signal") },
@@ -166,6 +167,7 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
         <span className="ae-namecell">
           {tr.symbol}
           {tr.live ? <LiveChip /> : null}
+          {tr.manual ? <ManualChip /> : null}
         </span>
       ),
     },
@@ -197,6 +199,7 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
         <span className="ae-namecell">
           {o.position.symbol}
           {o.position.live ? <LiveChip /> : null}
+          {o.position.manual ? <ManualChip /> : null}
         </span>
       ),
     },
@@ -274,15 +277,22 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
               config={row.config}
               running={row.running}
               busy={desk.busy}
-              disabled={s.killSwitchTripped || row.locked}
+              disabled={s.killSwitchTripped}
+              exchangeLocked={row.live || positions.some((p) => p.live)}
               disabledReasonKey={row.startBlockKey}
               maxLeverage={maxLeverage}
+              maxCapitalQuote={risk.state?.maxCapitalQuote ?? null}
+              levelMaxPositions={risk.state?.limits.maxConcurrentPositions ?? null}
               exchanges={catalog.exchanges}
               live={
                 kind === "futures" && s.liveTradingEnabled
                   ? {
                       binanceIsProduction: s.binanceIsProduction,
                       onSetLive: (enabled, confirmation) => desk.setLive("futures", enabled, confirmation),
+                      pilotLeft: desk.status.pilotLeft ?? 0,
+                      onEndPilot: () => desk.endPilot("futures"),
+                      liveVenues: s.liveVenues,
+                      venueSandbox: s.venueSandbox,
                     }
                   : undefined
               }

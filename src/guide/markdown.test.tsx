@@ -3,7 +3,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import en from "./content/en.md?raw";
 import tr from "./content/tr.md?raw";
-import { inline, parse, slugify } from "./markdown";
+import faqEn from "@/faq/en.md?raw";
+import faqTr from "@/faq/tr.md?raw";
+import { inline, parse, renderBlock, slugify } from "./markdown";
 
 vi.mock("@/app/router/router", () => ({
   Link: ({ to, children }: { to: string; children: React.ReactNode }) => <a href={`#${to}`}>{children}</a>,
@@ -15,6 +17,25 @@ describe("guide markdown", () => {
     expect(b.map((x) => x.kind)).toEqual(["h1", "h2", "p", "table", "ul", "ol", "note"]);
     expect(b[1]).toMatchObject({ text: "Start", slug: "start" });
     expect(b[3]).toMatchObject({ head: ["A", "B"], rows: [["1", "2"]] });
+  });
+
+  it("reads screenshot lines as images and renders only known names", () => {
+    const b = parse(["Text before", "![Caption](shot:dca-detail)", "Text after"].join("\n"));
+    expect(b.map((x) => x.kind)).toEqual(["p", "img", "p"]);
+    expect(b[1]).toMatchObject({ name: "dca-detail", alt: "Caption" });
+    expect(renderToStaticMarkup(<>{renderBlock(b[1], 0, { "dca-detail": "/x.webp" })}</>)).toContain('src="/x.webp"');
+    expect(renderToStaticMarkup(<>{renderBlock(b[1], 0, {})}</>)).toBe("");
+  });
+
+  it("FAQ sections match in both languages and every screenshot exists", () => {
+    const ids = (md: string) => parse(md).flatMap((x) => (x.kind === "h2" ? [x.slug] : []));
+    expect(ids(faqTr)).toEqual(ids(faqEn));
+    const files = Object.keys(import.meta.glob("@/faq/shots/*/*.webp"));
+    for (const [lang, md] of [["tr", faqTr], ["en", faqEn]] as const) {
+      for (const x of parse(md)) {
+        if (x.kind === "img") expect(files.some((f) => f.endsWith(`/shots/${lang}/${x.name}.webp`)), `${lang}/${x.name}`).toBe(true);
+      }
+    }
   });
 
   it("folds Turkish letters in generated slugs", () => {

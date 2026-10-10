@@ -12,6 +12,7 @@ import type { ExchangeInfo } from "@/lib/ipc/exchange/exchange";
 import { useExchangeCatalog, type ExchangeCatalog } from "@/lib/ipc/exchange/useExchangeCatalog";
 import type { HealthSnapshot } from "@/lib/ipc/health/health";
 import { useStrategyDesk, type StrategyDeskController } from "@/lib/ipc/strategy/useStrategyDesk";
+import { ORDER_VENUES } from "@/lib/venues";
 
 /**
  * Everything the unlocked desk shares across pages. Owned once, above the
@@ -34,7 +35,9 @@ export interface DeskContextValue {
   version: string | null;
   /** Exchanges the user holds a vaulted key for; null while the catalog loads. */
   keyedExchanges: ExchangeInfo[] | null;
-  /** The exchange the account views read (Binance only today), or null. */
+  /** Keyed exchanges with an order path, Binance first: one account view each. */
+  accountExchanges: string[];
+  /** The first of `accountExchanges` (header and dashboard summary), or null. */
   accountExchange: string | null;
 }
 
@@ -98,7 +101,8 @@ export function DeskProvider({ membership, vault, children }: DeskProviderProps)
       endpoints,
       version,
       keyedExchanges: catalog.exchanges?.filter((e) => keyed.has(e.id)) ?? null,
-      accountExchange: keyed.has("binance") ? "binance" : null,
+      accountExchanges: ORDER_VENUES.filter((v) => keyed.has(v)),
+      accountExchange: ORDER_VENUES.find((v) => keyed.has(v)) ?? null,
     };
   }, [membership, vault, risk, desk, pnl, strategy, catalog, health, feed, endpoints, version]);
 

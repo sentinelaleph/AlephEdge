@@ -230,7 +230,7 @@ impl GridState {
     /// The bot drawdown stop as a price for the inventory held now: the price
     /// at which cash + pos * (p - a) reaches the driver's floor. Same rule as
     /// the DCA walk: it fills inside the bar at its level, not at the close.
-    fn dd_price(&self, core: &CycleCore) -> Option<f64> {
+    pub(crate) fn dd_price(&self, core: &CycleCore) -> Option<f64> {
         let floor = core.dd_floor?;
         if self.pos == 0.0 {
             return None;

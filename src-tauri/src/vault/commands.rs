@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Deserialize;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::exchange::model::BinanceKeyCheckError;
 use crate::exchange::ExchangeManager;
@@ -32,7 +32,7 @@ pub struct AddCredentialInput {
 /// The vault file's location. `pub(super)` because the idle watchdog needs the
 /// same path to report status after an auto-lock, and a second copy of this
 /// join is a second place for the filename to drift.
-pub(super) fn vault_path(app: &AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn vault_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app
         .path()
         .app_data_dir()
@@ -81,10 +81,37 @@ pub fn vault_unlock(
     Ok(vault.status(&path))
 }
 
+/// While real money is in play the engine needs the key for every stop move,
+/// partial, exit and emergency flatten, and it reads "the first Binance key".
+/// Locking, resetting, renewing or removing a key then would leave a real
+/// position unmanaged, or point the engine at another account that looks flat
+/// (audit 2026-10-04, M1/M2). Close the positions and switch live off first.
+fn refuse_while_live(app: &AppHandle) -> Result<(), String> {
+    if crate::bot::strategy_live::live_exposure(app) {
+        return Err("vaultBusyLive".to_string());
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn vault_lock(app: AppHandle, vault: State<VaultManager>) -> Result<VaultStatus, String> {
+    refuse_while_live(&app)?;
     vault.lock();
     Ok(vault.status(&vault_path(&app)?))
+}
+
+/// User activity in the window (pointer or key input, throttled by the UI).
+/// Resets the auto-lock budget of an unlocked vault; a vault whose budget is
+/// already spent locks here, and the UI hears it through the same event the
+/// watchdog sends.
+#[tauri::command]
+pub fn vault_touch(app: AppHandle, vault: State<VaultManager>) -> Result<VaultStatus, String> {
+    let locked = vault.touch_if_unlocked();
+    let status = vault.status(&vault_path(&app)?);
+    if locked {
+        let _ = app.emit(super::watchdog::AUTO_LOCKED_EVENT, status.clone());
+    }
+    Ok(status)
 }
 
 pub const VAULT_RESET_CONFIRMATION: &str = "RESET";
@@ -97,6 +124,7 @@ pub fn vault_reset(app: AppHandle, vault: State<VaultManager>, confirmation: Str
     if confirmation.trim() != VAULT_RESET_CONFIRMATION {
         return Err("resetConfirmRequired".to_string());
     }
+    refuse_while_live(&app)?;
     let path = vault_path(&app)?;
     vault.reset(&path)?;
     Ok(vault.status(&path))
@@ -139,6 +167,7 @@ pub async fn vault_replace_credential(
     exchange: State<'_, ExchangeManager>,
     input: AddCredentialInput,
 ) -> Result<Vec<CredentialMeta>, String> {
+    refuse_while_live(&app)?;
     let permission = detect_permission(&exchange, &input).await?;
     let cred = ExchangeCredential {
         exchange_id: input.exchange_id.clone(),
@@ -184,8 +213,10 @@ pub fn vault_change_password(
     Ok(vault.status(&path))
 }
 
-/// Auto-lock choices offered in Settings.
-pub const IDLE_MINUTE_CHOICES: [u64; 4] = [5, 15, 30, 60];
+/// Auto-lock choices offered in Settings: minutes, then 4/8/12/24 hours,
+/// a week and a month (30 days). Owner request 2026-10-05: a desk left
+/// running for days should not ask for the password every half hour.
+pub const IDLE_MINUTE_CHOICES: [u64; 10] = [5, 15, 30, 60, 240, 480, 720, 1_440, 10_080, 43_200];
 
 /// Meta key holding the user's auto-lock choice (overrides the env default).
 pub const IDLE_MINUTES_META: &str = "vault_idle_minutes";
@@ -238,9 +269,7 @@ async fn detect_permission(
     input: &AddCredentialInput,
 ) -> Result<CredentialPermission, String> {
     if input.exchange_id != "binance" {
-        // No verifier for this exchange: its permissions could only be taken
-        // on the user's word, and the vault holds verified trade-only keys.
-        return Err(format!("keyExchangeUnverified|{}", input.exchange_id));
+        return detect_venue_permission(exchange, input).await;
     }
     match exchange
         .check_binance_permissions(&input.api_key, &input.api_secret)
@@ -261,6 +290,37 @@ async fn detect_permission(
         // key could be a withdraw key. Refuse with a retryable reason rather
         // than store it (the old "Unknown" let withdraw keys in on a network
         // hiccup).
+        Err(_) => Err("keyCheckUnavailable".to_string()),
+    }
+}
+
+/// Bybit / OKX through ccxt: the venue's own permission read. Any other
+/// exchange (Bitget, MEXC...) has no order path and no verifier and is
+/// refused: its permissions could only be taken on the user's word, and the
+/// vault holds verified trade-only keys.
+async fn detect_venue_permission(exchange: &ExchangeManager, input: &AddCredentialInput) -> Result<CredentialPermission, String> {
+    let probe = ExchangeCredential {
+        exchange_id: input.exchange_id.clone(),
+        label: String::new(),
+        api_key: input.api_key.clone(),
+        api_secret: input.api_secret.clone(),
+        passphrase: input.passphrase.clone().filter(|p| !p.is_empty()),
+        permission: CredentialPermission::Unknown,
+        added_at: 0,
+        updated_at: None,
+    };
+    match exchange.venue_key_permissions(&probe).await {
+        Ok((false, _)) => Err("keyNoFutures".to_string()),
+        Ok((true, withdraw)) => refuse_withdraw(if withdraw {
+            CredentialPermission::WithdrawEnabled
+        } else {
+            CredentialPermission::TradeOnly
+        }),
+        // No order path, so no verifier.
+        Err(BinanceKeyCheckError::Rejected { code: 0, .. }) if !crate::exchange::has_order_path(&input.exchange_id) => {
+            Err(format!("keyExchangeUnverified|{}", input.exchange_id))
+        }
+        Err(BinanceKeyCheckError::InvalidCredentials) => Err("keyRejected".to_string()),
         Err(_) => Err("keyCheckUnavailable".to_string()),
     }
 }
@@ -306,6 +366,7 @@ pub fn vault_remove_credential(
     exchange_id: String,
     label: String,
 ) -> Result<Vec<CredentialMeta>, String> {
+    refuse_while_live(&app)?;
     vault.remove(&vault_path(&app)?, &exchange_id, &label)?;
     vault.list()
 }

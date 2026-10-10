@@ -191,6 +191,7 @@ export const SAMPLE_DESK: BotDeskController = {
   configureAndStart: noop,
   stop: noop,
   setLive: () => Promise.resolve(null),
+  endPilot: () => Promise.resolve(null),
   closePosition: () => Promise.resolve(null),
 };
 
@@ -207,7 +208,6 @@ export const SAMPLE_RISK_STATE: RiskState = {
   balance: 2000,
   closeOnStop: true,
   maxCapitalQuote: 120,
-  allowsPump: false,
   dailyLossOverridePct: 3,
   effectiveDailyLossPct: 3,
   dailyLossOverrideCapped: false,
@@ -560,6 +560,27 @@ export const SAMPLE_STRATEGY: StrategyDeskController = {
     botCount: 2,
   },
   notes: [],
+  // The sample DCA bot's 7 closed cycles (realized 18.42 USDT), the newest today.
+  pnl: {
+    totals: { cycles: 7, netQuote: 18.42, todayCycles: 1, todayQuote: 2.31 },
+    recent: [
+      {
+        botId: "sb_sampledcabot",
+        botName: SAMPLE_DCA_CONFIG.name,
+        kind: "dca",
+        market: "futures",
+        symbol: "ETHUSDT",
+        side: "long",
+        seq: 7,
+        openedAt: now - 9 * HOUR,
+        closedAt: now - 2 * HOUR,
+        exitReason: "tp",
+        pnlQuote: 2.31,
+        pnlPctBudget: 0.23,
+        archived: false,
+      },
+    ],
+  },
   loadError: null,
   busyId: null,
   refresh: noop,
@@ -599,7 +620,8 @@ export const SAMPLE_DESK_CONTEXT: DeskContextValue = {
     binanceFuturesBase: "http://localhost:8080",
     binanceIsProduction: true,
   },
-  version: "0.1.0",
+  version: "0.3.0",
   keyedExchanges: SAMPLE_EXCHANGES,
+  accountExchanges: ["binance"],
   accountExchange: "binance",
 };

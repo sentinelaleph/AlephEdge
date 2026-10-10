@@ -65,7 +65,7 @@ interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
   /** Accessible name AND tooltip text. Required: the button has no visible text. */
   label: string;
   icon: ReactNode;
-  size?: "sm" | "md";
+  size?: "xs" | "sm" | "md";
   /** Toggle state: sets aria-pressed and the pressed look. */
   pressed?: boolean;
   /** Pressed look only, when the state is already announced (aria-expanded on a panel toggle). */

@@ -59,6 +59,8 @@ export interface TradeRecord {
   tpTarget: string | null;
   /** The configured target when the signal lacked it and a lower one was used. */
   tpFallbackFrom: string | null;
+  /** Opened by hand on one signal (Execute), not by the bot's loop. Absent = false. */
+  manual?: boolean;
 }
 
 export interface PnlStats {
@@ -92,6 +94,11 @@ export function tradesStats(live?: boolean): Promise<PnlStats> {
 /** Exports all trades as CSV; resolves to the written file's path. */
 export function tradesExportCsv(): Promise<string> {
   return inTauri() ? invoke<string>("trades_export_csv") : devMock(() => import("./trades.mock"), (m) => m.mock.exportCsv());
+}
+
+/** Exports the signal skip log (signals a bot saw and did not open) as CSV. */
+export function skipsExportCsv(): Promise<string> {
+  return inTauri() ? invoke<string>("skips_export_csv") : devMock(() => import("./trades.mock"), (m) => m.mock.exportCsv());
 }
 
 /** True when a closed trade held real exchange exposure. */

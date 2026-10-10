@@ -56,6 +56,10 @@ export function isBotFailure(reason: string): boolean {
     /^live.*(Failed|Unprotected|Unconfirmed|Mismatch|Unavailable)$/.test(reason) ||
     reason === "untrackedExchangePosition" ||
     reason === "storeWriteFailed" ||
-    reason === "storeReadFailed"
+    reason === "storeReadFailed" ||
+    // Saved bot data restore could not read (it stays on disk, unused).
+    reason === "restoreRowUnreadable" ||
+    reason === "restoreLiveBlocked" ||
+    reason === "restoreConfigInvalid"
   );
 }

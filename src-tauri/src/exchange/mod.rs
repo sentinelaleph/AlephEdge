@@ -3,10 +3,20 @@
 //! data-driven `providers` catalog. Each exchange's status is cached briefly
 //! so the health poll and bot precheck never hammer the public endpoints.
 
+mod close;
 mod commands;
 mod live_orders;
+mod orders;
+#[cfg(test)]
+mod testnet_tests;
 pub mod model;
 pub(crate) mod providers;
+pub(crate) mod venue;
+
+pub use orders::{
+    breakeven_move, has_order_path, BreakevenMove, live_venue_allowed, live_venue_allowed_in, live_venue_check_in, live_venues,
+    venue_order_client_id, DRY_RUN_PASSED, VENUE_NOT_DRY_RUN,
+};
 
 pub use commands::{
     exchange_account, exchange_close_all, exchange_close_position, exchange_list, exchange_status,
@@ -34,6 +44,8 @@ pub struct ExchangeManager {
     cache: Mutex<HashMap<String, (ExchangeStatus, Instant)>>,
     /// Tradable symbol lists by "exchange:market", refreshed hourly.
     symbols: Mutex<HashMap<String, (Vec<String>, Instant)>>,
+    /// Bybit / OKX order clients (venue/ccxt.rs).
+    venues: venue::ccxt::CcxtVenues,
 }
 
 const SYMBOLS_TTL: Duration = Duration::from_secs(3600);
@@ -47,6 +59,7 @@ impl ExchangeManager {
                 .unwrap_or_default(),
             cache: Mutex::new(HashMap::new()),
             symbols: Mutex::new(HashMap::new()),
+            venues: venue::ccxt::CcxtVenues::default(),
         }
     }
 
@@ -125,77 +138,12 @@ impl ExchangeManager {
 
     /// The connected Binance account's USDT-M futures snapshot (balance + open
     /// positions), fetched read-only with the vaulted key.
-    pub async fn futures_account(
+    pub(crate) async fn bn_futures_account(
         &self,
         api_key: &str,
         api_secret: &str,
     ) -> Result<FuturesAccount, BinanceKeyCheckError> {
         providers::fetch_binance_futures_account(&self.client, api_key, api_secret).await
-    }
-
-    /// Closes one open futures position at market (reduce-only). Re-reads the
-    /// live account first so the closing side and exact size come from Binance,
-    /// not a stale UI snapshot. A symbol with no open position is a no-op
-    /// (already flat), not an error.
-    pub async fn close_position(
-        &self,
-        api_key: &str,
-        api_secret: &str,
-        symbol: &str,
-    ) -> Result<(), BinanceKeyCheckError> {
-        self.refuse_hedge_mode(api_key, api_secret).await?;
-        let account = self.futures_account(api_key, api_secret).await?;
-        match account.positions.iter().find(|p| p.symbol == symbol) {
-            Some(pos) => self.close_one(api_key, api_secret, pos).await,
-            None => Ok(()),
-        }
-    }
-
-    /// Kill switch: closes EVERY open futures position at market. Returns the
-    /// number closed. Stops on the first failure so the caller can surface it
-    /// (a partial close is honest — the account view refreshes to show what
-    /// remains) rather than silently swallowing errors.
-    pub async fn close_all(
-        &self,
-        api_key: &str,
-        api_secret: &str,
-    ) -> Result<usize, BinanceKeyCheckError> {
-        self.refuse_hedge_mode(api_key, api_secret).await?;
-        let account = self.futures_account(api_key, api_secret).await?;
-        let mut closed = 0;
-        for pos in &account.positions {
-            self.close_one(api_key, api_secret, pos).await?;
-            closed += 1;
-        }
-        Ok(closed)
-    }
-
-    /// Flattens `pos` with a reduce-only MARKET order on the closing side
-    /// (SELL a long, BUY a short), then clears the symbol's stop and
-    /// take-profit, which would otherwise outlive the position and act on the
-    /// next one.
-    async fn close_one(
-        &self,
-        api_key: &str,
-        api_secret: &str,
-        pos: &model::FuturesPosition,
-    ) -> Result<(), BinanceKeyCheckError> {
-        let long = pos.position_amt > 0.0;
-        self.reduce_market_all(api_key, api_secret, &pos.symbol, long, pos.position_amt.abs())
-            .await?;
-        self.cancel_symbol_orders(api_key, api_secret, &pos.symbol).await
-    }
-
-    /// The manual close assumes one-way mode; a hedge-mode account gets a
-    /// message that names the real problem, not "check the key".
-    async fn refuse_hedge_mode(&self, api_key: &str, api_secret: &str) -> Result<(), BinanceKeyCheckError> {
-        match self.hedge_mode(api_key, api_secret).await? {
-            false => Ok(()),
-            true => Err(BinanceKeyCheckError::Rejected {
-                code: 0,
-                msg: "the account is in Hedge Mode; close these positions on Binance".into(),
-            }),
-        }
     }
 
     fn cached(&self, key: &str) -> Option<ExchangeStatus> {

@@ -27,6 +27,7 @@ pub mod live;
 pub mod live_close;
 pub mod live_manage;
 pub mod management;
+pub mod manual;
 pub mod pnl;
 pub mod precheck;
 pub mod precheck_rules;
@@ -57,6 +58,8 @@ pub async fn tick(app: &AppHandle) {
     kill_switch_phase(app).await;
     // DCA / Grid paper cycles (desktop only), before new signal entries.
     super::strategy::engine::strategy_phase(app).await;
+    // Real-money mirror of the live DCA / Grid bots (live builds only).
+    super::strategy_live::sync_all(app).await;
     entry::open_phase(app, regime).await;
 }
 
@@ -218,10 +221,18 @@ async fn live_equity(app: &AppHandle) -> Option<f64> {
             return Some(value);
         }
     }
-    let cred = app.state::<crate::vault::VaultManager>().credential("binance")?;
+    // The account the real positions sit on; else the one the bot trades.
+    let venue = bots
+        .positions_snapshot()
+        .iter()
+        .find(|p| p.is_live())
+        .map(|p| p.exchange_id.clone())
+        .or_else(|| bots.config_for(BotKind::Futures).map(|c| c.exchange_id))
+        .unwrap_or_else(|| "binance".into());
+    let cred = app.state::<crate::vault::VaultManager>().credential(&venue)?;
     let account = app
         .state::<ExchangeManager>()
-        .futures_account(&cred.api_key, &cred.api_secret)
+        .futures_account(&cred)
         .await
         .ok()?;
     bots.cache_equity(account.total_wallet_balance, now);
@@ -244,12 +255,14 @@ mod filter_tests;
 #[cfg(test)]
 mod liquidation_tests;
 #[cfg(test)]
+mod manual_tests;
+#[cfg(test)]
 mod live_tests;
 #[cfg(test)]
 mod sizing_tests;
 #[cfg(test)]
 mod take_profit_tests;
 #[cfg(test)]
-mod test_fixtures;
+pub(crate) mod test_fixtures;
 #[cfg(test)]
 mod tests;

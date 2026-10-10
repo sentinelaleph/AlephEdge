@@ -6,14 +6,17 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { errorMessage } from "@/lib/ipc/bridge";
 import { isActive, strategyCloseAll } from "@/lib/ipc/strategy/strategy";
 import { strategyErrorText } from "@/lib/strategyText";
+import { useStrategyLive } from "./useStrategyLive";
 
 /**
- * Risk page emergency row for DCA / Grid (paper): pause every bot (no new
- * cycles) and close every open cycle at market (strategy_close_all).
+ * Risk page emergency row for DCA / Grid: pause every bot (no new cycles)
+ * and close every open cycle at market (strategy_close_all). A bot on real
+ * money has its Binance position closed by the mirror on the next pass.
  */
 export function StrategyEmergency() {
   const { t } = useTranslation();
   const { strategy } = useDeskContext();
+  const strategyLive = useStrategyLive().anyLive;
   const [dialog, setDialog] = useState<"pause" | "close" | null>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -61,7 +64,13 @@ export function StrategyEmergency() {
         title={t(dialog === "close" ? "strategy.emergency.closeAll" : "strategy.emergency.pauseAll", {
           count: dialog === "close" ? open.length : active.length,
         })}
-        body={<p>{t(dialog === "close" ? "strategy.confirm.closeAll.body" : "strategy.confirm.stop.body")}</p>}
+        body={
+          <>
+            <p>{t(dialog === "close" ? "strategy.confirm.closeAll.body" : "strategy.confirm.stop.body")}</p>
+            {dialog === "close" && strategyLive ? <p className="ae-error">{t("positions.closeAllPaper.strategyLiveNote")}</p> : null}
+          </>
+        }
+        live={dialog === "close" && strategyLive}
         word={dialog === "close" ? "CLOSE" : undefined}
         confirmLabel={t(dialog === "close" ? "strategy.actions.close" : "strategy.actions.stop")}
         danger={dialog === "close"}

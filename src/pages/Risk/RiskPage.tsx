@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeskContext } from "@/app/DeskProvider";
-import { Link } from "@/app/router/router";
+import { Link, useQueryParam } from "@/app/router/router";
+import { KEYS_PATH } from "@/app/router/routes";
 import { KillSwitchCard, RegimeCard } from "@/components/Desk/Readouts";
 import { LINK_STATUS } from "@/components/Link/linkStatus";
 import { RiskSelector } from "@/components/RiskSelector/RiskSelector";
@@ -15,16 +16,28 @@ import { StatusChip } from "@/components/ui/StatusChip/StatusChip";
 import { localeForLanguage } from "@/i18n";
 import { formatNumber } from "@/lib/format";
 import type { BotKind } from "@/lib/ipc/bot/bot";
+import { exchangeName } from "@/lib/ipc/exchange/exchange";
 import { linkState, type LinkStateView } from "@/lib/ipc/link/link";
 import { RISK_LEVELS, RISK_LIMITS_TABLE, type RiskLevel } from "@/lib/ipc/risk/risk";
+import { tradeVenues } from "@/lib/venues";
 import { StrategyEmergency } from "@/pages/Bots/strategy/StrategyEmergency";
 import { StrategyRiskPanel } from "@/pages/Bots/strategy/StrategyRiskPanel";
+import { LivePreflight } from "./LivePreflight";
 import "./RiskPage.css";
+import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
 
 const KINDS: BotKind[] = ["futures", "spot", "pump"];
-const SECTIONS = ["level", "table", "killSwitch", "regime", "live", "emergency"] as const;
-/** Levels whose Pump bot is allowed (the pump gate in the Rust risk rules). */
-const PUMP_LEVELS: RiskLevel[] = ["ambitious", "greedy"];
+const SECTIONS = ["preflight", "level", "table", "killSwitch", "regime", "live", "emergency"] as const;
+
+/**
+ * The page's sections. Live readiness audits a real-money setup, so only a
+ * build that can place real orders shows it; in the paper build every check
+ * would be a permanent red "Not ready" that no setting clears. The LIVE gate
+ * section still says this build places no real orders.
+ */
+export function riskSections(liveBuild: boolean): (typeof SECTIONS)[number][] {
+  return SECTIONS.filter((id) => liveBuild || id !== "preflight");
+}
 
 /**
  * #/risk: every limit and safety control in one place. Changes apply at once
@@ -34,14 +47,23 @@ const PUMP_LEVELS: RiskLevel[] = ["ambitious", "greedy"];
 export function RiskPage() {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
-  const { risk, desk, vault, endpoints } = useDeskContext();
+  const { risk, desk, vault, endpoints, strategy, catalog } = useDeskContext();
   const s = desk.status;
+  const liveBuild = desk.loaded && s.liveTradingEnabled;
   const [liveError, setLiveError] = useState<string | null>(null);
   const level = risk.state?.limits.level;
-  const binanceKey = vault.credentials.some((c) => c.exchangeId === "binance");
+  // Only a verified trade-only key can switch a bot to real money.
+  const tradeKeys = tradeVenues(vault.credentials);
+  const { liveIds: strategyLiveIds } = useStrategyLive();
+  const strategyLiveBots = (strategy.bots ?? []).filter((b) => strategyLiveIds.has(b.id));
   const running = KINDS.filter((k) => (k === "futures" ? s.futuresRunning : k === "spot" ? s.spotRunning : s.pumpRunning));
   const capital = s.openPositions.reduce((n, p) => n + p.capital, 0);
   const balance = risk.state?.balance ?? null;
+  // `?s=<section>` opens the page at that section (links from the live panels).
+  const [section] = useQueryParam("s");
+  useEffect(() => {
+    if (section) document.getElementById(`risk-${section}`)?.scrollIntoView({ block: "start" });
+  }, [section]);
 
   const limitColumns: DataColumn<RiskLevel>[] = [
     {
@@ -59,17 +81,8 @@ export function RiskPage() {
     { id: "dailyLoss", header: t("safety.limits.dailyLoss"), numeric: true, cell: (l) => `-${RISK_LIMITS_TABLE[l].dailyLossLimitPct}%` },
     { id: "fr", header: t("safety.limits.fr"), numeric: true, priority: 3, cell: (l) => `${RISK_LIMITS_TABLE[l].frThresholdPct}%` },
     { id: "depth", header: t("safety.limits.depth"), numeric: true, priority: 3, cell: (l) => `${RISK_LIMITS_TABLE[l].maxDepthSharePct}%` },
-    {
-      id: "pump",
-      header: t("bots.kind.pump"),
-      priority: 2,
-      cell: (l) =>
-        PUMP_LEVELS.includes(l) ? (
-          <StatusChip status="ok" label={t("safety.available")} />
-        ) : (
-          <StatusChip status="idle" label={t("status.locked")} />
-        ),
-    },
+    // No Pump column: the level no longer unlocks Pump (raising it to try
+    // Pump loosened every other bot's limits; Rust risk/model.rs).
   ];
 
   const turnOff = async (kind: BotKind) => {
@@ -79,7 +92,7 @@ export function RiskPage() {
   const left = (
     <Panel title={t("safety.sections")}>
       <ul className="ae-list">
-        {SECTIONS.map((id) => (
+        {riskSections(liveBuild).map((id) => (
           <li key={id}>
             <a
               href={`#/risk`}
@@ -117,6 +130,12 @@ export function RiskPage() {
 
   return (
     <PageShell title={t("nav.risk")} crumbs={[{ label: t("nav.groups.control") }]} left={left} right={right}>
+      {liveBuild ? (
+        <section id="risk-preflight" className="ae-risk-section">
+          <LivePreflight />
+        </section>
+      ) : null}
+
       <section id="risk-level" className="ae-risk-section">
         <RiskSelector risk={risk} />
       </section>
@@ -153,7 +172,17 @@ export function RiskPage() {
               <FactList
                 rows={[
                   { label: t("safety.live.build"), value: t("safety.yes") },
-                  { label: t("safety.live.binanceKey"), value: binanceKey ? t("safety.yes") : t("safety.no"), tone: binanceKey ? undefined : "warn" },
+                  {
+                    label: t("safety.live.binanceKey"),
+                    value: tradeKeys.length ? (
+                      tradeKeys.map((v) => exchangeName(v, catalog.exchanges)).join(", ")
+                    ) : (
+                      <Link to={KEYS_PATH} className="ae-link">
+                        {t("safety.no")}
+                      </Link>
+                    ),
+                    tone: tradeKeys.length ? undefined : "warn",
+                  },
                   {
                     label: t("safety.live.endpoint"),
                     value: endpoints ? (endpoints.binanceIsProduction ? t("accounts.production") : t("app.testnetBadge")) : "—",
@@ -172,6 +201,16 @@ export function RiskPage() {
                         </Button>
                       </span>
                     ) : null}
+                  </li>
+                ))}
+                {strategyLiveBots.map((b) => (
+                  <li key={b.id}>
+                    <Link to={`/bots/${b.id}`} className="ae-link">
+                      {b.name}
+                    </Link>
+                    <span className="ae-toolbar">
+                      <LiveChip />
+                    </span>
                   </li>
                 ))}
               </ul>

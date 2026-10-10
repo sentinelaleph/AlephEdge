@@ -70,5 +70,6 @@ pub fn trade_record(pos: &OpenPosition, exit: f64, reason: &str, closed_at: u64)
         veto_reason_text: None,
         tp_target: Some(pos.tp_target.clone()),
         tp_fallback_from: pos.tp_fallback_from.clone(),
+        manual: pos.manual,
     }
 }

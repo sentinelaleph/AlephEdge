@@ -4,7 +4,7 @@ import { FactList, Panel, type Fact } from "@/components/ui/Panel/Panel";
 import { localeForLanguage } from "@/i18n";
 import { formatNumber, formatPrice } from "@/lib/format";
 import type { PreviewDto, StrategyConfig } from "@/lib/ipc/strategy/strategy";
-import { strategyErrorText } from "@/lib/strategyText";
+import { configErrorText, strategyErrorText } from "@/lib/strategyText";
 
 interface Props {
   preview: PreviewDto | null;
@@ -39,11 +39,18 @@ export function StrategyPreviewPanel({ preview, error, cfg, available, backtest 
   }
 
   const budgetOk = available === null || cfg.budget <= available + 1e-9;
+  const minBudget = preview.minBudget;
   const head: Fact[] = [
     { label: t("strategy.preview.referencePrice"), value: px(preview.referencePrice) },
     { label: t("strategy.preview.requiredCapital"), value: usdt(preview.requiredCapital) },
     { label: t("strategy.field.budget"), value: usdt(cfg.budget) },
   ];
+  if (minBudget !== null) {
+    // Below it an order falls under the 5 USDT exchange minimum; above what
+    // is free under the cap, the bot cannot start without the Risk page.
+    const short = cfg.budget < minBudget - 1e-9 || (!backtest && available !== null && minBudget > available + 1e-9);
+    head.push({ label: t("strategy.preview.minBudget"), value: usdt(minBudget), tone: short ? "danger" : undefined });
+  }
   if (!backtest) {
     head.push({
       label: t("strategy.preview.budgetCheck"),
@@ -74,7 +81,7 @@ export function StrategyPreviewPanel({ preview, error, cfg, available, backtest 
       <Panel title={t("strategy.preview.title")}>
         {preview.error ? (
           <p className="ae-error" role="alert">
-            {strategyErrorText(t, preview.error.code)}
+            {configErrorText(t, preview.error.code, minBudget, locale)}
           </p>
         ) : null}
         {preview.warnings.length > 0 ? (
@@ -94,7 +101,7 @@ export function StrategyPreviewPanel({ preview, error, cfg, available, backtest 
               { label: t("strategy.preview.coverage"), value: `${formatNumber(preview.dca.maxCoveragePct, locale, { maximumFractionDigits: 2 })}%` },
               { label: t("strategy.preview.lastSoPrice"), value: px(preview.dca.lastSoPrice) },
               { label: t("strategy.preview.totalNotional"), value: usdt(preview.dca.totalNotional) },
-              { label: t("strategy.preview.liqPrice"), value: preview.dca.liqPrice === null ? t("strategy.preview.noLiq") : px(preview.dca.liqPrice), tone: preview.dca.liqPrice !== null ? "warn" : undefined },
+              { label: t("strategy.preview.liqPrice"), value: preview.dca.liqPrice === null ? t("strategy.preview.noLiqAt", { leverage: cfg.leverage }) : px(preview.dca.liqPrice), tone: preview.dca.liqPrice !== null ? "warn" : undefined },
               ...(preview.dca.liqDistancePct !== null
                 ? [{ label: t("strategy.preview.liqDistance"), value: `${formatNumber(preview.dca.liqDistancePct, locale, { maximumFractionDigits: 2 })}%` }]
                 : []),
@@ -142,7 +149,7 @@ export function StrategyPreviewPanel({ preview, error, cfg, available, backtest 
                 label: t("strategy.preview.liqBand"),
                 value:
                   preview.grid.liqPriceBottom === null && preview.grid.liqPriceTop === null
-                    ? t("strategy.preview.noLiq")
+                    ? t("strategy.preview.noLiqAt", { leverage: cfg.leverage })
                     : `${px(preview.grid.liqPriceBottom)} / ${px(preview.grid.liqPriceTop)}`,
                 tone: preview.grid.liqPriceBottom !== null || preview.grid.liqPriceTop !== null ? "warn" : undefined,
               },

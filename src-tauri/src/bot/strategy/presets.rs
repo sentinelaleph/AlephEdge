@@ -60,6 +60,41 @@ pub struct HistoricalSimulation {
     pub open_deals_at_data_end: u32,
     pub liquidations: u32,
     pub stopped_deals: u32,
+    /// A later re-run that did not confirm every check (owner decision
+    /// 2026-10-09, option b): the template stays, without the "fully proven"
+    /// claim, until the dated re-read.
+    pub recheck: Option<Recheck>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Recheck {
+    /// Date of the re-run (9 Oct 2026, pre-registered).
+    pub run_on: &'static str,
+    /// Last day of the test window the split figures come from.
+    pub test_window_end: &'static str,
+    /// The partial month that broke "every test month positive".
+    pub partial_month: &'static str,
+    pub partial_month_days: f64,
+    /// Mean per bot-month of that month so far, %, deals still open at the
+    /// last close.
+    pub partial_month_mean_pct: f64,
+    /// When the four checks are read again on a full month.
+    pub next_read: &'static str,
+}
+
+/// The 2026-10-09 re-run: October (8.5 days, majors down 1-15%) was negative
+/// with every deal still open, so "every test month positive" failed; the
+/// original window still passes. One record per affected template.
+fn october_recheck(partial_month_mean_pct: f64) -> Option<Recheck> {
+    Some(Recheck {
+        run_on: "2026-10-09",
+        test_window_end: "2026-09-27",
+        partial_month: "2026-10",
+        partial_month_days: 8.5,
+        partial_month_mean_pct,
+        next_read: "2026-11-01",
+    })
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -89,10 +124,42 @@ pub struct Preset {
     /// Config template; `symbol` is empty: the user picks one from the
     /// universe rule.
     pub config: StrategyConfig,
-    /// "onePersistentBotPerSymbol": never a fresh budget per month.
+    /// How the headline numbers were produced (`CAPITAL_MODEL`).
     pub capital_model: &'static str,
     pub universe: Universe,
     pub history: HistoricalSimulation,
+}
+
+/// The lab ran every template as a NEW 1000 USDT bot per (pair, month);
+/// a cycle still open at month end ran on until it closed (pre-registration
+/// "one bot per (symbol, month), budget 1000"). The per-bot-month means are
+/// that, not one bot kept running: its figures are the `one_bot_*` fields
+/// (dca_long_classic only).
+pub const CAPITAL_MODEL: &str = "botPerSymbolMonth";
+
+/// Whether `cfg` still describes the historical simulation of the preset it
+/// names: the settings the simulation fixed (orders, exits, market, side,
+/// leverage, protections, start and restart) and, for a single-pair
+/// universe, the pair. Name and budget are free (results are % of budget).
+/// The form's `matchesPreset` is the same rule.
+pub fn keeps_provenance(cfg: &StrategyConfig) -> bool {
+    let Some(id) = cfg.preset_id.as_deref() else {
+        return false;
+    };
+    let Some(p) = all().into_iter().find(|p| p.id == id) else {
+        return false;
+    };
+    let a = &p.config;
+    a.params == cfg.params
+        && a.market == cfg.market
+        && a.side == cfg.side
+        && a.leverage == cfg.leverage
+        && a.max_drawdown_pct == cfg.max_drawdown_pct
+        && a.pause_on_btc_break == cfg.pause_on_btc_break
+        && a.portfolio_breaker == cfg.portfolio_breaker
+        && a.start == cfg.start
+        && a.restart == cfg.restart
+        && (p.universe.rule != "btcOnly" || cfg.symbol == "BTCUSDT")
 }
 
 /// dca_long_classic (= v08): long 1x DCA, 8 safety orders, TP 2%, no stop.
@@ -144,7 +211,7 @@ pub fn dca_long_classic() -> Preset {
             }),
             preset_id: Some("dca_long_classic".into()),
         },
-        capital_model: "onePersistentBotPerSymbol",
+        capital_model: CAPITAL_MODEL,
         universe: Universe {
             rule: "topUsdtPerpsByQuoteVolume",
             rank_from: 1,
@@ -175,18 +242,18 @@ pub fn dca_long_classic() -> Preset {
                 },
                 SplitResult {
                     split: "valid",
-                    mean_per_bot_month_pct: 1.98,
-                    ci95_low_pct: 1.19,
-                    ci95_high_pct: 2.99,
+                    mean_per_bot_month_pct: 1.86,
+                    ci95_low_pct: 0.82,
+                    ci95_high_pct: 2.96,
                     months_positive: 7,
                     months: 7,
                     one_bot_return_per_day_pct: Some(0.022),
                 },
                 SplitResult {
                     split: "test",
-                    mean_per_bot_month_pct: 1.98,
-                    ci95_low_pct: 1.52,
-                    ci95_high_pct: 2.46,
+                    mean_per_bot_month_pct: 1.90,
+                    ci95_low_pct: 1.38,
+                    ci95_high_pct: 2.44,
                     months_positive: 8,
                     months: 8,
                     one_bot_return_per_day_pct: Some(0.038),
@@ -204,6 +271,7 @@ pub fn dca_long_classic() -> Preset {
             open_deals_at_data_end: 5,
             liquidations: 0,
             stopped_deals: 0,
+            recheck: october_recheck(-0.44),
         },
     }
 }
@@ -278,7 +346,7 @@ pub fn dca_long_safe() -> Preset {
                 max_duration_min: None,
             }),
         ),
-        capital_model: "onePersistentBotPerSymbol",
+        capital_model: CAPITAL_MODEL,
         universe: template_universe("topUsdtPerpsByQuoteVolume", 1, 5),
         history: HistoricalSimulation {
             label: "historicalSimulation",
@@ -309,9 +377,9 @@ pub fn dca_long_safe() -> Preset {
                 },
                 SplitResult {
                     split: "test",
-                    mean_per_bot_month_pct: 1.51,
-                    ci95_low_pct: 1.16,
-                    ci95_high_pct: 1.86,
+                    mean_per_bot_month_pct: 1.45,
+                    ci95_low_pct: 1.08,
+                    ci95_high_pct: 1.84,
                     months_positive: 8,
                     months: 8,
                     one_bot_return_per_day_pct: None,
@@ -329,6 +397,7 @@ pub fn dca_long_safe() -> Preset {
             open_deals_at_data_end: 3,
             liquidations: 0,
             stopped_deals: 0,
+            recheck: october_recheck(-0.14),
         },
     }
 }
@@ -359,7 +428,7 @@ pub fn dca_long_quick() -> Preset {
                 max_duration_min: None,
             }),
         ),
-        capital_model: "onePersistentBotPerSymbol",
+        capital_model: CAPITAL_MODEL,
         universe: template_universe("topUsdtPerpsByQuoteVolume", 1, 5),
         history: HistoricalSimulation {
             label: "historicalSimulation",
@@ -410,6 +479,7 @@ pub fn dca_long_quick() -> Preset {
             open_deals_at_data_end: 17,
             liquidations: 0,
             stopped_deals: 0,
+            recheck: None,
         },
     }
 }
@@ -440,7 +510,7 @@ pub fn dca_long_btc() -> Preset {
                 max_duration_min: None,
             }),
         ),
-        capital_model: "onePersistentBotPerSymbol",
+        capital_model: CAPITAL_MODEL,
         universe: template_universe("btcOnly", 1, 1),
         history: HistoricalSimulation {
             label: "historicalSimulation",
@@ -491,6 +561,7 @@ pub fn dca_long_btc() -> Preset {
             open_deals_at_data_end: 2,
             liquidations: 0,
             stopped_deals: 0,
+            recheck: None,
         },
     }
 }
@@ -521,7 +592,7 @@ pub fn dca_long_alts() -> Preset {
                 max_duration_min: None,
             }),
         ),
-        capital_model: "onePersistentBotPerSymbol",
+        capital_model: CAPITAL_MODEL,
         universe: template_universe("topUsdtPerpsByQuoteVolume", 6, 15),
         history: HistoricalSimulation {
             label: "historicalSimulation",
@@ -572,6 +643,7 @@ pub fn dca_long_alts() -> Preset {
             open_deals_at_data_end: 26,
             liquidations: 0,
             stopped_deals: 0,
+            recheck: None,
         },
     }
 }
@@ -602,7 +674,7 @@ pub fn dca_long_stop() -> Preset {
                 max_duration_min: None,
             }),
         ),
-        capital_model: "onePersistentBotPerSymbol",
+        capital_model: CAPITAL_MODEL,
         universe: template_universe("topUsdtPerpsByQuoteVolume", 1, 5),
         history: HistoricalSimulation {
             label: "historicalSimulation",
@@ -653,6 +725,7 @@ pub fn dca_long_stop() -> Preset {
             open_deals_at_data_end: 4,
             liquidations: 0,
             stopped_deals: 16,
+            recheck: None,
         },
     }
 }
@@ -683,7 +756,7 @@ pub fn dca_short_classic() -> Preset {
                 max_duration_min: None,
             }),
         ),
-        capital_model: "onePersistentBotPerSymbol",
+        capital_model: CAPITAL_MODEL,
         universe: template_universe("topUsdtPerpsByQuoteVolume", 1, 5),
         history: HistoricalSimulation {
             label: "historicalSimulation",
@@ -734,6 +807,7 @@ pub fn dca_short_classic() -> Preset {
             open_deals_at_data_end: 11,
             liquidations: 4,
             stopped_deals: 0,
+            recheck: None,
         },
     }
 }
@@ -764,7 +838,7 @@ pub fn dca_short_safe() -> Preset {
                 max_duration_min: None,
             }),
         ),
-        capital_model: "onePersistentBotPerSymbol",
+        capital_model: CAPITAL_MODEL,
         universe: template_universe("topUsdtPerpsByQuoteVolume", 1, 5),
         history: HistoricalSimulation {
             label: "historicalSimulation",
@@ -815,6 +889,7 @@ pub fn dca_short_safe() -> Preset {
             open_deals_at_data_end: 13,
             liquidations: 2,
             stopped_deals: 0,
+            recheck: None,
         },
     }
 }
@@ -841,7 +916,7 @@ pub fn grid_neutral() -> Preset {
                 max_duration_min: Some(20160),
             }),
         ),
-        capital_model: "onePersistentBotPerSymbol",
+        capital_model: CAPITAL_MODEL,
         universe: template_universe("topUsdtPerpsByQuoteVolume", 1, 5),
         history: HistoricalSimulation {
             label: "historicalSimulation",
@@ -892,6 +967,7 @@ pub fn grid_neutral() -> Preset {
             open_deals_at_data_end: 3,
             liquidations: 0,
             stopped_deals: 264,
+            recheck: None,
         },
     }
 }
@@ -918,7 +994,7 @@ pub fn grid_neutral_tight() -> Preset {
                 max_duration_min: Some(10080),
             }),
         ),
-        capital_model: "onePersistentBotPerSymbol",
+        capital_model: CAPITAL_MODEL,
         universe: template_universe("topUsdtPerpsByQuoteVolume", 1, 5),
         history: HistoricalSimulation {
             label: "historicalSimulation",
@@ -969,6 +1045,7 @@ pub fn grid_neutral_tight() -> Preset {
             open_deals_at_data_end: 0,
             liquidations: 0,
             stopped_deals: 891,
+            recheck: None,
         },
     }
 }
@@ -995,7 +1072,7 @@ pub fn grid_long_trail() -> Preset {
                 max_duration_min: Some(43200),
             }),
         ),
-        capital_model: "onePersistentBotPerSymbol",
+        capital_model: CAPITAL_MODEL,
         universe: template_universe("topUsdtPerpsByQuoteVolume", 1, 5),
         history: HistoricalSimulation {
             label: "historicalSimulation",
@@ -1046,6 +1123,7 @@ pub fn grid_long_trail() -> Preset {
             open_deals_at_data_end: 4,
             liquidations: 0,
             stopped_deals: 98,
+            recheck: None,
         },
     }
 }
@@ -1072,7 +1150,7 @@ pub fn grid_short() -> Preset {
                 max_duration_min: Some(20160),
             }),
         ),
-        capital_model: "onePersistentBotPerSymbol",
+        capital_model: CAPITAL_MODEL,
         universe: template_universe("topUsdtPerpsByQuoteVolume", 1, 5),
         history: HistoricalSimulation {
             label: "historicalSimulation",
@@ -1123,6 +1201,7 @@ pub fn grid_short() -> Preset {
             open_deals_at_data_end: 3,
             liquidations: 0,
             stopped_deals: 264,
+            recheck: None,
         },
     }
 }
@@ -1193,6 +1272,25 @@ mod tests {
     }
 
     #[test]
+    fn the_october_recheck_is_carried_by_classic_and_safe_only() {
+        // Owner decision 2026-10-09 (option b): the two templates stay, marked
+        // under review with October-to-date, until the 1 Nov re-read.
+        for p in all() {
+            match p.id {
+                "dca_long_classic" | "dca_long_safe" => {
+                    let r = p.history.recheck.as_ref().expect("recheck");
+                    assert_eq!((r.test_window_end, r.next_read), ("2026-09-27", "2026-11-01"));
+                    assert!(r.partial_month_mean_pct < 0.0);
+                    assert_eq!(p.verdict, "presetReady");
+                }
+                _ => assert!(p.history.recheck.is_none(), "{}", p.id),
+            }
+        }
+        let test = |id: &str| all().into_iter().find(|p| p.id == id).unwrap().history.splits[2].mean_per_bot_month_pct;
+        assert_eq!((test("dca_long_classic"), test("dca_long_safe")), (1.90, 1.45));
+    }
+
+    #[test]
     fn dca_long_classic_is_outside_the_portfolio_breaker() {
         let p = dca_long_classic();
         assert!(!p.config.portfolio_breaker, "simulated without a breaker (decision 2026-10-01)");
@@ -1219,6 +1317,50 @@ mod tests {
         v.as_object_mut().unwrap().remove("portfolioBreaker");
         let cfg: StrategyConfig = serde_json::from_value(v).unwrap();
         assert!(cfg.portfolio_breaker, "old rows keep today's behaviour");
+    }
+
+    /// Audit 8 Oct: the headline numbers are per bot-month (a new bot each
+    /// month), never one persistent bot.
+    #[test]
+    fn every_template_states_the_bot_month_capital_model() {
+        for p in all() {
+            assert_eq!(p.capital_model, "botPerSymbolMonth", "{}", p.id);
+        }
+    }
+
+    /// Provenance follows the settings: an edit or a clone that leaves the
+    /// simulated settings drops the preset id, a rename or budget does not.
+    #[test]
+    fn provenance_holds_only_while_the_simulated_settings_hold() {
+        let mut cfg = dca_long_classic().config;
+        cfg.symbol = "ETHUSDT".into();
+        assert!(keeps_provenance(&cfg));
+        let mut renamed = cfg.clone();
+        renamed.name = "Mine".into();
+        renamed.budget = 200.0;
+        assert!(keeps_provenance(&renamed));
+        let mut lev = cfg.clone();
+        lev.leverage = 2;
+        assert!(!keeps_provenance(&lev));
+        let mut breaker = cfg.clone();
+        breaker.portfolio_breaker = true;
+        assert!(!keeps_provenance(&breaker));
+        let mut tp = cfg.clone();
+        if let StrategyParams::Dca(p) = &mut tp.params {
+            p.tp_pct = 1.0;
+        }
+        assert!(!keeps_provenance(&tp));
+        let mut unknown = cfg.clone();
+        unknown.preset_id = Some("nope".into());
+        assert!(!keeps_provenance(&unknown));
+        unknown.preset_id = None;
+        assert!(!keeps_provenance(&unknown));
+        // a BTC-only template holds on BTCUSDT only
+        let mut btc = dca_long_btc().config;
+        btc.symbol = "ETHUSDT".into();
+        assert!(!keeps_provenance(&btc));
+        btc.symbol = "BTCUSDT".into();
+        assert!(keeps_provenance(&btc));
     }
 
     /// Preset parity lives in the form (`matchesPreset`): the flag is part of

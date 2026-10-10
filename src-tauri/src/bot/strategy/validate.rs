@@ -167,21 +167,23 @@ fn validate_dca(cfg: &StrategyConfig, p: &DcaParams) -> V {
         "budget",
     )?;
     let smallest = sos.iter().copied().fold(bo, f64::min);
-    need(smallest >= MIN_ORDER_NOTIONAL, "budgetBelowMinNotional", "budget")?;
+    // Weight form: the budget scales every order, so the budget is the fix.
+    // Fixed sizes: the budget changes no order; the small order is.
+    let min_field = if !notional_form {
+        "budget"
+    } else if bo <= smallest {
+        "baseOrder"
+    } else {
+        "safetyOrder"
+    };
+    need(smallest >= MIN_ORDER_NOTIONAL, "budgetBelowMinNotional", min_field)?;
     // The last safety order must sit inside the liquidation price of the
     // fully filled ladder (0.5% margin), or averaging down ends in a
     // liquidation the user never saw.
     let costs = CostModel::for_market(cfg.market);
     let rungs = dca::build_ladder(p, 100.0, s, cfg.budget, lev, costs.slippage, costs.mmr);
-    let beyond = |price: f64, liq: f64| {
-        if s > 0.0 {
-            price <= liq * 1.005
-        } else {
-            price >= liq * 0.995
-        }
-    };
     if let (Some(last), Some(liq)) = (rungs.last(), rungs.last().and_then(|r| r.liq_price)) {
-        need(!beyond(last.price, liq), "ladderBeyondLiquidation", "maxSo")?;
+        need(!beyond_liq(last.price, liq, s), "ladderBeyondLiquidation", "maxSo")?;
     }
     // Every safety order must also be reached before the liquidation price
     // of the position held up to it: margin grows with each fill, so the
@@ -189,20 +191,98 @@ fn validate_dca(cfg: &StrategyConfig, p: &DcaParams) -> V {
     // the base alone liquidates near -19.6%, before the SO can fill).
     for w in rungs.windows(2) {
         if let Some(liq) = w[0].liq_price {
-            need(!beyond(w[1].price, liq), "ladderBeyondLiquidation", "maxSo")?;
+            need(!beyond_liq(w[1].price, liq, s), "ladderBeyondLiquidation", "maxSo")?;
         }
     }
-    // The stop follows the average entry. If the stop of the position held
-    // up to a rung sits at or past the next safety order, the stop fires
-    // before that order can fill and the rest of the ladder is dead weight.
     if let Some(sl) = p.sl_pct {
-        for w in rungs.windows(2) {
-            let stop = dca::sl_price(w[0].avg_entry, sl, s);
-            let reached_first = if s > 0.0 { stop >= w[1].price } else { stop <= w[1].price };
-            need(!reached_first, "slInsideLadder", "slPct")?;
+        if let Some(code) = sl_refusal(&rungs, sl, s) {
+            return Err(StrategyError::new(code, "slPct"));
         }
     }
     Ok(())
+}
+
+/// A price at or past the liquidation price, with a 0.5% margin.
+fn beyond_liq(price: f64, liq: f64, s: f64) -> bool {
+    if s > 0.0 {
+        price <= liq * 1.005
+    } else {
+        price >= liq * 0.995
+    }
+}
+
+/// The stop loss against every rung of the ladder (None = it fits).
+fn sl_refusal(rungs: &[LadderRung], sl: f64, s: f64) -> Option<&'static str> {
+    // The stop follows the average entry. If the stop of the position held
+    // up to a rung sits at or past the next safety order, the stop fires
+    // before that order can fill and the rest of the ladder is dead weight.
+    for w in rungs.windows(2) {
+        let stop = dca::sl_price(w[0].avg_entry, sl, s);
+        let reached_first = if s > 0.0 { stop >= w[1].price } else { stop <= w[1].price };
+        if reached_first {
+            return Some("slInsideLadder");
+        }
+    }
+    // A stop at or past the liquidation price of the position held at any
+    // rung never fires: the liquidation is reached first and the whole
+    // margin is gone (5x, no SO, SL 30%: liquidation near -19.6%).
+    for r in rungs {
+        if let Some(liq) = r.liq_price {
+            if beyond_liq(dca::sl_price(r.avg_entry, sl, s), liq, s) {
+                return Some("slBeyondLiquidation");
+            }
+        }
+    }
+    None
+}
+
+/// The stop loss the form proposes when it is switched on: the coverage +
+/// 5% rule, or the nearest whole % that fits every rung (inside the next
+/// safety order, before the liquidation price); None when no stop fits.
+pub fn suggested_sl_pct(cfg: &StrategyConfig, p: &DcaParams) -> Option<f64> {
+    let s = side_sign(cfg.side);
+    let lev = f64::from(cfg.leverage.max(1));
+    let costs = CostModel::for_market(cfg.market);
+    let rungs = dca::build_ladder(p, 100.0, s, cfg.budget.max(1.0), lev, costs.slippage, costs.mmr);
+    let coverage = dca::deviations(p).last().copied().unwrap_or(0.0);
+    let start = (coverage + 5.0).round().clamp(1.0, 90.0);
+    let fits = |sl: f64| sl_refusal(&rungs, sl, s).is_none();
+    let below = (1..=start as u32).rev().map(f64::from);
+    let above = (start as u32 + 1..=99).map(f64::from);
+    below.chain(above).find(|sl| fits(*sl))
+}
+
+/// The smallest budget at which every order clears the exchange minimum
+/// (rounded up to the cent), or None when the budget cannot fix it: fixed
+/// DCA sizes do not scale with the budget, so their minimum is the capital
+/// the ladder reserves, and only when its smallest order clears the minimum.
+pub fn min_budget(cfg: &StrategyConfig) -> Option<f64> {
+    let lev = f64::from(cfg.leverage.max(1));
+    let cents = |v: f64| (v.is_finite() && v > 0.0).then(|| (v * 100.0).ceil() / 100.0);
+    // Orders are linear in the budget: measure at a reference budget, never
+    // at the config's own (it may be 0 or invalid while being typed).
+    const REF: f64 = 1000.0;
+    let per_ref = |smallest: f64| (smallest.is_finite() && smallest > 0.0).then(|| MIN_ORDER_NOTIONAL * REF / smallest);
+    match &cfg.params {
+        StrategyParams::Dca(p) => {
+            if p.base_order.is_some() || p.safety_order.is_some() {
+                let (bo, sos) = dca::ladder_notionals(p, cfg.budget, lev, 1.0);
+                let smallest = sos.iter().copied().fold(bo, f64::min);
+                (smallest >= MIN_ORDER_NOTIONAL).then(|| dca::required_capital(bo, &sos, lev)).and_then(cents)
+            } else {
+                let (bo, sos) = dca::ladder_notionals(p, REF, lev, 1.0);
+                per_ref(sos.iter().copied().fold(bo, f64::min)).and_then(cents)
+            }
+        }
+        StrategyParams::Grid(p) => {
+            let (lower, upper, _) = grid_reference(p);
+            if !(lower > 0.0 && lower < upper) || p.n_grids < 1 {
+                return None;
+            }
+            let lv = grid::levels(lower, upper, p.n_grids, p.spacing);
+            per_ref(grid::qty_per_level(REF, lev, &lv) * lv[0]).and_then(cents)
+        }
+    }
 }
 
 /// Grid range at a reference start price (relative ranges are scale-free).
@@ -355,11 +435,15 @@ pub struct DcaPreview {
     /// Distance from the last safety order to that liquidation price, %.
     pub liq_distance_pct: Option<f64>,
     pub total_notional: f64,
-    /// Loss of the fully filled ladder at the stop (or the margin at
-    /// liquidation); None when neither exists.
+    /// Loss of the fully filled ladder at whichever exit comes first: the
+    /// stop loss, the bot drawdown stop, or the margin at liquidation; None
+    /// when none exists.
     pub worst_loss_quote: Option<f64>,
-    /// "sl" | "liq" | "none".
+    /// "sl" | "ddStop" | "liq" | "none".
     pub worst_loss_basis: &'static str,
+    /// The stop loss the form proposes when it is switched on (None: no
+    /// stop fits this ladder at this leverage).
+    pub suggested_sl_pct: Option<f64>,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -400,6 +484,9 @@ pub struct PreviewDto {
     pub reference_price: f64,
     /// Margin the bot reserves (full DCA ladder / whole grid budget).
     pub required_capital: f64,
+    /// Smallest budget at which every order clears the exchange minimum
+    /// (`min_budget`); None when the budget cannot fix the orders.
+    pub min_budget: Option<f64>,
     /// Fees, slippage and maintenance margin the simulation charges.
     pub costs: CostModel,
     pub dca: Option<DcaPreview>,
@@ -422,6 +509,9 @@ pub fn preview(cfg: &StrategyConfig, price: f64, max_leverage: u8) -> PreviewDto
     if cfg.max_drawdown_pct.is_none() {
         warnings.push("noDrawdownStop");
     }
+    // The bot drawdown stop also limits the loss (a price level inside the
+    // bar, and a check at every bar close).
+    let dd_pct = cfg.max_drawdown_pct.filter(|d| d.is_finite() && *d > 0.0);
     match &cfg.params {
         StrategyParams::Dca(p) => {
             let s = side_sign(cfg.side);
@@ -431,15 +521,32 @@ pub fn preview(cfg: &StrategyConfig, price: f64, max_leverage: u8) -> PreviewDto
             let liq = last.as_ref().and_then(|r| r.liq_price);
             let last_so_price = (p.max_so > 0).then(|| last.as_ref().map(|r| r.price)).flatten();
             let total_notional = bo + sos.iter().sum::<f64>();
-            let (worst_loss_quote, basis) = match (p.sl_pct, liq) {
-                (Some(sl), _) => (Some(total_notional * sl / 100.0 + total_notional * (costs.taker + costs.slippage)), "sl"),
-                (None, Some(_)) => (Some(total_notional / lev), "liq"),
-                (None, None) => (None, "none"),
+            let exit_cost = total_notional * (costs.taker + costs.slippage);
+            // A stop at or past the liquidation price never fires (validate
+            // refuses it; the preview still shows what would happen).
+            let sl_past_liq = |sl: f64| {
+                rungs
+                    .iter()
+                    .any(|r| r.liq_price.is_some_and(|l| beyond_liq(dca::sl_price(r.avg_entry, sl, s), l, s)))
             };
+            // Whichever exit comes first bounds the loss: the smallest one.
+            let candidates = [
+                p.sl_pct
+                    .filter(|sl| !sl_past_liq(*sl))
+                    .map(|sl| (total_notional * sl / 100.0 + exit_cost, "sl")),
+                dd_pct.map(|dd| (dd / 100.0 * cfg.budget + exit_cost, "ddStop")),
+                liq.map(|_| (total_notional / lev, "liq")),
+            ];
+            let (worst_loss_quote, basis) = candidates
+                .into_iter()
+                .flatten()
+                .min_by(|a, b| a.0.total_cmp(&b.0))
+                .map_or((None, "none"), |(v, b)| (Some(v), b));
             if p.sl_pct.is_none() {
-                warnings.push("noStopLoss");
+                warnings.push(if dd_pct.is_some() { "ddStopOnly" } else { "noStopLoss" });
             }
             DcaPreview {
+                suggested_sl_pct: suggested_sl_pct(cfg, p),
                 liq_distance_pct: match (last_so_price, liq) {
                     (Some(so), Some(l)) => Some((l / so - 1.0).abs() * 100.0),
                     _ => None,
@@ -486,7 +593,7 @@ pub fn preview(cfg: &StrategyConfig, price: f64, max_leverage: u8) -> PreviewDto
                 })
                 .collect();
             if p.stop_out_pct.is_none() {
-                warnings.push("noStopOut");
+                warnings.push(if dd_pct.is_some() { "ddStopOnly" } else { "noStopOut" });
             }
             // A relative range is validated scale-free, so its trail limit can
             // only be compared with the band once a price is known.
@@ -538,6 +645,7 @@ impl IntoDto for DcaPreview {
             kind: StrategyKind::Dca,
             reference_price: price,
             required_capital: required,
+            min_budget: min_budget(cfg),
             costs: CostModel::for_market(cfg.market),
             dca: Some(self),
             grid: None,
@@ -553,6 +661,7 @@ impl IntoDto for GridPreview {
             kind: StrategyKind::Grid,
             reference_price: price,
             required_capital: required,
+            min_budget: min_budget(cfg),
             costs: CostModel::for_market(cfg.market),
             dca: None,
             grid: Some(self),
@@ -841,6 +950,154 @@ mod tests {
         let mut ok = mk(Side::Long);
         ok.leverage = 2;
         assert_eq!(code(&ok, 5), None);
+    }
+
+    /// Audit 8 Oct: 5x, no SO, SL 30% was accepted; the liquidation near
+    /// -19.6% came first, the stop never fired and the bot ended at -1002.50.
+    #[test]
+    fn a_stop_loss_past_the_liquidation_price_is_refused() {
+        let mk = |sl: f64| {
+            let mut c = with_dca(|p| {
+                p.max_so = 0;
+                p.sl_pct = Some(sl);
+            });
+            c.leverage = 5;
+            c
+        };
+        assert_eq!(validate(&mk(30.0), 5), Err(StrategyError::new("slBeyondLiquidation", "slPct")));
+        assert_eq!(code(&mk(15.0), 5), None);
+        // The preview no longer calls the stop the worst case: liquidation
+        // comes first and takes the whole margin.
+        let pv = preview(&mk(30.0), 100.0, 5);
+        let d = pv.dca.unwrap();
+        assert_eq!(d.worst_loss_basis, "liq");
+        assert!((d.worst_loss_quote.unwrap() - d.total_notional / 5.0).abs() < 1e-9);
+        assert_eq!(preview(&mk(15.0), 100.0, 5).dca.unwrap().worst_loss_basis, "sl");
+        // A short at 1x is liquidated near 2x its average: a 99.5% stop sits past it.
+        let mut short = with_dca(|p| p.sl_pct = Some(99.5));
+        short.side = Side::Short;
+        short.leverage = 1;
+        assert_eq!(code(&short, 2), Some("slBeyondLiquidation"));
+    }
+
+    /// The form's old toggle default (coverage + 5) landed past the
+    /// liquidation for both passed templates at 2x; the suggestion must fit.
+    #[test]
+    fn the_suggested_stop_loss_always_validates() {
+        use crate::bot::strategy::presets;
+        for p in presets::all() {
+            let mut cfg = p.config.clone();
+            cfg.symbol = "BTCUSDT".into();
+            for lev in [1u8, 2, 3, 5] {
+                cfg.leverage = lev;
+                let StrategyParams::Dca(dp) = &cfg.params else { continue };
+                if validate(&cfg, 20).is_err() {
+                    continue; // the ladder itself does not fit this leverage
+                }
+                let Some(sl) = suggested_sl_pct(&cfg, dp) else { continue };
+                let mut with_sl = cfg.clone();
+                if let StrategyParams::Dca(q) = &mut with_sl.params {
+                    q.sl_pct = Some(sl);
+                }
+                assert_eq!(validate(&with_sl, 20), Ok(()), "{} at {lev}x, SL {sl}", p.id);
+            }
+        }
+        let mut classic = presets::dca_long_classic().config;
+        classic.symbol = "BTCUSDT".into();
+        classic.leverage = 2;
+        let StrategyParams::Dca(dp) = &classic.params else { unreachable!() };
+        let old_default = (dca::deviations(dp).last().unwrap() + 5.0).round().min(90.0);
+        let mut past = classic.clone();
+        if let StrategyParams::Dca(q) = &mut past.params {
+            q.sl_pct = Some(old_default);
+        }
+        assert_eq!(code(&past, 2), Some("slBeyondLiquidation"), "65% at 2x");
+        let sl = suggested_sl_pct(&classic, dp).expect("a stop fits classic at 2x");
+        assert!(sl < old_default, "{sl}");
+    }
+
+    /// Fresh install: the cap is 200 USDT; dca_long_safe needs 218.10.
+    #[test]
+    fn the_minimum_budget_is_the_budget_where_every_order_clears_5_usdt() {
+        use crate::bot::strategy::presets;
+        let near = |id: &str, want: f64| {
+            let p = presets::all().into_iter().find(|p| p.id == id).unwrap();
+            let got = min_budget(&p.config).unwrap();
+            assert!((got - want).abs() < 0.011, "{id}: {got}");
+        };
+        near("dca_long_safe", 218.10);
+        near("dca_long_classic", 176.98);
+        for p in presets::all() {
+            let mut cfg = p.config.clone();
+            cfg.symbol = "BTCUSDT".into();
+            let min = min_budget(&cfg).expect(p.id);
+            // at the minimum it passes, a cent below it is refused
+            cfg.budget = min;
+            assert_eq!(validate(&cfg, 2), Ok(()), "{} at {min}", p.id);
+            cfg.budget = min - 0.01;
+            assert_eq!(code(&cfg, 2), Some("budgetBelowMinNotional"), "{} below {min}", p.id);
+            // a budget of 0 being typed does not break the figure
+            cfg.budget = 0.0;
+            assert_eq!(min_budget(&cfg), Some(min), "{}", p.id);
+        }
+        // a grid
+        let mut g = grid_cfg();
+        let min = min_budget(&g).unwrap();
+        g.budget = min;
+        assert_eq!(code(&g, 2), None);
+        g.budget = min - 0.01;
+        assert_eq!(code(&g, 2), Some("budgetBelowMinNotional"));
+        // fixed sizes: the budget is not the fix, the small order is
+        assert_eq!(min_budget(&dca_cfg()), Some(300.0), "the ladder's own capital");
+        let small = with_dca(|p| p.base_order = Some(4.0));
+        assert_eq!(min_budget(&small), None);
+        assert_eq!(validate(&small, 2), Err(StrategyError::new("budgetBelowMinNotional", "baseOrder")));
+        let small = with_dca(|p| p.safety_order = Some(4.0));
+        assert_eq!(validate(&small, 2), Err(StrategyError::new("budgetBelowMinNotional", "safetyOrder")));
+        assert_eq!(preview(&dca_cfg(), 100.0, 2).min_budget, Some(300.0));
+    }
+
+    #[test]
+    fn the_preview_counts_the_bot_drawdown_stop() {
+        use crate::bot::strategy::commands::default_config;
+        use crate::bot::strategy::model::StrategyKind;
+        let c = default_config(StrategyKind::Dca, "binance".into(), "BTCUSDT".into());
+        assert_eq!(c.max_drawdown_pct, Some(25.0));
+        let pv = preview(&c, 100.0, 2);
+        let d = pv.dca.as_ref().unwrap();
+        assert_eq!(d.worst_loss_basis, "ddStop");
+        let costs = CostModel::for_market(c.market);
+        let want = 250.0 + d.total_notional * (costs.taker + costs.slippage);
+        assert!((d.worst_loss_quote.unwrap() - want).abs() < 1e-9);
+        assert!(pv.warnings.contains(&"ddStopOnly"));
+        assert!(!pv.warnings.contains(&"noStopLoss"));
+        // a tighter stop loss binds first
+        let mut sl = c.clone();
+        if let StrategyParams::Dca(p) = &mut sl.params {
+            p.sl_pct = suggested_sl_pct(&c, p);
+        }
+        let d = preview(&sl, 100.0, 2).dca.unwrap();
+        let slv = match &sl.params {
+            StrategyParams::Dca(p) => p.sl_pct.unwrap(),
+            _ => unreachable!(),
+        };
+        if d.total_notional * slv / 100.0 < 250.0 {
+            assert_eq!(d.worst_loss_basis, "sl");
+        }
+        // no drawdown stop: the old wording holds
+        let mut none = c.clone();
+        none.max_drawdown_pct = None;
+        let pv = preview(&none, 100.0, 2);
+        assert_eq!(pv.dca.unwrap().worst_loss_basis, "none");
+        assert!(pv.warnings.contains(&"noStopLoss"));
+        // grid: the stop-out warning gives way the same way
+        let mut g = default_config(StrategyKind::Grid, "binance".into(), "BTCUSDT".into());
+        if let StrategyParams::Grid(p) = &mut g.params {
+            p.stop_out_pct = None;
+        }
+        assert!(preview(&g, 100.0, 2).warnings.contains(&"ddStopOnly"));
+        g.max_drawdown_pct = None;
+        assert!(preview(&g, 100.0, 2).warnings.contains(&"noStopOut"));
     }
 
     #[test]

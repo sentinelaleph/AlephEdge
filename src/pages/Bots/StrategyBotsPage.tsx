@@ -14,6 +14,8 @@ import { SkeletonRows } from "./SkeletonRows";
 import { StrategyBotsTable } from "./strategy/StrategyBotsTable";
 import { StrategyRiskPanel } from "./strategy/StrategyRiskPanel";
 import { useStrategyActions } from "./strategy/useStrategyActions";
+import { MarketTrendPanel } from "@/components/Desk/MarketTrend";
+import { modeKey } from "./BotNewPage";
 
 /**
  * #/bots/dca and #/bots/grid. PAPER ONLY. Rows come from Rust's
@@ -22,7 +24,8 @@ import { useStrategyActions } from "./strategy/useStrategyActions";
 export function StrategyBotsPage({ kind }: { kind: StrategyKind }) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
-  const { strategy } = useDeskContext();
+  const { strategy, desk } = useDeskContext();
+  const liveBuild = desk.loaded && desk.status.liveTradingEnabled;
   const actions = useStrategyActions();
   const [exported, setExported] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -42,6 +45,7 @@ export function StrategyBotsPage({ kind }: { kind: StrategyKind }) {
   const total = rows ? rows.reduce((s, b) => s + (b.equity - b.budget), 0) : 0;
   const right = (
     <>
+      <MarketTrendPanel />
       <Panel title={t(`botsList.${kind}.facts`)}>
         <FactList
           rows={[
@@ -54,7 +58,9 @@ export function StrategyBotsPage({ kind }: { kind: StrategyKind }) {
               value: rows ? formatSignedUsdt(total, locale) : NO_VALUE,
               tone: rows ? pnlToneAttr(total) : undefined,
             },
-            { label: t("botsList.liveOrders"), value: t("botsList.liveNotAvailable"), tone: "muted" },
+            liveBuild
+              ? { label: t("botsList.liveOrders"), value: t(modeKey(true)) }
+              : { label: t("table.mode"), value: t(modeKey(false)) },
           ]}
         />
       </Panel>
@@ -95,7 +101,7 @@ export function StrategyBotsPage({ kind }: { kind: StrategyKind }) {
       ) : rows.length === 0 ? (
         <EmptyState
           title={t(`botsList.${kind}.empty`)}
-          detail={t("botsList.paperOnlyLine")}
+          detail={t(liveBuild ? "strategy.live.listLine" : modeKey(false))}
           actions={
             <Button variant="secondary" size="sm" onClick={() => navigate(`/presets?type=${kind}`)}>
               {t(`botsList.${kind}.presets`)}

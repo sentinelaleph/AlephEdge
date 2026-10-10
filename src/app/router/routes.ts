@@ -23,6 +23,7 @@ export type RouteId =
   | "backtest"
   | "backtestReport"
   | "guide"
+  | "faq"
   | "positions"
   | "history"
   | "accounts"
@@ -54,6 +55,7 @@ export const ROUTES: RouteDef[] = [
   { id: "backtestReport", pattern: "/backtest/:runId", titleKey: "page.backtestReport" },
   { id: "backtest", pattern: "/backtest", titleKey: "nav.backtest" },
   { id: "guide", pattern: "/guide", titleKey: "nav.guide" },
+  { id: "faq", pattern: "/faq", titleKey: "nav.faq" },
   { id: "positions", pattern: "/positions", titleKey: "nav.positions" },
   { id: "history", pattern: "/history", titleKey: "nav.history" },
   { id: "accounts", pattern: "/accounts", titleKey: "nav.accounts" },

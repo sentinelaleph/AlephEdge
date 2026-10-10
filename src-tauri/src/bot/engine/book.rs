@@ -2,6 +2,8 @@
 //! recording closes, and persisting open positions to SQLite so a restart
 //! does not orphan them.
 
+use std::collections::HashSet;
+
 use tauri::{AppHandle, Manager};
 
 use crate::exchange::ExchangeManager;
@@ -49,7 +51,20 @@ pub async fn close_phase(app: &AppHandle) {
         let max_loss = bots.config_for(pos.bot_kind).and_then(|c| c.max_loss_pct);
         let invalidated = signals.is_invalidated(&pos.signal_id);
         let had_partial = pos.partial_price.is_some();
-        let step = management::close_step(&mut pos, price, now_ms(), invalidated, max_loss);
+        let now = now_ms();
+        // Paper books stops and targets at their level (management::Fill);
+        // a live position's exit is recorded from its real fills.
+        let fill = if pos.is_live() {
+            management::Fill::Polled
+        } else {
+            management::Fill::Levels {
+                watched: bots.watched_recently(&pos.signal_id, pos.bot_kind, now),
+            }
+        };
+        let step = management::close_step_with(&mut pos, price, now, invalidated, max_loss, fill);
+        if step.exit.is_none() {
+            bots.mark_watched(&pos.signal_id, pos.bot_kind, now);
+        }
 
         if step.note_invalidation {
             bots.skip_once(
@@ -233,10 +248,26 @@ async fn close_one_on_veto(
     }
 }
 
-/// Adds a freshly opened position to memory and the store.
+/// Adds a freshly opened position to memory and the store. Its fill is the
+/// first observation of its price.
 pub fn open_position(app: &AppHandle, pos: OpenPosition) {
     persist_position(app, &pos);
-    app.state::<BotManager>().add_position(pos);
+    let bots = app.state::<BotManager>();
+    bots.mark_watched(&pos.signal_id, pos.bot_kind, now_ms());
+    bots.add_position(pos);
+}
+
+/// `open_position` for a manual entry: added only when the bot holds
+/// neither this signal nor its symbol at that instant (one lock), then
+/// persisted. False = nothing opened.
+pub fn open_position_if_free(app: &AppHandle, pos: OpenPosition) -> bool {
+    let bots = app.state::<BotManager>();
+    if !bots.add_position_if_free(pos.clone()) {
+        return false;
+    }
+    bots.mark_watched(&pos.signal_id, pos.bot_kind, now_ms());
+    persist_position(app, &pos);
+    true
 }
 
 /// Records a simulated close at `exit`, then removes the position.
@@ -244,19 +275,19 @@ fn close_position(app: &AppHandle, pos: &OpenPosition, exit: f64, reason: &str) 
     close_with_record(app, pos, &trade_record(pos, exit, reason, now_ms()));
 }
 
-/// Persists `record`, then removes the position from memory and the store.
+/// Persists `record` and deletes the position's row in one transaction, then
+/// removes the position from memory.
 pub(crate) fn close_with_record(app: &AppHandle, pos: &OpenPosition, record: &TradeRecord) {
     let bots = app.state::<BotManager>();
     // The position is already flat (simulated or on the exchange), so it
     // leaves the book either way; a storage failure is surfaced instead of
     // swallowed, because the kill switch reads today's loss from that table.
+    // On a failed write neither row changed: the position row stays, and the
+    // next start restores and closes it again rather than losing the trade.
     match app.path().app_data_dir() {
         Ok(dir) => {
             let store = app.state::<StoreManager>();
-            if let Err(e) = store.record_trade(&dir, record) {
-                bots.push_skip(&pos.symbol, "storeWriteFailed", Some(e));
-            }
-            if let Err(e) = store.delete_position(&dir, &pos.signal_id, pos.bot_kind.as_str()) {
+            if let Err(e) = store.settle_close(&dir, record, &pos.signal_id, pos.bot_kind.as_str()) {
                 bots.push_skip(&pos.symbol, "storeWriteFailed", Some(e));
             }
         }
@@ -292,26 +323,96 @@ fn persist_position(app: &AppHandle, pos: &OpenPosition) {
     }
 }
 
-/// Positions persisted by a previous run. Rows that no longer parse are
-/// skipped rather than failing the whole restore.
-pub fn load_positions(app: &AppHandle) -> Vec<OpenPosition> {
+/// What restore found in the open-position table.
+#[derive(Default)]
+pub struct RestoredBook {
+    pub positions: Vec<OpenPosition>,
+    /// Bots with a real-money row this live build could not read: their real
+    /// position is unknown to the book, so they are not resumed.
+    pub live_unreadable: HashSet<BotKind>,
+}
+
+/// Positions persisted by a previous run. Nothing is dropped without a note:
+/// a row that no longer parses is named in the feed and left in the store
+/// for a build that can read it, and a row whose close is already in the
+/// trade table (the process ended between the two writes of an older build)
+/// is removed instead of being closed a second time.
+pub fn load_positions(app: &AppHandle) -> RestoredBook {
+    let mut out = RestoredBook::default();
     let Ok(dir) = app.path().app_data_dir() else {
-        return Vec::new();
+        return out;
     };
-    app.state::<StoreManager>()
-        .load_positions(&dir)
-        .unwrap_or_default()
-        .iter()
-        .filter_map(|body| serde_json::from_str::<OpenPosition>(body).ok())
-        // Positions are persisted as raw JSON, so `live` arrives from a file
-        // any local process can edit. Drop it at the boundary while the master
-        // switch is off: a tampered row then cannot even enter the book as
-        // live, on top of the `is_live()` gate every path reads (2026-09-20).
-        .map(|mut pos| {
-            if !LIVE_TRADING_ENABLED {
-                pos.live = false;
+    let bots = app.state::<BotManager>();
+    let store = app.state::<StoreManager>();
+    let rows = match store.load_positions(&dir) {
+        Ok(rows) => rows,
+        Err(e) => {
+            bots.push_skip("—", "storeReadFailed", Some(e));
+            return out;
+        }
+    };
+    for (signal_id, kind, body) in rows {
+        let pos = match serde_json::from_str::<OpenPosition>(&body) {
+            Ok(pos) => pos,
+            Err(_) => {
+                let live = row_may_be_live(&body);
+                let key = if live { "restoreLiveBlocked" } else { "restoreRowUnreadable" };
+                bots.push_skip("—", key, Some(format!("{kind} {signal_id}")));
+                if live && LIVE_TRADING_ENABLED {
+                    if let Some(k) = BotKind::parse(&kind) {
+                        out.live_unreadable.insert(k);
+                    }
+                }
+                continue;
             }
-            pos
-        })
-        .collect()
+        };
+        // A build without the `live` feature never manages a real position.
+        // It used to load the row with `live` cleared, which made the paper
+        // engine "close" a real position on paper and forget it while it stayed
+        // open on Binance (audit 2026-10-04, H1). The row is now left out of
+        // the book and left in the store untouched, so a live build picks it
+        // up again; the Exchange tab still shows the real position.
+        if pos.live && !LIVE_TRADING_ENABLED {
+            eprintln!(
+                "real position {} {} kept out of the book: this build cannot trade live",
+                pos.symbol, pos.signal_id
+            );
+            continue;
+        }
+        match store.is_settled(&dir, &pos.signal_id, pos.bot_kind.as_str(), pos.opened_at) {
+            Ok(true) => {
+                if let Err(e) = store.delete_position(&dir, &pos.signal_id, pos.bot_kind.as_str()) {
+                    bots.push_skip(&pos.symbol, "storeWriteFailed", Some(e));
+                }
+                bots.push_skip(&pos.symbol, "settledPositionDropped", None);
+                continue;
+            }
+            Ok(false) => {}
+            // Unknown: keep managing it (a missed close costs more than a
+            // possible second record of one).
+            Err(e) => bots.push_skip(&pos.symbol, "storeReadFailed", Some(e)),
+        }
+        out.positions.push(pos);
+    }
+    out
+}
+
+/// Whether an unreadable position row may hold real money: its `live` flag
+/// when the JSON still parses, otherwise yes (fail closed).
+fn row_may_be_live(body: &str) -> bool {
+    serde_json::from_str::<serde_json::Value>(body)
+        .map_or(true, |v| v.get("live").and_then(serde_json::Value::as_bool).unwrap_or(false))
+}
+
+#[cfg(test)]
+mod restore_tests {
+    use super::row_may_be_live;
+
+    #[test]
+    fn an_unreadable_row_counts_as_live_unless_it_says_paper() {
+        assert!(row_may_be_live(r#"{"live":true,"entry":"x"}"#));
+        assert!(!row_may_be_live(r#"{"live":false,"entry":"x"}"#));
+        assert!(!row_may_be_live(r#"{"entry":"x"}"#), "rows from before live existed are paper");
+        assert!(row_may_be_live("{not json"));
+    }
 }

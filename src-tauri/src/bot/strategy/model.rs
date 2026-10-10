@@ -389,9 +389,12 @@ impl ExitReason {
         .find(|r| r.as_str() == s)
     }
 
-    /// Protective exits win the intrabar tie (botsim rule 4).
+    /// Protective exits win the intrabar tie (botsim rule 4). The per-bot
+    /// drawdown stop is one too: it rests as a stop level inside the bar
+    /// (and on the exchange), so a bar touching it and the take profit
+    /// books the stop, adverse first, like a stop loss.
     pub fn is_protective(self) -> bool {
-        matches!(self, ExitReason::Sl | ExitReason::Stop | ExitReason::Liq)
+        matches!(self, ExitReason::Sl | ExitReason::Stop | ExitReason::Liq | ExitReason::Ddstop)
     }
 
     /// Stops that `RestartPolicy::after_stop` governs.

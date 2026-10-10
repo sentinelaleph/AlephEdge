@@ -7,7 +7,8 @@
 //!    held at the open first (long: low, short: high, flat: low).
 //! 2. The move from the previous close to this open is a gap leg.
 //! 3. Protective exits win: when walking the harmful extreme first triggers a
-//!    stop, stop-out or liquidation, that walk is committed.
+//!    stop, stop-out, liquidation or the bot drawdown stop, that walk is
+//!    committed.
 
 use std::cmp::Ordering;
 
@@ -54,10 +55,11 @@ pub fn gap_leg(prev_close: Option<f64>, open: f64) -> Option<(f64, f64)> {
 /// A cycle that can be walked through a bar.
 pub trait Walker: Clone {
     fn exposure(&self) -> i8;
-    /// Whether any protective exit (stop, stop-out, liquidation) exists.
+    /// Whether any protective exit (stop, stop-out, liquidation, drawdown
+    /// stop) exists.
     fn can_protect(&self) -> bool;
     fn is_open(&self) -> bool;
-    /// Closed by a stop, stop-out or liquidation.
+    /// Closed by a stop, stop-out, liquidation or drawdown stop.
     fn closed_protectively(&self) -> bool;
     /// One monotone leg; `gap` marks the previous-close-to-open jump.
     fn seg(&mut self, from: f64, to: f64, gap: bool);

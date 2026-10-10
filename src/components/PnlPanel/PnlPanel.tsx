@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber/AnimatedNumber";
-import { LiveChip } from "@/components/ui/Chip/Chip";
+import { LiveChip, ManualChip } from "@/components/ui/Chip/Chip";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState/EmptyState";
 import { KpiGrid } from "@/components/ui/KpiGrid/KpiGrid";
@@ -105,6 +105,7 @@ export function PnlPanel({ pnl }: PnlPanelProps) {
         <span className="ae-pnl__sym">
           {tr.symbol}
           {isLiveTrade(tr) ? <LiveChip /> : null}
+          {tr.manual ? <ManualChip /> : null}
         </span>
       ),
     },

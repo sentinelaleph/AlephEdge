@@ -13,7 +13,7 @@ import { localeForLanguage } from "@/i18n";
 import { errorMessage } from "@/lib/ipc/bridge";
 import { cockpitExchange, cockpitSentinel, type PingResult } from "@/lib/ipc/cockpit/cockpit";
 import { exchangeName } from "@/lib/ipc/exchange/exchange";
-import { IDLE_MINUTE_CHOICES, VAULT_RESET_CONFIRMATION } from "@/lib/ipc/vault/vault";
+import { IDLE_MINUTE_CHOICES, idleDurationKey, VAULT_RESET_CONFIRMATION } from "@/lib/ipc/vault/vault";
 import { localizeError } from "@/lib/errorText";
 import "./ExchangeKeysTab.css";
 
@@ -79,7 +79,11 @@ export function ExchangeKeysTab() {
   };
 
   const idle = String(vault.status.idleTimeoutMinutes);
-  const idleOptions = IDLE_MINUTE_CHOICES.map((m) => ({ value: String(m), label: t("vault.minutes", { minutes: m }) }));
+  const duration = (m: number) => {
+    const d = idleDurationKey(m);
+    return t(d.key, { count: d.count });
+  };
+  const idleOptions = IDLE_MINUTE_CHOICES.map((m) => ({ value: String(m), label: duration(m) }));
 
   return (
     <div className="ae-keystab">
@@ -109,7 +113,7 @@ export function ExchangeKeysTab() {
             disabled={vault.busy}
             options={idleOptions}
           />
-          <p className="ae-subtle">{t("vault.autoLockHint", { minutes: vault.status.idleTimeoutMinutes })}</p>
+          <p className="ae-subtle">{t("vault.autoLockHint", { duration: duration(vault.status.idleTimeoutMinutes) })}</p>
         </div>
       </Panel>
 

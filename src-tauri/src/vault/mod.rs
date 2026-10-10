@@ -22,6 +22,7 @@
 //! exchange keys in memory from the one password entry until the process died.
 
 mod commands;
+pub(crate) use commands::vault_path;
 mod crypto;
 mod idle;
 pub mod model;
@@ -31,7 +32,7 @@ mod watchdog;
 pub use commands::{
     vault_add_credential, vault_change_password, vault_create, vault_list_credentials,
     vault_lock, vault_remove_credential, vault_rename_credential, vault_replace_credential,
-    vault_reset, vault_set_idle_minutes, vault_status, vault_unlock,
+    vault_reset, vault_set_idle_minutes, vault_status, vault_touch, vault_unlock,
 };
 pub use commands::restore_idle_minutes;
 pub use watchdog::spawn_idle_watchdog;
@@ -43,6 +44,7 @@ use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
 use zeroize::{Zeroize, Zeroizing};
 
+use crate::app::keychain::{self, OsKeychain, SecretStore};
 use idle::IdleTimer;
 use model::{CredentialMeta, ExchangeCredential, KdfParams, VaultFile, VaultState, VaultStatus};
 
@@ -58,6 +60,8 @@ struct Session {
     key: Zeroizing<[u8; 32]>,
     params: KdfParams,
     creds: Vec<ExchangeCredential>,
+    /// Written into every save (see `salt_check`).
+    salt_check: Option<String>,
 }
 
 /// Tauri-managed vault state. `None` session = locked or absent.
@@ -110,7 +114,14 @@ impl VaultManager {
     /// what locked the vault, so the watchdog tells the UI once rather than
     /// every minute.
     fn expire_if_idle(&self, guard: &mut Option<Session>) -> bool {
-        if guard.is_none() || !self.idle.expired() {
+        let Some(session) = guard.as_ref() else {
+            return false;
+        };
+        // A vault that holds no key has nothing in memory to protect. Locking
+        // it only took the desk, and any half-filled form, away from a paper
+        // user in the middle of their work (audit 2026-10-08, ux_global 3).
+        // The budget applies again from the first key: adding it is a use.
+        if session.creds.is_empty() || !self.idle.expired() {
             return false;
         }
         // Dropping the session zeroizes: the key is `Zeroizing` and every
@@ -127,6 +138,26 @@ impl VaultManager {
     pub fn lock_if_idle(&self) -> bool {
         let mut guard = self.session.lock().expect("vault mutex");
         self.expire_if_idle(&mut guard)
+    }
+
+    /// Records user activity in the window (`vault_touch`): "idle" means the
+    /// user left, as the watchdog promises, not only that no credential was
+    /// read. Before this, a desk that read no key locked one budget after the
+    /// unlock however busy the user was.
+    ///
+    /// Not `use_session`: activity must not wake a vault whose budget is
+    /// already spent. The expiry rule runs first, so coming back after the
+    /// budget locks instead of reviving the session. True only when THIS call
+    /// locked (the caller then tells the UI, like the watchdog).
+    pub fn touch_if_unlocked(&self) -> bool {
+        let mut guard = self.session.lock().expect("vault mutex");
+        if self.expire_if_idle(&mut guard) {
+            return true;
+        }
+        if guard.is_some() {
+            self.idle.touch();
+        }
+        false
     }
 
     /// Report lifecycle state without touching secrets.
@@ -159,16 +190,32 @@ impl VaultManager {
 
     /// Create a new vault sealed under `password`. Fails if one already exists.
     pub fn create(&self, path: &Path, password: &str) -> Result<(), String> {
+        self.create_in(&OsKeychain, keychain::service(), path, password)
+    }
+
+    /// `create` against an explicit keychain and service (tests use a map).
+    /// The salt goes under THIS build's service only: another build's vault
+    /// keeps its own salt.
+    fn create_in(
+        &self,
+        store: &impl SecretStore,
+        service: &str,
+        path: &Path,
+        password: &str,
+    ) -> Result<(), String> {
         if path.exists() {
             return Err("vaultExists".to_string());
         }
         let salt = crypto::random_bytes(crypto::SALT_LEN);
-        save_salt(&B64.encode(&salt))?;
+        store
+            .set(service, KEYCHAIN_SALT_USER, &B64.encode(&salt))
+            .map_err(|_| "keychainWriteFailed".to_string())?;
         let params = KdfParams::default();
         let key = crypto::derive_key(password.as_bytes(), &salt, &params)?;
         let creds: Vec<ExchangeCredential> = Vec::new();
-        persist(path, &key, &params, &creds)?;
-        *self.use_session() = Some(Session { key, params, creds });
+        let check = salt_check(&salt);
+        persist(path, &key, &params, &creds, Some(&check))?;
+        *self.use_session() = Some(Session { key, params, creds, salt_check: Some(check) });
         Ok(())
     }
 
@@ -177,29 +224,49 @@ impl VaultManager {
     /// account without its keychain-bound salt) fails with a distinct,
     /// honest error rather than a generic decrypt failure.
     pub fn unlock(&self, path: &Path, password: &str) -> Result<(), String> {
+        self.unlock_in(&OsKeychain, keychain::service(), path, password)
+    }
+
+    /// `unlock` against an explicit keychain and service.
+    ///
+    /// One-time migration: before 0.2.1 every build kept its salt under the
+    /// legacy service. A build whose own entry is missing tries that one, and
+    /// copies it under its own service only once it has opened THIS vault, so
+    /// a salt another build wrote there is never adopted.
+    fn unlock_in(
+        &self,
+        store: &impl SecretStore,
+        service: &str,
+        path: &Path,
+        password: &str,
+    ) -> Result<(), String> {
         let raw = std::fs::read(path).map_err(|_| "vaultFileUnreadable".to_string())?;
         let file: VaultFile =
             serde_json::from_slice(&raw).map_err(|_| "vaultFileCorrupt|file".to_string())?;
-        let salt_b64 = load_salt()?;
+        let found = find_salt(store, service)?;
         let salt = B64
-            .decode(salt_b64.as_bytes())
+            .decode(found.value().as_bytes())
             .map_err(|_| "vaultFileCorrupt|salt".to_string())?;
-        let key = crypto::derive_key(password.as_bytes(), &salt, &file.kdf)?;
-        let nonce = B64
-            .decode(file.nonce.as_bytes())
-            .map_err(|_| "vaultFileCorrupt|nonce".to_string())?;
-        let ct = B64
-            .decode(file.ciphertext.as_bytes())
-            .map_err(|_| "vaultFileCorrupt|ciphertext".to_string())?;
-        let mut plaintext = Zeroizing::new(crypto::open(&key, &nonce, &ct)?);
-        let creds: Vec<ExchangeCredential> = serde_json::from_slice(&plaintext)
-            .map_err(|_| "vaultFileCorrupt|contents".to_string())?;
-        plaintext.zeroize();
-        *self.use_session() = Some(Session {
-            key,
-            params: file.kdf,
-            creds,
-        });
+        // A file that records its salt's fingerprint tells a foreign salt
+        // (another build or account overwrote the keychain entry) apart from
+        // a wrong password; "Wrong password" would send the user guessing.
+        let check = salt_check(&salt);
+        if file.salt_check.as_deref().is_some_and(|c| c != check) {
+            return Err("vaultSaltMismatch".to_string());
+        }
+        let had_check = file.salt_check.is_some();
+        let mut session = open_vault(file, password, &salt)?;
+        session.salt_check = Some(check);
+        if let SaltEntry::Legacy(legacy) = &found {
+            // Best-effort: a failed copy is tried again at the next unlock.
+            let _ = store.set(service, KEYCHAIN_SALT_USER, legacy);
+        }
+        if !had_check {
+            // One-time: a vault from before the fingerprint gets it now, so a
+            // later salt mismatch is reported honestly. Best-effort.
+            let _ = persist(path, &session.key, &session.params, &session.creds, session.salt_check.as_deref());
+        }
+        *self.use_session() = Some(session);
         Ok(())
     }
 
@@ -220,9 +287,16 @@ impl VaultManager {
     /// only `vault.edge` would leave that copy behind after the keychain salt
     /// is gone.
     pub fn reset(&self, path: &Path) -> Result<(), String> {
+        self.reset_in(&OsKeychain, keychain::service(), path)
+    }
+
+    /// `reset` against an explicit keychain and service. Removes this build's
+    /// salt only, never the legacy entry: on any build but release, that one
+    /// may still be the salt of the release build's vault.
+    fn reset_in(&self, store: &impl SecretStore, service: &str, path: &Path) -> Result<(), String> {
         self.lock();
         secure_file::remove_with_temp(path).map_err(|_| "vaultDeleteFailed".to_string())?;
-        clear_salt();
+        store.delete(service, KEYCHAIN_SALT_USER);
         Ok(())
     }
 
@@ -237,7 +311,7 @@ impl VaultManager {
             return Err("credentialExists".to_string());
         }
         s.creds.push(cred);
-        if let Err(e) = persist(path, &s.key, &s.params, &s.creds) {
+        if let Err(e) = persist(path, &s.key, &s.params, &s.creds, s.salt_check.as_deref()) {
             s.creds.pop();
             return Err(e);
         }
@@ -286,7 +360,7 @@ impl VaultManager {
         // it removed, the next unlock brought it back, and the next
         // successful save of anything else silently completed the removal.
         let removed = s.creds.remove(idx);
-        if let Err(e) = persist(path, &s.key, &s.params, &s.creds) {
+        if let Err(e) = persist(path, &s.key, &s.params, &s.creds, s.salt_check.as_deref()) {
             s.creds.insert(idx, removed);
             return Err(e);
         }
@@ -309,7 +383,7 @@ impl VaultManager {
         };
         let old = std::mem::replace(&mut s.creds[idx], new);
         s.creds[idx].added_at = old.added_at;
-        if let Err(e) = persist(path, &s.key, &s.params, &s.creds) {
+        if let Err(e) = persist(path, &s.key, &s.params, &s.creds, s.salt_check.as_deref()) {
             s.creds[idx] = old;
             return Err(e);
         }
@@ -336,7 +410,7 @@ impl VaultManager {
             return Err("credentialNotFound".to_string());
         };
         let old = std::mem::replace(&mut s.creds[idx].label, to.to_string());
-        if let Err(e) = persist(path, &s.key, &s.params, &s.creds) {
+        if let Err(e) = persist(path, &s.key, &s.params, &s.creds, s.salt_check.as_deref()) {
             s.creds[idx].label = old;
             return Err(e);
         }
@@ -350,8 +424,9 @@ impl VaultManager {
     /// fail after the file already moved to the new key. The new KDF params
     /// are the current defaults, so an old vault picks up the current cost.
     pub fn change_password(&self, path: &Path, current: &str, new: &str) -> Result<(), String> {
+        let found = find_salt(&OsKeychain, keychain::service())?;
         let salt = B64
-            .decode(load_salt()?.as_bytes())
+            .decode(found.value().as_bytes())
             .map_err(|_| "vaultFileCorrupt|salt".to_string())?;
         self.change_password_with_salt(path, current, new, &salt)
     }
@@ -371,7 +446,7 @@ impl VaultManager {
         }
         let params = KdfParams::default();
         let key = crypto::derive_key(new.as_bytes(), salt, &params)?;
-        persist(path, &key, &params, &s.creds)?;
+        persist(path, &key, &params, &s.creds, s.salt_check.as_deref())?;
         s.key = key;
         s.params = params;
         Ok(())
@@ -408,6 +483,7 @@ fn persist(
     key: &[u8; 32],
     params: &KdfParams,
     creds: &[ExchangeCredential],
+    salt_check: Option<&str>,
 ) -> Result<(), String> {
     let mut plaintext = Zeroizing::new(
         serde_json::to_vec(creds).map_err(|_| "vaultSerializeFailed".to_string())?,
@@ -419,38 +495,80 @@ fn persist(
         kdf: params.clone(),
         nonce: B64.encode(nonce),
         ciphertext: B64.encode(ciphertext),
+        salt_check: salt_check.map(str::to_string),
     };
     let json =
         serde_json::to_vec_pretty(&file).map_err(|_| "vaultSerializeFailed".to_string())?;
     secure_file::write_private_atomic(path, &json).map_err(|_| "vaultWriteFailed".to_string())
 }
 
-const KEYCHAIN_SERVICE: &str = "com.sentinelaleph.edge";
-const KEYCHAIN_SALT_USER: &str = "vault-salt";
+/// Decrypts `file` with the key `password` and `salt` derive. A wrong
+/// password, or a salt that is not this vault's, fails as `vaultWrongPassword`.
+fn open_vault(file: VaultFile, password: &str, salt: &[u8]) -> Result<Session, String> {
+    let key = crypto::derive_key(password.as_bytes(), salt, &file.kdf)?;
+    let nonce = B64
+        .decode(file.nonce.as_bytes())
+        .map_err(|_| "vaultFileCorrupt|nonce".to_string())?;
+    let ct = B64
+        .decode(file.ciphertext.as_bytes())
+        .map_err(|_| "vaultFileCorrupt|ciphertext".to_string())?;
+    let mut plaintext = Zeroizing::new(crypto::open(&key, &nonce, &ct)?);
+    let creds: Vec<ExchangeCredential> = serde_json::from_slice(&plaintext)
+        .map_err(|_| "vaultFileCorrupt|contents".to_string())?;
+    plaintext.zeroize();
+    Ok(Session {
+        key,
+        params: file.kdf,
+        creds,
+        salt_check: None,
+    })
+}
 
-/// Writes the vault's salt to OS-native secure storage (Windows Credential
-/// Manager / macOS Keychain / Linux Secret Service) — deliberately never to
+/// A short fingerprint of the salt, stored in `vault.edge`: the first 8 bytes
+/// of SHA-256 over a domain tag and the salt. It identifies which salt sealed
+/// the file without revealing it (the salt is 128 random bits; 64 bits of a
+/// hash give no way back), so the keychain binding (PRD §5.5) is unchanged.
+fn salt_check(salt: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+    let mut h = Sha256::new();
+    h.update(b"aleph-edge vault salt check v1");
+    h.update(salt);
+    B64.encode(&h.finalize()[..8])
+}
+
+/// The vault's salt lives in OS-native secure storage (Windows Credential
+/// Manager / macOS Keychain / Linux Secret Service), deliberately never in
 /// `vault.edge` itself (PRD §5.5). This binds a vault to the device + OS user
 /// account it was created on: the file alone, copied elsewhere, is not
-/// decryptable even with the correct password.
-fn save_salt(salt_b64: &str) -> Result<(), String> {
-    keyring::Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_SALT_USER)
-        .and_then(|e| e.set_password(salt_b64))
-        .map_err(|_| "keychainWriteFailed".to_string())
+/// decryptable even with the correct password. One entry per app identifier
+/// (`app::keychain`).
+const KEYCHAIN_SALT_USER: &str = "vault-salt";
+
+/// Where a salt was found: this build's own entry, or the pre-0.2.1 entry
+/// every build shared.
+enum SaltEntry {
+    Own(String),
+    Legacy(String),
 }
 
-fn load_salt() -> Result<String, String> {
-    keyring::Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_SALT_USER)
-        .and_then(|e| e.get_password())
-        .map_err(|_| "keychainSaltMissing".to_string())
-}
-
-/// Best-effort removal of the keychain salt (vault reset). A missing entry is
-/// not an error.
-fn clear_salt() {
-    if let Ok(entry) = keyring::Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_SALT_USER) {
-        let _ = entry.delete_credential();
+impl SaltEntry {
+    fn value(&self) -> &str {
+        match self {
+            SaltEntry::Own(v) | SaltEntry::Legacy(v) => v,
+        }
     }
+}
+
+fn find_salt(store: &impl SecretStore, service: &str) -> Result<SaltEntry, String> {
+    if let Some(own) = store.get(service, KEYCHAIN_SALT_USER) {
+        return Ok(SaltEntry::Own(own));
+    }
+    if service != keychain::LEGACY_SERVICE {
+        if let Some(legacy) = store.get(keychain::LEGACY_SERVICE, KEYCHAIN_SALT_USER) {
+            return Ok(SaltEntry::Legacy(legacy));
+        }
+    }
+    Err("keychainSaltMissing".to_string())
 }
 
 #[cfg(test)]
@@ -473,6 +591,7 @@ mod tests {
     /// was sealed.
     fn unlocked(m: &VaultManager, labels: &[&str]) {
         *m.use_session() = Some(Session {
+            salt_check: None,
             key: Zeroizing::new([3u8; 32]),
             params: KdfParams::default(),
             creds: labels.iter().map(|l| cred(l)).collect(),
@@ -614,7 +733,7 @@ mod tests {
         {
             let guard = m.use_session();
             let s = guard.as_ref().unwrap();
-            persist(&path, &s.key, &s.params, &s.creds).expect("first seal");
+            persist(&path, &s.key, &s.params, &s.creds, None).expect("first seal");
         }
         // Block the temp path so the re-seal fails (see the test below).
         let mut tmp = path.clone().into_os_string();
@@ -646,7 +765,7 @@ mod tests {
         let key = [7u8; 32];
         let params = KdfParams::default();
 
-        persist(&path, &key, &params, &[cred("main")]).expect("first seal");
+        persist(&path, &key, &params, &[cred("main")], None).expect("first seal");
 
         // Block the temp path with a directory so the save fails before the
         // rename — the same observable outcome as a crash or a full disk.
@@ -658,7 +777,7 @@ mod tests {
         tmp.push(".tmp");
         std::fs::create_dir(std::path::PathBuf::from(tmp)).expect("blocking dir");
 
-        let second = persist(&path, &key, &params, &[cred("main"), cred("second")]);
+        let second = persist(&path, &key, &params, &[cred("main"), cred("second")], None);
         assert_eq!(second.unwrap_err(), "vaultWriteFailed");
 
         let survivors = read_back(&path, &key);
@@ -673,7 +792,7 @@ mod tests {
         let path = dir.join("vault.edge");
         let guard = m.use_session();
         let s = guard.as_ref().unwrap();
-        persist(&path, &s.key, &s.params, &s.creds).expect("first seal");
+        persist(&path, &s.key, &s.params, &s.creds, None).expect("first seal");
         (dir, path)
     }
 
@@ -733,7 +852,7 @@ mod tests {
         let params = KdfParams::default();
         let old_key = crypto::derive_key(b"old-password", &salt, &params).unwrap();
         let (m, _c) = manager(60_000);
-        *m.use_session() = Some(Session { key: old_key, params, creds: vec![cred("main")] });
+        *m.use_session() = Some(Session { key: old_key, params, creds: vec![cred("main")], salt_check: None });
         let (dir, path) = sealed("pw", &m);
 
         assert_eq!(
@@ -756,5 +875,214 @@ mod tests {
         let (m, _c) = manager(60_000);
         m.set_idle_minutes(5);
         assert_eq!(m.status(Path::new("no-such.edge")).idle_timeout_minutes, 5);
+    }
+
+    // ---- keychain entries per build (audit 2026-10-08, persistence 2) ----
+
+    use crate::app::keychain::memory::MemoryKeychain;
+    use crate::app::keychain::LEGACY_SERVICE;
+
+    const TESTNET: &str = "com.sentinelaleph.edge.testnet";
+
+    /// Cheapest parameters `validate` accepts: these tests are about which
+    /// salt is read, not about Argon2's cost.
+    fn cheap() -> KdfParams {
+        KdfParams { m_cost: KdfParams::M_COST_MIN, t_cost: 1, p_cost: 1 }
+    }
+
+    /// A vault file sealed under `password` and `salt`, as an older build left it.
+    fn sealed_with(tag: &str, password: &str, salt: &[u8]) -> (std::path::PathBuf, std::path::PathBuf) {
+        let dir = std::env::temp_dir().join(format!("aleph-vault-{tag}-{}", uuid::Uuid::new_v4()));
+        let path = dir.join("vault.edge");
+        let key = crypto::derive_key(password.as_bytes(), salt, &cheap()).unwrap();
+        persist(&path, &key, &cheap(), &[cred("main")], None).expect("seal");
+        (dir, path)
+    }
+
+    #[test]
+    fn a_vault_from_before_the_split_opens_with_the_legacy_salt_and_keeps_a_copy() {
+        // 0.2.0 kept every build's salt under the release service.
+        let store = MemoryKeychain::default();
+        let salt = [1u8; crypto::SALT_LEN];
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
+        let (dir, path) = sealed_with("migrate", "pw-testnet", &salt);
+
+        let (m, _c) = manager(60_000);
+        m.unlock_in(&store, TESTNET, &path, "pw-testnet").expect("opens with the legacy salt");
+        assert_eq!(m.list().unwrap().len(), 1);
+        assert_eq!(
+            store.get(TESTNET, KEYCHAIN_SALT_USER),
+            Some(B64.encode(salt)),
+            "the salt is kept under the build's own service"
+        );
+        assert_eq!(
+            store.get(LEGACY_SERVICE, KEYCHAIN_SALT_USER),
+            Some(B64.encode(salt)),
+            "the legacy entry is left for the release build"
+        );
+
+        // From now on the build reads its own entry, whatever happens to the
+        // legacy one.
+        store.delete(LEGACY_SERVICE, KEYCHAIN_SALT_USER);
+        m.lock();
+        m.unlock_in(&store, TESTNET, &path, "pw-testnet").expect("own entry");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_legacy_salt_that_does_not_open_this_vault_is_not_adopted() {
+        // The legacy entry holds another build's salt: this vault's own salt
+        // was overwritten before the split. Nothing is copied.
+        let store = MemoryKeychain::default();
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode([2u8; crypto::SALT_LEN])).unwrap();
+        let (dir, path) = sealed_with("foreign", "pw", &[1u8; crypto::SALT_LEN]);
+
+        let (m, _c) = manager(60_000);
+        assert_eq!(m.unlock_in(&store, TESTNET, &path, "pw").unwrap_err(), "vaultWrongPassword");
+        assert_eq!(store.get(TESTNET, KEYCHAIN_SALT_USER), None);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_wrong_password_on_a_legacy_vault_copies_nothing() {
+        let store = MemoryKeychain::default();
+        let salt = [1u8; crypto::SALT_LEN];
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
+        let (dir, path) = sealed_with("wrongpw", "right", &salt);
+
+        let (m, _c) = manager(60_000);
+        assert_eq!(m.unlock_in(&store, TESTNET, &path, "wrong").unwrap_err(), "vaultWrongPassword");
+        assert_eq!(store.get(TESTNET, KEYCHAIN_SALT_USER), None);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // ---- salt fingerprint (9 Oct: the release vault on the owner's machine
+    // was sealed under a salt TESTNET later overwrote, and said only "Wrong
+    // password") ----
+
+    fn file_check(path: &Path) -> Option<String> {
+        let raw = std::fs::read(path).unwrap();
+        serde_json::from_slice::<VaultFile>(&raw).unwrap().salt_check
+    }
+
+    #[test]
+    fn a_vault_from_before_the_fingerprint_gets_it_at_its_first_unlock() {
+        let store = MemoryKeychain::default();
+        let salt = [1u8; crypto::SALT_LEN];
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
+        let (dir, path) = sealed_with("fp-migrate", "pw", &salt);
+        assert_eq!(file_check(&path), None);
+
+        let (m, _c) = manager(60_000);
+        m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").expect("opens");
+        assert_eq!(file_check(&path), Some(salt_check(&salt)), "fingerprint written at unlock");
+        // Every later save keeps it.
+        m.add(&path, cred("second")).unwrap();
+        assert_eq!(file_check(&path), Some(salt_check(&salt)));
+        m.lock();
+        m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").expect("still opens");
+        assert_eq!(m.list().unwrap().len(), 2);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_foreign_salt_is_reported_as_such_not_as_a_wrong_password() {
+        let store = MemoryKeychain::default();
+        let salt = [1u8; crypto::SALT_LEN];
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
+        let (dir, path) = sealed_with("fp-foreign", "pw", &salt);
+        let (m, _c) = manager(60_000);
+        m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").expect("fingerprint written");
+        m.lock();
+
+        // Another build overwrites the entry.
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode([9u8; crypto::SALT_LEN])).unwrap();
+        assert_eq!(m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").unwrap_err(), "vaultSaltMismatch");
+        assert_eq!(m.unlock_in(&store, LEGACY_SERVICE, &path, "wrong").unwrap_err(), "vaultSaltMismatch");
+
+        // With its own salt back, a wrong password is still a wrong password.
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
+        assert_eq!(m.unlock_in(&store, LEGACY_SERVICE, &path, "wrong").unwrap_err(), "vaultWrongPassword");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn the_fingerprint_does_not_reveal_the_salt() {
+        let a = salt_check(&[1u8; crypto::SALT_LEN]);
+        let b = salt_check(&[2u8; crypto::SALT_LEN]);
+        assert_ne!(a, b);
+        assert_eq!(B64.decode(a.as_bytes()).unwrap().len(), 8, "64 bits of a hash, not the salt");
+    }
+
+    #[test]
+    fn creating_or_resetting_a_vault_in_one_build_leaves_the_release_vault_unlockable() {
+        // The bug: TESTNET's create replaced the shared salt, and the release
+        // vault answered its correct password with "Wrong password".
+        let store = MemoryKeychain::default();
+        let release_salt = [7u8; crypto::SALT_LEN];
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(release_salt)).unwrap();
+        let (release_dir, release_path) = sealed_with("release", "pw-release", &release_salt);
+
+        let testnet_dir = std::env::temp_dir().join(format!("aleph-vault-tn-{}", uuid::Uuid::new_v4()));
+        let testnet_path = testnet_dir.join("vault.edge");
+        let (testnet, _c) = manager(60_000);
+        testnet.create_in(&store, TESTNET, &testnet_path, "pw-testnet").expect("create");
+        assert!(store.get(TESTNET, KEYCHAIN_SALT_USER).is_some());
+        assert_eq!(store.get(LEGACY_SERVICE, KEYCHAIN_SALT_USER), Some(B64.encode(release_salt)));
+
+        testnet.reset_in(&store, TESTNET, &testnet_path).expect("reset");
+        assert_eq!(store.get(TESTNET, KEYCHAIN_SALT_USER), None);
+        assert_eq!(store.get(LEGACY_SERVICE, KEYCHAIN_SALT_USER), Some(B64.encode(release_salt)));
+
+        let (release, _c) = manager(60_000);
+        release
+            .unlock_in(&store, LEGACY_SERVICE, &release_path, "pw-release")
+            .expect("the release vault still opens");
+        let _ = std::fs::remove_dir_all(&release_dir);
+        let _ = std::fs::remove_dir_all(&testnet_dir);
+    }
+
+    #[test]
+    fn the_release_build_never_reads_another_entry() {
+        let store = MemoryKeychain::default();
+        store.set(TESTNET, KEYCHAIN_SALT_USER, &B64.encode([1u8; crypto::SALT_LEN])).unwrap();
+        assert_eq!(find_salt(&store, LEGACY_SERVICE).err().as_deref(), Some("keychainSaltMissing"));
+    }
+
+    // ---- auto-lock follows the user, not credential reads (ux_global 3) ----
+
+    #[test]
+    fn a_vault_with_no_key_does_not_lock_itself() {
+        // Nothing to protect in memory: a paper user with no key was sent to
+        // the unlock screen every 30 minutes, mid-form.
+        let (m, clock) = manager(1_000);
+        unlocked(&m, &[]);
+        clock.advance(10_000);
+        assert!(!m.lock_if_idle(), "no key, no auto-lock");
+        assert_eq!(m.status(Path::new("no-such.edge")).state, VaultState::Unlocked);
+    }
+
+    #[test]
+    fn user_activity_defers_the_lock_of_a_vault_that_holds_a_key() {
+        let (m, clock) = manager(1_000);
+        unlocked(&m, &["main"]);
+        for _ in 0..5 {
+            clock.advance(900);
+            assert!(!m.touch_if_unlocked(), "activity inside the budget");
+            assert!(!m.lock_if_idle());
+        }
+        clock.advance(1_000);
+        assert!(m.lock_if_idle(), "the user left: it locks");
+    }
+
+    #[test]
+    fn activity_after_the_budget_ran_out_locks_instead_of_reviving() {
+        // Coming back after the budget must not keep yesterday's session.
+        let (m, clock) = manager(1_000);
+        unlocked(&m, &["main"]);
+        clock.advance(1_500);
+        assert!(m.touch_if_unlocked(), "this touch is what locked it");
+        assert_eq!(m.list().unwrap_err(), "vaultLocked");
+        assert!(!m.touch_if_unlocked(), "a locked vault has nothing to touch");
     }
 }

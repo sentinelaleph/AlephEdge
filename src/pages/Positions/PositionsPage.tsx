@@ -29,7 +29,7 @@ const KINDS: BotKind[] = ["futures", "spot", "pump"];
 export function PositionsPage() {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
-  const { desk, risk, accountExchange, strategy } = useDeskContext();
+  const { desk, risk, accountExchanges, strategy } = useDeskContext();
   const [tabParam, setTab] = useQueryParam("tab");
   const tab = tabParam === "exchange" ? "exchange" : "paper";
   const { route } = useRouter();
@@ -146,7 +146,7 @@ export function PositionsPage() {
               </Section>
             </>
           )
-        ) : !accountExchange ? (
+        ) : accountExchanges.length === 0 ? (
           <EmptyState
             title={t("positions.noKey")}
             actions={
@@ -157,7 +157,9 @@ export function PositionsPage() {
           />
         ) : (
           <Panel tone="live" title={t("positions.realZone")}>
-            <AccountPanel exchangeId={accountExchange} />
+            {accountExchanges.map((id) => (
+              <AccountPanel key={id} exchangeId={id} />
+            ))}
           </Panel>
         )}
       </Tabs>

@@ -50,7 +50,7 @@ import { sideText, strategyErrorText, strategyNoteText } from "@/lib/strategyTex
 import { EquityChart } from "@/pages/Bots/strategy/EquityChart";
 import { Segmented } from "@/pages/Bots/strategy/formControls";
 import { matchesPreset, StrategyForm, type FormPreview } from "@/pages/Bots/strategy/StrategyForm";
-import { LeverageRiskDialog, needsLeverageConfirm } from "@/pages/Bots/strategy/LeverageRiskDialog";
+import { LeverageRiskDialog, needsLiquidationConfirm } from "@/pages/Bots/strategy/LeverageRiskDialog";
 import { StrategyPreviewPanel } from "@/pages/Bots/strategy/StrategyPreviewPanel";
 import { runStore } from "./backtestRunStore";
 import { MetaLine } from "@/components/ui/MetaLine/MetaLine";
@@ -152,7 +152,10 @@ export function BacktestPage() {
       if (presetId) {
         const p = (await strategyPresets()).find((x) => x.id === presetId);
         if (!p) throw t("strategy.form.presetUnknown", { id: presetId });
-        return { cfg: { ...p.config, symbol: p.config.symbol || DEFAULT_SYMBOL, presetId: p.id }, preset: p, kind: p.config.params.kind };
+        // A template ranked below the top (alts: 6 to 15) was never tested
+        // on BTCUSDT: the user picks a pair from its list.
+        const symbol = p.config.symbol || (p.universe.rankFrom > 1 ? "" : DEFAULT_SYMBOL);
+        return { cfg: { ...p.config, symbol, presetId: p.id }, preset: p, kind: p.config.params.kind };
       }
       const k = kindRef.current;
       const cfg = await strategyDefault(k, "binance", DEFAULT_SYMBOL);
@@ -218,7 +221,7 @@ export function BacktestPage() {
   const [riskHeld, setRiskHeld] = useState(false);
   const run = async (confirmed = false) => {
     if (!canRun || !form || startMs === null || endMs === null) return;
-    if (!confirmed && needsLeverageConfirm(form.cfg)) {
+    if (!confirmed && needsLiquidationConfirm(form.cfg, summary?.preview ?? null)) {
       setRiskHeld(true);
       return;
     }
@@ -377,6 +380,7 @@ export function BacktestPage() {
                 disabled={running}
                 options={BACKTEST_INTERVALS.map((v) => ({ value: v, label: v }))}
                 onChange={setBarInterval}
+                hint={t("backtest.hint.interval")}
               />
               {/* Six short windows: the same segmented control as Interval, wrapped into 3 + 3 when the column is narrow. */}
               <Segmented
@@ -683,6 +687,8 @@ export function BacktestReportPage({ runId }: { runId: string }) {
           { text: t("backtest.label.feesIncluded") },
           ...(run.market === "futures" && !d.fundingIncluded ? [{ text: t("backtest.label.noFunding"), warn: true }] : []),
           { text: t("backtest.label.noGates") },
+          // Equity is read at candle closes; paper bots run on 1m candles.
+          { text: t("backtest.label.barCloses", { interval: run.interval }), warn: run.interval === "4h" || run.interval === "1d" },
           { text: t("backtest.label.coverage", { value: pct(d.coveragePct) }), warn: d.coveragePct !== null && d.coveragePct < 95 },
         ]}
       />

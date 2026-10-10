@@ -130,6 +130,7 @@ export function RiskSelector({ risk }: RiskSelectorProps) {
           value={balanceDraft ?? formatDecimalInput(s?.balance)}
           onChange={(e) => setBalanceDraft(e.target.value)}
           onBlur={commitBalance}
+          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
           disabled={risk.busy || !s}
           hint={t("risk.balanceHint")}
         />

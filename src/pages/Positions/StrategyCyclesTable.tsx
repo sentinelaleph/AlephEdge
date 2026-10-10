@@ -6,24 +6,31 @@ import { localeForLanguage } from "@/i18n";
 import { formatPrice, formatSignedUsdt, formatTableTime, formatUsdt, NO_VALUE, pnlToneAttr } from "@/lib/format";
 import type { StrategyBotView } from "@/lib/ipc/strategy/strategy";
 import { sideText } from "@/lib/strategyText";
+import { LiveChip } from "@/components/ui/Chip/Chip";
+import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
 
 /**
- * Open DCA / Grid cycles (paper only; the header's mode chip says so), one
- * row per bot holding a cycle. Every figure is the bot's own view from Rust
- * (strategy_list); nothing is derived.
+ * Open DCA / Grid cycles, one row per bot holding a cycle. A bot on real
+ * money carries the LIVE chip: its cycle is mirrored on Binance, and the real
+ * position itself is on the Exchange tab. Every figure is the bot's own view
+ * from Rust (strategy_list); nothing is derived.
  */
 export function StrategyCyclesTable({ bots }: { bots: StrategyBotView[] }) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const rows = bots.filter((b) => b.openCycle !== null);
+  const { liveIds } = useStrategyLive();
   const columns: DataColumn<StrategyBotView>[] = [
     {
       id: "bot",
       header: t("table.bot"),
       cell: (b) => (
-        <Link to={`/bots/${encodeURIComponent(b.id)}`} className="ae-link">
-          {b.name}
-        </Link>
+        <>
+          <Link to={`/bots/${encodeURIComponent(b.id)}`} className="ae-link">
+            {b.name}
+          </Link>
+          {liveIds.has(b.id) ? <> <LiveChip /></> : null}
+        </>
       ),
     },
     { id: "type", header: t("table.type"), priority: 2, cell: (b) => t(`botsList.type.${b.kind}`) },

@@ -7,6 +7,7 @@ import { localeForLanguage } from "@/i18n";
 import { formatAge, formatLatency, formatPrice } from "@/lib/format";
 import type { ExchangeHealth, HealthLevel, HealthSnapshot } from "@/lib/ipc/health/health";
 import { streamErrorText, streamLabelKey, streamTone } from "@/lib/ipc/signal/streamStatus";
+import { idleDurationKey } from "@/lib/ipc/vault/vault";
 
 /**
  * The BTC price Rust reported, or null when the macro feed did not answer.
@@ -145,10 +146,11 @@ export function StatusBar() {
         placement="top"
         align="end"
         content={
-          vault.status.idleTimeoutMinutes > 0 ? t("statusbar.autoLock", { minutes: vault.status.idleTimeoutMinutes }) : null
+          // A vault with no key does not auto-lock (vault/mod.rs expire_if_idle).
+          vault.status.idleTimeoutMinutes > 0 && vault.credentials.length > 0 ? t("statusbar.autoLock", { duration: t(idleDurationKey(vault.status.idleTimeoutMinutes).key, { count: idleDurationKey(vault.status.idleTimeoutMinutes).count }) }) : null
         }
       >
-        <span className="ae-statusbar__item ae-statusbar__wide" tabIndex={vault.status.idleTimeoutMinutes > 0 ? 0 : undefined}>
+        <span className="ae-statusbar__item ae-statusbar__wide" tabIndex={vault.status.idleTimeoutMinutes > 0 && vault.credentials.length > 0 ? 0 : undefined}>
           <Dot tone={vault.status.state === "unlocked" ? "success" : "warn"} />
           {t(vault.status.state === "unlocked" ? "health.vaultUnlocked" : "health.vaultLocked")}
         </span>

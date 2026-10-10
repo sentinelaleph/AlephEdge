@@ -18,6 +18,13 @@
 //!
 //! Server invalidation does NOT close: the BTC guard closing filled positions
 //! was measured at −163 pts and is OFF on the server. It only yields a note.
+//!
+//! Exit prices (`Fill`): the desktop books a paper stop, target or partial at
+//! its level, as the resting exchange orders of a live position and
+//! Sentinel's ledger do. Booking the polled price (about every 8 s) charged
+//! every stop the move during the polling gap and credited every target its
+//! overshoot (HANA, 7 Oct: a breakeven booked −0.79% instead of −0.08%).
+//! The paper runner keeps the polled price for its pre-registered arms.
 
 use super::super::model::OpenPosition;
 use super::{pnl, sizing};
@@ -34,6 +41,21 @@ pub struct Exit {
     /// "tp" | "sl" | "breakeven" | "horizon" | "max_loss".
     pub reason: &'static str,
     pub price: f64,
+}
+
+/// Where an exit triggered by a level is booked.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Fill {
+    /// At the price this evaluation saw. Live positions (their real fills
+    /// are recorded from the exchange) and the paper runner's arms.
+    Polled,
+    /// Desktop paper. Targets and the partial at their level. The stop at
+    /// its level when `watched` (this position was evaluated moments ago on
+    /// the safe side, so price crossed the level since); otherwise (first
+    /// look after a restart, a sleep or a feed outage) at the price seen
+    /// now, the worse of the two: the crossing was not observed and may have
+    /// been a gap.
+    Levels { watched: bool },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -63,13 +85,28 @@ fn favourable(long: bool, price: f64, level: f64) -> bool {
     }
 }
 
-/// Evaluates `pos` at `price`, mutating its management state.
+/// Evaluates `pos` at `price`, mutating its management state; every exit at
+/// the polled price (`Fill::Polled`).
+// The desktop calls `close_step_with`; the paper runner calls this.
+#[allow(dead_code)]
 pub fn close_step(
     pos: &mut OpenPosition,
     price: f64,
     now_ms: u64,
     invalidated: bool,
     max_loss_pct: Option<f64>,
+) -> Step {
+    close_step_with(pos, price, now_ms, invalidated, max_loss_pct, Fill::Polled)
+}
+
+/// `close_step` with the exit-price model explicit (see `Fill`).
+pub fn close_step_with(
+    pos: &mut OpenPosition,
+    price: f64,
+    now_ms: u64,
+    invalidated: bool,
+    max_loss_pct: Option<f64>,
+    fill: Fill,
 ) -> Step {
     let mut step = Step {
         note_invalidation: invalidated,
@@ -90,6 +127,17 @@ pub fn close_step(
     let exit = |reason, step: &mut Step| {
         step.exit = Some(Exit { reason, price });
         *step
+    };
+    // A level exit's booked price (see `Fill`).
+    let at_level = |level: f64| match fill {
+        Fill::Polled => price,
+        Fill::Levels { .. } => level,
+    };
+    let at_stop = |level: f64| match fill {
+        Fill::Polled => price,
+        Fill::Levels { watched: true } => level,
+        Fill::Levels { watched: false } if long => level.min(price),
+        Fill::Levels { watched: false } => level.max(price),
     };
 
     // The adverse stop level (step 1), needed by step 0 too.
@@ -125,7 +173,11 @@ pub fn close_step(
         } else {
             "sl"
         };
-        return exit(reason, &mut step);
+        step.exit = Some(Exit {
+            reason,
+            price: at_stop(stop),
+        });
+        return step;
     }
 
     // 2. Partial, only when nearer than the resolved TP.
@@ -136,7 +188,7 @@ pub fn close_step(
             if nearer && frac > 0.0 && pos.partial_price.is_none() && favourable(long, price, level)
             {
                 pos.partial_fraction = frac.min(1.0);
-                pos.partial_price = Some(price);
+                pos.partial_price = Some(at_level(level));
                 step.changed = true;
             }
         }
@@ -144,7 +196,11 @@ pub fn close_step(
 
     // 3. TP — the remaining position exits whole.
     if favourable(long, price, pos.tp) {
-        return exit("tp", &mut step);
+        step.exit = Some(Exit {
+            reason: "tp",
+            price: at_level(pos.tp),
+        });
+        return step;
     }
 
     // 4. Breakeven arming — protects only from the next evaluation.

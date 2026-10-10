@@ -61,6 +61,12 @@ Before a signal becomes a position it passes a set of entry checks, and every re
 
 The skip log on the right shows what was refused and why, in your language. Open positions are managed with their stop, take profit, breakeven move and time horizon, and survive an app restart.
 
+The risk level's position limit applies to each signal bot separately: Spot holding its maximum does not stop Futures.
+
+![Execute a signal](assets/screenshots/execute.webp)
+
+**Execute** on any signal opens every way to act on it. **Take this signal now** opens it as a paper position on a fitting signal bot at the current price, while the price is still between the stop and the target; before you confirm it shows the fill, the reward to risk at that fill next to the published one, the size, and the loss and gain with fees. The bot's filters are skipped, its risk limits are not, and real money never goes through Execute. The same window opens a DCA or Grid template, or a blank form, with the signal's pair filled in.
+
 ### DCA bots
 
 ![New DCA bot](assets/screenshots/dca-new.webp)
@@ -93,7 +99,7 @@ Twelve DCA and Grid templates (long, short, BTC-only, altcoins, with a stop, fou
 3. every test month positive;
 4. no liquidation.
 
-**Two templates passed** (DCA Long Classic and DCA Long Safe). The other ten are kept for learning, marked **Did not pass** with the checks they missed, and the app asks before one is used. Both short DCA templates were liquidated even at 1x; all four grids lost money in most periods. A passed template only shows that it worked in those two years under those rules.
+**Two templates passed** on the original test window (DCA Long Classic and DCA Long Safe). A re-run on 9 Oct 2026 that included a partial October did not confirm every check, so both are marked **Under review** until a dated re-read on 1 Nov 2026. The other ten are kept for learning, marked **Did not pass** with the checks they missed, and the app asks before one is used. The same twelve run forward on the Sentinel server since 8 Oct 2026 (the ghost track, on [ribqa.com/edge](https://ribqa.com/edge)). Both short DCA templates were liquidated even at 1x; all four grids lost money in most periods. A passed template only shows that it worked in those two years under those rules.
 
 ### Backtest
 
@@ -117,13 +123,13 @@ Simulated positions and DCA/Grid cycles on one tab, the real exchange account on
 
 ![Risk and safety](assets/screenshots/risk.webp)
 
-| Risk level | Max leverage | Daily stop | DCA / Grid budget cap |
-|---|---|---|---|
-| Cautious | 2x | −2% | 20% |
-| Calm | 3x | −4% | 30% |
-| Balanced | 5x | −6% | 40% |
-| Ambitious | 10x | −10% | 60% |
-| Greedy | 20x | −15% | 80% |
+| Risk level | Max leverage | Max positions per signal bot | Daily stop | DCA / Grid budget cap |
+|---|---|---|---|---|
+| Cautious | 2x | 3 | −2% | 20% |
+| Calm | 3x | 5 | −4% | 30% |
+| Balanced | 5x | 8 | −6% | 40% |
+| Ambitious | 10x | 12 | −10% | 60% |
+| Greedy | 20x | 20 | −15% | 80% |
 
 - A **daily stop** on realized losses stops the signal bots and can close their open positions; they cannot be started again until the next UTC day (DCA and Grid are accounted for separately).
 - A **portfolio breaker** closes the DCA and Grid bots inside it when their combined loss reaches 15% of their budgets.
@@ -137,9 +143,9 @@ Simulated positions and DCA/Grid cycles on one tab, the real exchange account on
 
 API keys live in a local vault: Argon2id key derivation (64 MiB), AES-256-GCM, with the salt kept in the OS keychain, so the vault file alone cannot be opened on another machine. Secrets are wiped from memory when they go out of scope and never cross into the UI.
 
-- **Only verified trade-only keys are accepted.** A key's real permissions are read from Binance's signed `apiRestrictions` endpoint; a key that can withdraw, a key Binance cannot be asked about, and keys for exchanges without a verifier are refused.
+- **Only verified trade-only keys are accepted.** A key's real permissions are read from the exchange (Binance's signed `apiRestrictions`, and the key-info endpoints of Bybit and OKX); a key that can withdraw, a key the exchange cannot be asked about, and keys for exchanges without a verifier are refused.
 - Renew a key in place (the old one stays until the new one is accepted), rename it, remove it.
-- Change the vault password; choose auto-lock after 5, 15, 30 or 60 minutes without use.
+- Change the vault password; choose auto-lock after 5 minutes to 1 month without use. While real money holds an open position the vault does not lock itself.
 - There is no password recovery by design: a lost password means resetting the vault.
 
 ### Phone remote control
@@ -153,12 +159,13 @@ Pair a phone by QR code under Settings, Devices. The desk accepts signed, single
 | | Default build | Live build (`--features live`) |
 |---|---|---|
 | Signal bots | Simulation | Simulation, or real orders per bot after a typed `LIVE` opt-in |
-| DCA and Grid bots | Simulation | Simulation (real orders are not implemented) |
+| DCA and Grid bots | Simulation | Simulation, or real orders per Binance Futures bot after the same typed `LIVE` opt-in |
+| Execute → Take this signal now | Simulation | Simulation |
 | Manual close on the exchange tab | Real reduce-only orders | Real reduce-only orders |
 
-Real automated orders need all of these at once: a build compiled with the `live` feature, a Futures bot on Binance, the typed `LIVE` confirmation for that bot, and a verified trade-only key in an unlocked vault. A position's live flag read back from disk is checked against the same compile-time switch, so a file cannot turn trading on.
+Real automated orders need all of these at once: a build compiled with the `live` feature, a Futures bot on Binance, the typed `LIVE` confirmation for that bot, and a verified trade-only key in an unlocked vault. Bybit and OKX are refused for real orders until each passes an end-to-end run on its own test network. A position's live flag read back from disk is checked against the same compile-time switch, so a file cannot turn trading on.
 
-The manual **Close position** and **Close all** on the exchange tab are the exception in every build: they send real reduce-only market orders so you can flatten an account the desk is watching. They cannot open a position or move funds, and they sit behind a typed confirmation.
+The manual **Close position** and **Close all** on the exchange tab are the exception in every build: they send real reduce-only market orders on Binance, Bybit or OKX so you can flatten an account the desk is watching. They cannot open a position or move funds, and they sit behind a typed confirmation.
 
 Try a live build on the **Binance Futures testnet** first (see [Configuration](#configuration)); the top bar then shows TESTNET.
 
@@ -200,10 +207,10 @@ The placebo is the one that matters: 1,335 real signals against 6,581 random-tim
 
 ## Download
 
-The Windows x64 installer is on the [Releases](https://github.com/sentinelaleph/AlephEdge/releases) page. It is the default build: paper trading only, with the manual close buttons described above.
+The Windows x64 installer is on the [Releases](https://github.com/sentinelaleph/AlephEdge/releases) page and on [ribqa.com/edge](https://ribqa.com/edge), which also has a screen-by-screen user guide. It is the default build: paper trading only, with the manual close buttons described above. Windows 10 or 11, 64-bit. A macOS build is not released yet.
 
 - The installer is not Authenticode-signed yet. Windows SmartScreen shows a warning: choose **More info**, then **Run anyway**. Each release lists the installer's SHA-256.
-- Updates install from inside the app. It checks the feed at launch and every 6 hours, and **Settings → About** has a manual check. An update installs only if its signature matches the public key built into the app.
+- Updates install from inside the app. It checks the feed at launch and every 6 hours, and **Settings → About** has a manual check. An update installs only if its signature matches the public key built into the app. 0.2.0 updates itself; 0.1.0 needs one manual install.
 
 ---
 
@@ -296,7 +303,7 @@ Report security issues to <support@ribqa.com> with "security" in the subject, an
 src/                      React front end (pages, components, i18n in 8 languages, in-app guide)
 src-tauri/src/bot/        signal bot engine, DCA/Grid strategy engine, backtest
 src-tauri/src/vault/      encrypted key vault
-src-tauri/src/exchange/   Binance clients (public prices, signed account and close orders)
+src-tauri/src/exchange/   Binance, Bybit and OKX clients (public prices, signed account and close orders)
 src-tauri/src/signal/     Sentinel signal stream, vetoes, backfill
 src-tauri/src/membership/ sign-in and session refresh against Sentinel
 crates/aleph-link         pairing and message protocol (shared)

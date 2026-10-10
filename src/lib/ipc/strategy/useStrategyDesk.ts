@@ -5,12 +5,14 @@ import {
   strategyClose,
   strategyList,
   strategyNotes,
+  strategyPnl,
   strategyRiskGet,
   strategyRiskSet,
   strategyStart,
   strategyStop,
   type StrategyBotView,
   type StrategyNote,
+  type StrategyPnl,
   type StrategyRiskView,
 } from "./strategy";
 
@@ -21,6 +23,9 @@ export interface StrategyDeskController {
   bots: StrategyBotView[] | null;
   risk: StrategyRiskView | null;
   notes: StrategyNote[];
+  /** Paper DCA / Grid money: closed-cycle totals (deleted bots included) and
+   *  the newest closed cycles. Null until the first read. */
+  pnl: StrategyPnl | null;
   /** Raw error code of the last failed load (`strategy.errors.*` or text). */
   loadError: string | null;
   /** Bot id an action is running for. */
@@ -32,23 +37,27 @@ export interface StrategyDeskController {
 }
 
 const POLL_MS = 4000;
+/** Closed cycles kept for History and the alerts. */
+const PNL_ROWS = 200;
 
 /** One poller for the strategy desk (list, risk, notes), owned by DeskProvider. */
 export function useStrategyDesk(): StrategyDeskController {
   const [bots, setBots] = useState<StrategyBotView[] | null>(null);
   const [risk, setRisk] = useState<StrategyRiskView | null>(null);
   const [notes, setNotes] = useState<StrategyNote[]>([]);
+  const [pnl, setPnl] = useState<StrategyPnl | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const alive = useRef(true);
 
   const refresh = useCallback(async () => {
     try {
-      const [b, r, n] = await Promise.all([strategyList(), strategyRiskGet(), strategyNotes()]);
+      const [b, r, n, p] = await Promise.all([strategyList(), strategyRiskGet(), strategyNotes(), strategyPnl(PNL_ROWS)]);
       if (!alive.current) return;
       setBots([...b].sort((x, y) => y.createdAt - x.createdAt));
       setRisk(r);
       setNotes(n);
+      setPnl(p);
       setLoadError(null);
     } catch (e) {
       if (alive.current) setLoadError(errorMessage(e, "storeReadFailed"));
@@ -95,7 +104,7 @@ export function useStrategyDesk(): StrategyDeskController {
   }, []);
 
   return useMemo(
-    () => ({ bots, risk, notes, loadError, busyId, refresh, act, rearmBreaker }),
-    [bots, risk, notes, loadError, busyId, refresh, act, rearmBreaker],
+    () => ({ bots, risk, notes, pnl, loadError, busyId, refresh, act, rearmBreaker }),
+    [bots, risk, notes, pnl, loadError, busyId, refresh, act, rearmBreaker],
   );
 }

@@ -17,21 +17,51 @@ pub struct OrderFill {
 #[serde(rename_all = "camelCase")]
 struct RawOrder {
     order_id: i64,
-    avg_price: String,
+    #[serde(default)]
+    avg_price: Option<String>,
+    #[serde(default)]
+    cum_quote: Option<String>,
     executed_qty: String,
 }
 
-/// None when the body is malformed OR reports no execution: a 200 with no
-/// fill is not success, and recording it would create a position the
-/// exchange does not hold.
+/// Average fill price: `avgPrice`, else `cumQuote / executedQty`, else 0.
+/// The futures testnet answers a filled MARKET order without either field
+/// (status FILLED, executedQty, cumQty), so absence is not malformed.
+fn average_price(avg: Option<&str>, cum_quote: Option<&str>, qty: f64) -> Option<f64> {
+    let avg: f64 = match avg {
+        Some(a) => a.parse().ok()?,
+        None => 0.0,
+    };
+    if avg > 0.0 {
+        return Some(avg);
+    }
+    let quote: f64 = match cum_quote {
+        Some(c) => c.parse().ok()?,
+        None => 0.0,
+    };
+    Some(if quote > 0.0 && qty > 0.0 { quote / qty } else { 0.0 })
+}
+
+/// None when the body is malformed OR reports no priced execution: a 200
+/// with no fill is not success, and recording it would create a position
+/// the exchange does not hold. A fill without a price is read back by
+/// order id (`parse_order_ack` + `GET /fapi/v1/order`).
 pub fn parse_order_fill(body: &str) -> Option<OrderFill> {
     let raw: RawOrder = serde_json::from_str(body).ok()?;
+    let executed_qty: f64 = raw.executed_qty.parse().ok()?;
     let fill = OrderFill {
         order_id: raw.order_id,
-        avg_price: raw.avg_price.parse().ok()?,
-        executed_qty: raw.executed_qty.parse().ok()?,
+        avg_price: average_price(raw.avg_price.as_deref(), raw.cum_quote.as_deref(), executed_qty)?,
+        executed_qty,
     };
     (fill.avg_price > 0.0 && fill.executed_qty > 0.0).then_some(fill)
+}
+
+/// The order id of an accepted order whose answer carried no usable fill,
+/// so the caller can read the real execution back by id.
+pub fn parse_order_ack(body: &str) -> Option<i64> {
+    let v: serde_json::Value = serde_json::from_str(body).ok()?;
+    v.get("orderId")?.as_i64()
 }
 
 /// A queried order's state (`GET /fapi/v1/order`).
@@ -47,14 +77,17 @@ pub struct OrderState {
 struct RawOrderState {
     order_id: i64,
     status: String,
-    avg_price: String,
+    #[serde(default)]
+    avg_price: Option<String>,
+    #[serde(default)]
+    cum_quote: Option<String>,
     executed_qty: String,
 }
 
 pub fn parse_order_state(body: &str) -> Option<OrderState> {
     let raw: RawOrderState = serde_json::from_str(body).ok()?;
-    let avg: f64 = raw.avg_price.parse().ok()?;
     let qty: f64 = raw.executed_qty.parse().ok()?;
+    let avg = average_price(raw.avg_price.as_deref(), raw.cum_quote.as_deref(), qty)?;
     Some(OrderState {
         status: raw.status,
         fill: (avg > 0.0 && qty > 0.0).then_some(OrderFill {
@@ -90,7 +123,10 @@ struct RawRecentOrder {
     client_order_id: String,
     side: String,
     status: String,
-    avg_price: String,
+    #[serde(default)]
+    avg_price: Option<String>,
+    #[serde(default)]
+    cum_quote: Option<String>,
     executed_qty: String,
     #[serde(default)]
     reduce_only: bool,
@@ -106,13 +142,14 @@ pub fn parse_recent_orders(body: &str) -> Option<Vec<RecentOrder>> {
     let raw: Vec<RawRecentOrder> = serde_json::from_str(body).ok()?;
     raw.into_iter()
         .map(|r| {
+            let executed_qty: f64 = r.executed_qty.parse().ok()?;
             Some(RecentOrder {
                 order_id: r.order_id,
                 client_order_id: r.client_order_id,
                 buy: r.side == "BUY",
                 status: r.status,
-                avg_price: r.avg_price.parse().ok()?,
-                executed_qty: r.executed_qty.parse().ok()?,
+                avg_price: average_price(r.avg_price.as_deref(), r.cum_quote.as_deref(), executed_qty)?,
+                executed_qty,
                 reducing: r.reduce_only || r.close_position,
                 update_time: r.update_time,
             })
@@ -187,6 +224,23 @@ mod tests {
         let unfilled = r#"{"orderId":1,"avgPrice":"0.00000","executedQty":"0","status":"NEW"}"#;
         assert_eq!(parse_order_fill(unfilled), None);
         assert_eq!(parse_order_fill("{}"), None);
+    }
+
+    #[test]
+    fn order_fill_without_avg_price_uses_cum_quote_or_needs_a_read_back() {
+        // Futures testnet answer to a filled MARKET order (RESULT): no avgPrice, no cumQuote.
+        let testnet = r#"{"orderId":12345,"symbol":"BTCUSDT","status":"FILLED","clientOrderId":"astest-1","price":"0.00","origQty":"0.0015","executedQty":"0.0015","cumQty":"0.0015","timeInForce":"GTC","type":"MARKET","reduceOnly":false,"side":"BUY","updateTime":1759600000000}"#;
+        assert_eq!(parse_order_fill(testnet), None);
+        assert_eq!(parse_order_ack(testnet), Some(12345));
+        let quoted = r#"{"orderId":5,"status":"FILLED","executedQty":"0.0015","cumQuote":"129.0456"}"#;
+        let fill = parse_order_fill(quoted).unwrap();
+        assert!((fill.avg_price - 86030.4).abs() < 1e-6, "{fill:?}");
+        assert_eq!(parse_order_ack("{}"), None);
+        // GET /fapi/v1/order on the testnet carries avgPrice.
+        let state = r#"{"orderId":12345,"status":"FILLED","avgPrice":"86030.400000","executedQty":"0.0015","cumQuote":"129.045600"}"#;
+        assert_eq!(parse_order_state(state).unwrap().fill.unwrap().avg_price, 86030.4);
+        let bare = r#"{"orderId":1,"status":"NEW","executedQty":"0"}"#;
+        assert_eq!(parse_order_state(bare).unwrap().fill, None);
     }
 
     #[test]

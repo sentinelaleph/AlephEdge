@@ -8,3 +8,8 @@
   text-decoration: underline dotted var(--border-strong);
   text-underline-offset: 3px;
 }
+/* Execute in the selected signal's panel: its own line above the facts. */
+.ae-sigexec {
+  align-self: flex-start;
+  margin-bottom: var(--space-2);
+}

@@ -494,6 +494,125 @@ fn cycle_row(r: &rusqlite::Row) -> rusqlite::Result<CycleRow> {
     })
 }
 
+/// Net realized result of closed DCA / Grid cycles, archived bots included:
+/// the desk's money totals, next to the signal-bot trade stats (audit
+/// 2026-10-08, ux_global 1: Dashboard, History and alerts left every cycle
+/// out, and Delete removed a bot's realized loss from every total).
+#[derive(Serialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct StrategyPnlTotals {
+    pub cycles: u32,
+    pub net_quote: f64,
+    /// Cycles closed since `day_start_ms` (UTC day start).
+    pub today_cycles: u32,
+    pub today_quote: f64,
+}
+
+/// A cycle's own net money: `realized_quote` is gross (cash + fees +
+/// funding). The same formula as `strategy_stats` and the bot detail.
+const NET_QUOTE: &str = "c.realized_quote - c.fees_quote - c.funding_quote";
+
+/// Totals over closed cycles, skipping the bots in `exclude` (a live build's
+/// real-money bots: their simulated cycles are not paper money).
+pub fn pnl_totals(
+    conn: &Connection,
+    day_start_ms: u64,
+    exclude: &std::collections::HashSet<String>,
+) -> Result<StrategyPnlTotals, String> {
+    let mut st = conn
+        .prepare(&format!(
+            "SELECT c.bot_id, c.closed_at, {NET_QUOTE} FROM strategy_cycles c WHERE c.closed_at IS NOT NULL"
+        ))
+        .map_err(err)?;
+    let rows = st
+        .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?, r.get::<_, f64>(2)?)))
+        .map_err(err)?;
+    let mut out = StrategyPnlTotals::default();
+    for row in rows {
+        let (bot_id, closed_at, net) = row.map_err(err)?;
+        if exclude.contains(&bot_id) || !net.is_finite() {
+            continue;
+        }
+        out.cycles += 1;
+        out.net_quote += net;
+        if closed_at as u64 >= day_start_ms {
+            out.today_cycles += 1;
+            out.today_quote += net;
+        }
+    }
+    Ok(out)
+}
+
+/// One closed cycle with its bot's name, for History and the alerts.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ClosedCycleRow {
+    pub bot_id: String,
+    pub bot_name: String,
+    pub kind: String,
+    pub market: String,
+    pub symbol: String,
+    pub side: String,
+    pub seq: u32,
+    pub opened_at: u64,
+    pub closed_at: u64,
+    pub exit_reason: Option<String>,
+    /// Net: realized - fees - funding.
+    pub pnl_quote: f64,
+    pub pnl_pct_budget: Option<f64>,
+    /// The bot was deleted; its history stays.
+    pub archived: bool,
+}
+
+/// The newest `limit` closed cycles, newest first, archived bots included.
+pub fn recent_closed_cycles(
+    conn: &Connection,
+    limit: u32,
+    exclude: &std::collections::HashSet<String>,
+) -> Result<Vec<ClosedCycleRow>, String> {
+    let mut st = conn
+        .prepare(&format!(
+            "SELECT c.bot_id, b.name, b.kind, b.market, b.symbol, b.side, c.seq, c.opened_at,
+                    c.closed_at, c.exit_reason, {NET_QUOTE}, c.pnl_pct_budget,
+                    b.archived_at IS NOT NULL
+             FROM strategy_cycles c JOIN strategy_bots b ON b.id = c.bot_id
+             WHERE c.closed_at IS NOT NULL
+             ORDER BY c.closed_at DESC, c.seq DESC"
+        ))
+        .map_err(err)?;
+    let rows = st
+        .query_map([], |r| {
+            Ok(ClosedCycleRow {
+                bot_id: r.get(0)?,
+                bot_name: r.get(1)?,
+                kind: r.get(2)?,
+                market: r.get(3)?,
+                symbol: r.get(4)?,
+                side: r.get(5)?,
+                seq: r.get(6)?,
+                opened_at: r.get::<_, i64>(7)? as u64,
+                closed_at: r.get::<_, i64>(8)? as u64,
+                exit_reason: r.get(9)?,
+                pnl_quote: r.get(10)?,
+                pnl_pct_budget: r.get(11)?,
+                archived: r.get::<_, i64>(12)? != 0,
+            })
+        })
+        .map_err(err)?;
+    let mut out = Vec::new();
+    for row in rows {
+        let row = row.map_err(err)?;
+        if exclude.contains(&row.bot_id) {
+            continue;
+        }
+        out.push(row);
+        if out.len() >= limit as usize {
+            break;
+        }
+    }
+    Ok(out)
+}
+
 pub fn list_cycles(conn: &Connection, bot_id: Option<&str>, limit: u32) -> Result<Vec<CycleRow>, String> {
     let sql = format!(
         "SELECT {CYCLE_COLS} FROM strategy_cycles WHERE (?1 IS NULL OR bot_id = ?1)
@@ -748,6 +867,68 @@ mod tests {
         let (cy, fi) = export_csv(&c).unwrap();
         assert_eq!(cy.lines().count(), 2);
         assert_eq!(fi.lines().count(), 2);
+    }
+
+    fn closed_cycle(c: &Connection, bot: &str, seq: u32, closed_at: i64, gross: f64, fees: f64, funding: f64) {
+        c.execute(
+            "INSERT INTO strategy_cycles (bot_id, seq, opened_at, closed_at, exit_reason, anchor_price,
+                size_factor, realized_quote, fees_quote, funding_quote, pnl_pct_budget)
+             VALUES (?1, ?2, 0, ?3, 'manual', 100, 1, ?4, ?5, ?6, ?7)",
+            params![bot, seq, closed_at, gross, fees, funding, (gross - fees - funding) / 10.0],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn pnl_totals_count_every_closed_cycle_net_including_deleted_bots() {
+        // Testnet 8 Oct: Delete closed a Grid and a DCA cycle at market and
+        // archived both bots; no on-screen total showed the -8.40 USDT.
+        let c = db();
+        let day = 86_400_000 * 20_000;
+        let mut grid = sample_bot();
+        grid.id = "sb_grid".into();
+        grid.archived_at = Some(day as u64 + 6);
+        save_bot(&c, &grid, 1).unwrap();
+        let mut dca = sample_bot();
+        dca.id = "sb_dca".into();
+        dca.archived_at = Some(day as u64 + 6);
+        save_bot(&c, &dca, 1).unwrap();
+        let live = {
+            let mut b = sample_bot();
+            b.id = "sb_live".into();
+            b
+        };
+        save_bot(&c, &live, 1).unwrap();
+
+        closed_cycle(&c, "sb_grid", 1, day - 3_600_000, 2.0, 0.0, 0.0); // yesterday
+        closed_cycle(&c, "sb_grid", 2, day + 240_000, -6.931, 0.2, 0.0737);
+        closed_cycle(&c, "sb_dca", 1, day + 240_000, -1.133, 0.05, 0.0157);
+        closed_cycle(&c, "sb_live", 1, day + 1_000, 50.0, 0.0, 0.0);
+        // An open cycle is not a result yet.
+        c.execute(
+            "INSERT INTO strategy_cycles (bot_id, seq, opened_at, anchor_price, size_factor, realized_quote)
+             VALUES ('sb_dca', 2, 0, 100, 1, -3.0)",
+            [],
+        )
+        .unwrap();
+
+        let none = std::collections::HashSet::new();
+        let all = pnl_totals(&c, day as u64, &none).unwrap();
+        assert_eq!((all.cycles, all.today_cycles), (4, 3));
+        assert!((all.today_quote - (50.0 - 8.4034)).abs() < 1e-9, "{}", all.today_quote);
+
+        let exclude: std::collections::HashSet<String> = ["sb_live".to_string()].into();
+        let paper = pnl_totals(&c, day as u64, &exclude).unwrap();
+        assert_eq!((paper.cycles, paper.today_cycles), (3, 2));
+        assert!((paper.today_quote + 8.4034).abs() < 1e-9, "net of fees and funding: {}", paper.today_quote);
+        assert!((paper.net_quote + 6.4034).abs() < 1e-9, "all time: {}", paper.net_quote);
+
+        let recent = recent_closed_cycles(&c, 10, &exclude).unwrap();
+        assert_eq!(recent.len(), 3);
+        assert!(recent.iter().all(|r| r.archived), "deleted bots keep their history");
+        assert_eq!(recent[2].closed_at as i64, day - 3_600_000, "newest first");
+        assert!((recent.iter().map(|r| r.pnl_quote).sum::<f64>() + 6.4034).abs() < 1e-9);
+        assert_eq!(recent_closed_cycles(&c, 1, &exclude).unwrap().len(), 1);
     }
 
     #[test]

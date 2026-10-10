@@ -49,6 +49,15 @@ pub async fn app_install_update(app: AppHandle, confirmation: String) -> Result<
     if confirmation.trim() != UPDATE_CONFIRMATION {
         return Err(format!("updateConfirmRequired|{UPDATE_CONFIRMATION}"));
     }
+    // The public feed ships the default (paper) build. Installing it over a
+    // live build with real money in play would leave real positions with no
+    // engine managing them (audit 2026-10-04, H1). Close them and switch live
+    // off first.
+    {
+        if crate::bot::strategy_live::live_exposure(&app) {
+            return Err("updateBlockedLive".to_string());
+        }
+    }
     install(&app).await
 }
 

@@ -38,14 +38,36 @@ pub fn signal_age_min(sig: &Signal, now_ms: u64) -> Option<u64> {
     crate::signal::time::parse_rfc3339_ms(&sig.created_at).map(|c| now_ms.saturating_sub(c) / 60_000)
 }
 
+/// Who decided an entry. `Manual`: the user opened one signal by hand
+/// (Execute, "Open position"). The bot's own signal filters are the user's
+/// choices and are skipped for it: the age limit, the Sentinel score,
+/// direction, symbol, combo and engine whitelists, and the Pump bot's pump
+/// rule. Everything else still applies: the market fit (spot is long only),
+/// expiry, invalidation, the regime veto, geometry, the BTC guard, the held
+/// market, and after the gate the fill model, sizing, the liquidation gate
+/// and every risk-budget check. The paper runner only ever uses `Auto`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EntryMode {
+    Auto,
+    Manual,
+}
+
 /// Static and regime checks before any price is fetched. None = pass.
+// The desktop passes its mode (`pre_price_gate_in`); the paper runner calls this.
+#[allow(dead_code)]
 pub fn pre_price_gate(i: &GateInput) -> Option<Skip> {
+    pre_price_gate_in(i, EntryMode::Auto)
+}
+
+/// `pre_price_gate` for an entry decided by `mode` (see `EntryMode`).
+pub fn pre_price_gate_in(i: &GateInput, mode: EntryMode) -> Option<Skip> {
+    let auto = mode == EntryMode::Auto;
     let expired = crate::signal::time::parse_rfc3339_ms(&i.sig.expires_at)
         .map_or(true, |exp| exp <= i.now_ms);
     if expired {
         return Some(Skip::new("expired"));
     }
-    if let Some(age_min) = signal_age_min(i.sig, i.now_ms) {
+    if let Some(age_min) = signal_age_min(i.sig, i.now_ms).filter(|_| auto) {
         if i.cfg.max_signal_age_min > 0 && age_min > u64::from(i.cfg.max_signal_age_min) {
             return Some(Skip::with("tooOld", format!("{age_min} min")));
         }
@@ -60,14 +82,20 @@ pub fn pre_price_gate(i: &GateInput) -> Option<Skip> {
         if !i.pump_allowed {
             return Some(Skip::new("pumpDisabled"));
         }
-        if !precheck::is_pump_signal(i.sig) {
+        if auto && !precheck::is_pump_signal(i.sig) {
             return Some(Skip::new("notPumpSignal"));
         }
     }
     if i.cfg.kind.uses_futures_market() && !i.futures_supported {
         return Some(Skip::new("spotOnlyExchange"));
     }
-    if let Some(skip) = filters::passes_filters(i.cfg, i.sig) {
+    let filtered = if auto {
+        filters::passes_filters(i.cfg, i.sig)
+    } else {
+        // The one rule in `passes_filters` that is the market, not a choice.
+        (i.cfg.kind == BotKind::Spot && i.sig.direction == Direction::Short).then(|| Skip::new("spotLongOnly"))
+    };
+    if let Some(skip) = filtered {
         return Some(skip);
     }
     if !geometry::geometry_coherent(i.sig) {
@@ -111,10 +139,18 @@ pub struct PlannedEntry {
     pub size: Size,
 }
 
+/// Manual refusal: the live price is at or beyond the stop.
+pub const SKIP_STOP_PASSED: &str = "stopPassed";
+/// Manual refusal: the live price is at or beyond the take-profit the bot
+/// would exit at (detail: that target, "TP1").
+pub const SKIP_TARGET_PASSED: &str = "targetPassedBeforeEntry";
+
 /// The steps between the live price and the prechecks, in the desktop's
 /// order: fill model → take-profit resolution → sizing. Ok(None) = stay
 /// pending silently; Err = skip (final or transient, see `precheck::is_final`).
 /// `leverage` is `precheck::effective_leverage(cfg, limits)`.
+// The desktop passes its mode (`plan_entry_in`); the paper runner calls this.
+#[allow(dead_code)]
 pub fn plan_entry(
     cfg: &BotConfig,
     sig: &Signal,
@@ -122,14 +158,37 @@ pub fn plan_entry(
     now_ms: u64,
     leverage: u8,
 ) -> Result<Option<PlannedEntry>, Skip> {
-    if !price_gate(sig, price, now_ms)? {
-        return Ok(None);
-    }
-    let price = price.unwrap_or_default();
-    // The user's target (bot-wide or per-symbol) resolved at this fill; a
-    // target that cannot apply refuses the entry, visibly.
-    let target = cfg.take_profit_for(&sig.symbol);
-    let tp = take_profit::resolve_tp(sig, target, price)?;
+    plan_entry_in(cfg, sig, price, now_ms, leverage, EntryMode::Auto)
+}
+
+/// `plan_entry` for an entry decided by `mode`. `Auto` runs the fill model
+/// (touch, or marketable within 5 min and 0.5% of entry). `Manual` fills at
+/// the live price whenever it lies strictly between the stop and the target
+/// the bot would exit at (`manual_fill`): the user decided to enter now,
+/// after the signal's entry may have passed. Sizing and the liquidation gate
+/// then run on that fill, in both modes.
+pub fn plan_entry_in(
+    cfg: &BotConfig,
+    sig: &Signal,
+    price: Option<f64>,
+    now_ms: u64,
+    leverage: u8,
+    mode: EntryMode,
+) -> Result<Option<PlannedEntry>, Skip> {
+    let (price, target, tp) = match mode {
+        EntryMode::Auto => {
+            if !price_gate(sig, price, now_ms)? {
+                return Ok(None);
+            }
+            let price = price.unwrap_or_default();
+            // The user's target (bot-wide or per-symbol) resolved at this fill; a
+            // target that cannot apply refuses the entry, visibly.
+            let target = cfg.take_profit_for(&sig.symbol);
+            let tp = take_profit::resolve_tp(sig, target, price)?;
+            (price, target, tp)
+        }
+        EntryMode::Manual => manual_fill(cfg, sig, price)?,
+    };
     // Size before the prechecks: the depth check needs the real notional,
     // and paper and live use this one size.
     let size = sizing::size_position(cfg, leverage, price, sig.sl).map_err(Skip::new)?;
@@ -144,6 +203,46 @@ pub fn plan_entry(
         leverage,
         size,
     }))
+}
+
+/// A manual entry's fill: the live price, refused when it is at or beyond
+/// the stop (`stopPassed`) or at or beyond the bot's resolved target
+/// (`targetPassedBeforeEntry`). Never waits.
+pub fn manual_fill(
+    cfg: &BotConfig,
+    sig: &Signal,
+    price: Option<f64>,
+) -> Result<(f64, TakeProfitTarget, TpResolution), Skip> {
+    let Some(price) = price.filter(|p| p.is_finite() && *p > 0.0) else {
+        return Err(Skip::new("priceUnavailable"));
+    };
+    let past_stop = match sig.direction {
+        Direction::Long => price <= sig.sl,
+        Direction::Short => price >= sig.sl,
+    };
+    if past_stop {
+        return Err(Skip::new(SKIP_STOP_PASSED));
+    }
+    let target = cfg.take_profit_for(&sig.symbol);
+    let tp = take_profit::resolve_tp(sig, target, price).map_err(|skip| {
+        if skip.key == take_profit::SKIP_TP_NOT_BEYOND_FILL {
+            Skip::with(SKIP_TARGET_PASSED, skip.detail.unwrap_or_default())
+        } else {
+            skip
+        }
+    })?;
+    Ok((price, target, tp))
+}
+
+/// Below the exchange's minimum order the trade cannot exist, on paper either
+/// (see EXCHANGE_MIN_ORDER_USDT). Called by the app's entry loop only, not by
+/// `plan_entry`: the VDS paper runner compiles this file and its
+/// pre-registered arms must keep their sizing rules.
+pub fn exchange_minimum_gate(plan: &PlannedEntry) -> Result<(), Skip> {
+    if plan.size.notional < crate::bot::model::EXCHANGE_MIN_ORDER_USDT {
+        return Err(Skip::with("belowExchangeMinimum", format!("{:.2}", plan.size.notional)));
+    }
+    Ok(())
 }
 
 /// The position a passed entry opens: filled at `entry` with take-profit `tp`
@@ -216,5 +315,6 @@ pub fn new_position(
         risk_capped: false,
         tp_target: tp.target.clone(),
         tp_fallback_from: tp.fallback_from.clone(),
+        manual: false,
     }
 }

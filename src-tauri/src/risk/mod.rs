@@ -68,11 +68,6 @@ impl RiskManager {
         self.update(dir, |c| c.daily_loss_override_pct = pct)
     }
 
-    /// Whether the current level permits the Pump bot (PRD §5.1).
-    pub fn allows_pump(&self) -> bool {
-        self.config.lock().expect("risk mutex").level.allows_pump()
-    }
-
     pub fn state(&self) -> RiskState {
         RiskState::from_config(&self.config.lock().expect("risk mutex"))
     }

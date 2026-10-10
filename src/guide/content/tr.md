@@ -2,7 +2,7 @@
 
 Bu rehber DCA ve Grid botlarını hiç kullanmamış biri için yazıldı. Baştan sona okumanız gerekmez: ilk iki bölüm başlamak için yeterli, gerisi ihtiyaç duyduğunuzda dönmeniz için.
 
-> Aleph Edge'deki DCA ve Grid botları **yalnızca simüle** çalışır. Borsaya emir gitmez, para kaybetmezsiniz. Buradaki her şeyi gönül rahatlığıyla deneyebilirsiniz.
+> DCA ve Grid botları varsayılan olarak **simüle (paper)** çalışır: borsaya emir gitmez, para kaybetmezsiniz. Gerçek para yalnızca canlı sürümde, Binance Futures botunda ve o bot için **LIVE** yazıp açtığınızda devreye girer. Ayrıntılar: [Gerçek para](#/guide?s=real-money).
 
 ## 5 dakikada başlayın {#start}
 
@@ -10,8 +10,10 @@ Bu rehber DCA ve Grid botlarını hiç kullanmamış biri için yazıldı. Başt
 2. "Karar" sütununda **Kontrolleri geçti** yazan bir şablon seçin ve **Hazır ayarı kullan** düğmesine basın.
 3. **Parite** olarak büyük ve likit bir coin seçin (BTCUSDT, ETHUSDT gibi).
 4. **Bütçe** alanına denemek istediğiniz tutarı yazın. Simüle olduğu için gerçek para gerekmez.
-5. Sağdaki **Özet** panelinde "Bütçe kontrolü: Sığıyor" yazdığını görün.
+5. Sağdaki **Özet** panelinde "Bütçe kontrolü: Sığıyor" yazdığını ve bütçenin **Asgari bütçe** satırındaki tutardan az olmadığını görün.
 6. **Oluştur ve başlat** düğmesine basın.
+
+**Yeni kurulumda bütçe:** simüle bakiye 1000 USDT, seviye Temkinli olduğu için bütün DCA ve Grid botları birlikte en fazla 200 USDT kullanabilir. DCA Long Classic en az 176,98 USDT ister ve sığar. DCA Long Safe en az 218,10 USDT ister; [Risk ve güvenlik](#/risk) sayfasında bakiyeyi ya da seviyeyi yükseltmeden sığmaz. Oluşturma sayfası, sınırın altında boş kalan tutar şablonun asgari bütçesini karşılıyorsa açılış bütçesini bu tutara indirir; karşılamıyorsa asgari bütçeyi yazan ve Risk ve güvenlik sayfasına giden bir uyarı gösterir.
 
 Bot artık 1 dakikalık gerçek fiyatlarla, ücretler dahil simüle işlem yapıyor. Sonuçları bot sayfasındaki **Döngüler** sekmesinden izleyin.
 
@@ -75,7 +77,7 @@ Bu tablodan çıkan dört önemli sonuç:
 
 DCA'nın tek büyük riski, fiyatın **dönmeden çok uzun süre düşmesidir.** Stop yoksa bot pozisyonu taşımaya devam eder. Bu sırada bütçe kilitli kalır ve gerçekleşmemiş zarar görünür. Testlerimizde en uzun döngü 329 gün açık kaldı.
 
-Kaldıraç bu riski tasfiyeye çevirir. 1x long tasfiye edilmez. 5x long ise ortalama girişin yaklaşık %20 altında tasfiye olur. Uygulama bu yüzden kaldıraçlı ve stopsuz bir DCA'yı başlatmadan önce sizden onay ister.
+Kaldıraç bu riski tasfiyeye çevirir. 1x long tasfiye edilmez. 5x long ise ortalama girişin yaklaşık %20 altında tasfiye olur. Short ise 1x'te bile, fiyat yaklaşık iki katına çıkınca tasfiye olur. Uygulama bu yüzden Özet panelinde bir likidasyon fiyatı görünüp önünde hiçbir stop yoksa sizden onay ister ("Likidasyon mümkün, stop yok"): zarar durduru kapalı bir DCA ya da **Aralık dışında durdur** ayarı kapalı bir grid.
 
 ## Grid nasıl çalışır {#grid}
 
@@ -123,7 +125,7 @@ Piyasanın yönünü kimse kesin bilemez. Bu tablo bir başlangıç noktasıdır
 
 ## Şablonlar ve test sonuçları {#templates}
 
-[Hazır ayarlar](#/presets) sayfasındaki her şablon, 2 yıllık Binance vadeli verisinde aynı simülatörle test edildi. Ücretler, kayma ve mum içi en kötü sıra hesaba katıldı. Sonuçlar üç döneme ayrılır:
+[Hazır ayarlar](#/presets) sayfasındaki her şablon, 2 yıllık Binance vadeli verisinde aynı simülatörle test edildi. Ücretler, kayma ve mum içi en kötü sıra hesaba katıldı. Her rakam bot-ay başınadır: her ay parite başına yeni bir 1000 USDT bot açılır; ay sonunda açık kalan döngü kapanana kadar sürer. Aylarca çalışan tek bir bot değildir. Sonuçlar üç döneme ayrılır:
 
 - **Eğitim (TRAIN):** Ekim 2024 ile Haziran 2025 arası.
 - **Doğrulama (VALID):** Temmuz 2025 ile Ocak 2026 arası.
@@ -131,40 +133,47 @@ Piyasanın yönünü kimse kesin bilemez. Bu tablo bir başlangıç noktasıdır
 
 Bir şablonun **Kontrolleri geçti** etiketi alması için:
 
-1. Üç dönemin üçünde de bot başına aylık ortalama getiri pozitif olmalı.
+1. Üç dönemin üçünde de bot-ay başına ortalama getiri pozitif olmalı.
 2. Test döneminde %95 güven aralığının alt ucu sıfırın üstünde olmalı.
 3. Test döneminin 8 ayının 8'i de pozitif olmalı.
 4. Hiç tasfiye olmamalı.
 
 Birini bile sağlamayan şablon **Geçemedi** etiketi alır ve hangi kontrolü geçemediği yazılır. Bu şablonlar öğrenmek ve denemek için listede durur. Kullanmadan önce uygulama sizden onay ister.
 
+**Sinyalden:** [Sinyaller](#/signals) sayfasındaki **Çalıştır**, sinyali uygun bir sinyal botunda hemen simüle pozisyon olarak açar (sinyalin girişi geçildiyse, fiyat stop ile hedef arasındayken güncel fiyattan; botun filtreleri atlanır, risk limitleri geçerlidir, gerçek para açılmaz) ya da sinyalin yönüne uyan şablonları listeler ve birini sinyalin paritesinde açar. O paritede şablon test edilmemiştir.
+
 ### 3 Ekim 2026 testinin sonucu
 
 12 şablondan **2'si** dört kontrolün dördünü de geçti:
 
-| Şablon | Test dönemi, bot başına aylık | Pozitif test ayı | En kötü bot düşüşü |
+| Şablon | Test dönemi, bot-ay başına | Pozitif test ayı | En kötü bot düşüşü |
 |---|---|---|---|
-| DCA Long Klasik | +%1,98 | 8/8 | −%20,7 |
-| DCA Long Temkinli | +%1,51 | 8/8 | −%15,8 |
+| DCA Long Klasik | +%1,90 | 8/8 | −%20,7 |
+| DCA Long Temkinli | +%1,45 | 8/8 | −%15,8 |
+
+**9 Ekim 2026 yeniden çalıştırması.** Aynı test penceresinde (27 Eylül'e kadar) ikisi de hâlâ geçiyor; yukarıdaki rakamlar bu çalıştırmadan. Ekim eklenince ikisi de tek bir kontrole takılıyor: "her test ayı pozitif". Ekim'in ilk 8,5 gününde majörler %1 ile %15 arası düşmüşken ve tüm işlemler hâlâ açıkken Klasik bot-ay başına −%0,44, Temkinli −%0,14'teydi. İkisi **İncelemede** olarak işaretli; Ekim tamamlanınca, 1 Kasım'da kontroller yeniden okunur. Başka hiçbir şablon geçmedi; o gün denenen altı yeni adaydan hiçbiri şablon olmadı.
 
 Geçemeyenlerden öğrenilecekler:
 
-- **DCA Long Hızlı** test döneminde çok iyiydi (ayda +%5,63), ama doğrulama döneminde ayda −%6,84 kaybetti. Kısa merdiven, sert bir düşüşte bütçeyi erken tüketir.
+- **DCA Long Hızlı** test döneminde çok iyiydi (bot-ay başına +%5,63), ama doğrulama döneminde bot-ay başına %6,84 kaybetti. Kısa merdiven, sert bir düşüşte bütçeyi erken tüketir.
 - **DCA Long BTC** iki dönemde kazandı, doğrulama döneminde hafif zararda kaldı.
 - **DCA Long Altcoin** test döneminde zarar etti; en kötü bot bütçesinin %97'sini kaybetti.
 - **DCA Long Stoplu** stop yüzünden dipte satıp toparlanmayı kaçırdı; doğrulama döneminde zararda.
-- **DCA Short** şablonlarının ikisi de **1x'te bile tasfiye oldu**. Short pozisyonda fiyat iki katına çıkınca teminat biter; kripto bunu birkaç ayda yapabilir.
+- **DCA Short** şablonlarının ikisi de **1x'te bile tasfiye oldu**. 1x short, fiyat yaklaşık iki katına çıkınca tasfiye olur; kripto bunu birkaç ayda yapabilir.
 - **Grid** şablonlarının dördü de dönemlerin çoğunda zarar etti. Fiyat aralıktan çıkınca stop ya da süre dolumuyla zararına kapandılar.
 
 ### Tablodaki sütunlar
 
 | Sütun | Anlamı |
 |---|---|
-| Test ort./ay | Test döneminde bot başına aylık ortalama getiri, bütçenin yüzdesi |
+| Test, bot-ay başına | Test döneminde bot-ay başına ortalama getiri, bütçenin yüzdesi |
 | %95 aralık | Bu ortalamanın güven aralığı. Aralık ne kadar dar ve sıfırdan ne kadar uzaksa sonuç o kadar güvenilir |
 | Pozitif aylar | Test döneminde kazandıran ay sayısı / toplam ay |
 | Düşüş | Test döneminde en kötü botun en büyük düşüşü |
 | Karar | Kontrolleri geçti ya da Geçemedi |
+| 8 Ekim tarihinden beri gölge | Şablonun 8 Ekim 2026'dan beri sunucuda ileriye doğru simüle çalışması; içinde para yok. Başlangıçtan beri toplam getiri, aylık değil. 30 gün dolmadan sıralanmaz |
+
+**Şablon bağlantısı, botunuz şablonla aynı kaldıkça korunur.** Ad ve bütçe serbesttir; başka bir değişiklik bağlantıyı düşürür ve form bunu söyler. Uyarı satırı, şablonun hangi paritelerde test edildiğini yazar. Yalnızca BTC şablonları BTCUSDT ister. Sıralı bir listede test edilen şablonlarda (hacme göre ilk 5 ya da altcoin şablonunun 6-15. sıradaki pariteleri) uyarı, paritenizin bu listede olup olmadığının denetlenmediğini söyler.
 
 > Geçmiş simülasyon gelecek getirinin garantisi değildir. Test verisinde 2022 tipi uzun bir ayı piyasası yok. Bir şablonun geçmesi, yalnızca bu 2 yılda ve bu kurallarla iyi çalıştığını gösterir.
 
@@ -175,7 +184,7 @@ Geçemeyenlerden öğrenilecekler:
 | Ayar | Ne işe yarar | Öneri |
 |---|---|---|
 | Ad | Botu listede tanımanız için | Coin ve stratejiyi yazın: "BTC DCA temkinli" |
-| Piyasa | Spot ya da Vadeli | Vadeli 1x, spot'a çok yakındır ve short'a izin verir |
+| Piyasa | Spot ya da Vadeli | Vadeli 1x, spot'a çok yakındır ve short'a izin verir; 1x short, fiyat yaklaşık iki katına çıkınca tasfiye olur |
 | Yön | Long ya da Short | Emin değilseniz Long |
 | Parite | Hangi coin | Büyük ve likit coinler |
 | Bütçe | Bu botun kullanabileceği en fazla tutar | Toplam bakiyenizin küçük bir parçası |
@@ -192,8 +201,10 @@ Geçemeyenlerden öğrenilecekler:
 | Hacim katsayısı | Her sonraki emrin bir öncekinin kaç katı olacağı | Büyükse ortalama hızlı düşer ama bütçe derinde yoğunlaşır |
 | Kâr al | Ortalamanın yüzde kaç üstünde satılacağı | Küçükse sık ve küçük kâr, büyükse seyrek ve büyük kâr |
 | İzleyen kâr al | Kâr al seviyesine gelince hemen satmaz, tepeyi izler | **İzleme sapması kâr aldan küçük olmalı.** Testlerde çoğu zaman sonucu kötüleştirdi |
-| Zarar durdur | Ortalamanın bu kadar altında piyasa emriyle çıkar | Kayıp sınırlanır ama dipte satıp toparlanmayı kaçırabilirsiniz |
-| En uzun döngü süresi | Bu süreyi geçen döngüyü kapatır | Kısa tutulursa zararına kapanışlar artar |
+| Zarar durdur | Ortalamanın bu kadar altında piyasa emriyle çıkar. Son güvenlik emrinin ötesinde ve her emrin likidasyon fiyatından önce olmalı; form likidasyonun ötesindeki stopu reddeder. Açtığınızda form uygun bir değer önerir | Kayıp sınırlanır ama dipte satıp toparlanmayı kaçırabilirsiniz |
+| En uzun döngü süresi | Süre dolunca döngüyü piyasa fiyatından satar; çalışan bot, bekleme süresinden sonra yeni döngüyü açar | Kısa tutulursa zararına kapanışlar artar |
+
+**Boş form**, DCA Long Classic merdiveniyle açılır; bot düşüş durdurucusu, BTC kırılımında bekletme ve portföy kesicisi açıktır, yani o şablonun aynısı değildir. Formun üstündeki not, kontrolleri geçen şablonların adını yazar; boş grid formu 4 grid şablonundan 0'ının geçtiğini söyler.
 
 **Merdiven kapsamı nasıl hesaplanır:** sağdaki Özet panelinde "Fiyat kapsamı" yazar. Bu, son güvenlik emrinin başlangıçtan ne kadar aşağıda olduğudur. Kapsam, coinin geçmişteki sert düşüşlerinden büyük olmalı.
 
@@ -222,7 +233,7 @@ Geçemeyenlerden öğrenilecekler:
 | Zarar durdurdan sonra yeniden başlat | Kapalıysa stop olan bot durur |
 | Fiyat aralığı koruması | Fiyat bu aralığın dışındayken yeni döngü açılmaz |
 | Bitiş zamanı | Bu tarihten sonra yeni döngü açılmaz |
-| Bot düşüş durdurucusu | Bot özkaynağı zirvesinden bütçenin bu yüzdesi kadar düşünce kapatır ve durdurur |
+| Bot düşüş durdurucusu | Bot özkaynağı zirvesinden bütçenin bu yüzdesi kadar düşünce kapatır ve durdurur. Aynı mum hem bu stopa hem kâr ala dokunursa stop kazanır: önce aleyhe hareket olduğu varsayılır |
 | BTC kırılımında yeni döngüleri beklet | Sentinel BTC'de kırılım bildirirken yeni döngü açılmaz |
 | Portföy kesicisi | Kesiciye dahil botların toplam zararı %15'e ulaşınca hepsini kapatır |
 
@@ -232,11 +243,11 @@ Geçemeyenlerden öğrenilecekler:
 
 Bir bot başlatmadan önce şu üç soruyu cevaplayın:
 
-1. **En kötü durumda ne kaybederim?** Özet panelindeki "En kötü durum" satırı stopla, tasfiyede ya da "Sınırsız: stop yok" olarak yazar. 1x ve stopsuz DCA'da teorik kayıp, coin sıfıra giderse bütçenin tamamıdır.
+1. **En kötü durumda ne kaybederim?** Özet panelindeki "En kötü durum" satırı önce gelen çıkışı yazar: zarar durdurda, düşüş durdurucusunda ya da likidasyonda. Bunların hiçbiri yoksa "Sınırsız: stop yok" yazar. 1x ve stopsuz long DCA'da teorik kayıp, coin sıfıra giderse bütçenin tamamıdır.
 2. **Bütçe ne kadar süre kilitli kalabilir?** Stopsuz DCA, toparlanma gelene kadar bütçeyi tutar. Aylarca beklemeye hazır olmalısınız.
 3. **Tasfiyeye ne kadar mesafe var?** Kaldıraçlı DCA'da Özet panelindeki "Son emirden likidasyona" satırı, son güvenlik emrinden sonra fiyatın ne kadar daha gidebileceğini yazar.
 
-**Bütçe kuralı:** risk seviyenize göre tüm DCA ve Grid botlarının toplam bütçesi, beyan ettiğiniz bakiyenin %20 ile %80'i arasında bir sınırı geçemez. Bu sınır [Risk ve güvenlik](#/risk) sayfasında görünür.
+**Bütçe kuralı:** risk seviyenize göre tüm DCA ve Grid botlarının toplam bütçesi, beyan ettiğiniz bakiyenin %20 ile %80'i arasında bir sınırı geçemez. Bu sınır [Risk ve güvenlik](#/risk) sayfasında görünür. Her botun ayrıca Özet panelinde yazan bir **Asgari bütçe**si vardır: her emrin en az 5 USDT olduğu en küçük bütçe.
 
 ## Backtest: önce geçmişte deneyin {#backtest}
 
@@ -251,7 +262,7 @@ Bir bot başlatmadan önce şu üç soruyu cevaplayın:
 | Alan | Anlamı |
 |---|---|
 | Net | Dönem sonundaki toplam kâr ya da zarar, bütçenin yüzdesi |
-| En büyük düşüş | Özkaynağın zirveden gördüğü en derin düşüş |
+| En büyük düşüş | Özkaynağın zirveden gördüğü en derin düşüş; seçilen mum aralığının kapanışlarında okunur. Simüle botlar 1 dakikalık mum kullandığı için uzun aralık düşüşün daha azını gösterir |
 | Döngüler | Kapanan döngü sayısı; "+1" dönem sonunda açık döngü olduğunu gösterir |
 | Çıkış nedeni | Kâr al, izleyen kâr al, zarar durdur, tasfiye, düşüş durdurucusu |
 | Kapsam | İstenen mumların ne kadarının veride bulunduğu |
@@ -273,15 +284,57 @@ Bir bot başlatmadan önce şu üç soruyu cevaplayın:
 
 | Düğme | Ne yapar |
 |---|---|
-| Sürdür | Botun yeni döngü açmasına izin verir |
+| Başlat | Hiç çalışmamış botta Sürdür yerine görünür |
+| Sürdür | Duraklatılmış ya da durmuş botun yeniden yeni döngü açmasına izin verir |
 | Duraklat | Yeni döngüyü durdurur, açık döngüye dokunmaz |
 | Döngüyü kapat ve durdur | Açık döngüyü hemen piyasa fiyatından kapatır |
 | Kopyala | Aynı ayarlarla yeni bot formu açar |
 | Sil | Durmuş ve pozisyonsuz botu listeden kaldırır; geçmişi saklanır |
 
-**Acil durum:** [Pozisyonlar](#/positions) sayfasındaki **Tümünü kapat** düğmesi tüm simüle pozisyonları ve DCA/Grid döngülerini kapatır, botları durdurur.
+**Acil durum:** [Pozisyonlar](#/positions) sayfasındaki **Tümünü kapat** düğmesi tüm pozisyonları ve DCA/Grid döngülerini kapatır, botları durdurur. Gerçek parada çalışan botların Binance pozisyonu da bir sonraki turda (birkaç saniye) piyasa fiyatından kapatılır. Binance hesabınızdaki her pozisyonu doğrudan kapatmak için [Pozisyonlar → Borsa](#/positions?tab=exchange).
 
-**Uygulama yeniden açılınca** botlar Durdu olarak gelir. Açık döngüler yönetilmeye devam eder ama yeni döngü için Sürdür'e basmanız gerekir.
+**Uygulama yeniden açılınca** çalışan paper botlar en eskisinden başlayarak kendiliğinden devam eder, ama yalnızca başlatma kontrollerinden yeniden geçerlerse: kaldıraç risk seviyesinin üst sınırını aşmamalı, ayarlar geçerli olmalı, bütçe sınırında ve bakiyede yer olmalı. Kontrolden geçemeyen bot Durdu olarak kalır ve sayfasında bir not çıkar ("Yeniden başlatmadan sonra devam ettirilmedi"). Açık döngüsü okunamayan bot da Durdu kalır; gerçek paradaki bot Durdu olarak gelir. Açık döngüler her durumda yönetilmeye devam eder. Fiyat bulamadığı için yapılamayan zorunlu bir kapanış saklanır ve yeniden başlatmadan sonra tekrar denenir.
+
+## Gerçek para {#real-money}
+
+Gerçek para isteğe bağlıdır ve bot başına açılır. Açmadan önce botu paper'da çalıştırıp davranışını görün.
+
+**Ne gerekir**
+
+1. Canlı sürüm (varsayılan sürüm yalnızca simüle çalışır).
+2. [Ayarlar → Borsa anahtarları](#/settings?tab=keys) bölümünde doğrulanmış bir **Binance işlem anahtarı**: Futures açık, para çekme kapalı. Para çekebilen anahtarlar reddedilir. Gerçek para şimdilik yalnızca Binance'te: Bybit ve OKX kendi test ağlarında uçtan uca denemeyi henüz geçmedi, bu yüzden onlarda gerçek parayı açma isteği reddedilir. Anahtarları yine de hesap görünümü ve pozisyon kapatmak için çalışır.
+3. Botun piyasası **Futures** olmalı.
+4. Bir koruma seviyesi: DCA'da zarar durdur, Grid'de stop-out ya da her ikisinde drawdown stopu. Borsadaki stop bu seviyede durur.
+5. Açık bir paper döngüsü olmamalı ve sembolde Binance hesabınızda pozisyon bulunmamalı.
+
+**Nasıl çalışır**
+
+- Bot kararlarını paper'daki gibi 1 dakikalık mumlarla verir. Her alım, satım ve kapanış Binance'e **piyasa emri** olarak gider (izole marjin, botun kaldıracı). Taker ücreti ödenir, mum kapanışını beklediği için 1–2 dakika gecikme olabilir.
+- Pozisyon için Binance'te her zaman bir **stop** durur. Uygulama kapalıyken de pozisyonu korur.
+- Bot sayfasındaki **Gerçek para** paneli gerçek pozisyonu, girişi, borsadaki stopu, gerçekleşen sonucu ve son eşitleme saatini gösterir. Üst çubukta **LIVE** rozeti görünür.
+
+**Pilot: ilk adımlar küçük**
+
+Gerçek parayı açtığınızda bot önce pilotla başlar. DCA ve Grid'de ilk 3 gerçek döngü, simüle pozisyonun küçültülmüş bir oranıyla (yaklaşık 100 USDT'lik bir pozisyon) Binance'e gider. Kararlar ve stop seviyesi aynıdır, yalnızca miktar küçüktür. Sinyal botunda ilk 3 gerçek giriş en fazla 50 USDT olur. Binance'in o sembol için minimumu daha yüksekse bu sınır minimumun biraz üstüne çıkar. Paneldeki **Pilotu bitir** düğmesi tam boyuta geçirir; DCA ve Grid'de bu bir sonraki döngüden itibaren geçerli olur.
+
+**Gerçek ve paper farkı**
+
+Gerçek paradaki bir DCA ya da Grid botunun sayfasında **Gerçek ve paper** sekmesi açılır. Her gerçek dolumu, simülasyonun aynı anda yaptığı dolumla karşılaştırır: fiyat farkı (kayma, baz puan), bunun USDT maliyeti ve gecikme. Pozitif kayma maliyettir. Testin asıl çıktısı bu farktır.
+
+**Hangi sinyaller:** Futures botu yalnızca futures için yayınlanan sinyalleri, Spot botu yalnızca spot sinyallerini alır. Diğer piyasanın sinyali atlanan işlemlerde nedeniyle görünür.
+
+**Bot kendini ne zaman durdurur**
+
+| Durum | Ne olur | Ne yapmalı |
+|---|---|---|
+| Borsadaki stop doldu | Normal zarar durdur; bot çalışmaya devam eder | Bir şey gerekmez |
+| Pozisyon Binance'te başka bir yolla kapandı (likidasyon, elle kapatma) | Döngü kapanır, bot durur | Nedenini kontrol edin, botu yeniden başlatın |
+| Binance'teki pozisyon botun gönderdiğinden farklı | Bot durur, pozisyon stopla korunur | Pozisyonu Binance'te kontrol edin, gerekirse [Borsa](#/positions?tab=exchange) sekmesinden kapatın |
+| Binance 2 dakikadan uzun süre okunamadı ve bot bu sırada işlem yaptı | Bot bugünkü fiyattan telafi etmez, durur | Pozisyonu kontrol edip botu paper'a döndürün |
+| Emir 3 kez reddedildi | Bot durur | Bakiyeyi ve minimum emir tutarını kontrol edin |
+| Gerçek para, test ağı denemesini geçmemiş bir borsa için açılmıştı | Yeni pozisyon açılmaz; gerçek pozisyon stopuyla korunur ve bot başlatılamaz | Pozisyonu [Borsa](#/positions?tab=exchange) sekmesinden kapatın ve botu paper'a döndürün |
+
+**Çalışırken yapmayın:** kasayı kilitlemek, anahtar değiştirmek, güncelleme kurmak. Uygulama bunları zaten engeller. Bot gerçek paradayken ayarları düzenlenemez ve silinemez; gerçek pozisyon tutarken borsası da değiştirilemez: önce pozisyonu kapatıp botu paper'a döndürün.
 
 ## Sık yapılan hatalar {#mistakes}
 
@@ -294,11 +347,15 @@ Bir bot başlatmadan önce şu üç soruyu cevaplayın:
 
 ## Sık sorulan sorular {#faq}
 
-**Gerçek para kaybedebilir miyim?** Hayır. DCA ve Grid botları yalnızca simüle çalışır, borsaya emir gitmez.
+**Gerçek para kaybedebilir miyim?** Paper'da hayır: borsaya emir gitmez. Bir botu [gerçek paraya](#/guide?s=real-money) aldıysanız evet; o botun her işlemi Binance hesabınızda gerçekleşir.
 
-**Zarar durdur neden çalışmadı?** Formda kapalı olabilir. Kapalıyken uyarı satırı "Stop yok: kayıp sınırsız" yazar.
+**Zarar durdur neden çalışmadı?** Formda kapalı olabilir. Kapalıyken uyarı satırı "Stop yok: kayıp sınırsız" yazar; bot düşüş durdurucusu açıksa "Kaybı yalnızca bot düşüş durdurucusu sınırlar." yazar.
 
-**Bot neden yeni döngü açmıyor?** Bot sayfasındaki notlara bakın. Olası nedenler: fiyat aralığı koruması, bitiş zamanı, döngü sınırı, BTC kırılımı beklemesi, portföy kesicisi, bütçe sınırı ya da fiyat akışının 3 dakikadan eski olması.
+**Bot neden yeni döngü açmıyor?** Bot sayfasındaki notlara bakın. Olası nedenler: fiyat aralığı koruması, bitiş zamanı, döngü sınırı, BTC kırılımı beklemesi, portföy kesicisi, bütçe sınırı, kaldıracın risk seviyenizin üst sınırını aşması, yeniden başlatmadan sonra devam ettirilmemesi ya da fiyat akışının 3 dakikadan eski olması.
+
+**Botu neden silemiyor ya da değiştiremiyorum?** Silme ve ayarlar bot listesinde değil, botun kendi sayfasında: bot adına tıklayın, ayarlar **Settings** sekmesinde, **Delete** üstteki düğmelerde. Açık bir döngü varken, yani bot bir pozisyon tutarken, silme kapalıdır; sembol ve bütçe gibi döngüyü bozacak ayarlar kilitlidir. Önce **Close cycle** ile döngüyü kapatın, sonra **Delete** açılır. Silmeden de yeni bir bot kurabilirsiniz; bütçe sınırında yer varsa ve aynı sembolde çalışan başka bot yoksa.
+
+**"Paused: Price feed older than 3 minutes" ne demek?** Bot 3 dakikadır yeni fiyat alamadı ve eski fiyatla işlem yapmamak için bekliyor. Genellikle borsanın ya da internet bağlantısının geçici bir kesintisidir. Fiyat gelince bot kendiliğinden devam eder; **Resume**'a basmak bu durumu çözmez. Bu sırada **Close cycle**'a basarsanız kapanış da fiyat gelene kadar bekler, çünkü uygulama eski fiyatla kapanış yazmaz. Bu beklemede yeni bot kurmak da işe yaramaz: yeni bot aynı fiyat kaynağını kullanır.
 
 **Kâr neden küçük görünüyor?** DCA ve Grid küçük ama sık kâr eder. Aylık getiriye bakın, tek döngüye değil.
 

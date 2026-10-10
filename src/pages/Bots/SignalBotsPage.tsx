@@ -7,7 +7,7 @@ import { DeskFeed } from "@/components/BotDesk/DeskFeed/DeskFeed";
 import { DeskPrinciples } from "@/components/BotDesk/DeskPrinciples/DeskPrinciples";
 import { RegimeCard, RiskReadout, StreamCard } from "@/components/Desk/Readouts";
 import { Button } from "@/components/ui/Button/Button";
-import { LiveChip } from "@/components/ui/Chip/Chip";
+import { LiveChip, UntestedChip } from "@/components/ui/Chip/Chip";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
 import { FilterGroup, listParam } from "@/components/ui/FilterPanel/FilterPanel";
 import { PageShell } from "@/components/ui/PageShell/PageShell";
@@ -22,6 +22,7 @@ import { signalBotRows, type BotRow } from "./botRows";
 import { BotStateChip, SignalRowAction } from "./BotsTable";
 import { SignalBotForm } from "./signal/SignalBotForm";
 import "./bots.css";
+import { MarketTrendPanel } from "@/components/Desk/MarketTrend";
 
 const KINDS: BotKind[] = ["futures", "spot", "pump"];
 
@@ -48,7 +49,7 @@ export function SignalBotsPage() {
   const selected: BotKind = botParam && KINDS.includes(botParam) ? botParam : "futures";
   const settingsRef = useRef<HTMLDivElement>(null);
   const s = desk.status;
-  const allowsPump = risk.state?.allowsPump ?? false;
+  const maxCapitalQuote = risk.state?.maxCapitalQuote ?? null;
 
   const setQuery = (patch: { kind?: string[]; reason?: string[]; bot?: BotKind }) =>
     navigate(
@@ -60,7 +61,7 @@ export function SignalBotsPage() {
       { replace: true },
     );
 
-  const rows = desk.loaded ? signalBotRows(s, allowsPump) : [];
+  const rows = desk.loaded ? signalBotRows(s, maxCapitalQuote) : [];
   const row = rows.find((r) => r.kind === selected) ?? null;
   // The feed filters act on what the feed shows; the table keeps the real status.
   const positions = kindFilter.length ? s.openPositions.filter((p) => kindFilter.includes(p.botKind)) : s.openPositions;
@@ -86,6 +87,7 @@ export function SignalBotsPage() {
           <Link to={`/bots/${r.id}`} className="ae-link" title={r.kind === "pump" ? t("bots.pumpNote") : undefined}>
             {t(`bots.kind.${r.kind}`)}
           </Link>
+          {r.untested ? <UntestedChip title={t("bots.pumpNote")} /> : null}
           {r.live ? <LiveChip /> : null}
         </span>
       ),
@@ -133,6 +135,7 @@ export function SignalBotsPage() {
 
   const right = (
     <>
+      <MarketTrendPanel />
       <Panel title={t("signalBots.todayTitle")}>
         <FactList
           rows={KINDS.flatMap((k) => [
@@ -192,6 +195,22 @@ export function SignalBotsPage() {
           {t("bots.btcBreak")}
         </p>
       ) : null}
+      {/* The risk level or balance changed under a running bot: its capital
+          is now above the cap and every signal is skipped. One line per bot,
+          not one skip per signal. */}
+      {maxCapitalQuote !== null
+        ? rows
+            .filter((r) => r.running && r.capitalAboveCap && r.capital !== null)
+            .map((r) => (
+              <p key={`cap-${r.kind}`} className="ae-banner" data-tone="warn" role="status">
+                {t("signalBots.capitalAboveCap", {
+                  kind: t(`bots.kind.${r.kind}`),
+                  capital: formatUsdt(r.capital ?? 0, locale),
+                  cap: formatUsdt(maxCapitalQuote, locale),
+                })}
+              </p>
+            ))
+        : null}
       {desk.error ? (
         <p className="ae-banner" data-tone="danger" role="alert">
           {desk.error}
@@ -234,15 +253,22 @@ export function SignalBotsPage() {
               config={row.config}
               running={row.running}
               busy={desk.busy}
-              disabled={s.killSwitchTripped || row.locked}
+              disabled={s.killSwitchTripped}
+              exchangeLocked={row.live || s.openPositions.some((p) => p.botKind === selected && p.live)}
               disabledReasonKey={row.startBlockKey}
               maxLeverage={selected === "spot" ? 1 : maxLeverage}
+              maxCapitalQuote={maxCapitalQuote}
+              levelMaxPositions={risk.state?.limits.maxConcurrentPositions ?? null}
               exchanges={exchanges}
               live={
                 selected === "futures" && s.liveTradingEnabled
                   ? {
                       binanceIsProduction: s.binanceIsProduction,
                       onSetLive: (enabled, confirmation) => desk.setLive("futures", enabled, confirmation),
+                      pilotLeft: desk.status.pilotLeft ?? 0,
+                      onEndPilot: () => desk.endPilot("futures"),
+                      liveVenues: s.liveVenues,
+                      venueSandbox: s.venueSandbox,
                     }
                   : undefined
               }

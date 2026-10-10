@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "name": "DCA Long Classic",
+  "exchangeId": "binance",
+  "market": "futures",
+  "symbol": "BTCUSDT",
+  "side": "long",
+  "budget": 1000.0,
+  "leverage": 2,
+  "start": {
+    "type": "immediately"
+  },
+  "restart": {
+    "cooldownMin": 0,
+    "maxCycles": null,
+    "afterStop": true,
+    "afterLiquidation": false,
+    "priceBand": null,
+    "endAtMs": null
+  },
+  "maxDrawdownPct": null,
+  "pauseOnBtcBreak": false,
+  "portfolioBreaker": false,
+  "params": {
+    "kind": "dca",
+    "baseOrder": null,
+    "safetyOrder": null,
+    "baseWeight": 1.0,
+    "safetyWeight": 1.0,
+    "maxSo": 8,
+    "soStepPct": 2.5,
+    "stepScale": 1.3,
+    "volumeScale": 1.4,
+    "tpPct": 2.0,
+    "trailingPct": null,
+    "slPct": null,
+    "maxDurationMin": null
+  },
+  "presetId": null
+}

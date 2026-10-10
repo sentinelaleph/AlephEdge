@@ -1,6 +1,8 @@
+import { Link } from "@/app/router/router";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { ComboPicker } from "@/components/BotDesk/ComboPicker/ComboPicker";
 import {
   draftFromTarget,
@@ -17,10 +19,10 @@ import { Panel } from "@/components/ui/Panel/Panel";
 import { ReadOnlyField } from "@/components/ui/ReadOnlyField/ReadOnlyField";
 import { SegmentedControl } from "@/components/ui/SegmentedControl/SegmentedControl";
 import { localeForLanguage } from "@/i18n";
-import { MAX_BOT_POSITIONS } from "@/lib/botLimits";
+import { capitalAboveCap, EXCHANGE_MIN_ORDER_USDT, MAX_BOT_POSITIONS } from "@/lib/botLimits";
 import { formatDecimalInput, parseDecimal } from "@/lib/decimal";
 import { formatNumber, formatPercent, formatSignedPercent, formatSignedUsdt, formatUsdt } from "@/lib/format";
-import { botDefaultConfig, LIVE_CONFIRMATION, type BotConfig, type BotKind, type SizingMode } from "@/lib/ipc/bot/bot";
+import { botDefaultConfig, LIVE_CONFIRMATION, PILOT_NOTIONAL_USDT, type BotConfig, type BotKind, type SizingMode } from "@/lib/ipc/bot/bot";
 import { errorMessage } from "@/lib/ipc/bridge";
 import type { ExchangeInfo } from "@/lib/ipc/exchange/exchange";
 import { DUR, EASE, prefersReducedMotion } from "@/lib/motion";
@@ -28,14 +30,20 @@ import {
   DEFAULT_RISK_PCT,
   estimateRiskSize,
   EXAMPLE_STOP_FRACS,
+  FUTURES_FEE_RATE,
   MAX_RISK_PCT,
+  maxLossEffect,
   MIN_RISK_PCT,
+  SPOT_FEE_RATE,
+  type MaxLossEffect,
   type SizeEstimate,
 } from "@/lib/sizing";
+import { liveTargetKey, liveVenueAllowed } from "@/lib/venues";
 import { FieldShell } from "@/pages/Bots/strategy/formControls";
 import "@/pages/Bots/strategy/StrategyForm.css";
 import "@/pages/Bots/bots.css";
 import "./SignalBotForm.css";
+import { TrendMismatchNote } from "@/components/Desk/MarketTrend";
 
 /** Real-money switch wiring; passed only when the build and the bot allow it. */
 export interface BotLiveControl {
@@ -43,6 +51,13 @@ export interface BotLiveControl {
   binanceIsProduction: boolean;
   /** Resolves to the rejection text, or null on success. */
   onSetLive: (enabled: boolean, confirmation: string) => Promise<string | null>;
+  /** Real entries left in the pilot (0 = full size). */
+  pilotLeft: number;
+  onEndPilot: () => Promise<string | null>;
+  /** Venues real money can be switched on for (desk status `liveVenues`). */
+  liveVenues?: string[];
+  /** Bybit / OKX orders go to their demo / test networks (desk status). */
+  venueSandbox?: boolean;
 }
 
 interface SignalBotFormProps {
@@ -50,11 +65,23 @@ interface SignalBotFormProps {
   config: BotConfig | null;
   running: boolean;
   busy: boolean;
-  /** Start is refused (daily stop, Pump below Ambitious). A running bot stays stoppable. */
+  /** Start is refused (the daily stop). A running bot stays stoppable. */
   disabled: boolean;
+  /**
+   * The exchange cannot change: the bot is switched to real money or holds
+   * real positions (Rust refuses it too: liveExchangeLocked / botHasLivePositions).
+   */
+  exchangeLocked?: boolean;
   /** i18n key of why Start is refused, shown on the button's tooltip. */
   disabledReasonKey?: string | null;
   maxLeverage: number;
+  /**
+   * The risk level's cap per position in USDT (balance × max capital %), or
+   * null while the risk state loads. Capital above it is refused by Rust.
+   */
+  maxCapitalQuote: number | null;
+  /** The risk level's position limit per signal bot (null while loading). */
+  levelMaxPositions?: number | null;
   /** Exchanges the bot may price against (paper needs no key). */
   exchanges: ExchangeInfo[];
   /** Present only in a live build, for the Futures bot. */
@@ -65,6 +92,9 @@ interface SignalBotFormProps {
 }
 
 /** Where the form's values came from; Start stays off until it has some. */
+/** Display name for an exchange id (bybit -> Bybit, okx -> OKX). */
+const venueLabel = (id: string) => (id === "okx" ? "OKX" : id.charAt(0).toUpperCase() + id.slice(1));
+
 type Seed = "none" | "defaults" | "config";
 
 /**
@@ -81,8 +111,11 @@ export function SignalBotForm({
   running,
   busy,
   disabled,
+  exchangeLocked = false,
   disabledReasonKey,
   maxLeverage,
+  maxCapitalQuote,
+  levelMaxPositions = null,
   exchanges,
   live,
   onStart,
@@ -186,12 +219,26 @@ export function SignalBotForm({
   // Clamped ONLY for the preview, which must show a real number mid-edit.
   const riskPctForPreview = Math.min(MAX_RISK_PCT, Math.max(MIN_RISK_PCT, riskPctNum || DEFAULT_RISK_PCT));
   const exposure = capitalNum * positionsNum;
+  // Rust refuses to save or start a bot above the cap: every signal would be
+  // skipped with "Above per-position cap". Said here, before Start.
+  const overCap = capitalAboveCap(capitalNum, maxCapitalQuote);
   const riskOutOfRange = sizing === "risk" && !(riskPctNum >= MIN_RISK_PCT && riskPctNum <= MAX_RISK_PCT);
   const tpInvalid = !draftValid(takeProfit) || tpOverrides.some((o) => !draftValid(o));
   // An empty age field means the server's default, which must be known.
   const maxAgeMin =
     maxAgeH.trim() === "" ? (defaults?.maxSignalAgeMin ?? null) : Math.max(0, Math.round((parseDecimal(maxAgeH) || 0) * 60));
-  const valid = seed !== "none" && capitalNum > 0 && exchangeId !== "" && !riskOutOfRange && !tpInvalid && maxAgeMin !== null;
+  const valid =
+    seed !== "none" && capitalNum > 0 && !overCap && exchangeId !== "" && !riskOutOfRange && !tpInvalid && maxAgeMin !== null;
+  const lossEffect =
+    maxLoss.trim() === ""
+      ? null
+      : maxLossEffect({
+          sizing,
+          capPct: parseDecimal(maxLoss),
+          leverage: leverageNum,
+          riskPct: riskPctForPreview,
+          feeRate: futuresMarket ? FUTURES_FEE_RATE : SPOT_FEE_RATE,
+        });
   const symbolList = symbols
     .split(",")
     .map((s) => s.trim().toUpperCase())
@@ -266,13 +313,21 @@ export function SignalBotForm({
 
       <Panel title={t("strategy.form.section.general")}>
         <div className="ae-sform__grid">
-          <FieldShell label={t("bots.exchange")} htmlFor={`${ids}-ex`}>
+          <FieldShell
+            label={t("bots.exchange")}
+            htmlFor={`${ids}-ex`}
+            hint={
+              exchangeLocked
+                ? t("bots.exchangeLocked")
+                : undefined
+            }
+          >
             <select
               id={`${ids}-ex`}
               className="ae-field__input"
               value={exchangeId}
               onChange={(e) => setExchangeSel(e.target.value)}
-              disabled={locked || usable.length === 0}
+              disabled={locked || exchangeLocked || usable.length === 0}
             >
               {usable.map((e) => (
                 <option key={e.id} value={e.id}>
@@ -281,7 +336,21 @@ export function SignalBotForm({
               ))}
             </select>
           </FieldShell>
-          <TextNum id={`${ids}-cap`} label={t("bots.capital")} value={capital} onChange={setCapital} disabled={locked} />
+          <TextNum
+            id={`${ids}-cap`}
+            label={t("bots.capital")}
+            value={capital}
+            onChange={setCapital}
+            disabled={locked}
+            hint={
+              capitalNum > 0 && capitalNum < EXCHANGE_MIN_ORDER_USDT
+                ? t("bots.capitalBelowMinimum")
+                : maxCapitalQuote != null
+                  ? t("bots.capitalCapHint", { cap: formatUsdt(maxCapitalQuote, locale) })
+                  : undefined
+            }
+            error={overCap && maxCapitalQuote != null ? t("bots.capitalAboveCap", { cap: formatUsdt(maxCapitalQuote, locale) }) : null}
+          />
           <TextNum
             id={`${ids}-pos`}
             label={t("bots.maxPositions")}
@@ -289,6 +358,13 @@ export function SignalBotForm({
             onChange={setPositions}
             disabled={locked}
             integer
+            hint={
+              levelMaxPositions != null
+                ? positionsNum > levelMaxPositions
+                  ? t("bots.maxPositionsAboveLevel", { max: levelMaxPositions })
+                  : t("bots.maxPositionsLevelHint", { max: levelMaxPositions })
+                : undefined
+            }
           />
           {futuresMarket ? (
             <TextNum
@@ -353,6 +429,7 @@ export function SignalBotForm({
       </Panel>
 
       <Panel title={t("bots.signalFilter")}>
+        <TrendMismatchNote long={direction !== "short"} short={futuresMarket && direction !== "long"} />
         <div className="ae-sform__grid">
           <TextNum
             id={`${ids}-age`}
@@ -368,6 +445,7 @@ export function SignalBotForm({
             id={`${ids}-conf`}
             label={t("bots.minConfidence")}
             placeholder="0"
+            hint={t("bots.minConfidenceHint")}
             value={minConfidence}
             onChange={setMinConfidence}
             disabled={locked}
@@ -393,11 +471,16 @@ export function SignalBotForm({
               ]}
             />
           </FieldShell>
+          {/* No placeholder number: an empty field is off, and a grey "2"
+              read as an active default that was never applied. */}
           <TextNum
             id={`${ids}-loss`}
             label={t("bots.maxLossPct")}
-            placeholder="2"
-            hint={t("bots.maxLossPctHint")}
+            hint={
+              lossEffect
+                ? `${t("bots.maxLossPctHint")} · ${maxLossText(t, lossEffect, riskPctForPreview, leverageNum, locale)}`
+                : t("bots.maxLossPctHint")
+            }
             value={maxLoss}
             onChange={setMaxLoss}
             disabled={locked}
@@ -431,6 +514,7 @@ export function SignalBotForm({
         <div className="ae-sform__options ae-sigform__combos">
           <ComboPicker value={combos} onChange={setCombos} disabled={locked} />
         </div>
+        <p className="ae-field__hint">{t("bots.filtersApplyPending")}</p>
       </Panel>
 
       <div className="ae-sform__actions">
@@ -445,6 +529,26 @@ export function SignalBotForm({
       </div>
     </form>
   );
+}
+
+/** What the typed max-loss cap does under the current sizing (lib/sizing.ts). */
+function maxLossText(
+  t: TFunction,
+  e: MaxLossEffect,
+  riskPct: number,
+  leverage: number,
+  locale: string,
+): string {
+  switch (e.kind) {
+    case "fixed":
+      return t("bots.maxLoss.fixed", { move: formatPercent(e.movePct, locale) });
+    case "immediate":
+      return t("bots.maxLoss.immediate", { leverage });
+    case "riskInert":
+      return t("bots.maxLoss.riskInert", { risk: formatNumber(riskPct, locale, { maximumFractionDigits: 2 }) });
+    case "riskActive":
+      return t("bots.maxLoss.riskActive", { share: formatPercent(e.stopShare * 100, locale, 0) });
+  }
 }
 
 function overridesFrom(config: BotConfig | null | undefined): OverrideDraft[] {
@@ -559,10 +663,24 @@ function LiveControl({ config, busy, live }: { config: BotConfig | null; busy: b
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const id = useId();
   const isLive = config?.live === true;
+  // Real money switches on only where the order path passed a test-network
+  // dry run (Rust refuses the rest with liveVenueNotDryRun).
+  const venueOk = !config || liveVenueAllowed(live.liveVenues, config.exchangeId);
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
   const [error, setError] = useState<string | null>(null);
   const confirmed = typed === LIVE_CONFIRMATION;
+  // bot_configure switches live off when capital, leverage or the position
+  // cap changes (the sizing LIVE confirmed). Say so instead of going quiet.
+  const wasLive = useRef(isLive);
+  const offByUser = useRef(false);
+  const [sizingOff, setSizingOff] = useState(false);
+  useEffect(() => {
+    if (wasLive.current && !isLive && !offByUser.current) setSizingOff(true);
+    if (isLive) setSizingOff(false);
+    wasLive.current = isLive;
+    offByUser.current = false;
+  }, [isLive]);
 
   function close() {
     setOpen(false);
@@ -579,12 +697,22 @@ function LiveControl({ config, busy, live }: { config: BotConfig | null; busy: b
 
   async function switchOff() {
     setError(null);
+    offByUser.current = true;
     const err = await live.onSetLive(false, "");
     if (err) setError(err);
   }
 
   return (
     <Panel title={t("bots.live.title")} tone={isLive || open ? "live" : "default"} aside={isLive ? <LiveChip /> : <Chip>{t("bots.live.stateSimulated")}</Chip>}>
+      {sizingOff ? <p className="ae-error" role="status">{t("bots.live.sizingTurnedOff")}</p> : null}
+      {isLive && live.pilotLeft > 0 ? (
+        <p className="ae-muted">
+          {t("bots.live.pilot", { count: live.pilotLeft, cap: PILOT_NOTIONAL_USDT })}{" "}
+          <Button variant="ghost" size="xs" disabled={busy} onClick={() => void live.onEndPilot().then((e) => e && setError(e))}>
+            {t("bots.live.endPilot")}
+          </Button>
+        </p>
+      ) : null}
       <div className="ae-sigform__liverow">
         {isLive ? (
           <Button variant="secondary" size="sm" disabled={busy} onClick={() => void switchOff()}>
@@ -594,7 +722,7 @@ function LiveControl({ config, busy, live }: { config: BotConfig | null; busy: b
           <Button
             variant="secondary"
             size="sm"
-            disabled={busy || !config}
+            disabled={busy || !config || !venueOk}
             onClick={() => {
               setError(null);
               setOpen(true);
@@ -604,10 +732,18 @@ function LiveControl({ config, busy, live }: { config: BotConfig | null; busy: b
           </Button>
         ) : null}
         {!config ? <span className="ae-subtle">{t("bots.live.saveFirst")}</span> : null}
+        {config && !isLive && !venueOk ? (
+          <span className="ae-error" role="note">
+            {t("vault.venueNotDryRun", { exchange: venueLabel(config.exchangeId) })}
+          </span>
+        ) : null}
+        <Link to="/risk?s=preflight" className="ae-link">
+          {t("preflight.title")}
+        </Link>
       </div>
 
       <AnimatePresence initial={false}>
-        {open && !isLive && config ? (
+        {open && !isLive && config && venueOk ? (
           <motion.div
             className="ae-sigform__liveconfirm"
             initial={{ opacity: 0, y: -4 }}
@@ -616,7 +752,11 @@ function LiveControl({ config, busy, live }: { config: BotConfig | null; busy: b
             transition={{ duration: prefersReducedMotion() ? 0 : DUR.pop, ease: EASE.out }}
           >
             <p className="ae-sigform__livetitle">{t("bots.live.confirmTitle")}</p>
-            <p>{t(live.binanceIsProduction ? "bots.live.targetProduction" : "bots.live.targetTestnet")}</p>
+            <p>
+              {t(liveTargetKey(config.exchangeId, live.binanceIsProduction, live.venueSandbox), {
+                exchange: venueLabel(config.exchangeId),
+              })}
+            </p>
             <p>
               {t("bots.live.terms", {
                 capital: formatNumber(config.capital, locale),

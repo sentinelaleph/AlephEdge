@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNow } from "@/app/alerts";
 import { useDeskContext } from "@/app/DeskProvider";
@@ -17,6 +18,7 @@ import { localeForLanguage } from "@/i18n";
 import { formatAge, formatNumber, formatPrice, formatTableTime, NO_VALUE } from "@/lib/format";
 import type { Signal } from "@/lib/ipc/signal/signal";
 import { SkeletonRows } from "@/pages/Bots/SkeletonRows";
+import { ExecuteDialog } from "./ExecuteDialog";
 import "./SignalsPage.css";
 import { streamAlertSeverity, streamErrorText, streamLabelKey } from "@/lib/ipc/signal/streamStatus";
 
@@ -57,6 +59,8 @@ export function SignalsPage() {
   const { feed, desk, pnl } = useDeskContext();
   const { route } = useRouter();
   const now = useNow(15_000);
+  /** The signal whose Execute dialog is open. */
+  const [executing, setExecuting] = useState<Signal | null>(null);
   const q = route.query;
   const f = {
     q: q.get("q") ?? "",
@@ -232,6 +236,9 @@ export function SignalsPage() {
       {selected ? (
         <>
           <Panel title={`${selected.symbol} ${selected.timeframe ?? ""}`} aside={<Chip tone={selected.direction === "long" ? "success" : "danger"}>{t(`signalDesk.direction.${selected.direction}`)}</Chip>}>
+            <Button size="sm" className="ae-sigexec" onClick={() => setExecuting(selected)}>
+              {t("signalsPage.execute.button")}
+            </Button>
             <FactList
               rows={[
                 { label: t("table.entry"), value: formatPrice(selected.entry, locale) },
@@ -330,9 +337,15 @@ export function SignalsPage() {
           rowKey={(s) => s.id}
           isSelected={(s) => s.id === f.id}
           onRowActivate={(s) => set({ id: s.id })}
+          actions={(s) => (
+            <Button variant="secondary" size="xs" aria-label={t("signalsPage.execute.rowLabel", { symbol: s.symbol })} onClick={() => setExecuting(s)}>
+              {t("signalsPage.execute.button")}
+            </Button>
+          )}
           compact
         />
       )}
+      <ExecuteDialog signal={executing} onClose={() => setExecuting(null)} pumpConfigured={Boolean(desk.status.pump)} />
     </PageShell>
   );
 }

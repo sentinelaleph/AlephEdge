@@ -17,11 +17,12 @@ pub enum RiskLevel {
 }
 
 impl RiskLevel {
-    /// The Pump bot is the most aggressive type — PRD §5.1 disables it below
-    /// the "Ambitious" (Hırslı) level.
-    pub fn allows_pump(self) -> bool {
-        matches!(self, RiskLevel::Ambitious | RiskLevel::Greedy)
-    }
+    // The Pump bot is no longer unlocked by the level (audit 2026-10-08,
+    // owner decision pending): PRD §5.1 tied it to "Ambitious", and raising
+    // this GLOBAL level to try one untested paper-only bot also raised every
+    // other bot's leverage, position and loss limits, the real-money Futures
+    // bot and the DCA / Grid budget cap included. Pump now runs at any level,
+    // under that level's limits, on paper only, labelled untested.
 
     /// The PRD §5.3 limits row for this level.
     pub fn limits(self) -> RiskLimits {
@@ -154,8 +155,6 @@ pub struct RiskState {
     pub close_on_stop: bool,
     /// `balance * max_capital_pct / 100` — max capital per position, quote.
     pub max_capital_quote: f64,
-    /// Whether the current level permits the Pump bot (PRD §5.1).
-    pub allows_pump: bool,
     /// Raw value the user typed, echoed back so the field is not silently
     /// rewritten under them when it exceeds the level cap.
     pub daily_loss_override_pct: Option<f64>,
@@ -175,7 +174,6 @@ impl RiskState {
         let effective = config.effective_daily_loss_pct();
         Self {
             max_capital_quote: config.balance * limits.max_capital_pct / 100.0,
-            allows_pump: config.level.allows_pump(),
             daily_loss_override_pct: config.daily_loss_override_pct,
             effective_daily_loss_pct: effective,
             daily_loss_override_capped: config

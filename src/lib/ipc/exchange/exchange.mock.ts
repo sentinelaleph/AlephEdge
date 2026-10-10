@@ -16,6 +16,16 @@ export const CATALOG: ExchangeInfo[] = [
 ];
 
 export function account(): Promise<FuturesAccount> {
+  // The screenshot harness (?shot=, every screen labelled "Sample data")
+  // shows a sample account so the FAQ pictures the panel as it looks in use.
+  if (new URLSearchParams(window.location.search).has("shot")) {
+    return Promise.resolve({
+      totalWalletBalance: 1000,
+      availableBalance: 912.4,
+      totalUnrealizedPnl: 1.86,
+      positions: [{ symbol: "ETHUSDT", positionAmt: 0.04, entryPrice: 2190.5, unrealizedPnl: 1.86 }],
+    });
+  }
   return Promise.reject("No exchange in the browser preview.");
 }
 

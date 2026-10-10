@@ -108,6 +108,11 @@
     background-color var(--dur-fast) var(--ease-out),
     color var(--dur-fast) var(--ease-out);
 }
+.ae-iconbtn--xs {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-xs);
+}
 .ae-iconbtn--sm {
   width: 30px;
   height: 30px;
@@ -119,6 +124,11 @@
 .ae-iconbtn:hover:not(:disabled) {
   background: var(--surface-2);
   color: var(--text);
+}
+/* Destructive row action: quiet until hovered (the click opens a dialog). */
+.ae-iconbtn[data-tone="danger"]:hover:not(:disabled) {
+  background: var(--danger-subtle);
+  color: var(--danger-text);
 }
 .ae-iconbtn[data-pressed] {
   background: var(--surface-2);

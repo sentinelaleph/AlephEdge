@@ -19,6 +19,8 @@ import { SkeletonRows } from "./SkeletonRows";
 import { isActive, type StrategyBotView } from "@/lib/ipc/strategy/strategy";
 import { StrategyBotsTable } from "./strategy/StrategyBotsTable";
 import { useStrategyActions } from "./strategy/useStrategyActions";
+import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
+import { MarketTrendPanel } from "@/components/Desk/MarketTrend";
 
 const SORT_KEY = "aleph-edge-bots-sort";
 
@@ -73,8 +75,8 @@ export function BotsPage() {
   const anyFilter = Object.values(filters).some((v) => (Array.isArray(v) ? v.length > 0 : v !== ""));
 
   const all: BotRow[] = useMemo(
-    () => (desk.loaded ? signalBotRows(desk.status, risk.state?.allowsPump ?? false) : []),
-    [desk.loaded, desk.status, risk.state?.allowsPump],
+    () => (desk.loaded ? signalBotRows(desk.status, risk.state?.maxCapitalQuote ?? null) : []),
+    [desk.loaded, desk.status, risk.state?.maxCapitalQuote],
   );
   const rows = sortRows(
     all.filter((r) => {
@@ -90,7 +92,8 @@ export function BotsPage() {
     }),
     sort,
   );
-  // DCA / Grid instances (paper only) under the same filters.
+  // DCA / Grid instances under the same filters; a bot on real money is "live".
+  const { liveIds: strategyLiveIds } = useStrategyLive();
   const strategyAll: StrategyBotView[] = strategy.bots ?? [];
   const strategyState = (b: StrategyBotView) => (isActive(b) || b.openCycle ? "running" : "stopped");
   const strategyRows = strategyAll.filter((b) => {
@@ -99,7 +102,7 @@ export function BotsPage() {
     if (filters.type.length && !filters.type.includes(b.kind)) return false;
     if (filters.state.length && !filters.state.includes(strategyState(b))) return false;
     if (filters.market.length && !filters.market.includes(b.market)) return false;
-    if (filters.mode.length && !filters.mode.includes("paper")) return false;
+    if (filters.mode.length && !filters.mode.includes(strategyLiveIds.has(b.id) ? "live" : "paper")) return false;
     if (filters.exchange.length && !filters.exchange.includes(b.exchangeId)) return false;
     return true;
   });
@@ -168,6 +171,7 @@ export function BotsPage() {
   const strategyAttention = strategyAll.filter((b) => b.runState === "dead" || b.runState === "paused");
   const right = (
     <>
+      <MarketTrendPanel />
       {TYPES.map((type) => {
         if (type !== "signal") {
           const of = strategyAll.filter((b) => b.kind === type);

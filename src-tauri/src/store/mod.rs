@@ -3,13 +3,16 @@
 
 pub(crate) mod backtest;
 mod commands;
+mod manual;
 mod meta;
 pub mod model;
 pub(crate) mod positions;
+pub(crate) mod restore_check;
+pub(crate) mod skips;
 pub(crate) mod strategy;
 mod trades;
 
-pub use commands::{trades_export_csv, trades_list, trades_stats};
+pub use commands::{skips_export_csv, trades_export_csv, trades_list, trades_stats};
 
 use std::path::Path;
 use std::sync::Mutex;
@@ -63,21 +66,37 @@ impl StoreManager {
             trades::migrate(&conn)?;
             meta::migrate(&conn)?;
             positions::migrate(&conn)?;
+            skips::migrate(&conn)?;
             // Desktop-only strategy (DCA/Grid, paper) tables.
             strategy::migrate(&conn)?;
             // Desktop-only backtest runs (newest 50).
             backtest::migrate(&conn)?;
+            // Desktop-only marks of hand-opened trades (Execute).
+            manual::migrate(&conn)?;
             *guard = Some(conn);
         }
         f(guard.as_ref().expect("store conn"))
     }
 
-    pub fn record_trade(&self, dir: &Path, trade: &TradeRecord) -> Result<(), String> {
-        self.with_conn(dir, |c| trades::insert(c, trade))
+    /// Records a closed position's trade and deletes its open row in ONE
+    /// transaction: both land or neither does. Two separate commits left a
+    /// window (an updater exit, a shutdown) where the trade was saved and the
+    /// position row was not, and the next start restored and closed it again.
+    pub fn settle_close(&self, dir: &Path, trade: &TradeRecord, signal_id: &str, bot_kind: &str) -> Result<(), String> {
+        self.with_conn(dir, |c| settle(c, trade, signal_id, bot_kind))
+    }
+
+    /// See `trades::is_settled`.
+    pub fn is_settled(&self, dir: &Path, signal_id: &str, bot_kind: &str, opened_at: u64) -> Result<bool, String> {
+        self.with_conn(dir, |c| trades::is_settled(c, signal_id, bot_kind, opened_at))
     }
 
     pub fn list_trades(&self, dir: &Path, limit: u32) -> Result<Vec<TradeRecord>, String> {
-        self.with_conn(dir, |c| trades::list(c, limit))
+        self.with_conn(dir, |c| {
+            let mut rows = trades::list(c, limit)?;
+            manual::mark(c, &mut rows)?;
+            Ok(rows)
+        })
     }
 
     pub fn stats(&self, dir: &Path) -> Result<PnlStats, String> {
@@ -127,12 +146,22 @@ impl StoreManager {
         self.with_conn(dir, |c| trades::recent_keys(c, since_ms))
     }
 
-    pub fn load_positions(&self, dir: &Path) -> Result<Vec<String>, String> {
-        self.with_conn(dir, positions::load_all)
+    /// (signal_id, bot_kind, body) of every open-position row.
+    pub fn load_positions(&self, dir: &Path) -> Result<Vec<(String, String, String)>, String> {
+        self.with_conn(dir, positions::load_all_keyed)
     }
 
     pub fn export_csv(&self, dir: &Path) -> Result<String, String> {
         self.with_conn(dir, trades::export_csv)
+    }
+
+    /// `Ok(false)`: this (bot, signal, reason) was already logged.
+    pub fn record_skip(&self, dir: &Path, row: &skips::SkipRow) -> Result<bool, String> {
+        self.with_conn(dir, |c| skips::insert(c, row))
+    }
+
+    pub fn export_skips_csv(&self, dir: &Path) -> Result<String, String> {
+        self.with_conn(dir, skips::export_csv)
     }
 }
 
@@ -140,6 +169,18 @@ impl Default for StoreManager {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// The trade INSERT and the open-row DELETE of one close, as one transaction
+/// (the pattern of the strategy store's `persist_tick`).
+fn settle(conn: &Connection, trade: &TradeRecord, signal_id: &str, bot_kind: &str) -> Result<(), String> {
+    let tx = conn
+        .unchecked_transaction()
+        .map_err(|_| "storeWriteFailed".to_string())?;
+    trades::insert(&tx, trade)?;
+    manual::record(&tx, trade)?;
+    positions::delete(&tx, signal_id, bot_kind)?;
+    tx.commit().map_err(|_| "storeWriteFailed".to_string())
 }
 
 /// Start of the current UTC day in UNIX millis (daily kill-switch window).
@@ -151,6 +192,8 @@ pub fn utc_day_start_ms() -> u64 {
     now_ms - (now_ms % 86_400_000)
 }
 
+#[cfg(test)]
+mod fixtures_tests;
 #[cfg(test)]
 mod positions_tests;
 #[cfg(test)]

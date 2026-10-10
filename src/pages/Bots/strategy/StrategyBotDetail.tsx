@@ -23,6 +23,7 @@ import {
   strategyEquity,
   strategyFills,
   strategyOrders,
+  strategyPresets,
   strategyStats,
   strategyUpdate,
   type CycleRow,
@@ -30,22 +31,26 @@ import {
   type FillRow,
   type OrderRole,
   type OrderRow,
+  type Preset,
   type StrategyNote,
   type StrategyBotView,
   type StrategyConfig,
   type StrategyDetail,
   type StrategyStats,
 } from "@/lib/ipc/strategy/strategy";
-import { runStateText, sideText, strategyErrorText, strategyNoteText } from "@/lib/strategyText";
+import { cycleNetQuote, runActionKey, runStateText, sideText, strategyErrorText, strategyNoteText } from "@/lib/strategyText";
 import { runStatusKind, totalPnlPct } from "./StrategyBotsTable";
 import { EquityChart } from "./EquityChart";
 import { StrategyForm, type FormPreview } from "./StrategyForm";
 import { StrategyPreviewPanel } from "./StrategyPreviewPanel";
+import { StrategyLivePanel } from "./StrategyLivePanel";
+import { StrategyLiveReport } from "./StrategyLiveReport";
 import { StrategyRiskPanel } from "./StrategyRiskPanel";
 import { useStrategyActions } from "./useStrategyActions";
+import { useStrategyLive } from "./useStrategyLive";
 import "../bots.css";
 
-const TABS = ["overview", "cycles", "orders", "fills", "settings", "log"] as const;
+const TABS = ["overview", "cycles", "orders", "fills", "real", "settings", "log"] as const;
 type Tab = (typeof TABS)[number];
 
 export function roleText(t: TFunction, r: OrderRole): string {
@@ -57,6 +62,8 @@ export function StrategyBotDetail({ view }: { view: StrategyBotView }) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const { strategy } = useDeskContext();
+  const { liveIds, viewFor } = useStrategyLive();
+  const hasReal = liveIds.has(view.id) || (viewFor(view.id)?.fills ?? 0) > 0;
   const [tabParam, setTab] = useQueryParam("tab");
   const [errParam, setErr] = useQueryParam("err");
   const tab: Tab = (TABS as readonly string[]).includes(tabParam ?? "") ? (tabParam as Tab) : "overview";
@@ -69,6 +76,18 @@ export function StrategyBotDetail({ view }: { view: StrategyBotView }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [summary, setSummary] = useState<FormPreview | null>(null);
   const [saved, setSaved] = useState(false);
+  // The templates, so an edit of a preset bot runs the parity check (the
+  // link is dropped once a simulated setting changes).
+  const [presets, setPresets] = useState<Preset[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    strategyPresets()
+      .then((p) => alive && setPresets(p))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
   const actions = useStrategyActions((action) => {
     if (action === "archive") navigate(`/bots/${view.kind}`);
   });
@@ -127,7 +146,7 @@ export function StrategyBotDetail({ view }: { view: StrategyBotView }) {
   const primary =
     view.runState === "dead" || active ? null : (
       <Button size="sm" disabled={busy} onClick={() => actions.request(view, "start")}>
-        {t("strategy.actions.start")}
+        {t(runActionKey(view))}
       </Button>
     );
   const secondary = (
@@ -145,11 +164,10 @@ export function StrategyBotDetail({ view }: { view: StrategyBotView }) {
       <Button variant="secondary" size="sm" onClick={() => navigate(`${listPath}/new?from=${id}`)}>
         {t("strategy.actions.clone")}
       </Button>
-      {!active && !c ? (
-        <Button variant="secondary" size="sm" disabled={busy} onClick={() => actions.request(view, "archive")}>
-          {t("strategy.actions.archive")}
-        </Button>
-      ) : null}
+      <Button variant="secondary" size="sm" disabled={busy || liveIds.has(view.id)} onClick={() => actions.request(view, "archive")}>
+        {t("strategy.actions.archive")}
+      </Button>
+      {liveIds.has(view.id) ? <span className="ae-subtle">{t("strategy.errors.liveEditLocked")}</span> : null}
     </>
   );
 
@@ -231,12 +249,19 @@ export function StrategyBotDetail({ view }: { view: StrategyBotView }) {
       tone: (r) => pnlToneAttr(r.pnlPctBudget, 3),
     },
     {
+      // The cycle's own money, never the stored % times today's budget.
       id: "pnlUsdt",
       header: t("table.pnlUsdt"),
       numeric: true,
       priority: 2,
-      cell: (r) => (r.pnlPctBudget !== null ? formatPnl((r.pnlPctBudget / 100) * view.budget, locale, { unit: "none" }).text : NO_VALUE),
-      tone: (r) => (r.pnlPctBudget !== null ? pnlToneAttr((r.pnlPctBudget / 100) * view.budget) : undefined),
+      cell: (r) => {
+        const v = cycleNetQuote(r);
+        return v !== null ? formatPnl(v, locale, { unit: "none" }).text : NO_VALUE;
+      },
+      tone: (r) => {
+        const v = cycleNetQuote(r);
+        return v !== null ? pnlToneAttr(v) : undefined;
+      },
     },
   ];
 
@@ -331,6 +356,7 @@ export function StrategyBotDetail({ view }: { view: StrategyBotView }) {
           />
           {actions.error ? <p className="ae-error">{actions.error.text}</p> : null}
         </Panel>
+        <StrategyLivePanel view={view} config={detail?.config ?? null} />
         <StrategyRiskPanel />
       </>
     );
@@ -376,7 +402,8 @@ export function StrategyBotDetail({ view }: { view: StrategyBotView }) {
           setSaved(false);
           setTab(v === "overview" ? null : v);
         }}
-        tabs={TABS.map((x) => ({ id: x, label: t(`strategy.tabs.${x}`) }))}
+        // "Real vs paper" only for a bot that has traded real money.
+        tabs={TABS.filter((x) => x !== "real" || hasReal).map((x) => ({ id: x, label: t(`strategy.tabs.${x}`) }))}
       >
         {tab === "overview" ? (
           <>
@@ -447,7 +474,7 @@ export function StrategyBotDetail({ view }: { view: StrategyBotView }) {
                     },
                     ...(c.soFilled !== null ? [{ label: t("strategy.detail.soFilled"), value: c.soFilled }] : []),
                     ...(c.gridClosingFills !== null ? [{ label: t("strategy.detail.closingFills"), value: c.gridClosingFills }] : []),
-                    { label: t("strategy.preview.liqPrice"), value: c.liqPrice !== null ? formatPrice(c.liqPrice, locale) : t("strategy.preview.noLiq"), tone: c.liqPrice !== null ? "warn" : undefined },
+                    { label: t("strategy.preview.liqPrice"), value: c.liqPrice !== null ? formatPrice(c.liqPrice, locale) : t("strategy.preview.noLiqAt", { leverage: view.leverage }), tone: c.liqPrice !== null ? "warn" : undefined },
                     { label: t("strategy.detail.maxAdverse"), value: formatSignedPercent(c.maxAdversePct, locale) },
                     ...(c.outOfRange ? [{ label: t("table.state"), value: t("strategy.notes.outOfRange"), tone: "warn" as const }] : []),
                   ]}
@@ -501,8 +528,17 @@ export function StrategyBotDetail({ view }: { view: StrategyBotView }) {
           ) : (
             <DataTable label={t("strategy.tabs.fills")} columns={fillColumns} rows={fills} rowKey={(f) => `${f.clientId}:${f.ts}:${f.seq}:${f.kind}:${f.qty}`} compact />
           )
+        ) : tab === "real" ? (
+          <StrategyLiveReport botId={view.id} />
         ) : tab === "settings" ? (
-          detail ? (
+          detail && liveIds.has(view.id) ? (
+            // Real money is on: the checks made when it was switched on would
+            // not hold after an edit. The form returns once it is back on paper.
+            <>
+              <p className="ae-banner" data-tone="warn">{t("strategy.errors.liveEditLocked")}</p>
+              <StrategyLivePanel view={view} config={detail.config} />
+            </>
+          ) : detail ? (
             <>
               {saved ? <p className="ae-banner" data-tone="info">{t("strategy.form.saved")}</p> : null}
               <StrategyForm
@@ -510,6 +546,7 @@ export function StrategyBotDetail({ view }: { view: StrategyBotView }) {
                 kind={view.kind}
                 initial={detail.config}
                 bot={view}
+                preset={presets?.find((p) => p.id === detail.config.presetId) ?? null}
                 onSubmit={(cfg) => onSave(cfg)}
                 onCancel={() => setTab(null)}
                 onPreview={setSummary}

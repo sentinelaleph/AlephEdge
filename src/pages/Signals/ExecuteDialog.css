@@ -1,0 +1,128 @@
+/* Execute on a signal: the shared dialog shell (ConfirmDialog.css), wider and scrolling. */
+.ae-dialog__box.ae-exec {
+  width: min(600px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  gap: var(--space-4);
+}
+.ae-exec__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.ae-exec__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.ae-exec__links,
+.ae-exec__blank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+}
+.ae-exec__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+}
+.ae-exec__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-sm);
+}
+.ae-exec__name {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 0;
+}
+.ae-exec__mean {
+  white-space: nowrap;
+  font-size: var(--text-xs);
+}
+.ae-exec__mean[data-tone="up"] {
+  color: var(--pnl-up);
+}
+.ae-exec__mean[data-tone="down"] {
+  color: var(--pnl-down);
+}
+/* Take this signal now: bot, the paper preview, the button. */
+.ae-exec__take {
+  display: grid;
+  grid-template-columns: minmax(64px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-sm);
+}
+.ae-exec__figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  font-size: var(--text-xs);
+}
+.ae-exec__figures dt {
+  color: var(--text-muted);
+}
+.ae-exec__figures dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 600;
+}
+.ae-exec__figures dd[data-tone="up"] {
+  color: var(--pnl-up);
+}
+.ae-exec__figures dd[data-tone="down"] {
+  color: var(--pnl-down);
+}
+.ae-exec__warn {
+  grid-column: 2 / 3;
+  grid-row: 2;
+  font-size: var(--text-xs);
+  color: var(--warn-text);
+}
+.ae-exec__refusal,
+.ae-exec__opened {
+  grid-column: 2 / -1;
+  font-size: var(--text-xs);
+}
+.ae-exec__refusal {
+  color: var(--text-muted);
+}
+.ae-exec__opened {
+  color: var(--text);
+}
+.ae-exec__opened .ae-link {
+  margin-left: var(--space-2);
+}
+.ae-exec__note {
+  font-size: var(--text-xs);
+}
+/* Narrow window: name and chip on one line, the figure and the button under them. */
+@media (max-width: 560px) {
+  .ae-exec__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .ae-exec__take {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .ae-exec__figures {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .ae-exec__warn {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+}

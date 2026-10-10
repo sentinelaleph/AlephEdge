@@ -14,7 +14,8 @@ export type Block =
   | { kind: "p"; text: string }
   | { kind: "note"; text: string }
   | { kind: "ul" | "ol"; items: string[] }
-  | { kind: "table"; head: string[]; rows: string[][] };
+  | { kind: "table"; head: string[]; rows: string[][] }
+  | { kind: "img"; name: string; alt: string };
 
 const FOLD: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", â: "a", î: "i", û: "u" };
 
@@ -56,6 +57,13 @@ export function parse(md: string): Block[] {
       i++;
       continue;
     }
+    // "![caption](shot:name)": a bundled screenshot, resolved by the page.
+    const img = /^!\[([^\]]*)\]\(shot:([a-z0-9-]+)\)$/.exec(t);
+    if (img) {
+      out.push({ kind: "img", alt: img[1], name: img[2] });
+      i++;
+      continue;
+    }
     if (t.startsWith("|")) {
       const head = cells(t);
       i++;
@@ -89,7 +97,7 @@ export function parse(md: string): Block[] {
       continue;
     }
     const parts: string[] = [];
-    while (i < lines.length && lines[i].trim() && !/^(#{1,3}\s|\||>|[-*]\s|\d+\.\s)/.test(lines[i].trim())) {
+    while (i < lines.length && lines[i].trim() && !/^(#{1,3}\s|\||>|[-*]\s|\d+\.\s|!\[)/.test(lines[i].trim())) {
       parts.push(lines[i].trim());
       i++;
     }
@@ -122,8 +130,32 @@ export function inline(text: string): ReactNode[] {
   return out;
 }
 
-export function renderBlock(b: Block, key: number): ReactNode {
+/**
+ * One block as React. `images` maps a screenshot name to its bundled URL;
+ * a name without an image renders nothing rather than a broken picture.
+ */
+export function renderBlock(
+  b: Block,
+  key: number,
+  images?: Record<string, string>,
+  onZoom?: (src: string, alt: string) => void,
+): ReactNode {
   switch (b.kind) {
+    case "img": {
+      const src = images?.[b.name];
+      return src ? (
+        <figure key={key} className="ae-guide__shot">
+          {onZoom ? (
+            <button type="button" className="ae-guide__zoom" onClick={() => onZoom(src, b.alt)} aria-label={b.alt}>
+              <img src={src} alt={b.alt} loading="lazy" />
+            </button>
+          ) : (
+            <img src={src} alt={b.alt} loading="lazy" />
+          )}
+          {b.alt ? <figcaption>{b.alt}</figcaption> : null}
+        </figure>
+      ) : null;
+    }
     case "h1":
       return null;
     case "h2":

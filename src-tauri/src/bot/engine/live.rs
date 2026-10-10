@@ -11,7 +11,10 @@
 //!   1. `LIVE_TRADING_ENABLED` — compile-time master switch, false today.
 //!      Flipping it is a deliberate release act, not a setting.
 //!   2. `cfg.live` — per-bot opt-in the user sets, default false.
-//!   3. Binance + Futures only — the only venue/market with a write path.
+//!   3. Futures only, on a venue whose order path passed its test-network
+//!      dry run (`exchange::DRY_RUN_PASSED`: Binance today), or any order
+//!      venue while the app runs against the venues' test networks
+//!      (`ALEPH_EDGE_VENUE_SANDBOX=1`).
 //!   4. An unlocked vault holding a Trade-capable key for the bot's exchange.
 //!   5. One-way position mode, and no existing exposure on the symbol.
 //!
@@ -62,6 +65,10 @@ pub const SKIP_ORDER_UNCONFIRMED: &str = "liveOrderUnconfirmed";
 pub const SKIP_CLOSE_FAILED: &str = "liveCloseFailed";
 pub const NOTE_TP_FAILED: &str = "liveTakeProfitFailed";
 pub const NOTE_BREAKEVEN_FAILED: &str = "liveBreakevenMoveFailed";
+/// The venue has no exchange-side breakeven move in this process (Bybit /
+/// OKX before their dry run passed): the book's breakeven exit runs only
+/// while the app does.
+pub const NOTE_BREAKEVEN_APP_ONLY: &str = "liveBreakevenAppOnly";
 pub const NOTE_STALE_STOP: &str = "liveStaleStopCancelFailed";
 pub const NOTE_PARTIAL_BELOW_MIN: &str = "livePartialBelowMinimum";
 pub const NOTE_PARTIAL_FAILED: &str = "livePartialFailed";
@@ -79,7 +86,15 @@ pub const EXIT_EXCHANGE_CLOSED: &str = "exchangeClosed";
 /// Whether this bot's fills should be real orders. See the module doc for the
 /// full gate chain; this is the single place it is encoded.
 pub fn live_trading_allowed(cfg: &BotConfig, kind: BotKind) -> bool {
-    LIVE_TRADING_ENABLED && cfg.live && kind == BotKind::Futures && cfg.exchange_id == "binance"
+    live_trading_allowed_in(cfg, kind, crate::exchange::venue::ccxt::sandbox_from_env())
+}
+
+/// `live_trading_allowed` with the sandbox switch passed in (pure, tested).
+pub fn live_trading_allowed_in(cfg: &BotConfig, kind: BotKind, sandbox: bool) -> bool {
+    LIVE_TRADING_ENABLED
+        && cfg.live
+        && kind == BotKind::Futures
+        && crate::exchange::live_venue_allowed_in(&cfg.exchange_id, sandbox)
 }
 
 /// The skip a failed pre-order setup call (trading rules, margin type,
@@ -144,14 +159,13 @@ pub async fn open_live(
     let Some(cred) = app.state::<VaultManager>().credential(&cfg.exchange_id) else {
         return Err(SKIP_VAULT_LOCKED);
     };
-    let (key, secret) = (cred.api_key.as_str(), cred.api_secret.as_str());
     let long = sig.direction == Direction::Long;
     let symbol = sig.symbol.as_str();
 
     // One-way mode only: in hedge mode every order needs positionSide, and a
     // closePosition stop without it is rejected — or worse, closes the wrong
     // leg. Refuse before any order exists.
-    match exchange.hedge_mode(key, secret).await {
+    match exchange.hedge_mode(&cred, symbol).await {
         Ok(false) => {}
         Ok(true) => return Err(SKIP_HEDGE_MODE),
         Err(_) => return Err(SKIP_EXCHANGE_CHECK_FAILED),
@@ -165,22 +179,25 @@ pub async fn open_live(
         .iter()
         .any(|p| p.live && p.symbol == symbol);
     let account = exchange
-        .futures_account(key, secret)
+        .futures_account(&cred)
         .await
         .map_err(|_| SKIP_EXCHANGE_CHECK_FAILED)?;
-    if held_in_book || account.positions.iter().any(|p| p.symbol == symbol) {
+    // A live DCA / Grid bot owns its symbol even while it waits for its first
+    // order: a signal position there would net into its position.
+    let held_by_strategy = crate::bot::strategy_live::owns_symbol(app, symbol);
+    if held_in_book || held_by_strategy || account.positions.iter().any(|p| p.symbol == symbol) {
         return Err(SKIP_SYMBOL_HELD);
     }
     // A leftover order on a flat symbol (an old closePosition stop, the
     // user's own limit) would act on the position we are about to open.
-    match exchange.open_order_count(key, secret, symbol).await {
+    match exchange.open_order_count(&cred, symbol).await {
         Ok(0) => {}
         Ok(_) => return Err(SKIP_SYMBOL_HAS_ORDERS),
         Err(_) => return Err(SKIP_EXCHANGE_CHECK_FAILED),
     }
 
     let rules = exchange
-        .symbol_rules(symbol)
+        .symbol_rules(&cred, symbol)
         .await
         .map_err(|e| setup_failure_skip(&e))?;
     if !rules.trading {
@@ -197,11 +214,11 @@ pub async fn open_live(
     // A permanent rejection here is judged once (`setup_failure_skip`);
     // it used to retry every tick until the signal expired.
     exchange
-        .set_isolated(key, secret, symbol)
+        .set_isolated(&cred, symbol)
         .await
         .map_err(|e| setup_failure_skip(&e))?;
     exchange
-        .set_leverage(key, secret, symbol, leverage)
+        .set_leverage(&cred, symbol, leverage)
         .await
         .map_err(|e| setup_failure_skip(&e))?;
 
@@ -209,6 +226,13 @@ pub async fn open_live(
     // LOT_SIZE: flooring can only risk LESS than sized; below the minimum
     // aborts.
     // Capped to the largest single MARKET order: only ever less than sized.
+    // Pilot: the first real entries after LIVE is switched on are capped
+    // (just above the symbol's minimum when that is higher).
+    let notional = if bots.pilot_left(cfg.kind) > 0 {
+        notional.min(super::super::model::PILOT_NOTIONAL_USDT.max(rules.min_notional * 1.1))
+    } else {
+        notional
+    };
     let mut qty = quantize_qty(notional / live_price, rules.lot);
     if let Some(max) = rules.market_max_qty {
         qty = qty.min(quantize_qty(max, rules.lot));
@@ -218,14 +242,14 @@ pub async fn open_live(
     }
     let client_id = entry_client_id(&sig.id);
     let fill = match exchange
-        .open_market(key, secret, symbol, long, qty, &client_id)
+        .open_market(&cred, symbol, long, qty, &client_id)
         .await
     {
         Ok(fill) => fill,
         // Never sent (no connection, rate-limit hold): nothing happened.
         Err(E::NetworkUnavailable | E::RateLimited) => return Err(SKIP_EXCHANGE_CHECK_FAILED),
         Err(E::Unknown) => {
-            match resolve_unknown_entry(&exchange, key, secret, symbol, long, &client_id).await {
+            match resolve_unknown_entry(&exchange, &cred, symbol, long, &client_id).await {
                 Ok(fill) => fill,
                 Err(skip) => {
                     bots.push_skip(symbol, skip, None);
@@ -243,7 +267,7 @@ pub async fn open_live(
     };
 
     let protection = protect_fill(
-        &exchange, &bots, key, secret, sig, target, &fill, live_price, rules.tick,
+        &exchange, &bots, &cred, sig, target, &fill, live_price, rules.tick,
     )
     .await?;
     Ok(LiveOpen {
@@ -273,8 +297,7 @@ pub struct Protection {
 pub async fn protect_fill(
     exchange: &ExchangeManager,
     bots: &BotManager,
-    key: &str,
-    secret: &str,
+    cred: &crate::vault::model::ExchangeCredential,
     sig: &Signal,
     target: TakeProfitTarget,
     fill: &OrderFill,
@@ -285,12 +308,12 @@ pub async fn protect_fill(
     let symbol = sig.symbol.as_str();
     // The stop must exist ON THE EXCHANGE before the position counts as open.
     let stop = quantize_price(sig.sl, tick);
-    let stop_algo_id = place_stop(exchange, key, secret, symbol, long, stop).await;
+    let stop_algo_id = place_stop(exchange, cred, symbol, long, stop).await;
     if stop_algo_id.is_none() {
         // An unprotected leveraged position because a follow-up request
         // failed is the one state this module must never leave behind:
         // flatten, and confirm it on the account.
-        if flatten_confirmed(exchange, key, secret, symbol, long, fill.executed_qty).await {
+        if flatten_confirmed(exchange, cred, symbol, long, fill.executed_qty).await {
             return Err(SKIP_STOP_FAILED);
         }
         // Still exposed: hand it to the book flagged unprotected, which
@@ -308,7 +331,7 @@ pub async fn protect_fill(
     let tp_algo_id = if stop_algo_id.is_some() {
         let tp = quantize_price(tp_res.tp, tick);
         match exchange
-            .place_protective(key, secret, symbol, long, Protective::TakeProfit, tp)
+            .place_protective(cred, symbol, long, Protective::TakeProfit, tp)
             .await
         {
             Ok(id) => Some(id),
@@ -332,15 +355,14 @@ pub async fn protect_fill(
 /// up by its client id; if Binance cannot say, read the position itself.
 async fn resolve_unknown_entry(
     exchange: &ExchangeManager,
-    key: &str,
-    secret: &str,
+    cred: &crate::vault::model::ExchangeCredential,
     symbol: &str,
     long: bool,
     client_id: &str,
 ) -> Result<OrderFill, &'static str> {
     for _ in 0..ATTEMPTS {
         tokio::time::sleep(RETRY_PAUSE).await;
-        match unknown_entry_lookup(exchange.order_by_client_id(key, secret, symbol, client_id).await) {
+        match unknown_entry_lookup(exchange.order_by_client_id(cred, symbol, client_id).await) {
             Lookup::Filled(fill) => return Ok(fill),
             Lookup::Failed => return Err(SKIP_ORDER_FAILED),
             Lookup::LookAgain => {}
@@ -348,7 +370,7 @@ async fn resolve_unknown_entry(
     }
     // Binance could not say. The position is the ground truth.
     let account = exchange
-        .futures_account(key, secret)
+        .futures_account(cred)
         .await
         .map_err(|_| SKIP_ORDER_UNCONFIRMED)?;
     match account.positions.iter().find(|p| p.symbol == symbol) {
@@ -394,8 +416,7 @@ pub fn unknown_entry_lookup(res: Result<OrderState, E>) -> Lookup {
 /// orders are cleared first, so a retry can never leave two stops behind.
 async fn place_stop(
     exchange: &ExchangeManager,
-    key: &str,
-    secret: &str,
+    cred: &crate::vault::model::ExchangeCredential,
     symbol: &str,
     long: bool,
     trigger: f64,
@@ -405,12 +426,12 @@ async fn place_stop(
             tokio::time::sleep(RETRY_PAUSE).await;
         }
         match exchange
-            .place_protective(key, secret, symbol, long, Protective::Stop, trigger)
+            .place_protective(cred, symbol, long, Protective::Stop, trigger)
             .await
         {
             Ok(id) => return Some(id),
             Err(E::Unknown) => {
-                let _ = exchange.cancel_symbol_orders(key, secret, symbol).await;
+                let _ = exchange.cancel_symbol_orders(cred, symbol).await;
             }
             // A rejection (e.g. -2021 "would trigger immediately") will not
             // change on a resend.
@@ -425,8 +446,7 @@ async fn place_stop(
 /// symbol is flat. Clears the symbol's orders once it is.
 pub async fn flatten_confirmed(
     exchange: &ExchangeManager,
-    key: &str,
-    secret: &str,
+    cred: &crate::vault::model::ExchangeCredential,
     symbol: &str,
     long: bool,
     qty: f64,
@@ -435,10 +455,10 @@ pub async fn flatten_confirmed(
         if attempt > 0 {
             tokio::time::sleep(RETRY_PAUSE).await;
         }
-        let _ = exchange.reduce_market_all(key, secret, symbol, long, qty).await;
-        match exchange.futures_account(key, secret).await {
+        let _ = exchange.reduce_market_all(cred, symbol, long, qty).await;
+        match exchange.futures_account(cred).await {
             Ok(acc) if !acc.positions.iter().any(|p| p.symbol == symbol) => {
-                let _ = exchange.cancel_symbol_orders(key, secret, symbol).await;
+                let _ = exchange.cancel_symbol_orders(cred, symbol).await;
                 return true;
             }
             _ => {}
@@ -566,8 +586,28 @@ mod tests {
 
     #[test]
     fn gate_chain_shape() {
-        assert!(!live_trading_allowed(&cfg(true, "okx"), BotKind::Futures));
-        assert!(!live_trading_allowed(&cfg(true, "binance"), BotKind::Spot));
-        assert!(!live_trading_allowed(&cfg(true, "binance"), BotKind::Pump));
+        for sandbox in [false, true] {
+            // An exchange without an order path never goes live.
+            assert!(!live_trading_allowed_in(&cfg(true, "coindcx"), BotKind::Futures, sandbox));
+            assert!(!live_trading_allowed_in(&cfg(true, "mexc"), BotKind::Futures, sandbox));
+            assert!(!live_trading_allowed_in(&cfg(true, "binance"), BotKind::Spot, sandbox));
+            assert!(!live_trading_allowed_in(&cfg(true, "binance"), BotKind::Pump, sandbox));
+            for venue in ["binance", "bybit", "okx"] {
+                assert!(!live_trading_allowed_in(&cfg(false, venue), BotKind::Futures, sandbox), "{venue}");
+            }
+        }
+        // The dry-run venue follows the build switch.
+        assert_eq!(live_trading_allowed_in(&cfg(true, "binance"), BotKind::Futures, false), LIVE_TRADING_ENABLED);
+        // No dry run passed: never real money, even with the build switch on
+        // and a config that says live (e.g. one kept from an older version)...
+        for venue in ["bybit", "okx"] {
+            assert!(!live_trading_allowed_in(&cfg(true, venue), BotKind::Futures, false), "{venue}");
+            // ...except against the venues' test networks, for the dry run.
+            assert_eq!(live_trading_allowed_in(&cfg(true, venue), BotKind::Futures, true), LIVE_TRADING_ENABLED, "{venue}");
+        }
+        // No order path at all (Bitget since 2026-10-09): never, sandbox or not.
+        for sandbox in [false, true] {
+            assert!(!live_trading_allowed_in(&cfg(true, "bitget"), BotKind::Futures, sandbox));
+        }
     }
 }

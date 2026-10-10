@@ -37,10 +37,20 @@ pub async fn check_binance_permissions(
     api_secret: &str,
 ) -> Result<BinancePermissions, BinanceKeyCheckError> {
     // apiRestrictions lives on the production SPOT API; a testnet key is
-    // unknown there. Unverified, not "invalid".
+    // unknown there. On the testnet the key is checked by a signed futures
+    // account read instead: testnet balances are not real money and the
+    // testnet has no withdrawals, so a key that can read the account is a
+    // trade key there. (A testnet key is rejected by production Binance, so
+    // it cannot reach real funds if the base is switched back.)
     if !crate::app::endpoints::binance_is_production() {
-        return Err(BinanceKeyCheckError::NetworkUnavailable);
+        binance_http::sync_clock(client).await;
+        return fetch_binance_futures_account(client, api_key, api_secret)
+            .await
+            .map(|_| BinancePermissions { withdraw_enabled: false, futures_enabled: true });
     }
+    // Stamp with Binance's clock: a PC clock running ahead makes Binance
+    // answer -1021, which must not read as "wrong key".
+    binance_http::sync_clock(client).await;
     let query = binance_http::with_recv_window(&format!("timestamp={}", binance_http::now_ms()));
     let signature = sign_query(api_secret, &query);
     let url = format!("{SPOT_BASE}/sapi/v1/account/apiRestrictions?{query}&signature={signature}");
@@ -62,11 +72,22 @@ pub async fn check_binance_permissions(
             })
             .map_err(|_| BinanceKeyCheckError::NetworkUnavailable),
         // -2015 ("Invalid API-key, IP, or permissions") and bad signatures
-        // land on 401/400 — almost always a copy/paste typo.
-        StatusCode::UNAUTHORIZED | StatusCode::BAD_REQUEST => {
-            Err(BinanceKeyCheckError::InvalidCredentials)
+        // land on 401/400 — almost always a copy/paste typo. A -1021 is a
+        // clock problem, not a key problem: retryable, never "rejected".
+        status @ (StatusCode::UNAUTHORIZED | StatusCode::BAD_REQUEST) => {
+            let body = res.text().await.unwrap_or_default();
+            Err(key_check_rejection(status.as_u16(), &body))
         }
         _ => Err(BinanceKeyCheckError::NetworkUnavailable),
+    }
+}
+
+/// Maps a 400/401 from the key check. Only a timestamp error (-1021) is kept
+/// out of "invalid credentials"; everything else there is the key.
+fn key_check_rejection(status: u16, body: &str) -> BinanceKeyCheckError {
+    match binance_http::classify_rejection(status, body) {
+        BinanceKeyCheckError::Rejected { code: -1021, .. } => BinanceKeyCheckError::NetworkUnavailable,
+        _ => BinanceKeyCheckError::InvalidCredentials,
     }
 }
 
@@ -151,4 +172,22 @@ pub(super) fn now_millis() -> u64 {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis() as u64)
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod key_check_tests {
+    use super::*;
+
+    #[test]
+    fn a_clock_error_is_not_a_rejected_key() {
+        assert!(matches!(
+            key_check_rejection(400, r#"{"code":-1021,"msg":"Timestamp for this request was 1000ms ahead"}"#),
+            BinanceKeyCheckError::NetworkUnavailable
+        ));
+        assert!(matches!(
+            key_check_rejection(401, r#"{"code":-2015,"msg":"Invalid API-key"}"#),
+            BinanceKeyCheckError::InvalidCredentials
+        ));
+        assert!(matches!(key_check_rejection(400, "garbage"), BinanceKeyCheckError::InvalidCredentials));
+    }
 }

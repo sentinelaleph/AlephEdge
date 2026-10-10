@@ -1,14 +1,17 @@
 import { useTranslation } from "react-i18next";
 import { useDeskContext } from "@/app/DeskProvider";
+import { Icon } from "@/app/AppShell/icons";
 import { Link } from "@/app/router/router";
-import { Button } from "@/components/ui/Button/Button";
+import { Button, IconButton } from "@/components/ui/Button/Button";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
 import { StatusChip, type StatusKind } from "@/components/ui/StatusChip/StatusChip";
 import { localeForLanguage } from "@/i18n";
 import { formatNumber, formatPnl, formatSignedPercent, pnlToneAttr } from "@/lib/format";
 import { isActive, type StrategyBotView } from "@/lib/ipc/strategy/strategy";
-import { RUN_TONE, runStateText, sideText } from "@/lib/strategyText";
+import { RUN_TONE, runActionKey, runStateText, sideText } from "@/lib/strategyText";
+import { LiveChip } from "@/components/ui/Chip/Chip";
 import type { StrategyActions } from "./useStrategyActions";
+import { useStrategyLive } from "./useStrategyLive";
 
 interface Props {
   rows: StrategyBotView[];
@@ -53,15 +56,19 @@ export function StrategyBotsTable({ rows, actions, showType }: Props) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const { strategy } = useDeskContext();
+  const { liveIds } = useStrategyLive();
 
   const columns: DataColumn<StrategyBotView>[] = [
     {
       id: "name",
       header: t("table.name"),
       cell: (v) => (
-        <Link to={`/bots/${v.id}`} className="ae-link">
-          {v.name}
-        </Link>
+        <>
+          <Link to={`/bots/${v.id}`} className="ae-link">
+            {v.name}
+          </Link>
+          {liveIds.has(v.id) ? <> <LiveChip /></> : null}
+        </>
       ),
     },
     ...(showType
@@ -122,18 +129,36 @@ export function StrategyBotsTable({ rows, actions, showType }: Props) {
       rowKey={(v) => v.id}
       rowNote={(v) => (actions.error?.botId === v.id ? actions.error.text : null)}
       rowTone={(v) => (actions.error?.botId === v.id ? "danger" : undefined)}
-      // The name links to the bot; the row keeps only its run action.
+      // The name links to the bot; the row keeps its run action and Delete
+      // (a paper bot only: one on real money goes back to paper first).
       actions={(v) => {
-        if (v.runState === "dead") return null;
         const busy = strategy.busyId === v.id;
-        return isActive(v) ? (
-          <Button variant="secondary" size="xs" disabled={busy} onClick={() => actions.request(v, "stop")}>
-            {t("strategy.actions.stop")}
-          </Button>
-        ) : (
-          <Button variant="secondary" size="xs" disabled={busy} onClick={() => actions.request(v, "start")}>
-            {t("strategy.actions.start")}
-          </Button>
+        const run =
+          v.runState === "dead" ? null : isActive(v) ? (
+            <Button variant="secondary" size="xs" disabled={busy} onClick={() => actions.request(v, "stop")}>
+              {t("strategy.actions.stop")}
+            </Button>
+          ) : (
+            <Button variant="secondary" size="xs" disabled={busy} onClick={() => actions.request(v, "start")}>
+              {t(runActionKey(v))}
+            </Button>
+          );
+        return (
+          <>
+            {run}
+            {liveIds.has(v.id) ? null : (
+              <IconButton
+                size="xs"
+                data-tone="danger"
+                label={t("strategy.actions.archive")}
+                icon={<Icon name="trash" size={14} />}
+                tooltipPlacement="top"
+                tooltipAlign="end"
+                disabled={busy}
+                onClick={() => actions.request(v, "archive")}
+              />
+            )}
+          </>
         );
       }}
     />

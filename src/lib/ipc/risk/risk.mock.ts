@@ -22,7 +22,6 @@ export const mock = (() => {
       balance,
       closeOnStop,
       maxCapitalQuote: (balance * limits.maxCapitalPct) / 100,
-      allowsPump: level === "ambitious" || level === "greedy",
       dailyLossOverridePct,
       effectiveDailyLossPct: valid
         ? Math.min(dailyLossOverridePct as number, limits.dailyLossLimitPct)

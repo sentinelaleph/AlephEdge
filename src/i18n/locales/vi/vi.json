@@ -3,7 +3,9 @@
     "name": "Aleph Edge",
     "betaBadge": "Beta",
     "testnetBadge": "Sàn testnet",
-    "testnetTooltip": "Lệnh thật được gửi tới {{host}}, không phải Binance chính thức."
+    "testnetTooltip": "Lệnh thật được gửi tới {{host}}, không phải Binance chính thức.",
+    "sandboxBadge": "Sàn demo",
+    "sandboxTooltip": "Lệnh Bybit và OKX được gửi tới mạng demo / thử nghiệm của họ, không phải tài khoản thật."
   },
   "health": {
     "vaultLocked": "Đã khóa",
@@ -114,13 +116,19 @@
     "renameSubmit": "Lưu nhãn",
     "withdrawStored": "Cho phép rút tiền: hãy thay khóa này bằng khóa chỉ giao dịch.",
     "tradeOnlyRule": "Chỉ chấp nhận khóa chỉ giao dịch. Tắt quyền rút tiền của khóa trên sàn.",
-    "minutes": "{{minutes}} phút",
-    "autoLockHint": "Khóa sau {{minutes}} phút không dùng.",
+    "autoLockHint": "Khóa sau {{duration}} không có hoạt động. Kho không có khóa nào vẫn mở.",
     "changePassword": "Đổi mật khẩu",
     "changingPassword": "Đang đổi…",
     "currentPassword": "Mật khẩu hiện tại",
     "newPassword": "Mật khẩu mới",
-    "passwordChanged": "Đã đổi mật khẩu."
+    "passwordChanged": "Đã đổi mật khẩu.",
+    "duration": {
+      "min": "{{count}} phút",
+      "hour": "{{count}} giờ",
+      "week": "1 tuần",
+      "month": "1 tháng (30 ngày)"
+    },
+    "venueNotDryRun": "Tiền thật trên {{exchange}} vẫn tắt cho đến khi đường lệnh của sàn chạy thử đầy đủ trên mạng thử nghiệm của chính sàn đó. Khóa vẫn đọc được tài khoản và đóng được vị thế."
   },
   "workspace": {
     "loading": "Đang tải…"
@@ -130,7 +138,7 @@
       "long": "Long",
       "short": "Short"
     },
-    "evidenceScoreTooltip": "Yếu tố hợp lưu trên 100 · không phải xác suất chạm mục tiêu"
+    "evidenceScoreTooltip": "Điểm tín hiệu 0–100 của Sentinel: setup, chỉ báo, hợp lưu và chế độ BTC, có trọng số · không phải xác suất · đã kiểm định trên tín hiệu cũ: không phân biệt lệnh thắng với lệnh thua (AUC 0.496)"
   },
   "risk": {
     "title": "Mức rủi ro",
@@ -173,9 +181,11 @@
     "noPositions": "Không có vị thế mở.",
     "skips": "Giao dịch bị bỏ qua",
     "noSkips": "Chưa có gì bị bỏ qua.",
+    "manualBadge": "Thủ công",
+    "manualBadgeTooltip": "Mở thủ công từ Execute · bỏ qua bộ lọc của bot, giữ giới hạn rủi ro",
     "skipReasons": {
       "spotLongOnly": "Tín hiệu short · spot chỉ long",
-      "belowConfidence": "Dưới bộ lọc điểm bằng chứng ({{detail}})",
+      "belowConfidence": "Dưới bộ lọc điểm Sentinel ({{detail}})",
       "directionFiltered": "Bị lọc theo hướng",
       "symbolFiltered": "Cặp không trong danh sách trắng",
       "comboFiltered": "Combo không có trong danh sách ({{detail}})",
@@ -189,7 +199,7 @@
       "frUnavailable": "Thiếu dữ liệu funding (chế độ nghiêm ngặt)",
       "ldTooThin": "Sổ lệnh quá mỏng ({{detail}})",
       "ldUnavailable": "Thiếu dữ liệu thanh khoản (chế độ nghiêm ngặt)",
-      "maxPositions": "Đã đạt giới hạn vị thế ({{detail}})",
+      "maxPositions": "Bot này đã đạt giới hạn vị thế ({{detail}})",
       "capitalCap": "Vượt trần mỗi vị thế ({{detail}} USDT)",
       "priceUnavailable": "Không lấy được giá trực tiếp",
       "spotOnlyExchange": "Sàn không có thị trường futures",
@@ -212,12 +222,12 @@
       "liveOrderFailed": "Sàn từ chối lệnh.",
       "storeWriteFailed": "Không lưu được vào cơ sở dữ liệu giao dịch cục bộ.",
       "storeReadFailed": "Không đọc được cơ sở dữ liệu giao dịch cục bộ.",
-      "liveSymbolHasOrders": "Bỏ qua: mã này đã có lệnh đang mở trên Binance.",
+      "liveSymbolHasOrders": "Bỏ qua: mã này đã có lệnh mở trên sàn.",
       "liveStopBeyondLiquidation": "Bỏ qua: với đòn bẩy này, thanh lý sẽ xảy ra trước stop.",
-      "liveOrderUnconfirmed": "Binance không xác nhận lệnh vào; hãy kiểm tra vị thế trên Binance.",
+      "liveOrderUnconfirmed": "Sàn không xác nhận lệnh vào; hãy kiểm tra vị thế trên sàn.",
       "liveUnprotected": "Một vị thế thật không có stop trên sàn; đang đóng ngay.",
       "liveProtectiveStopFailed": "Không đặt được stop bảo vệ trên sàn · vị thế đã đóng",
-      "hedgeModeUnsupported": "Tài khoản Binance của bạn đang ở Hedge Mode; hãy chuyển sang One-way Mode để giao dịch thực.",
+      "hedgeModeUnsupported": "Tài khoản sàn của bạn đang ở Hedge Mode; chuyển sang One-way Mode để giao dịch thật.",
       "liveSymbolHeld": "Đã có vị thế trên sàn ở mã này · bỏ qua",
       "liveExchangeCheckFailed": "Không thể xác minh tài khoản sàn trước khi đặt lệnh.",
       "sizingInvalidStop": "Khoảng cách stop không hợp lệ · không tính được khối lượng",
@@ -235,17 +245,26 @@
       "tpCustomInvalid": "Chốt lời tùy chỉnh {{detail}}% không áp dụng được cho lệnh này",
       "tpNotBeyondFill": "Chốt lời {{detail}} không vượt qua giá vào lệnh",
       "tooOld": "Tín hiệu cũ hơn giới hạn tuổi của bot này",
-      "liveLeverageRejected": "Bỏ qua: Binance từ chối đòn bẩy cho mã này.",
-      "liveMarginTypeRejected": "Bỏ qua: Binance không chuyển mã này sang ký quỹ cô lập (đang có lệnh hoặc vị thế mở).",
-      "liveSymbolNotTrading": "Bỏ qua: mã này không mở giao dịch trên Binance Futures.",
+      "liveLeverageRejected": "Bỏ qua: sàn từ chối đòn bẩy cho mã này.",
+      "liveMarginTypeRejected": "Bỏ qua: sàn không chuyển mã này sang ký quỹ riêng (đang có lệnh hoặc vị thế mở).",
+      "liveSymbolNotTrading": "Bỏ qua: mã này không mở giao dịch trên thị trường hợp đồng tương lai của sàn.",
       "liveOwnEntryAdopted": "Một lệnh vào tưởng là thất bại đã khớp trên sàn; giờ được theo dõi cùng lệnh dừng lỗ.",
-      "liveOwnEntryFlattened": "Một lệnh vào tưởng là thất bại đã khớp trên sàn và không thể bảo vệ như dự kiến; đã đóng theo giá thị trường."
+      "liveOwnEntryFlattened": "Một lệnh vào tưởng là thất bại đã khớp trên sàn và không thể bảo vệ như dự kiến; đã đóng theo giá thị trường.",
+      "signalOtherMarket": "Phát hành cho thị trường {{detail}} · không phải thị trường của bot này",
+      "botNotResumed": "Không tiếp tục sau khi khởi động lại",
+      "liveBreakevenAppOnly": "Hòa vốn chỉ do ứng dụng giữ · khi ứng dụng đóng, sàn giữ lệnh dừng ban đầu",
+      "restoreRowUnreadable": "Không đọc được dữ liệu đã lưu khi khởi động ({{detail}}) · giữ trên đĩa, không dùng",
+      "restoreLiveBlocked": "Không đọc được dữ liệu tiền thật khi khởi động ({{detail}}) · bot không được tiếp tục",
+      "restoreConfigInvalid": "Cài đặt đã lưu của bot không qua một bước kiểm tra ({{detail}}) · hãy sửa và lưu để khởi động bot",
+      "settledPositionDropped": "Đã đóng trong Lịch sử · dòng mở còn sót đã được xóa khi khởi động",
+      "belowExchangeMinimum": "Dưới lệnh tối thiểu của sàn ({{detail}} USDT, Binance cần khoảng 5)",
+      "manualOpened": "Mở thủ công từ Execute · mô phỏng"
     },
     "exchange": "Sàn giao dịch",
     "signalFilter": "Bộ lọc tín hiệu",
     "maxSignalAge": "Tuổi tín hiệu tối đa (giờ)",
     "maxSignalAgeHint": "Chỉ vào lệnh với tín hiệu mới hơn mức này, mới nhất trước. 0 = không giới hạn.",
-    "minConfidence": "Điểm bằng chứng tối thiểu (%)",
+    "minConfidence": "Điểm Sentinel tối thiểu (%)",
     "direction": "Hướng",
     "dir": {
       "all": "Tất cả",
@@ -257,15 +276,14 @@
     "comboWhitelist": "Các thiết lập bot này được phép giao dịch",
     "engineWhitelist": "Danh sách engine",
     "engineWhitelistHint": "Id engine chính cách nhau bởi dấu phẩy. Trống = tất cả engine.",
-    "pumpNote": "Chỉ futures · tín hiệu pump-engine của Sentinel · loại mạnh tay nhất",
-    "pumpLocked": "Pump cần mức rủi ro Tham vọng trở lên.",
+    "pumpNote": "Chưa kiểm chứng: quy tắc này chưa có kiểm thử lịch sử hay kiểm thử thực tế nào. Tín hiệu futures từ pump-engine của Sentinel có thêm phá vỡ cấu trúc (MSB hoặc CHoCH) và order block hoặc FVG. Chỉ mô phỏng, trong giới hạn của mức rủi ro hiện tại.",
     "principles": {
       "title": "Bot này hoạt động như thế nào",
       "intro": "Mỗi dòng là một thuộc tính của mã đang chạy · bị xóa nếu không còn đúng",
       "items": {
         "evidence": {
-          "title": "Tín hiệu dựa trên bằng chứng",
-          "body": "Mỗi giao dịch bắt đầu từ tín hiệu Sentinel · công bố điểm vào, stop và mục tiêu · sổ cái công khai tại ribqa.com"
+          "title": "Tín hiệu từ Sentinel",
+          "body": "Mỗi giao dịch bắt đầu từ tín hiệu Sentinel · công bố điểm vào, stop và mục tiêu · sổ cái công khai tại ribqa.com · việc chọn điểm vào đã được kiểm định: không có lợi thế đo được (AUC 0.496)"
         },
         "noSilentSkips": {
           "title": "Không bỏ qua trong im lặng",
@@ -273,7 +291,7 @@
         },
         "honestFills": {
           "title": "Khớp lệnh trung thực và PnL ròng",
-          "body": "Lệnh vào mô phỏng khớp theo giá thực trên sàn của bạn · PnL đã trừ phí taker"
+          "body": "Lệnh vào mô phỏng khớp theo giá thực trên sàn của bạn · stop và mục tiêu khớp tại mức của chúng, hoặc tại giá đầu tiên thấy được sau một khoảng không theo dõi · PnL đã trừ phí taker"
         },
         "veto": {
           "title": "Phủ quyết theo chế độ sẽ đóng lệnh; vô hiệu hóa vẫn giữ nguyên",
@@ -290,8 +308,8 @@
       }
     },
     "maxLossPct": "Lỗ tối đa mỗi vị thế (%)",
-    "maxLossPctHint": "Vị thế lỗ quá mức này luôn được tự động đóng. Để trống = tắt.",
-    "btcBreak": "BTC phá vỡ · tạm dừng long mới · short tiếp tục · áp dụng lỗ tối đa mỗi vị thế",
+    "maxLossPctHint": "% vốn của bot mỗi vị thế, sau đòn bẩy và phí · để trống = tắt",
+    "btcBreak": "BTC phá vỡ · tạm dừng long mới · short tiếp tục",
     "comboLoadFailed": "Không tải được danh mục thiết lập. Kiểm tra kết nối rồi mở lại bảng này.",
     "comboLive": "Đã công bố",
     "comboBacktest": "Kiểm định lịch sử",
@@ -367,14 +385,34 @@
       "typePrompt": "Nhập {{word}} để xác nhận",
       "confirm": "Xác nhận tiền thật",
       "cancel": "Hủy",
-      "failed": "Không đổi được cài đặt tiền thật."
+      "failed": "Không đổi được cài đặt tiền thật.",
+      "sizingTurnedOff": "LIVE đã tắt vì vốn, đòn bẩy hoặc giới hạn vị thế thay đổi. Xác nhận lại kích thước mới bằng LIVE.",
+      "pilot": "Thí điểm: còn {{count}} lần vào lệnh thật, mỗi lần tối đa {{cap}} USDT.",
+      "endPilot": "Kết thúc thí điểm",
+      "targetVenue": "Lệnh được gửi tới {{exchange}}, trên tài khoản thật của bạn.",
+      "targetVenueSandbox": "Lệnh được gửi tới mạng demo / thử nghiệm của {{exchange}}, không phải tài khoản thật."
     },
     "vetoReason": {
       "btc_regime_turn_bullish": "Xu hướng BTC chuyển sang tăng",
       "btc_regime_turn_bearish": "Xu hướng BTC chuyển sang giảm",
       "btc_extreme_move_up": "BTC tăng đột biến",
       "btc_extreme_move_down": "BTC giảm đột biến"
-    }
+    },
+    "untested": "Chưa kiểm chứng",
+    "exchangeLocked": "Không thể đổi sàn khi bot này đang giao dịch tiền thật hoặc giữ vị thế thật.",
+    "capitalCapHint": "Trần mỗi vị thế ở mức rủi ro của bạn: {{cap}}",
+    "capitalAboveCap": "Vượt trần {{cap}} mỗi vị thế. Hãy giảm vốn, hoặc tăng số dư hay mức rủi ro trong Rủi ro & an toàn.",
+    "maxLoss": {
+      "fixed": "đóng khi giá đi ngược vị thế {{move}}",
+      "immediate": "ở {{leverage}}x riêng phí đã chạm mức này: đóng ngay sau khi vào lệnh",
+      "riskInert": "không có tác dụng: stop đóng trước, ở khoảng −{{risk}}% vốn",
+      "riskActive": "đóng ở khoảng {{share}} quãng đường tới stop"
+    },
+    "filtersApplyPending": "Thay đổi đã lưu cũng áp dụng cho các tín hiệu đang chờ mà cài đặt cũ đã bỏ qua.",
+    "minConfidenceHint": "Đã kiểm định trên tín hiệu cũ: điểm này không phân biệt lệnh thắng với lệnh thua (AUC 0.496)",
+    "capitalBelowMinimum": "Binance từ chối lệnh dưới khoảng 5 USDT: với mức này bot bỏ qua mọi tín hiệu. Hãy tăng số dư hoặc mức rủi ro.",
+    "maxPositionsLevelHint": "Mức rủi ro của bạn cho phép tối đa {{max}} mỗi bot tín hiệu",
+    "maxPositionsAboveLevel": "Mức rủi ro của bạn cho phép {{max}} mỗi bot tín hiệu: bot này giữ tối đa {{max}}. Nâng mức trong Rủi ro & an toàn để có thêm."
   },
   "pnl": {
     "exportCsv": "Xuất CSV",
@@ -485,7 +523,7 @@
       "botConfigured": "Đã cấu hình một bot",
       "botRunning": "Một bot đang chạy",
       "botRunningHint": "Khởi động một bot đã cấu hình",
-      "botConfiguredOnCard": "Thẻ bot tín hiệu · sàn, vốn, khối lượng vị thế"
+      "firstPreset": "Bot đầu tiên được đề xuất: {{name}} · đã qua kiểm tra"
     },
     "liveLockedNote": "Giao dịch thật: khóa · Chỉ mô phỏng",
     "liveAvailableNote": "Giao dịch thật: có sẵn · tắt cho đến khi bật theo từng bot"
@@ -540,7 +578,8 @@
     },
     "summaryPanel": "Bảng tóm tắt",
     "more": "Thêm",
-    "guide": "Hướng dẫn"
+    "guide": "Hướng dẫn",
+    "faq": "Câu hỏi thường gặp"
   },
   "page": {
     "botNew": "Bot mới",
@@ -574,7 +613,7 @@
     "exchange": "Sàn",
     "direction": "Hướng",
     "timeframe": "Khung thời gian",
-    "minEvidence": "Bằng chứng tối thiểu",
+    "minEvidence": "Điểm tối thiểu",
     "age": "Tuổi",
     "bot": "Bot",
     "range": "Khoảng",
@@ -634,7 +673,8 @@
     "allPairs": "Tất cả cặp",
     "blocked": {
       "killSwitch": "Từ chối khởi động: dừng ngày đã kích hoạt. Có thể khởi động lại sau 00:00 UTC.",
-      "notConfigured": "Cần cài đặt đã lưu: mở bot và lưu cài đặt."
+      "notConfigured": "Cần cài đặt đã lưu: mở bot và lưu cài đặt.",
+      "capitalAboveCap": "Vốn mỗi vị thế vượt trần của mức rủi ro: hãy giảm trong cài đặt của bot."
     },
     "totals": {
       "bots": "Bot",
@@ -649,8 +689,6 @@
     "selectedCount": "Đã chọn: {{count}}",
     "bulkStop": "Dừng mục đã chọn ({{count}} đang chạy)",
     "liveOrders": "Lệnh thật",
-    "liveNotAvailable": "Không có",
-    "paperOnlyLine": "Chỉ mô phỏng: khớp lệnh mô phỏng theo giá thực, đã gồm phí. Không có lệnh thật.",
     "dca": {
       "empty": "Chưa có bot DCA",
       "new": "Bot DCA mới",
@@ -677,8 +715,8 @@
       "range": "Đi ngang"
     },
     "mode": {
-      "signal": "Mô phỏng, LIVE tùy chọn (Futures, Binance)",
-      "paperOnly": "Chỉ mô phỏng"
+      "signal": "Mô phỏng, LIVE tùy chọn (Futures: Binance, Bybit, OKX)",
+      "paperOnly": "Mô phỏng: khớp lệnh mô phỏng theo giá trực tiếp, đã tính phí"
     },
     "presetsLink": "Cấu hình mẫu cho loại này",
     "create": "Tạo"
@@ -717,7 +755,9 @@
       "realizedToday": "Đã chốt hôm nay",
       "netAll": "Lãi/lỗ ròng, toàn thời gian",
       "dailyLossUsed": "Lỗ ngày đã dùng",
-      "capitalInUse": "Vốn đang dùng"
+      "capitalInUse": "Vốn đang dùng",
+      "split": "Tín hiệu {{signal}} · DCA/Grid {{strategy}}, sau phí",
+      "signalWinRate": "Tỷ lệ thắng tín hiệu"
     },
     "afterFees": "{{scope}}, sau phí",
     "noTradesToday": "Hôm nay chưa có giao dịch",
@@ -739,7 +779,8 @@
     "closedTodayOf": "{{kind}}: đóng hôm nay",
     "skipSummary": "Lý do bỏ qua",
     "streamDown": "Luồng tín hiệu mất kết nối: bot không nhận tín hiệu mới.",
-    "liveActive": "LIVE đang bật ở ít nhất một bot: lệnh của bot đó là thật."
+    "liveActive": "LIVE đang bật ở ít nhất một bot: lệnh của bot đó là thật.",
+    "capitalAboveCap": "{{kind}}: vốn {{capital}} vượt trần {{cap}} mỗi vị thế · mọi tín hiệu đều bị bỏ qua · hãy giảm trong Cài đặt"
   },
   "signalsPage": {
     "status": {
@@ -747,7 +788,7 @@
       "expired": "Hết hạn"
     },
     "last24h": "24 giờ qua",
-    "evidence": "Bằng chứng",
+    "evidence": "Điểm",
     "expiresAt": "Hết hạn",
     "confluence": "Hội tụ",
     "plan": "Kế hoạch quản lý",
@@ -760,7 +801,51 @@
     "selectHint": "Chọn một tín hiệu để xem chi tiết.",
     "empty": "Không có tín hiệu trong bộ đệm",
     "noMatch": "Không có tín hiệu khớp bộ lọc",
-    "combo": "Tổ hợp"
+    "combo": "Tổ hợp",
+    "execute": {
+      "button": "Thực hiện",
+      "rowLabel": "Thực hiện {{symbol}}",
+      "title": "{{symbol}} · {{side}}",
+      "close": "Đóng",
+      "signalBot": "Bot tín hiệu",
+      "signalBotLine": "Bot tín hiệu cũng tự nhận tín hiệu Sentinel trong phạm vi bộ lọc của chúng.",
+      "botSettings": "Cài đặt bot {{bot}}",
+      "dcaTemplates": "Cấu hình mẫu DCA",
+      "gridTemplates": "Cấu hình mẫu Grid",
+      "noTemplates": "Không có cấu hình mẫu cho chiều này trên {{symbol}}.",
+      "openWith": "Mở với {{symbol}}",
+      "blank": "Biểu mẫu trống",
+      "blankDca": "DCA trống · {{symbol}}",
+      "blankGrid": "Grid trống · {{symbol}}",
+      "note": "Cấu hình mẫu được kiểm thử trên tập cặp riêng của nó. Trên {{symbol}} chưa được kiểm thử. Bot chạy mô phỏng, trừ bản dựng tiền thật và khi gõ LIVE để xác nhận."
+    },
+    "take": {
+      "title": "Nhận tín hiệu này ngay · mô phỏng",
+      "line": "Bỏ qua bộ lọc của bot · giữ giới hạn rủi ro · tiền thật không qua Execute",
+      "pricing": "Đang tính giá…",
+      "fill": "Khớp ngay",
+      "publishedEntry": "Điểm vào tín hiệu",
+      "rr": "R:R",
+      "rrValue": "{{fill}} khi khớp · {{published}} đã công bố",
+      "size": "Quy mô",
+      "sizeValue": "{{amount}} · {{leverage}}x",
+      "lossAtStop": "Lỗ tại stop {{price}}",
+      "gainAtTarget": "Lãi tại {{target}} {{price}}",
+      "fees": "Phí",
+      "rrLow": "Giá đã chạy · phần lớn lợi nhuận đã mất",
+      "open": "Mở vị thế",
+      "opening": "Đang mở…",
+      "opened": "Đã mở · {{symbol}} tại {{price}} · mô phỏng",
+      "botPage": "Bot {{bot}}",
+      "noBot": "Không bot tín hiệu nào nhận thị trường và chiều này.",
+      "refusal": {
+        "manualTakePaperOnly": "Bot này giao dịch bằng tiền thật · Execute chỉ mở vị thế mô phỏng",
+        "signalNotFound": "Tín hiệu không còn trong luồng",
+        "marketHeld": "Bot này đã có vị thế ở mã này",
+        "stopPassed": "Giá đã vượt qua stop",
+        "targetPassedBeforeEntry": "Giá đã vượt mục tiêu ({{detail}}) trước khi vào lệnh"
+      }
+    }
   },
   "backtest": {
     "run": "Chạy backtest",
@@ -800,7 +885,8 @@
       "feesIncluded": "Đã gồm phí",
       "noFunding": "Chưa gồm funding",
       "noGates": "Không mô phỏng BTC break và cổng rủi ro",
-      "coverage": "Độ phủ {{value}}"
+      "coverage": "Độ phủ {{value}}",
+      "barCloses": "Sụt giảm đọc tại các lần đóng nến {{interval}}; bot mô phỏng dùng nến 1 phút"
     },
     "kpi": {
       "net": "P&L ròng",
@@ -861,13 +947,16 @@
     "deleteAll": "Xóa tất cả",
     "deleteAllTitle": "Xóa {{n}} lần chạy?",
     "deleteAllBody": "Mọi lần chạy backtest đã lưu sẽ bị xóa. Không thể hoàn tác.",
-    "deleteRun": "Xóa lần chạy {{name}}"
+    "deleteRun": "Xóa lần chạy {{name}}",
+    "hint": {
+      "interval": "Bot mô phỏng chạy trên nến 1 phút. Nến dài hơn đọc mức sụt giảm ở ít lần đóng nến hơn và cho thấy ít hơn."
+    }
   },
   "positions": {
     "tabPaper": "Mô phỏng",
     "tabExchange": "Sàn",
     "noPaper": "Không có vị thế mô phỏng đang mở",
-    "noKey": "Không có khóa Binance trong kho khóa",
+    "noKey": "Không có khóa sàn trong kho",
     "realZone": "Tài khoản sàn thật: thao tác sẽ đặt lệnh thật",
     "totals": "Tổng",
     "notional": "Giá trị danh nghĩa",
@@ -890,14 +979,22 @@
       "realNote": "Không động đến vị thế thật trên sàn: hãy đóng chúng ở tab Sàn.",
       "confirm": "Đóng tất cả",
       "done": "Đã đóng: {{closed}} · chưa đóng: {{failed}}",
-      "failed": "Đóng thất bại."
+      "failed": "Đóng thất bại.",
+      "strategyLiveNote": "Bot dùng tiền thật: vị thế của chúng trên sàn được đóng theo giá thị trường ở lượt kế tiếp."
     }
   },
   "history": {
     "byBot": "Theo bot",
     "byExit": "Theo lý do thoát",
     "loadedScope": "Đếm trên {{count}} giao dịch đã tải gần nhất.",
-    "filtersNote": "Bộ lọc áp dụng cho danh sách ({{shown}} / {{total}}); thống kê bao trùm toàn phạm vi."
+    "filtersNote": "Bộ lọc áp dụng cho danh sách ({{shown}} / {{total}}); thống kê bao trùm toàn phạm vi.",
+    "exportSkips": "Xuất tín hiệu bị bỏ qua",
+    "cycles": {
+      "title": "Chu kỳ DCA/Grid",
+      "deleted": "Đã xóa",
+      "none": "Chưa có chu kỳ đã đóng.",
+      "netNote": "Sau phí và funding, gồm cả bot đã xóa"
+    }
   },
   "accounts": {
     "vault": "Kho khóa",
@@ -926,7 +1023,8 @@
       "killSwitch": "Dừng ngày",
       "regime": "Cổng chế độ BTC",
       "live": "Cổng LIVE",
-      "emergency": "Khẩn cấp"
+      "emergency": "Khẩn cấp",
+      "preflight": "Sẵn sàng giao dịch thật"
     },
     "level": {
       "title": "Mức rủi ro"
@@ -963,7 +1061,7 @@
     "live": {
       "notThisBuild": "Bản này không thể đặt lệnh thật.",
       "build": "Bản có tính năng giao dịch thật",
-      "binanceKey": "Khóa Binance trong kho khóa",
+      "binanceKey": "Khóa giao dịch trong kho",
       "endpoint": "Điểm đặt lệnh",
       "turnOff": "Tắt LIVE",
       "onWhere": "Bật/tắt LIVE theo từng bot:"
@@ -976,7 +1074,14 @@
       "realCloses": "Vị thế thật: Vị thế > Sàn"
     },
     "exposure": "Mức tiếp xúc",
-    "remote": "Điều khiển từ xa bằng điện thoại"
+    "remote": "Điều khiển từ xa bằng điện thoại",
+    "scope": {
+      "leverageAll": "Đòn bẩy tối đa (mọi bot)",
+      "positionsSignal": "Vị thế tối đa mỗi bot tín hiệu",
+      "dailyStopSignal": "Dừng trong ngày (bot tín hiệu)",
+      "strategyBudget": "Trần ngân sách DCA/Grid",
+      "strategyBreaker": "Phanh DCA/Grid"
+    }
   },
   "settings": {
     "tabs": {
@@ -1054,7 +1159,10 @@
       "regime": "Chế độ BTC"
     },
     "strategyBreaker": "Bộ ngắt danh mục DCA/Grid đã kích hoạt",
-    "strategyBreakerDetail": "Mức sụt giảm từ đỉnh P&L đạt {{pct}}% ngân sách các bot được bao gồm. Đã đóng chu kỳ của chúng; chặn khởi động cho đến khi kích hoạt lại."
+    "strategyBreakerDetail": "Mức sụt giảm từ đỉnh P&L đạt {{pct}}% ngân sách các bot được bao gồm. Đã đóng chu kỳ của chúng; chặn khởi động cho đến khi kích hoạt lại.",
+    "cycleStopsToday": "Chu kỳ DCA/Grid bị đóng bởi stop hôm nay: {{count}}",
+    "cyclesClosedToday": "Chu kỳ DCA/Grid đóng hôm nay: {{count}}",
+    "strategyDead": "{{name}} đã kết thúc"
   },
   "statusbar": {
     "label": "Trạng thái",
@@ -1067,7 +1175,7 @@
     "latency": "Độ trễ",
     "priceUnavailable": "Không có giá",
     "reconnect": "Kết nối lại",
-    "autoLock": "tự khóa sau {{minutes}} phút không dùng",
+    "autoLock": "tự khóa sau {{duration}} không dùng",
     "regime": {
       "normal": "Bình thường",
       "break": "Gãy",
@@ -1085,27 +1193,35 @@
       "stop": "Tạm dừng",
       "close": "Đóng chu kỳ và dừng",
       "archive": "Xóa",
-      "clone": "Nhân bản"
+      "clone": "Nhân bản",
+      "startFirst": "Bắt đầu"
     },
     "confirm": {
       "start": {
         "title": "Tiếp tục {{name}}?",
-        "body": "Bot có thể mở chu kỳ giấy mới. Ngân sách của bot được giữ trong hạn mức chiến lược."
+        "body": "Bot có thể mở chu kỳ giấy mới. Ngân sách của bot được giữ trong hạn mức chiến lược.",
+        "bodyLive": "Bot này dùng tiền thật: các chu kỳ mới mua bán trên thị trường hợp đồng tương lai của sàn. Tiền thật vẫn bật sau khi khởi động lại."
       },
       "stop": {
         "title": "Tạm dừng {{name}}?",
-        "body": "Không mở chu kỳ mới. Chu kỳ đang mở giữ chốt lời và cắt lỗ đến khi đóng."
+        "body": "Không mở chu kỳ mới. Chu kỳ đang mở giữ chốt lời và cắt lỗ đến khi đóng.",
+        "bodyLive": "Không mở chu kỳ mới. Chu kỳ đang mở tiếp tục giao dịch trên sàn đến khi chốt lời hoặc dừng lỗ."
       },
       "close": {
         "title": "Đóng chu kỳ của {{name}}?",
-        "body": "Chu kỳ giấy đang mở được đóng theo giá thị trường (phí taker và trượt giá) và bot dừng."
+        "body": "Chu kỳ giấy đang mở được đóng theo giá thị trường (phí taker và trượt giá) và bot dừng.",
+        "bodyLive": "Chu kỳ đóng theo giá thị trường và vị thế của bot trên sàn được đóng ở lượt kế tiếp (vài giây). Bot dừng."
       },
       "archive": {
         "title": "Xóa {{name}}?",
-        "body": "Bot rời khỏi bàn. Các chu kỳ và lệnh khớp vẫn có trong bản xuất CSV."
+        "body": "Bot rời khỏi bàn. Các chu kỳ và lệnh khớp vẫn có trong bản xuất CSV.",
+        "bodyOpen": "Chu kỳ đang mở đóng theo giá thị trường, bot dừng và rời bảng. Các chu kỳ và lệnh khớp vẫn có trong tệp CSV."
       },
       "closeAll": {
         "body": "Mọi chu kỳ giấy DCA và Grid đang mở được đóng theo giá thị trường và bot của chúng dừng. Chu kỳ không có giá hiện tại vẫn mở."
+      },
+      "startFirst": {
+        "title": "Bắt đầu {{name}}?"
       }
     },
     "state": {
@@ -1141,7 +1257,8 @@
       "orders": "Lệnh",
       "fills": "Khớp lệnh",
       "settings": "Cài đặt",
-      "log": "Nhật ký"
+      "log": "Nhật ký",
+      "real": "Thật và mô phỏng"
     },
     "form": {
       "section": {
@@ -1156,16 +1273,25 @@
       "save": "Lưu thay đổi",
       "saved": "Đã lưu.",
       "notANumber": "Số không hợp lệ cho trường này.",
-      "fromPreset": "Từ cấu hình mẫu {{id}}: cài đặt khớp với mô phỏng lịch sử của nó.",
+      "fromPreset": "Từ cấu hình mẫu {{id}}: cài đặt khớp với mô phỏng lịch sử của nó, chạy trên {{universe}}. Cặp của bạn không được đối chiếu với danh sách đó.",
       "presetDiffers": "Đã thay đổi so với cấu hình mẫu {{id}}: mô phỏng lịch sử của nó không còn mô tả các cài đặt này. Bot được lưu không kèm liên kết cấu hình mẫu.",
       "presetUnknown": "Không tìm thấy cấu hình mẫu {{id}}",
       "presetKind": "Cấu hình mẫu {{id}} dành cho loại bot khác",
       "copyName": "{{name}} bản sao",
-      "cycleLocked": "Đang có chu kỳ mở: chỉ có thể đổi tên, điều kiện bắt đầu, khởi động lại và bảo vệ.",
+      "cycleLocked": "Đang có chu kỳ mở: chỉ đổi được tên, khởi động, khởi động lại và bảo vệ. Để đổi phần còn lại ngay, dùng Đóng chu kỳ (đóng theo giá thị trường) rồi chỉnh sửa.",
       "slotLocked": "Bot đang chạy: tạm dừng để đổi thị trường, cặp hoặc hướng.",
       "leaveTitle": "Bỏ các thay đổi chưa lưu?",
       "discard": "Bỏ thay đổi",
-      "presetFailed": "Mẫu này không đạt kiểm tra ({{reasons}}). Cài đặt được giữ để học; hãy thử trong backtest trước."
+      "presetFailed": "Mẫu này không đạt kiểm tra ({{reasons}}). Cài đặt được giữ để học; hãy thử trong backtest trước.",
+      "fromPresetPairChecked": "Từ cấu hình mẫu {{id}}: cài đặt và cặp khớp với mô phỏng lịch sử của nó ({{universe}}).",
+      "budgetShort": "Ngân sách tối thiểu {{min}} USDT (mỗi lệnh ít nhất 5 USDT); còn trống {{free}} USDT trong hạn mức ngân sách DCA/Grid. Tăng số dư mô phỏng hoặc mức rủi ro:",
+      "custom": {
+        "base": "Cài đặt riêng: không có mô phỏng lịch sử.",
+        "passed": "Cài đặt tùy chỉnh: không có mô phỏng lịch sử. Mẫu có lịch sử đạt, đang xem xét đến 1/11: {{names}}.",
+        "noneDca": "Cài đặt riêng: không có mô phỏng lịch sử. 0 trên {{total}} mẫu DCA qua kiểm tra.",
+        "noneGrid": "Cài đặt riêng: không có mô phỏng lịch sử. 0 trên {{total}} mẫu grid qua kiểm tra."
+      },
+      "presetPairOnly": "Cấu hình mẫu {{id}} chỉ được kiểm thử trên BTCUSDT và không mở với {{symbol}}."
     },
     "field": {
       "name": "Tên",
@@ -1241,7 +1367,7 @@
       "volumeScale": "1,0 = các lệnh an toàn bằng nhau.",
       "volumeScaleGrows": "Kích thước lệnh tăng theo mỗi lệnh an toàn: vốn trong trường hợp xấu nhất tăng lên.",
       "tp": "Tính từ giá vào trung bình, sau khi khớp.",
-      "sl": "Phải nằm xa hơn lệnh an toàn cuối cùng.",
+      "sl": "Phải nằm xa hơn lệnh an toàn cuối cùng và trước giá thanh lý.",
       "rangeRelative": "Đặt quanh giá khi mỗi chu kỳ bắt đầu.",
       "rangeAbsolute": "Giá cố định.",
       "nGrids": "{{levels}} mức giá.",
@@ -1255,7 +1381,8 @@
       "endAt": "Chu kỳ đang mở vẫn chạy đến khi thoát.",
       "ddStop": "Đóng chu kỳ và dừng bot khi lỗ mức này từ đỉnh vốn.",
       "btcGate": "Không mở chu kỳ mới khi Sentinel báo BTC phá vỡ. Chu kỳ đang mở vẫn tiếp tục.",
-      "portfolioBreakerOff": "Ngoài ngắt danh mục: không được tính, không bị đóng hay giữ lại khi ngắt kích hoạt."
+      "portfolioBreakerOff": "Ngoài ngắt danh mục: không được tính, không bị đóng hay giữ lại khi ngắt kích hoạt.",
+      "maxDuration": "Khi đạt tới, đóng chu kỳ theo giá thị trường. Bot đang chạy mở chu kỳ tiếp theo sau thời gian chờ."
     },
     "sizing": {
       "weights": "Theo ngân sách",
@@ -1290,13 +1417,13 @@
       "totalNotional": "Giá trị danh nghĩa nếu khớp hết",
       "liqPrice": "Thanh lý ước tính",
       "liqDistance": "Từ lệnh cuối đến thanh lý",
-      "noLiq": "Không có ở 1x",
       "worstLoss": "Trường hợp xấu nhất",
       "worstOpen": "Không giới hạn: không có dừng",
       "basis": {
         "sl": "tại cắt lỗ",
         "liq": "tại thanh lý",
-        "none": "không có dừng"
+        "none": "không có dừng",
+        "ddStop": "tại mức dừng theo sụt giảm"
       },
       "deviation": "Độ lệch",
       "avgEntry": "Giá vào TB",
@@ -1323,7 +1450,9 @@
       "slippage": "Trượt giá",
       "funding": "Funding",
       "fundingCharged": "Tính theo lịch sử Binance",
-      "fundingNone": "Không có (spot)"
+      "fundingNone": "Không có (spot)",
+      "minBudget": "Ngân sách tối thiểu",
+      "noLiqAt": "Không có ở {{leverage}}x"
     },
     "warnings": {
       "leveraged": "Đòn bẩy trên 1x: khoản lỗ tăng theo.",
@@ -1331,7 +1460,8 @@
       "noStopLoss": "Không có dừng: khoản lỗ không giới hạn.",
       "noStopOut": "Không có dừng: lỗ trên hàng tồn không giới hạn.",
       "trailLimitInsideRange": "Giới hạn trượt nằm trong vùng giá ở mức giá này: vùng sẽ không trượt.",
-      "gridLiqInsideBandNow": "Thanh lý ước tính rơi vào dải ở mức giá này: bot chờ đến khi ra khỏi dải."
+      "gridLiqInsideBandNow": "Thanh lý ước tính rơi vào dải ở mức giá này: bot chờ đến khi ra khỏi dải.",
+      "ddStopOnly": "Chỉ mức dừng theo sụt giảm của bot giới hạn khoản lỗ."
     },
     "detail": {
       "preset": "Cấu hình mẫu",
@@ -1462,7 +1592,7 @@
       "rearmBody": "Được phép từ ngày UTC kế tiếp sau khi kích hoạt. Đỉnh lãi/lỗ đặt lại về lãi/lỗ hiện tại."
     },
     "emergency": {
-      "title": "DCA và Grid (giấy)",
+      "title": "DCA và Grid",
       "pauseAll": "Tạm dừng mọi bot DCA và Grid ({{count}})",
       "closeAll": "Đóng mọi chu kỳ DCA và Grid ({{count}})",
       "paused": "Đã tạm dừng: {{count}}",
@@ -1475,15 +1605,16 @@
         "dca": "Không có cấu hình mẫu DCA nào vượt qua kiểm tra",
         "grid": "Không có cấu hình mẫu lưới nào vượt qua kiểm tra"
       },
-      "testMean": "Kiểm thử: trung bình mỗi bot-tháng",
-      "testMeanNote": "Kiểm thử = cửa sổ dữ liệu cuối, được giữ riêng khi chọn cấu hình mẫu.",
+      "testMean": "Kiểm thử: trung bình mỗi bot-tháng (mỗi tháng một bot mới 1000 USDT cho mỗi cặp)",
+      "testMeanNote": "Kiểm thử = cửa sổ dữ liệu cuối, được giữ riêng khi chọn cấu hình mẫu. Mọi con số tính theo bot-tháng: mỗi tháng một bot mới 1000 USDT cho mỗi cặp, chu kỳ còn mở cuối tháng chạy tiếp đến khi đóng. Không phải một bot chạy liên tục nhiều tháng.",
       "ci95": "Khoảng 95%",
       "monthsPositive": "Tháng dương",
       "worstBotDd": "Sụt giảm bot tệ nhất",
       "verdict": "Kết luận",
       "verdicts": {
         "presetReady": "Đã qua kiểm tra",
-        "failed": "Không đạt"
+        "failed": "Không đạt",
+        "underReview": "Đạt đến {{end}} · đọc lại {{date}}"
       },
       "use": "Dùng cấu hình mẫu",
       "settings": "Cài đặt",
@@ -1504,7 +1635,7 @@
       "excluded": "Loại trừ",
       "capitalModel": "Mô hình vốn",
       "capital": {
-        "onePersistentBotPerSymbol": "Một bot mỗi cặp, ngân sách cố định"
+        "botPerSymbolMonth": "Mỗi tháng một bot mới 1000 USDT cho mỗi cặp; chu kỳ còn mở cuối tháng chạy tiếp đến khi đóng"
       },
       "method": "Phương pháp",
       "simulator": "Bộ mô phỏng",
@@ -1533,9 +1664,9 @@
       "openAtEnd": "Chu kỳ còn mở khi hết dữ liệu",
       "liquidations": "Thanh lý",
       "stoppedDeals": "Chu kỳ bị dừng",
-      "parityNote": "Đổi bất kỳ cài đặt nào ngoài tên, cặp hoặc ngân sách khiến các con số này không còn mô tả bot.",
+      "parityNote": "Đổi bất kỳ cài đặt nào ngoài tên hoặc ngân sách, hoặc dùng cặp ngoài nhóm đã kiểm thử, khiến các con số này không còn mô tả bot.",
       "col": {
-        "testMean": "TB kiểm tra/tháng"
+        "testMean": "Kiểm thử mỗi bot-tháng"
       },
       "names": {
         "dca_long_classic": "DCA Long Cổ điển",
@@ -1580,7 +1711,25 @@
         "confirm": "Vẫn dùng"
       },
       "failedBanner": "Không đạt kiểm tra:",
-      "passedBanner": "Đạt cả bốn kiểm tra: mọi giai đoạn dương, khoảng kiểm thử trên 0, mọi tháng kiểm thử dương, không thanh lý."
+      "passedBanner": "Đạt cả bốn kiểm tra: mọi giai đoạn dương, khoảng kiểm thử trên 0, mọi tháng kiểm thử dương, không thanh lý.",
+      "live": {
+        "col": "Bóng từ {{since}}",
+        "tip": "Tổng lợi nhuận từ lúc bắt đầu, không phải mỗi tháng (cột Kiểm thử tính theo bot-tháng). Các mẫu chạy tiến trên máy chủ bằng trình mô phỏng tạo ra số liệu lịch sử; không có tiền thật. Chu kỳ mở định giá theo giá cuối. Không xếp hạng trước 30 ngày.",
+        "collecting": "Đang thu thập {{days}}/{{min}} ngày",
+        "unavailable": "Không có bản ghi bóng: ribqa.com không phản hồi.",
+        "line": "Bản ghi bóng (mô phỏng) từ {{since}} · ngày {{days}}/{{min}}, chưa xếp hạng · cập nhật {{updated}}",
+        "lineReady": "Bản ghi bóng (mô phỏng) từ {{since}} · {{days}} ngày · cập nhật {{updated}}",
+        "title": "Bản ghi bóng (mô phỏng)",
+        "early": "Ngày {{days}}/{{min}}: còn quá sớm để so sánh mẫu. Số liệu được hiển thị, không xếp hạng.",
+        "return": "Tổng lợi nhuận từ {{since}}, trên vốn (không phải mỗi tháng)",
+        "medianDd": "Sụt giảm của bot trung vị",
+        "bots": "Bot",
+        "cycles": "Chu kỳ",
+        "open": "{{count}} đang mở",
+        "method": "Cùng trình mô phỏng và tham số với bài kiểm tra lịch sử: mỗi tháng một bot mới 1000 USDT cho mỗi cặp, 1x, danh sách coin hàng tháng, đã tính phí, trượt giá và funding; chu kỳ mở theo giá đóng cửa cuối."
+      },
+      "checksToWindow": "Cả bốn kiểm tra đạt trên cửa sổ kiểm thử đến {{date}}",
+      "recheckBanner": "Đạt cả bốn kiểm tra trên cửa sổ kiểm thử đến {{windowEnd}}. Trong {{month}} đến nay ({{days}} ngày) trung bình là {{mean}}% mỗi bot-tháng với các deal vẫn mở, nên chưa phải mọi tháng kiểm thử đều dương. Các kiểm tra được đọc lại vào {{nextRead}}, khi tháng kết thúc. Không phải là bảo đảm."
     },
     "notes": {
       "portfolioDdTripped": "Ngắt danh mục đã kích hoạt: chu kỳ của các bot được bao gồm đã đóng. Bật lại từ ngày UTC kế tiếp.",
@@ -1602,7 +1751,29 @@
       "cycleClosed": "Chu kỳ đã đóng: {{reason}}",
       "storeReadFailed": "Không đọc được kho dữ liệu chiến lược.",
       "storeWriteFailed": "Không lưu được vào kho dữ liệu chiến lược.",
-      "sizeDownBelowMin": "Lệnh nhỏ hơn mức tối thiểu của sàn sau thua lỗ: bot đã kết thúc."
+      "sizeDownBelowMin": "Lệnh nhỏ hơn mức tối thiểu của sàn sau thua lỗ: bot đã kết thúc.",
+      "liveClosedOnExchange": "Vị thế đã đóng trên sàn (dừng lỗ, thanh lý hoặc thủ công): bot đã dừng.",
+      "liveMismatch": "Vị thế trên sàn không còn khớp với những gì bot đã gửi: bot đã dừng. Hãy kiểm tra vị thế trên sàn.",
+      "liveHedgeMode": "Tài khoản sàn đang ở chế độ hedge; tiền thật cần chế độ một chiều.",
+      "liveBuildRequired": "Bot LIVE từ bản dựng tiền thật: bản dựng này không kết nối được sàn, bot đã dừng.",
+      "liveQtyBelowMinimum": "Lệnh đầu tiên của chu kỳ dưới mức tối thiểu của sàn: chu kỳ đã đóng và bot đã dừng.",
+      "livePartialBelowMinimum": "Một lệnh dưới mức tối thiểu của sàn: chờ bước lớn hơn.",
+      "liveVaultLocked": "Kho bị khóa: lệnh thật chờ đến khi mở khóa. Sau 2 phút bỏ lỡ lệnh, bot dừng.",
+      "liveExchangeCheckFailed": "Không đọc được dữ liệu sàn; đang thử lại.",
+      "liveLeverageRejected": "Sàn từ chối ký quỹ riêng hoặc đòn bẩy cho mã này.",
+      "liveOrderFailed": "Sàn từ chối lệnh.",
+      "livePartialFailed": "Đóng một phần thất bại trên sàn; đang thử lại.",
+      "liveCloseFailed": "Đóng vị thế thất bại trên sàn; đang thử lại.",
+      "liveProtectiveStopFailed": "Không đặt được stop trên sàn.",
+      "liveUnprotected": "Không đặt được lệnh dừng trên sàn và việc đóng chưa được xác nhận. Đang thử lại; nếu vẫn mở, hãy đóng ở Vị thế → Sàn.",
+      "liveStopFilled": "Lệnh dừng trên sàn đã đóng vị thế tại mức dừng; bot vẫn hoạt động.",
+      "liveMissedOrders": "Không kết nối được sàn hơn 2 phút trong khi bot giao dịch mô phỏng: bot dừng thay vì đuổi theo ở giá hôm nay.",
+      "liveSymbolHasOrders": "Mã này có lệnh mở trên sàn (lệnh dừng cũ hoặc lệnh của bạn): bot đã dừng. Hãy hủy chúng trên sàn trước.",
+      "resumeRefused": "Không tiếp tục sau khi khởi động lại. {{reason}}",
+      "leverageAboveCeiling": "Đòn bẩy vượt mức tối đa của mức rủi ro: chu kỳ mới đang bị giữ.",
+      "liveVenueNotDryRun": "Đã dừng tiền thật: đường lệnh của sàn này chưa qua lần chạy thử trên mạng thử nghiệm. Vị thế thật vẫn nằm dưới lệnh dừng; hãy đóng nó ở trang Vị thế & lệnh.",
+      "cycleRestoreFailed": "Không đọc được chu kỳ đang mở khi khởi động · bot không được tiếp tục",
+      "liveStateUnreadable": "Không đọc được trạng thái tiền thật khi khởi động · bot không được tiếp tục"
     },
     "errors": {
       "nameInvalid": "Tên: từ 1 đến 40 ký tự.",
@@ -1662,15 +1833,101 @@
       "membershipInactive": "Thành viên không hoạt động.",
       "storeReadFailed": "Không đọc được kho dữ liệu chiến lược.",
       "trailingAboveTp": "Độ lệch dời: nhỏ hơn mức chốt lời.",
-      "slInsideLadder": "Cắt lỗ: vượt qua lệnh an toàn kế tiếp ở mọi bước của thang."
+      "slInsideLadder": "Cắt lỗ: vượt qua lệnh an toàn kế tiếp ở mọi bước của thang.",
+      "liveBuildDisabled": "Bản dựng này chỉ mô phỏng.",
+      "liveFuturesBinanceOnly": "Tiền thật chỉ dùng được cho bot hợp đồng tương lai trên Binance.",
+      "liveConfirmRequired": "Gõ {{detail}} để xác nhận.",
+      "liveNeedsTradeKey": "Hãy mở kho bằng khóa giao dịch của sàn này trước.",
+      "liveNeedsVerifiedKey": "Khóa này được lưu trước khi kiểm tra quyền. Hãy gia hạn trong Cài đặt, Khóa sàn.",
+      "liveNeedsIdleBot": "Đóng chu kỳ mô phỏng đang mở hoặc chờ nó kết thúc, rồi chuyển sang tiền thật.",
+      "liveNeedsStop": "Hãy đặt cắt lỗ, dừng khi ra ngoài khoảng hoặc dừng theo sụt giảm trước: stop trên sàn được đặt tại đó.",
+      "liveSymbolBusy": "Một bot thật khác hoặc một vị thế đã dùng mã này trên sàn.",
+      "liveCloseFirst": "Hãy đóng vị thế thật của bot trước, rồi quay lại mô phỏng.",
+      "liveOrderBelowMinNotional": "Lệnh nhỏ nhất của bot dưới mức tối thiểu của sàn ({{detail}} USDT) cho mã này.",
+      "liveSymbolNotTrading": "Mã này không giao dịch trên thị trường hợp đồng tương lai của sàn.",
+      "liveExchangeCheckFailed": "Không kết nối được sàn. Hãy thử lại.",
+      "liveEditLocked": "Bot này đang dùng tiền thật. Chuyển về Mô phỏng trước khi sửa hoặc xóa.",
+      "liveHaltedStart": "Bot này đã tự dừng khi dùng tiền thật. Kiểm tra vị thế trên sàn, rồi chuyển về mô phỏng trước khi khởi động lại.",
+      "budgetCapDetail": "Vượt hạn mức ngân sách DCA/Grid: còn trống {{free}} USDT trên {{limit}} USDT. Tăng số dư mô phỏng hoặc mức rủi ro trong Rủi ro & an toàn.",
+      "slBeyondLiquidation": "Cắt lỗ nằm tại hoặc vượt giá thanh lý: sẽ không bao giờ kích hoạt. Dùng mức cắt lỗ gần hơn hoặc đòn bẩy thấp hơn.",
+      "budgetBelowMinNotionalMin": "Một lệnh sẽ thấp hơn mức tối thiểu 5 USDT. Ngân sách tối thiểu: {{min}} USDT.",
+      "liveVenueNotDryRun": "Tiền thật chưa dùng được trên sàn này: đường lệnh của sàn chưa qua lần chạy thử trên mạng thử nghiệm của sàn. Vị thế ở đó vẫn có thể đóng."
     },
     "leverageConfirm": {
-      "title": "Đòn bẩy không có cắt lỗ",
+      "title": "Có thể bị thanh lý, không có dừng",
       "body_long": "{{leverage}}x, tắt cắt lỗ. Nếu giá giảm thêm {{pct}}% dưới lệnh an toàn cuối ({{price}}), vị thế bị thanh lý và mất toàn bộ ngân sách chu kỳ.",
       "body_short": "{{leverage}}x, tắt cắt lỗ. Nếu giá tăng thêm {{pct}}% trên lệnh an toàn cuối ({{price}}), vị thế bị thanh lý và mất toàn bộ ngân sách chu kỳ.",
       "bodyGeneric": "{{leverage}}x, tắt cắt lỗ. Sau lệnh an toàn cuối không có gì đóng vị thế trước khi thanh lý, và mất toàn bộ ngân sách chu kỳ.",
       "hint": "Bật cắt lỗ hoặc dùng đòn bẩy 1x sẽ loại bỏ rủi ro này.",
-      "confirm": "Tiếp tục không có cắt lỗ"
+      "confirm": "Tiếp tục không có cắt lỗ",
+      "body_grid": "Grid {{leverage}}x, tắt dừng khi ra ngoài khoảng. Thanh lý ước tính dưới / trên: {{price}}. Nếu giá chạm tới, vị thế bị thanh lý và mất toàn bộ ngân sách chu kỳ.",
+      "bodyGenericGrid": "Grid {{leverage}}x, tắt dừng khi ra ngoài khoảng. Ngoài khoảng không có gì đóng vị thế trước khi thanh lý, và mất toàn bộ ngân sách chu kỳ.",
+      "hintShort": "Chỉ cắt lỗ loại bỏ rủi ro này: lệnh short cũng bị thanh lý ở 1x, khi giá tăng khoảng gấp đôi.",
+      "hintGrid": "Dừng khi ra ngoài khoảng sẽ loại bỏ rủi ro này."
+    },
+    "live": {
+      "title": "Tiền thật",
+      "paper": "Mô phỏng",
+      "on": "LIVE",
+      "halted": "Đã dừng",
+      "realQty": "Vị thế thật",
+      "entry": "Giá vào",
+      "unrealized": "Chưa thực hiện",
+      "stop": "Stop trên sàn",
+      "realized": "Đã chốt (gộp)",
+      "fees": "Phí (ước tính 0,05%)",
+      "fills": "Khớp lệnh thật",
+      "lastSync": "Đồng bộ lần cuối",
+      "enable": "Chuyển sang tiền thật",
+      "disable": "Quay lại mô phỏng",
+      "confirmTitle": "Tiền thật cho {{name}}",
+      "confirmBody": "Mỗi lệnh mua và bán bot này mô phỏng được gửi đến Binance Futures dưới dạng lệnh thị trường trên {{symbol}}, ký quỹ cô lập, {{leverage}}x. Một lệnh stop nằm trên sàn tại mức stop của bot. Nếu vị thế trên Binance thay đổi ngoài bot, bot sẽ dừng. Áp dụng phí taker.",
+      "buildOff": "Bản dựng này chỉ mô phỏng.",
+      "futuresOnly": "Tiền thật chỉ có cho bot Binance Futures.",
+      "goKeys": "Khóa sàn",
+      "goSettings": "Cài đặt bot",
+      "goExchange": "Vị thế → Sàn",
+      "goGuide": "Hướng dẫn tiền thật",
+      "req": {
+        "title": "Trước khi dùng tiền thật",
+        "key": "Khóa giao dịch đã xác minh (Binance, Bybit hoặc OKX)",
+        "stop": "Cắt lỗ, dừng lưới hoặc dừng theo sụt giảm",
+        "idle": "Không có chu kỳ mô phỏng đang mở"
+      },
+      "listLine": "Mặc định mô phỏng: khớp lệnh mô phỏng theo giá trực tiếp, đã tính phí. Tiền thật là tùy chọn cho từng bot trên hợp đồng tương lai Binance, Bybit hoặc OKX.",
+      "pilot": "Thí điểm: còn {{count}} chu kỳ ở {{pct}}% kích thước mô phỏng. Kết thúc sẽ áp dụng từ chu kỳ sau.",
+      "endPilot": "Kết thúc thí điểm",
+      "venue": "Sàn đặt lệnh",
+      "confirmBodyVenue": "Mỗi lệnh mua bán bot mô phỏng được gửi tới hợp đồng tương lai {{exchange}} dưới dạng lệnh thị trường cho {{symbol}}, ký quỹ riêng, {{leverage}}x. Quyết định vẫn dùng giá Binance. Lệnh dừng nằm trên sàn ở mức dừng của bot. Nếu vị thế thay đổi ngoài bot, bot dừng. Áp dụng phí taker.",
+      "confirmBudget": "Ngân sách bot: {{budget}} USDT, đòn bẩy {{leverage}}x."
+    },
+    "report": {
+      "title": "Khớp lệnh thật và mô phỏng",
+      "cycle": "Chu kỳ",
+      "side": {
+        "buy": "Mua",
+        "sell": "Bán"
+      },
+      "kind": "Lệnh",
+      "kinds": {
+        "open": "Vào / thêm",
+        "reduce": "Giảm",
+        "close": "Đóng",
+        "external": "Lệnh dừng sàn / bên ngoài"
+      },
+      "qty": "Khối lượng thật",
+      "real": "Giá thật",
+      "sim": "Giá mô phỏng",
+      "slippage": "Trượt giá",
+      "cost": "Chi phí",
+      "delay": "Độ trễ",
+      "avgSlippage": "Trượt giá trung bình",
+      "totalCost": "Chi phí trượt giá",
+      "fees": "Phí (ước tính 0,05%)",
+      "avgDelay": "Độ trễ trung bình",
+      "matched": "Đã khớp",
+      "note": "Trượt giá dương là chi phí: mua đắt hơn, bán rẻ hơn. Một lệnh thị trường có thể phản ánh nhiều lần khớp mô phỏng.",
+      "empty": "Chưa có khớp lệnh thật."
     }
   },
   "errors": {
@@ -1694,8 +1951,8 @@
     "vaultWriteFailed": "Không thể lưu tệp kho lưu trữ.",
     "keychainWriteFailed": "Không thể lưu salt của kho lưu trữ vào keychain hệ thống.",
     "keychainSaltMissing": "Keychain của máy này không có salt của kho lưu trữ. Kho lưu trữ này thuộc về thiết bị hoặc tài khoản người dùng khác.",
-    "keyNoFutures": "Khóa này không có quyền Futures. Hãy bật Futures trên Binance rồi thêm lại.",
-    "keyRejected": "Binance đã từ chối cặp khóa API và secret này. Hãy kiểm tra lỗi gõ.",
+    "keyNoFutures": "Khóa này không có quyền Futures. Bật Futures trên sàn rồi thêm lại.",
+    "keyRejected": "Sàn từ chối API key và secret này. Hãy kiểm tra lỗi gõ.",
     "sentinelUnreachable": "Không thể kết nối Sentinel. Hãy kiểm tra kết nối của bạn.",
     "unexpectedResponse": "Sentinel gửi phản hồi không mong đợi.",
     "serverRejected": "Sentinel đã từ chối yêu cầu: {{detail}}",
@@ -1705,32 +1962,31 @@
     "refreshFailed": "Không thể làm mới phiên.",
     "accountLookupFailed": "Không thể đọc tài khoản của bạn.",
     "botDailyLossTripped": "Đã chạm giới hạn lỗ trong ngày. Bot có thể khởi động lại vào ngày UTC tiếp theo.",
-    "botPumpNeedsAmbitious": "Bot Pump cần mức rủi ro Tham vọng trở lên.",
     "botNotConfigured": "Bot này chưa có cài đặt đã lưu.",
     "botMaxPositionsRange": "Số vị thế tối đa phải nằm trong khoảng {{detail}}.",
     "exchangeUnknown": "Sàn không xác định: {{detail}}",
     "exchangeNoFutures": "{{detail}} không có thị trường futures.",
     "botSaveFirst": "Hãy lưu cài đặt của bot trước.",
     "liveBuildDisabled": "Bản dựng này chỉ mô phỏng.",
-    "liveFuturesBinanceOnly": "Giao dịch bằng tiền thật chỉ có cho bot Binance Futures.",
+    "liveFuturesBinanceOnly": "Giao dịch tiền thật chỉ có cho bot Futures.",
     "liveConfirmRequired": "Gõ {{detail}} để xác nhận.",
-    "liveNeedsTradeKey": "Hãy mở kho lưu trữ bằng khóa Trade của Binance trước.",
+    "liveNeedsTradeKey": "Hãy mở kho bằng khóa giao dịch của sàn này trước.",
     "botMaxPositionsMin": "Số vị thế tối đa phải ít nhất là 1.",
     "botCapitalInvalid": "Vốn mỗi vị thế phải lớn hơn 0.",
     "botLeverageMin": "Đòn bẩy phải ít nhất là 1.",
-    "botConfidenceRange": "Độ tin cậy tối thiểu phải từ 0% đến 100%.",
+    "botConfidenceRange": "Điểm Sentinel tối thiểu phải từ 0% đến 100%.",
     "botMaxLossInvalid": "Mức lỗ tối đa phải lớn hơn 0%.",
     "botDirectionInvalid": "Hướng phải là tất cả, long hoặc short.",
     "botRiskRange": "Rủi ro mỗi giao dịch nằm ngoài phạm vi.",
     "botTakeProfitRange": "Chốt lời tùy chỉnh nằm ngoài phạm vi.",
     "botTakeProfitSymbol": "Ngoại lệ chốt lời cần một mã giao dịch.",
-    "exchangeBinanceOnly": "Thao tác tài khoản chỉ có cho Binance.",
+    "exchangeBinanceOnly": "Thao tác tài khoản chỉ có cho Binance, Bybit và OKX.",
     "noVaultedKey": "Kho lưu trữ không có khóa cho sàn này. Hãy mở kho lưu trữ và thêm một khóa.",
-    "binanceKeyRejected": "Binance đã từ chối yêu cầu. Khóa có thể thiếu quyền Futures hoặc Trade.",
-    "binanceUnreachable": "Không thể kết nối Binance.",
-    "binanceRefused": "Binance đã từ chối: {{detail}}",
-    "binanceRateLimited": "Đã chạm giới hạn yêu cầu của Binance. Yêu cầu tạm dừng một phút.",
-    "binanceUnconfirmed": "Binance chưa xác nhận kết quả. Hãy kiểm tra vị thế trước khi thử lại.",
+    "binanceKeyRejected": "Sàn từ chối yêu cầu. Khóa có thể thiếu quyền Futures hoặc Trade.",
+    "binanceUnreachable": "Không kết nối được sàn.",
+    "binanceRefused": "Sàn đã từ chối: {{detail}}",
+    "binanceRateLimited": "Đã chạm giới hạn yêu cầu của sàn. Yêu cầu tạm dừng một phút.",
+    "binanceUnconfirmed": "Sàn không xác nhận kết quả. Hãy kiểm tra vị thế trước khi thử lại.",
     "probeClientUnavailable": "Không thể bắt đầu kiểm tra kết nối.",
     "cockpitReachable": "Kết nối được",
     "cockpitUnreachable": "Không kết nối được",
@@ -1791,15 +2047,25 @@
     "credentialLabelInvalid": "Nhãn: từ 1 đến {{detail}} ký tự.",
     "vaultPasswordUnchanged": "Mật khẩu mới trùng mật khẩu hiện tại.",
     "vaultIdleInvalid": "Chọn một trong các thời gian tự khóa có sẵn.",
-    "keyExchangeUnverified": "Chỉ kiểm tra được quyền của khóa Binance, nên chỉ chấp nhận khóa Binance ({{detail}}).",
-    "keyCheckUnavailable": "Không kết nối được Binance để kiểm tra quyền của khóa này. Hãy thử lại sau ít phút.",
+    "keyExchangeUnverified": "Chưa kiểm tra được quyền của khóa sàn này, nên khóa không được chấp nhận ({{detail}}).",
+    "keyCheckUnavailable": "Không kết nối được sàn để kiểm tra quyền của khóa này. Hãy thử lại sau giây lát.",
     "liveNeedsVerifiedKey": "Khóa này được lưu trước khi kiểm tra quyền. Hãy gia hạn trong Cài đặt, Khóa sàn, rồi bật chế độ thật.",
     "updateCheckFailed": "Không thể kiểm tra cập nhật.",
     "updateInstallFailed": "Không thể cài bản cập nhật.",
     "updateNone": "Không có bản cập nhật.",
     "updateConfirmRequired": "Nhập {{detail}} để cài bản cập nhật.",
     "closeConfirmRequired": "Nhập {{detail}} để đóng.",
-    "resetConfirmRequired": "Nhập {{detail}} để đặt lại kho."
+    "resetConfirmRequired": "Nhập {{detail}} để đặt lại kho.",
+    "vaultBusyLive": "Đang dùng tiền thật. Hãy đóng các vị thế thật và tắt chế độ thật trước khi khóa kho hoặc đổi khóa.",
+    "updateBlockedLive": "Đang dùng tiền thật. Hãy đóng các vị thế thật và tắt chế độ thật trước khi cài bản cập nhật.",
+    "trendUnavailable": "Không có xu hướng: Binance không phản hồi.",
+    "liveVenueNotDryRun": "Tiền thật chưa dùng được trên sàn này: đường lệnh của sàn chưa qua lần chạy thử trên mạng thử nghiệm của sàn. Vị thế ở đó vẫn có thể đóng.",
+    "botHasLivePositions": "Bot này đang giữ vị thế thật trên {{detail}}. Hãy đóng chúng trước khi đổi sàn.",
+    "liveExchangeLocked": "Hãy chuyển bot này về mô phỏng trước khi đổi sàn: tiền thật đã được xác nhận cho {{detail}}.",
+    "closeAllPartial": "Đóng tất cả chưa đóng được mọi vị thế. Vẫn mở: {{detail}}. Hãy kiểm tra danh sách và đóng lại, hoặc đóng trên sàn.",
+    "closeCleanupFailed": "Đã đóng, nhưng không hủy được lệnh dừng lỗ hoặc chốt lời trên {{detail}}. Hãy hủy chúng trên sàn.",
+    "botCapitalAboveCap": "Vốn mỗi vị thế vượt trần {{detail}} USDT của mức rủi ro hiện tại. Hãy giảm vốn, hoặc tăng số dư mô phỏng hay mức rủi ro trong Rủi ro & an toàn.",
+    "vaultSaltMismatch": "Salt của kho này trong chuỗi khóa hệ thống đã bị một bản dựng Aleph Edge khác thay thế, nên không mật khẩu nào mở được. Chọn \"Quên mật khẩu? Đặt lại kho\" và thêm lại khóa sàn của bạn."
   },
   "status": {
     "running": "Đang chạy",
@@ -1820,7 +2086,8 @@
     "down": "Ngừng hoạt động",
     "killSwitch": "Dừng trong ngày",
     "disconnected": "Mất kết nối",
-    "locked": "Đã khóa"
+    "locked": "Đã khóa",
+    "underReview": "Đang xem xét"
   },
   "guide": {
     "contents": "Mục lục",
@@ -1847,5 +2114,104 @@
     "checkedAt": "Lần kiểm tra cuối",
     "notChecked": "Chưa kiểm tra",
     "signedNote": "Mỗi bản cập nhật được xác minh bằng khóa ký tích hợp trong ứng dụng trước khi cài."
+  },
+  "preflight": {
+    "title": "Sẵn sàng giao dịch thật",
+    "run": "Kiểm tra",
+    "running": "Đang kiểm tra…",
+    "checkedAt": "Đã kiểm tra {{time}}",
+    "result": "Kết quả",
+    "check": "Mục kiểm tra",
+    "value": "Giá trị",
+    "detail": "Chi tiết",
+    "fix": "Sửa",
+    "note": "Chỉ đọc: đọc tài khoản bằng khóa trong kho. Không gửi lệnh nào.",
+    "verdict": {
+      "ok": "OK",
+      "warn": "Xem lại",
+      "fail": "Chặn"
+    },
+    "overall": {
+      "ok": "Sẵn sàng",
+      "warn": "Sẵn sàng, có cảnh báo",
+      "fail": "Chưa sẵn sàng"
+    },
+    "checks": {
+      "build": "Bản giao dịch thật",
+      "endpoint": "Địa chỉ {{exchange}}",
+      "key": "Khóa chỉ giao dịch",
+      "clock": "Đồng hồ so với Binance",
+      "account": "Số dư futures (khả dụng / tổng)",
+      "positionMode": "Chế độ vị thế",
+      "positions": "Vị thế không do bot giữ",
+      "killSwitch": "Dừng trong ngày",
+      "btcRegime": "Trạng thái BTC",
+      "membership": "Thành viên",
+      "stream": "Luồng tín hiệu Sentinel",
+      "liveBots": "Bot thật (tín hiệu + DCA/Grid)",
+      "venue": "Đường đặt lệnh"
+    },
+    "codes": {
+      "buildOff": "Bản này không giao dịch tiền thật",
+      "production": "Production",
+      "testnet": "Testnet: lệnh không phải tiền thật",
+      "keyNotVerified": "Khóa chưa xác minh là chỉ giao dịch",
+      "noKey": "Không có khóa {{exchange}} trong kho",
+      "noVault": "Chưa có kho",
+      "vaultLocked": "Kho đang khóa",
+      "unreachable": "Không kết nối được Binance",
+      "clockDrift": "Đồng hồ máy bị lệch; chữ ký đã bù",
+      "needsKey": "Cần khóa chỉ giao dịch đã mở",
+      "lowBalance": "Ký quỹ khả dụng thấp",
+      "hedgeMode": "Chế độ hedge: chuyển hợp đồng tương lai {{exchange}} sang một chiều",
+      "oneWay": "Một chiều",
+      "foreignPositions": "Bot bỏ qua các mã này",
+      "tripped": "Đã kích hoạt: hôm nay không vào lệnh mới",
+      "normal": "Bình thường",
+      "break": "Gãy: tạm giữ lệnh mới",
+      "unknown": "Không rõ",
+      "expiring": "Sắp hết hạn",
+      "signedOut": "Chưa đăng nhập: bot tín hiệu không nhận tín hiệu",
+      "streamDown": "Mất kết nối: bot tín hiệu không nhận tín hiệu",
+      "halted": "Một bot thật đã dừng",
+      "binanceKeyRejected": "{{exchange}} từ chối khóa",
+      "binanceUnreachable": "Không kết nối được {{exchange}}",
+      "binanceRefused": "{{exchange}} từ chối ({{code}})",
+      "binanceRateLimited": "Giới hạn yêu cầu {{exchange}}",
+      "binanceUnconfirmed": "Chưa xác nhận được phản hồi",
+      "preflightFailed": "Kiểm tra thất bại",
+      "venueDryRun": "Đã chạy thử đầy đủ trên mạng thử nghiệm",
+      "venueNotDryRun": "Chưa chạy thử trên mạng thử nghiệm của {{exchange}}: tiền thật đang tắt",
+      "venueUnsupported": "Không có đường đặt lệnh cho sàn này"
+    },
+    "exchange": "Sàn"
+  },
+  "trend": {
+    "title": "Xu hướng thị trường",
+    "chip": "Xu hướng BTC: {{state}} · {{days}} ngày",
+    "chipTooltip": "Giá đóng cửa ngày của BTC so với trung bình 50 ngày. Chỉ là thông tin: không bot nào đọc nó.",
+    "state": {
+      "up": "Tăng",
+      "down": "Giảm"
+    },
+    "since": "Từ",
+    "days": "{{count}} ngày",
+    "close": "Giá đóng cửa ngày BTC",
+    "sma50": "Trung bình 50 ngày",
+    "gap": "Khoảng cách tới trung bình",
+    "switches": "Số lần đổi hướng, 12 tháng qua",
+    "switchesInfo": "Số lần xu hướng đảo chiều. Số cao nghĩa là xu hướng thường đảo trước khi một nhịp có lời.",
+    "rule": "Giá đóng cửa ngày so với trung bình 50 ngày; cần 2 lần đóng cửa liên tiếp để đổi.",
+    "history": {
+      "dca": "Đã kiểm tra, DCA: không mở chu kỳ mới khi xu hướng giảm làm sụt giảm tệ nhất bớt 5–7 điểm và lợi nhuận giảm khoảng một phần ba.",
+      "signal": "Đã kiểm tra, bot tín hiệu: lệnh theo xu hướng lỗ ít hơn, nhưng vẫn lỗ ở 2 trong 3 giai đoạn."
+    },
+    "infoOnly": "Chỉ là thông tin: không bot nào tự thay đổi.",
+    "more": "Cách đọc",
+    "formNow": "Xu hướng BTC hiện tại: {{state}}, {{days}} ngày.",
+    "warn": {
+      "longInDown": "BTC đang trong xu hướng giảm 50 ngày ({{days}} ngày) và bot này mua long.",
+      "shortInUp": "BTC đang trong xu hướng tăng 50 ngày ({{days}} ngày) và bot này bán short."
+    }
   }
 }

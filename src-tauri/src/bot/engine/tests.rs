@@ -315,3 +315,90 @@ fn a_missing_quote_never_keeps_a_live_position_open() {
     assert_eq!(close_reference(None, true, 0.0), None);
     assert_eq!(close_reference(None, true, f64::NAN), None);
 }
+
+// ---- Paper exits at the level (management::Fill) ----
+
+use super::management::{close_step_with, Fill};
+
+const WATCHED: Fill = Fill::Levels { watched: true };
+const UNWATCHED: Fill = Fill::Levels { watched: false };
+
+// HANA, testnet trade 6 (7 Oct): a short with breakeven armed at 0.01272 was
+// booked at the polled 0.01281 (−0.79% unlevered). Price crossed the stop
+// while the position was being watched, so a resting stop fills at it.
+#[test]
+fn a_watched_paper_stop_books_at_its_level() {
+    let mut p = position(&signal("short", 0.01272, 0.0120, 0.0135), None);
+    p.breakeven_armed = true;
+    let exit = close_step_with(&mut p, 0.01281, NOW, false, None, WATCHED).exit.unwrap();
+    assert_eq!((exit.reason, exit.price), ("breakeven", 0.01272));
+    let rec = trade_record(&p, exit.price, exit.reason, NOW);
+    assert!(close(rec.unlevered_net_pct.unwrap(), -0.08), "{:?}", rec.unlevered_net_pct);
+
+    let mut long = position(&signal("long", 100.0, 110.0, 95.0), None);
+    let exit = close_step_with(&mut long, 94.0, NOW, false, None, WATCHED).exit.unwrap();
+    assert_eq!((exit.reason, exit.price), ("sl", 95.0));
+}
+
+// Not watched (first look after a restart, a sleep, no price for a while):
+// the crossing was not seen and may have been a gap, so the stop books at the
+// price seen now, never better than its level.
+#[test]
+fn an_unwatched_paper_stop_books_the_worse_price() {
+    let mut p = position(&signal("short", 0.01272, 0.0120, 0.0135), None);
+    p.breakeven_armed = true;
+    let exit = close_step_with(&mut p, 0.01281, NOW, false, None, UNWATCHED).exit.unwrap();
+    assert_eq!((exit.reason, exit.price), ("breakeven", 0.01281));
+    let mut long = position(&signal("long", 100.0, 110.0, 95.0), None);
+    let exit = close_step_with(&mut long, 94.0, NOW, false, None, UNWATCHED).exit.unwrap();
+    assert_eq!(exit.price, 94.0);
+}
+
+// A target is never credited its overshoot, watched or not.
+#[test]
+fn a_paper_target_books_at_its_level() {
+    for fill in [WATCHED, UNWATCHED] {
+        let mut long = position(&signal("long", 100.0, 110.0, 95.0), None);
+        let exit = close_step_with(&mut long, 111.0, NOW, false, None, fill).exit.unwrap();
+        assert_eq!((exit.reason, exit.price), ("tp", 110.0));
+        let mut short = position(&signal("short", 100.0, 90.0, 105.0), None);
+        let exit = close_step_with(&mut short, 87.0, NOW, false, None, fill).exit.unwrap();
+        assert_eq!((exit.reason, exit.price), ("tp", 90.0));
+    }
+}
+
+// The partial banks at its 1R level, not at the tick that passed it; one tick
+// through both the partial and the TP blends the two levels.
+#[test]
+fn a_paper_partial_banks_at_its_level() {
+    let sig = signal("long", 100.0, 120.0, 90.0);
+    let mut p = position(&sig, Some(plan(0.5, 1.0, 0.5)));
+    let step = close_step_with(&mut p, 112.0, NOW, false, None, WATCHED);
+    assert!(step.changed && step.exit.is_none());
+    assert_eq!(p.partial_price, Some(110.0));
+    let exit = close_step_with(&mut p, 125.0, NOW, false, None, WATCHED).exit.unwrap();
+    assert_eq!((exit.reason, exit.price), ("tp", 120.0));
+    assert!(close(unrealized_net_pnl_pct(&p, exit.price), 0.5 * 10.0 + 0.5 * 20.0 - FEES_1X));
+}
+
+// Exits that are not a level keep the price seen: horizon and the user's cap.
+#[test]
+fn horizon_and_max_loss_keep_the_polled_price_on_paper() {
+    let mut p = position(&signal("short", 100.0, 90.0, 105.0), None);
+    p.horizon_ms = 5_000;
+    let exit = close_step_with(&mut p, 99.0, 5_000, false, None, WATCHED).exit.unwrap();
+    assert_eq!((exit.reason, exit.price), ("horizon", 99.0));
+    let mut p = position(&signal("long", 100.0, 110.0, 90.0), None);
+    p.leverage = 5;
+    let exit = close_step_with(&mut p, 99.0, NOW, false, Some(2.0), WATCHED).exit.unwrap();
+    assert_eq!((exit.reason, exit.price), ("max_loss", 99.0));
+}
+
+// `Fill::Polled` is the old behaviour exactly (live positions, paper runner).
+#[test]
+fn polled_fill_is_unchanged() {
+    let mut p = position(&signal("long", 100.0, 110.0, 95.0), None);
+    assert_eq!(close_step_with(&mut p, 111.0, NOW, false, None, Fill::Polled).exit.unwrap().price, 111.0);
+    let mut p = position(&signal("long", 100.0, 110.0, 95.0), None);
+    assert_eq!(close_step(&mut p, 94.0, NOW, false, None).exit.unwrap().price, 94.0);
+}

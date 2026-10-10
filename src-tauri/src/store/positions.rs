@@ -45,7 +45,23 @@ pub fn delete(conn: &Connection, signal_id: &str, bot_kind: &str) -> Result<(), 
     .map_err(|_| "storeWriteFailed".to_string())
 }
 
+/// Every persisted row as (signal_id, bot_kind, body), oldest update first.
+/// The keys come from their own columns, so a row whose body no longer
+/// parses can still be named on screen.
+pub fn load_all_keyed(conn: &Connection) -> Result<Vec<(String, String, String)>, String> {
+    let mut stmt = conn
+        .prepare("SELECT signal_id, bot_kind, body FROM open_positions ORDER BY updated_at ASC")
+        .map_err(|_| "storeQueryFailed".to_string())?;
+    let rows = stmt
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+        .map_err(|_| "storeQueryFailed".to_string())?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|_| "storeRowMalformed".to_string())
+}
+
 /// All persisted position bodies, oldest update first.
+// The desktop restores through `load_all_keyed`; the paper runner reads this.
+#[allow(dead_code)]
 pub fn load_all(conn: &Connection) -> Result<Vec<String>, String> {
     let mut stmt = conn
         .prepare("SELECT body FROM open_positions ORDER BY updated_at ASC")

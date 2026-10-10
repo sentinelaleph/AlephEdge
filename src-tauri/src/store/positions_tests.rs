@@ -49,6 +49,7 @@ fn position(id: &str) -> OpenPosition {
         risk_capped: false,
         tp_target: "tp1".into(),
         tp_fallback_from: None,
+        manual: false,
     }
 }
 
@@ -161,4 +162,68 @@ fn legacy_position_body_loads_with_defaults() {
         (p.tp, p.tp_target.as_str(), p.tp_fallback_from),
         (110.0, "tp1", None)
     );
+}
+
+// ---- Close and restore consistency (audit 2026-10-08, persistence 3) ----
+
+fn db() -> Connection {
+    let conn = Connection::open_in_memory().unwrap();
+    positions::migrate(&conn).unwrap();
+    super::trades::migrate(&conn).unwrap();
+    conn
+}
+
+fn closed(p: &OpenPosition) -> super::model::TradeRecord {
+    crate::bot::engine::book::trade_record(p, 2450.0, "tp", 9)
+}
+
+fn trade_count(conn: &Connection) -> i64 {
+    conn.query_row("SELECT COUNT(*) FROM trades", [], |r| r.get(0)).unwrap()
+}
+
+#[test]
+fn a_close_writes_the_trade_and_drops_the_row_together() {
+    let conn = db();
+    let p = position("a");
+    save(&conn, &p, 1);
+    super::settle(&conn, &closed(&p), "a", "futures").unwrap();
+    assert_eq!(trade_count(&conn), 1);
+    assert!(load(&conn).is_empty());
+}
+
+// Either write failing leaves BOTH tables as they were: never a trade row
+// next to its still-open position (restored and closed a second time), and
+// never a deleted position without its trade.
+#[test]
+fn a_failed_close_changes_neither_table() {
+    let conn = db();
+    let p = position("a");
+    save(&conn, &p, 1);
+    conn.execute_batch("DROP TABLE open_positions").unwrap();
+    assert!(super::settle(&conn, &closed(&p), "a", "futures").is_err());
+    assert_eq!(trade_count(&conn), 0, "the trade insert rolled back");
+
+    let conn = db();
+    save(&conn, &p, 1);
+    conn.execute_batch("DROP TABLE trades").unwrap();
+    assert!(super::settle(&conn, &closed(&p), "a", "futures").is_err());
+    assert_eq!(load(&conn).len(), 1, "the position row is still there");
+}
+
+// An older build wrote the trade and then the delete as two commits; a row
+// left between them is recognised by its (signal, bot, opened_at) and is not
+// restored. A later trade of the same signal by another bot, or another
+// opening, is not confused with it.
+#[test]
+fn restore_recognises_a_row_whose_close_is_already_recorded() {
+    let conn = db();
+    let p = position("a");
+    save(&conn, &p, 1);
+    super::trades::insert(&conn, &closed(&p)).unwrap();
+    assert!(super::trades::is_settled(&conn, "a", "futures", p.opened_at).unwrap());
+    assert!(!super::trades::is_settled(&conn, "a", "futures", p.opened_at + 1).unwrap());
+    assert!(!super::trades::is_settled(&conn, "a", "spot", p.opened_at).unwrap());
+    assert!(!super::trades::is_settled(&conn, "b", "futures", p.opened_at).unwrap());
+    let keyed = positions::load_all_keyed(&conn).unwrap();
+    assert_eq!((keyed[0].0.as_str(), keyed[0].1.as_str()), ("a", "futures"));
 }

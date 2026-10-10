@@ -563,6 +563,37 @@ pub(crate) mod tests {
         assert_eq!(bot.state, BotRunState::Stopped);
     }
 
+    // Audit 8 Oct: a down bar touching both the TP and the drawdown level
+    // booked the TP (+19.30) and re-armed; adverse first, the stop fills.
+    #[test]
+    fn drawdown_stop_wins_the_intrabar_tie_like_a_stop_loss() {
+        let mk = |lev: u8, dd: f64, sl: Option<f64>| {
+            let mut bot = sample_bot();
+            bot.cfg.leverage = lev;
+            bot.cfg.max_drawdown_pct = Some(dd);
+            bot.cfg.params = StrategyParams::Dca(DcaParams {
+                base_order: Some(1000.0),
+                max_so: 0,
+                safety_order: None,
+                sl_pct: sl,
+                ..dca_params()
+            });
+            bot
+        };
+        let bars = minute_bars(&[(100.0, 100.1, 99.9, 100.0), (100.0, 103.0, 85.0, 95.0)]);
+        for (lev, dd, sl, band) in [(1, 10.0, None, 100.0..103.0), (2, 10.0, None, 100.0..103.0), (1, 5.0, Some(10.0), 50.0..53.0)] {
+            let mut bot = mk(lev, dd, sl);
+            let mut cyc = None;
+            on_bar(&mut bot, &mut cyc, &bars[0], None);
+            let out = on_bar(&mut bot, &mut cyc, &bars[1], None);
+            let closed = out.closed.expect("closed in the bar");
+            assert_eq!(closed.core.exit, Some(ExitReason::Ddstop), "{lev}x dd {dd} sl {sl:?}");
+            let loss = -closed.core.cash;
+            assert!(band.contains(&loss), "{lev}x: loss {loss}");
+            assert_eq!(bot.state, BotRunState::Stopped);
+        }
+    }
+
     #[test]
     fn cooldown_bars_count_towards_utilisation() {
         // accounting::Utilisation::bars = "bars of life, cooldowns included".
@@ -724,6 +755,32 @@ pub(crate) mod tests {
         let loss = -bot.realized_quote;
         assert!((95.0..110.0).contains(&loss), "loss {loss}");
         assert_eq!(bot.state, BotRunState::Stopped);
+    }
+
+    #[test]
+    fn the_protective_stop_is_the_nearest_adverse_exit() {
+        let mut bot = sample_bot();
+        bot.cfg.params = StrategyParams::Dca(DcaParams {
+            max_so: 0,
+            safety_order: None,
+            sl_pct: Some(5.0),
+            ..dca_params()
+        });
+        let bars = minute_bars(&[(100.0, 100.1, 99.9, 100.0)]);
+        let mut cyc = None;
+        on_bar(&mut bot, &mut cyc, &bars[0], None);
+        let c = cyc.as_ref().expect("opened");
+        let stop = c.protective_stop().expect("a long with a stop-loss");
+        assert!(stop < 100.0 && stop > 90.0, "stop {stop}");
+        // a drawdown stop tighter than the stop-loss wins
+        bot.cfg.max_drawdown_pct = Some(0.05);
+        let more = minute_bars(&[(100.0, 100.1, 99.9, 100.0)]);
+        let mut cyc2 = None;
+        let mut bot2 = sample_bot();
+        bot2.cfg = bot.cfg.clone();
+        on_bar(&mut bot2, &mut cyc2, &more[0], None);
+        let tighter = cyc2.as_ref().unwrap().protective_stop().unwrap();
+        assert!(tighter > stop, "dd stop {tighter} vs sl {stop}");
     }
 
     #[test]

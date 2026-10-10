@@ -48,3 +48,13 @@ pub fn trades_export_csv(app: AppHandle, store: State<StoreManager>) -> Result<S
     std::fs::write(&path, csv).map_err(|_| "csvWriteFailed".to_string())?;
     Ok(path.to_string_lossy().to_string())
 }
+
+/// Same as `trades_export_csv`, for the signal skip log.
+#[tauri::command]
+pub fn skips_export_csv(app: AppHandle, store: State<StoreManager>) -> Result<String, String> {
+    let dir = data_dir(&app)?;
+    let csv = store.export_skips_csv(&dir)?;
+    let path = dir.join("skipped-signals-export.csv");
+    std::fs::write(&path, csv).map_err(|_| "csvWriteFailed".to_string())?;
+    Ok(path.to_string_lossy().to_string())
+}

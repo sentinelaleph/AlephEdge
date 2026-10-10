@@ -52,6 +52,14 @@ export function vaultUnlock(password: string): Promise<VaultStatus> {
   return inTauri() ? invoke<VaultStatus>("vault_unlock", { password }) : devMock(() => import("./vault.mock"), (m) => m.mock.unlock(password));
 }
 
+/**
+ * User activity in the window: resets the auto-lock budget of an unlocked
+ * vault (Rust applies the expiry first). Callers throttle it.
+ */
+export function vaultTouch(): Promise<VaultStatus> {
+  return inTauri() ? invoke<VaultStatus>("vault_touch") : devMock(() => import("./vault.mock"), (m) => m.mock.status());
+}
+
 export function vaultLock(): Promise<VaultStatus> {
   return inTauri() ? invoke<VaultStatus>("vault_lock") : devMock(() => import("./vault.mock"), (m) => m.mock.lock());
 }
@@ -92,7 +100,15 @@ export function vaultChangePassword(current: string, newPassword: string): Promi
 }
 
 /** Auto-lock choices the backend accepts (`IDLE_MINUTE_CHOICES`). */
-export const IDLE_MINUTE_CHOICES = [5, 15, 30, 60] as const;
+export const IDLE_MINUTE_CHOICES = [5, 15, 30, 60, 240, 480, 720, 1440, 10080, 43200] as const;
+
+/** An auto-lock budget as words: minutes, hours, a day, a week, a month. */
+export function idleDurationKey(minutes: number): { key: string; count: number } {
+  if (minutes >= 43200) return { key: "vault.duration.month", count: Math.round(minutes / 43200) };
+  if (minutes >= 10080) return { key: "vault.duration.week", count: Math.round(minutes / 10080) };
+  if (minutes >= 60) return { key: "vault.duration.hour", count: Math.round(minutes / 60) };
+  return { key: "vault.duration.min", count: minutes };
+}
 
 export function vaultSetIdleMinutes(minutes: number): Promise<VaultStatus> {
   return inTauri()

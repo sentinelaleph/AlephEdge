@@ -60,6 +60,32 @@ fn restore_stops_every_bot_but_keeps_open_cycles_managed() {
 }
 
 #[test]
+fn resume_puts_a_paper_bot_back_to_work() {
+    let mgr = StrategyManager::new();
+    let mut a = sample_bot();
+    a.state = BotRunState::Armed;
+    let mut b = sample_bot();
+    b.id = "sb_bbbbbbbbbbbb".into();
+    b.state = BotRunState::InCycle;
+    let mut p = sample_bot();
+    p.id = "sb_pppppppppppp".into();
+    p.state = BotRunState::Paused;
+    let mut d = sample_bot();
+    d.id = "sb_dddddddddddd".into();
+    d.state = BotRunState::Dead;
+    let cyc = open_cycle(&b, 100.0);
+    mgr.load(vec![a.clone(), b.clone(), p.clone(), d.clone()], vec![cyc], Vec::new(), Vec::new());
+    for x in [&a, &b, &p, &d] {
+        mgr.resume(&x.id, x.state);
+    }
+    assert_eq!(mgr.bot(&a.id).unwrap().state, BotRunState::Armed);
+    assert_eq!(mgr.bot(&b.id).unwrap().state, BotRunState::InCycle);
+    assert_eq!(mgr.bot(&p.id).unwrap().state, BotRunState::Paused);
+    assert_eq!(mgr.bot(&d.id).unwrap().state, BotRunState::Dead, "a dead bot stays dead");
+    assert!(mgr.view(&b.id).unwrap().accepting_new_cycles);
+}
+
+#[test]
 fn strategy_day_pnl_counts_unrealised_loss() {
     let mgr = StrategyManager::new();
     let bot = sample_bot();

@@ -11,6 +11,7 @@ export type NavItemId =
   | "presets"
   | "backtest"
   | "guide"
+  | "faq"
   | "positions"
   | "history"
   | "risk"
@@ -66,6 +67,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "presets", path: "/presets", labelKey: "nav.presets", icon: "presets" },
       { id: "backtest", path: "/backtest", labelKey: "nav.backtest", icon: "backtest" },
       { id: "guide", path: "/guide", labelKey: "nav.guide", icon: "guide" },
+      { id: "faq", path: "/faq", labelKey: "nav.faq", icon: "help" },
     ],
   },
   {
@@ -102,6 +104,7 @@ const DIRECT: Partial<Record<RouteId, NavItemId>> = {
   backtest: "backtest",
   backtestReport: "backtest",
   guide: "guide",
+  faq: "faq",
   positions: "positions",
   history: "history",
   // The vault moved into Settings (2026-10-03); the old address lands there.

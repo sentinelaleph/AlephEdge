@@ -3,7 +3,9 @@
     "name": "Aleph Edge",
     "betaBadge": "Beta",
     "testnetBadge": "Corretora testnet",
-    "testnetTooltip": "As ordens reais vão para {{host}}, não para a Binance de produção."
+    "testnetTooltip": "As ordens reais vão para {{host}}, não para a Binance de produção.",
+    "sandboxBadge": "Corretoras demo",
+    "sandboxTooltip": "As ordens da Bybit e da OKX vão para as redes demo / de teste delas, não para uma conta real."
   },
   "health": {
     "vaultLocked": "Bloqueado",
@@ -114,13 +116,19 @@
     "renameSubmit": "Salvar rótulo",
     "withdrawStored": "Saques habilitados: renove esta chave com uma só de trading.",
     "tradeOnlyRule": "Só chaves de trading são aceitas. Desative os saques da chave na corretora.",
-    "minutes": "{{minutes}} min",
-    "autoLockHint": "Bloqueia após {{minutes}} min sem uso.",
+    "autoLockHint": "Bloqueia após {{duration}} sem atividade. Um cofre sem chaves fica desbloqueado.",
     "changePassword": "Alterar senha",
     "changingPassword": "Alterando…",
     "currentPassword": "Senha atual",
     "newPassword": "Senha nova",
-    "passwordChanged": "Senha alterada."
+    "passwordChanged": "Senha alterada.",
+    "duration": {
+      "min": "{{count}} min",
+      "hour": "{{count}} h",
+      "week": "1 semana",
+      "month": "1 mês (30 dias)"
+    },
+    "venueNotDryRun": "Dinheiro real na {{exchange}} fica desligado até o caminho de ordens dela passar por um teste de ponta a ponta na rede de testes da própria corretora. A chave ainda pode ler a conta e fechar posições."
   },
   "workspace": {
     "loading": "Carregando…"
@@ -130,7 +138,7 @@
       "long": "Compra",
       "short": "Venda"
     },
-    "evidenceScoreTooltip": "Fatores de confluência de 100 · não é a probabilidade de atingir o alvo"
+    "evidenceScoreTooltip": "Pontuação de sinal do Sentinel de 0 a 100: setup, indicadores, confluência e regime do BTC, ponderados · não é uma probabilidade · testada em sinais passados: não separa vencedores de perdedores (AUC 0.496)"
   },
   "risk": {
     "title": "Nível de risco",
@@ -173,9 +181,11 @@
     "noPositions": "Nenhuma posição aberta.",
     "skips": "Trades pulados",
     "noSkips": "Nada pulado ainda.",
+    "manualBadge": "Manual",
+    "manualBadgeTooltip": "Aberta à mão pelo Execute · filtros do bot ignorados, limites de risco mantidos",
     "skipReasons": {
       "spotLongOnly": "Sinal short · spot só opera long",
-      "belowConfidence": "Abaixo do filtro de pontuação de evidência ({{detail}})",
+      "belowConfidence": "Abaixo do filtro de pontuação Sentinel ({{detail}})",
       "directionFiltered": "Filtrado por direção",
       "symbolFiltered": "Símbolo fora da lista branca",
       "comboFiltered": "Combo fora da lista ({{detail}})",
@@ -189,7 +199,7 @@
       "frUnavailable": "Dados de funding indisponíveis (modo estrito)",
       "ldTooThin": "Livro de ofertas muito raso ({{detail}})",
       "ldUnavailable": "Dados de liquidez indisponíveis (modo estrito)",
-      "maxPositions": "Limite de posições atingido ({{detail}})",
+      "maxPositions": "Este bot atingiu seu limite de posições ({{detail}})",
       "capitalCap": "Acima do teto por posição ({{detail}} USDT)",
       "priceUnavailable": "Preço ao vivo indisponível",
       "spotOnlyExchange": "A corretora não tem mercado de futuros",
@@ -212,12 +222,12 @@
       "liveOrderFailed": "A corretora rejeitou a ordem.",
       "storeWriteFailed": "Não foi possível salvar no banco de dados local de trades.",
       "storeReadFailed": "Não foi possível ler o banco de dados local de trades.",
-      "liveSymbolHasOrders": "Ignorado: o símbolo já tem ordens abertas na Binance.",
+      "liveSymbolHasOrders": "Ignorado: o símbolo já tem ordens abertas na corretora.",
       "liveStopBeyondLiquidation": "Ignorado: com esta alavancagem a liquidação viria antes do stop.",
-      "liveOrderUnconfirmed": "A Binance não confirmou a entrada; verifique a posição na Binance.",
+      "liveOrderUnconfirmed": "A corretora não confirmou a entrada; verifique a posição na corretora.",
       "liveUnprotected": "Uma posição real está sem stop na corretora; fechando agora.",
       "liveProtectiveStopFailed": "Stop de proteção não colocado na corretora · posição fechada",
-      "hedgeModeUnsupported": "Sua conta Binance está em Hedge Mode; mude para One-way Mode para operar ao vivo.",
+      "hedgeModeUnsupported": "Sua conta na corretora está em Hedge Mode; mude para One-way Mode para operar ao vivo.",
       "liveSymbolHeld": "Já há posição na corretora neste símbolo · ignorado",
       "liveExchangeCheckFailed": "Não foi possível verificar a conta da corretora antes de colocar a ordem.",
       "sizingInvalidStop": "Distância de stop inválida · posição não dimensionada",
@@ -235,17 +245,26 @@
       "tpCustomInvalid": "O alvo personalizado de {{detail}}% não se aplica a esta operação",
       "tpNotBeyondFill": "O alvo {{detail}} não está além do preço de entrada",
       "tooOld": "Sinal mais antigo que o limite deste bot",
-      "liveLeverageRejected": "Ignorado: a Binance recusou a alavancagem para este símbolo.",
-      "liveMarginTypeRejected": "Ignorado: a Binance não mudou este símbolo para margem isolada (há ordem ou posição aberta nele).",
-      "liveSymbolNotTrading": "Ignorado: este símbolo não está aberto para negociação na Binance Futures.",
+      "liveLeverageRejected": "Ignorado: a corretora recusou a alavancagem para este símbolo.",
+      "liveMarginTypeRejected": "Ignorado: a corretora não mudou este símbolo para margem isolada (há ordem ou posição aberta nele).",
+      "liveSymbolNotTrading": "Ignorado: este símbolo não está aberto para negociação no mercado futuro da corretora.",
       "liveOwnEntryAdopted": "Uma entrada que parecia ter falhado foi executada na corretora; agora é acompanhada com o stop.",
-      "liveOwnEntryFlattened": "Uma entrada que parecia ter falhado foi executada na corretora e não pôde ser protegida como planejado; foi fechada a mercado."
+      "liveOwnEntryFlattened": "Uma entrada que parecia ter falhado foi executada na corretora e não pôde ser protegida como planejado; foi fechada a mercado.",
+      "signalOtherMarket": "Publicado para o mercado {{detail}} · não é o mercado deste bot",
+      "botNotResumed": "Não retomou após reiniciar",
+      "liveBreakevenAppOnly": "Breakeven mantido só pelo app · com o app fechado a corretora mantém o stop original",
+      "restoreRowUnreadable": "Dados salvos ilegíveis na inicialização ({{detail}}) · mantidos no disco, não usados",
+      "restoreLiveBlocked": "Dados de dinheiro real ilegíveis na inicialização ({{detail}}) · bot não retomado",
+      "restoreConfigInvalid": "As configurações salvas do bot não passam numa verificação ({{detail}}) · corrija e salve para iniciar o bot",
+      "settledPositionDropped": "Já fechada no Histórico · a linha aberta que sobrou foi removida na inicialização",
+      "belowExchangeMinimum": "Abaixo da ordem mínima da corretora ({{detail}} USDT, a Binance exige cerca de 5)",
+      "manualOpened": "Aberta à mão pelo Execute · simulado"
     },
     "exchange": "Corretora",
     "signalFilter": "Filtro de sinal",
     "maxSignalAge": "Idade máxima do sinal (horas)",
     "maxSignalAgeHint": "Só entra em sinais mais novos que isto, o mais novo primeiro. 0 = sem limite.",
-    "minConfidence": "Pontuação de evidência mín. (%)",
+    "minConfidence": "Pontuação Sentinel mín. (%)",
     "direction": "Direção",
     "dir": {
       "all": "Todas",
@@ -257,15 +276,14 @@
     "comboWhitelist": "Setups que este bot pode operar",
     "engineWhitelist": "Lista de motores",
     "engineWhitelistHint": "Ids de motor principal separados por vírgula. Vazio = todos.",
-    "pumpNote": "Só futuros · sinais do motor pump do Sentinel · o tipo mais agressivo",
-    "pumpLocked": "Pump requer o nível de risco Ambicioso ou superior.",
+    "pumpNote": "Não testado: não existe teste histórico nem prospectivo desta regra. Sinais de futuros do motor pump do Sentinel que também mostram uma quebra de estrutura (MSB ou CHoCH) e um order block ou FVG. Só simulado, dentro dos limites do nível de risco atual.",
     "principles": {
       "title": "Como este bot funciona",
       "intro": "Cada linha é uma propriedade do código em execução · removida se deixar de valer",
       "items": {
         "evidence": {
-          "title": "Sinais baseados em evidência",
-          "body": "Toda operação parte de um sinal do Sentinel · entrada, stop e alvos publicados · registro público em ribqa.com"
+          "title": "Sinais do Sentinel",
+          "body": "Toda operação parte de um sinal do Sentinel · entrada, stop e alvos publicados · registro público em ribqa.com · seleção de entradas testada: sem vantagem mensurável (AUC 0.496)"
         },
         "noSilentSkips": {
           "title": "Sem omissões silenciosas",
@@ -273,7 +291,7 @@
         },
         "honestFills": {
           "title": "Execuções honestas e PnL líquido",
-          "body": "Entradas simuladas executam ao preço real da sua corretora · PnL líquido de taxas taker"
+          "body": "Entradas simuladas executam ao preço real da sua corretora · stops e alvos no próprio nível, ou ao primeiro preço visto após um intervalo sem acompanhamento · PnL líquido de taxas taker"
         },
         "veto": {
           "title": "Um veto de regime fecha; a invalidação ainda mantém",
@@ -290,8 +308,8 @@
       }
     },
     "maxLossPct": "Perda máx. por posição (%)",
-    "maxLossPctHint": "Posições perdendo mais que isso são fechadas automaticamente, o tempo todo. Vazio = desativado.",
-    "btcBreak": "Rompimento do BTC · novos longs pausados · shorts continuam · perda máx. por posição vale",
+    "maxLossPctHint": "% do capital do bot por posição, com alavancagem e taxas · vazio = desativado",
+    "btcBreak": "Rompimento do BTC · novos longs pausados · shorts continuam",
     "comboLoadFailed": "Não foi possível carregar o catálogo de setups. Verifique a conexão e reabra este painel.",
     "comboLive": "Publicado",
     "comboBacktest": "Backtest",
@@ -367,14 +385,34 @@
       "typePrompt": "Digite {{word}} para confirmar",
       "confirm": "Confirmar dinheiro real",
       "cancel": "Cancelar",
-      "failed": "Não foi possível alterar a configuração de dinheiro real."
+      "failed": "Não foi possível alterar a configuração de dinheiro real.",
+      "sizingTurnedOff": "LIVE foi desativado porque o capital, a alavancagem ou o limite de posições mudou. Confirme o novo tamanho com LIVE de novo.",
+      "pilot": "Piloto: restam {{count}} entradas reais de até {{cap}} USDT cada.",
+      "endPilot": "Encerrar piloto",
+      "targetVenue": "As ordens vão para a {{exchange}}, na sua conta real.",
+      "targetVenueSandbox": "As ordens vão para a rede demo / de teste da {{exchange}}, não para uma conta real."
     },
     "vetoReason": {
       "btc_regime_turn_bullish": "Regime do BTC virou de alta",
       "btc_regime_turn_bearish": "Regime do BTC virou de baixa",
       "btc_extreme_move_up": "Alta extrema do BTC",
       "btc_extreme_move_down": "Queda extrema do BTC"
-    }
+    },
+    "untested": "Não testado",
+    "exchangeLocked": "A corretora não pode mudar enquanto este bot opera com dinheiro real ou mantém posições reais.",
+    "capitalCapHint": "Teto por posição no seu nível de risco: {{cap}}",
+    "capitalAboveCap": "Acima do teto de {{cap}} por posição. Reduza-o, ou aumente o saldo ou o nível de risco em Risco e segurança.",
+    "maxLoss": {
+      "fixed": "fecha num movimento de preço de {{move}} contra a posição",
+      "immediate": "a {{leverage}}x só as taxas já atingem: fecha logo após a entrada",
+      "riskInert": "sem efeito: o stop fecha antes, em cerca de −{{risk}}% do capital",
+      "riskActive": "fecha em cerca de {{share}} do caminho até o stop"
+    },
+    "filtersApplyPending": "Alterações salvas também valem para sinais pendentes que as configurações antigas ignoraram.",
+    "minConfidenceHint": "Testada em sinais passados: a pontuação não separa vencedores de perdedores (AUC 0.496)",
+    "capitalBelowMinimum": "A Binance recusa ordens abaixo de cerca de 5 USDT: com esse valor o bot pula todos os sinais. Aumente o saldo ou o nível de risco.",
+    "maxPositionsLevelHint": "Seu nível de risco permite até {{max}} por bot de sinais",
+    "maxPositionsAboveLevel": "Seu nível de risco permite {{max}} por bot de sinais: este bot mantém no máximo {{max}}. Aumente o nível em Risco e segurança para mais."
   },
   "pnl": {
     "exportCsv": "Exportar CSV",
@@ -485,7 +523,7 @@
       "botConfigured": "Um bot está configurado",
       "botRunning": "Um bot está rodando",
       "botRunningHint": "Inicie um bot configurado",
-      "botConfiguredOnCard": "Cartão do bot de sinais · corretora, capital, tamanho da posição"
+      "firstPreset": "Primeiro bot recomendado: {{name}} · passou no teste"
     },
     "liveLockedNote": "Trading real: bloqueado · Só simulado",
     "liveAvailableNote": "Trading real: disponível · desligado até ativar por bot"
@@ -540,7 +578,8 @@
     },
     "summaryPanel": "Painel de resumo",
     "more": "Mais",
-    "guide": "Guia"
+    "guide": "Guia",
+    "faq": "Perguntas frequentes"
   },
   "page": {
     "botNew": "Novo bot",
@@ -574,7 +613,7 @@
     "exchange": "Corretora",
     "direction": "Direção",
     "timeframe": "Tempo gráfico",
-    "minEvidence": "Evidência mín.",
+    "minEvidence": "Pontuação mín.",
     "age": "Idade",
     "bot": "Bot",
     "range": "Período",
@@ -634,7 +673,8 @@
     "allPairs": "Todos os pares",
     "blocked": {
       "killSwitch": "Início recusado: o stop diário foi acionado. Reinício liberado após 00:00 UTC.",
-      "notConfigured": "Iniciar exige configurações salvas: abra o bot e salve-as."
+      "notConfigured": "Iniciar exige configurações salvas: abra o bot e salve-as.",
+      "capitalAboveCap": "O capital por posição está acima do teto do nível de risco: reduza-o nas configurações do bot."
     },
     "totals": {
       "bots": "Bots",
@@ -649,8 +689,6 @@
     "selectedCount": "Selecionados: {{count}}",
     "bulkStop": "Parar selecionados ({{count}} rodando)",
     "liveOrders": "Ordens reais",
-    "liveNotAvailable": "Indisponível",
-    "paperOnlyLine": "Só simulado: execuções simuladas a preço real, com taxas. Sem ordens reais.",
     "dca": {
       "empty": "Ainda não há bots DCA",
       "new": "Novo bot DCA",
@@ -677,8 +715,8 @@
       "range": "Lateral"
     },
     "mode": {
-      "signal": "Simulado, LIVE opcional (Futuros, Binance)",
-      "paperOnly": "Só simulado"
+      "signal": "Simulado, LIVE opcional (Futuros: Binance, Bybit, OKX)",
+      "paperOnly": "Simulado: execuções simuladas a preços ao vivo, taxas incluídas"
     },
     "presetsLink": "Presets deste tipo",
     "create": "Criar"
@@ -717,7 +755,9 @@
       "realizedToday": "Realizado hoje",
       "netAll": "L/P líquido, total",
       "dailyLossUsed": "Perda diária usada",
-      "capitalInUse": "Capital em uso"
+      "capitalInUse": "Capital em uso",
+      "split": "Sinal {{signal}} · DCA/Grid {{strategy}}, após taxas",
+      "signalWinRate": "Taxa de acerto dos sinais"
     },
     "afterFees": "{{scope}}, após taxas",
     "noTradesToday": "Nenhum trade hoje",
@@ -739,7 +779,8 @@
     "closedTodayOf": "{{kind}}: fechadas hoje",
     "skipSummary": "Motivos de pulo",
     "streamDown": "Fluxo de sinais desconectado: os bots não recebem sinais novos.",
-    "liveActive": "O LIVE está ligado em pelo menos um bot: suas ordens são reais."
+    "liveActive": "O LIVE está ligado em pelo menos um bot: suas ordens são reais.",
+    "capitalAboveCap": "{{kind}}: capital de {{capital}} acima do teto de {{cap}} por posição · todo sinal é ignorado · reduza-o em Configurações"
   },
   "signalsPage": {
     "status": {
@@ -747,7 +788,7 @@
       "expired": "Expirado"
     },
     "last24h": "Últimas 24 h",
-    "evidence": "Evidência",
+    "evidence": "Pontuação",
     "expiresAt": "Expira",
     "confluence": "Confluência",
     "plan": "Plano de gestão",
@@ -760,7 +801,51 @@
     "selectHint": "Selecione um sinal para ver os detalhes.",
     "empty": "Nenhum sinal no buffer",
     "noMatch": "Nenhum sinal corresponde a estes filtros",
-    "combo": "Combo"
+    "combo": "Combo",
+    "execute": {
+      "button": "Executar",
+      "rowLabel": "Executar {{symbol}}",
+      "title": "{{symbol}} · {{side}}",
+      "close": "Fechar",
+      "signalBot": "Bot de sinais",
+      "signalBotLine": "Os bots de sinais também pegam sinais do Sentinel sozinhos, dentro dos filtros.",
+      "botSettings": "Configurações do bot {{bot}}",
+      "dcaTemplates": "Presets DCA",
+      "gridTemplates": "Presets Grid",
+      "noTemplates": "Nenhum preset para este lado em {{symbol}}.",
+      "openWith": "Abrir com {{symbol}}",
+      "blank": "Formulário em branco",
+      "blankDca": "DCA em branco · {{symbol}}",
+      "blankGrid": "Grid em branco · {{symbol}}",
+      "note": "Os presets foram testados na própria seleção de pares. Em {{symbol}} não foram testados. Os bots rodam em simulado, exceto numa versão com dinheiro real e com LIVE digitado para confirmar."
+    },
+    "take": {
+      "title": "Pegar este sinal agora · simulado",
+      "line": "Filtros do bot ignorados · limites de risco mantidos · dinheiro real não via Execute",
+      "pricing": "Cotando…",
+      "fill": "Entrada agora",
+      "publishedEntry": "Entrada do sinal",
+      "rr": "R:R",
+      "rrValue": "{{fill}} na entrada · {{published}} publicado",
+      "size": "Tamanho",
+      "sizeValue": "{{amount}} · {{leverage}}x",
+      "lossAtStop": "Perda no stop {{price}}",
+      "gainAtTarget": "Ganho no {{target}} {{price}}",
+      "fees": "Taxas",
+      "rrLow": "O preço já andou · a maior parte do ganho já foi",
+      "open": "Abrir posição",
+      "opening": "Abrindo…",
+      "opened": "Aberta · {{symbol}} a {{price}} · simulado",
+      "botPage": "Bot {{bot}}",
+      "noBot": "Nenhum bot de sinais pega este mercado e lado.",
+      "refusal": {
+        "manualTakePaperOnly": "Este bot opera com dinheiro real · Execute só abre posições simuladas",
+        "signalNotFound": "O sinal não está mais no feed",
+        "marketHeld": "Este bot já tem posição neste símbolo",
+        "stopPassed": "O preço já passou do stop",
+        "targetPassedBeforeEntry": "O preço já passou do alvo ({{detail}}) antes da entrada"
+      }
+    }
   },
   "backtest": {
     "run": "Executar backtest",
@@ -800,7 +885,8 @@
       "feesIncluded": "Taxas incluídas",
       "noFunding": "Funding não incluído",
       "noGates": "Ruptura do BTC e travas de risco não simuladas",
-      "coverage": "Cobertura {{value}}"
+      "coverage": "Cobertura {{value}}",
+      "barCloses": "Drawdown lido nos fechamentos de velas de {{interval}}; os bots simulados usam velas de 1 minuto"
     },
     "kpi": {
       "net": "P&L líquido",
@@ -861,13 +947,16 @@
     "deleteAll": "Excluir tudo",
     "deleteAllTitle": "Excluir {{n}} execuções?",
     "deleteAllBody": "Todas as execuções salvas são excluídas. Não dá para desfazer.",
-    "deleteRun": "Excluir execução {{name}}"
+    "deleteRun": "Excluir execução {{name}}",
+    "hint": {
+      "interval": "Os bots simulados usam velas de 1 minuto. Velas mais longas leem o drawdown em menos fechamentos e mostram menos dele."
+    }
   },
   "positions": {
     "tabPaper": "Simulado",
     "tabExchange": "Corretora",
     "noPaper": "Nenhuma posição simulada aberta",
-    "noKey": "Nenhuma chave da Binance no cofre",
+    "noKey": "Nenhuma chave de corretora no cofre",
     "realZone": "Conta real da corretora: as ações enviam ordens reais",
     "totals": "Totais",
     "notional": "Nocional",
@@ -890,14 +979,22 @@
       "realNote": "Posições reais na corretora não são tocadas: feche-as na aba Corretora.",
       "confirm": "Fechar tudo",
       "done": "Fechadas: {{closed}} · não fechadas: {{failed}}",
-      "failed": "Falha ao fechar."
+      "failed": "Falha ao fechar.",
+      "strategyLiveNote": "Bots com dinheiro real: a posição deles na corretora é fechada a mercado na próxima passagem."
     }
   },
   "history": {
     "byBot": "Por bot",
     "byExit": "Por motivo de saída",
     "loadedScope": "Contagem sobre os últimos {{count}} trades carregados.",
-    "filtersNote": "Os filtros valem para a lista ({{shown}} de {{total}}); as estatísticas cobrem todo o escopo."
+    "filtersNote": "Os filtros valem para a lista ({{shown}} de {{total}}); as estatísticas cobrem todo o escopo.",
+    "exportSkips": "Exportar sinais ignorados",
+    "cycles": {
+      "title": "Ciclos DCA/Grid",
+      "deleted": "Excluído",
+      "none": "Nenhum ciclo fechado ainda.",
+      "netNote": "Após taxas e funding, bots excluídos incluídos"
+    }
   },
   "accounts": {
     "vault": "Cofre",
@@ -926,7 +1023,8 @@
       "killSwitch": "Stop diário",
       "regime": "Filtro de regime do BTC",
       "live": "Controle LIVE",
-      "emergency": "Emergência"
+      "emergency": "Emergência",
+      "preflight": "Prontidão para real"
     },
     "level": {
       "title": "Nível de risco"
@@ -963,7 +1061,7 @@
     "live": {
       "notThisBuild": "Esta versão não pode enviar ordens reais.",
       "build": "A versão tem o recurso real",
-      "binanceKey": "Chave da Binance no cofre",
+      "binanceKey": "Chave de trade no cofre",
       "endpoint": "Endpoint de ordens",
       "turnOff": "Desligar LIVE",
       "onWhere": "LIVE liga/desliga por bot:"
@@ -976,7 +1074,14 @@
       "realCloses": "Posições reais: Posições > Corretora"
     },
     "exposure": "Exposição",
-    "remote": "Controle remoto pelo celular"
+    "remote": "Controle remoto pelo celular",
+    "scope": {
+      "leverageAll": "Alavancagem máx. (todos os bots)",
+      "positionsSignal": "Máx. posições por bot de sinais",
+      "dailyStopSignal": "Stop diário (bots de sinais)",
+      "strategyBudget": "Teto de orçamento DCA/Grid",
+      "strategyBreaker": "Freio DCA/Grid"
+    }
   },
   "settings": {
     "tabs": {
@@ -1054,7 +1159,10 @@
       "regime": "Regime do BTC"
     },
     "strategyBreaker": "Disjuntor de carteira DCA/Grid acionado",
-    "strategyBreakerDetail": "A queda desde o pico de P&L chegou a {{pct}}% do orçamento dos bots cobertos. Ciclos deles fechados; inícios bloqueados até rearmar."
+    "strategyBreakerDetail": "A queda desde o pico de P&L chegou a {{pct}}% do orçamento dos bots cobertos. Ciclos deles fechados; inícios bloqueados até rearmar.",
+    "cycleStopsToday": "Ciclos DCA/Grid fechados por um stop hoje: {{count}}",
+    "cyclesClosedToday": "Ciclos DCA/Grid fechados hoje: {{count}}",
+    "strategyDead": "{{name}} encerrado"
   },
   "statusbar": {
     "label": "Status",
@@ -1067,7 +1175,7 @@
     "latency": "Latência",
     "priceUnavailable": "Preço indisponível",
     "reconnect": "Reconectar",
-    "autoLock": "bloqueio após {{minutes}} min ocioso",
+    "autoLock": "bloqueio após {{duration}} ocioso",
     "regime": {
       "normal": "Normal",
       "break": "Ruptura",
@@ -1085,27 +1193,35 @@
       "stop": "Pausar",
       "close": "Fechar ciclo e parar",
       "archive": "Excluir",
-      "clone": "Clonar"
+      "clone": "Clonar",
+      "startFirst": "Iniciar"
     },
     "confirm": {
       "start": {
         "title": "Retomar {{name}}?",
-        "body": "O bot pode abrir novos ciclos em papel. O orçamento dele fica reservado sob o limite de estratégias."
+        "body": "O bot pode abrir novos ciclos em papel. O orçamento dele fica reservado sob o limite de estratégias.",
+        "bodyLive": "Este bot usa dinheiro real: novos ciclos compram e vendem no mercado futuro da corretora. O dinheiro real continua ativo após reiniciar."
       },
       "stop": {
         "title": "Pausar {{name}}?",
-        "body": "Nenhum ciclo novo é aberto. Um ciclo aberto mantém o take profit e o stop até fechar."
+        "body": "Nenhum ciclo novo é aberto. Um ciclo aberto mantém o take profit e o stop até fechar.",
+        "bodyLive": "Nenhum ciclo novo é aberto. O ciclo aberto continua operando na corretora até o take profit ou o stop."
       },
       "close": {
         "title": "Fechar o ciclo de {{name}}?",
-        "body": "O ciclo em papel aberto fecha a mercado (taxa taker e slippage) e o bot para."
+        "body": "O ciclo em papel aberto fecha a mercado (taxa taker e slippage) e o bot para.",
+        "bodyLive": "O ciclo fecha a mercado e a posição do bot na corretora é fechada na próxima passagem (alguns segundos). O bot para."
       },
       "archive": {
         "title": "Excluir {{name}}?",
-        "body": "O bot sai da mesa. Os ciclos e execuções continuam na exportação CSV."
+        "body": "O bot sai da mesa. Os ciclos e execuções continuam na exportação CSV.",
+        "bodyOpen": "O ciclo aberto fecha a mercado, o bot para e sai da mesa. Os ciclos e execuções ficam na exportação CSV."
       },
       "closeAll": {
         "body": "Todos os ciclos DCA e Grid em papel abertos fecham a mercado e os bots param. Um ciclo sem preço atual continua aberto."
+      },
+      "startFirst": {
+        "title": "Iniciar {{name}}?"
       }
     },
     "state": {
@@ -1141,7 +1257,8 @@
       "orders": "Ordens",
       "fills": "Execuções",
       "settings": "Configurações",
-      "log": "Registro"
+      "log": "Registro",
+      "real": "Real vs simulado"
     },
     "form": {
       "section": {
@@ -1156,16 +1273,25 @@
       "save": "Salvar alterações",
       "saved": "Salvo.",
       "notANumber": "Não é um número válido para este campo.",
-      "fromPreset": "Do preset {{id}}: as configurações correspondem à simulação histórica dele.",
+      "fromPreset": "Do preset {{id}}: as configurações correspondem à simulação histórica dele, feita com {{universe}}. Seu par não é conferido contra essa lista.",
       "presetDiffers": "Alterado a partir do preset {{id}}: a simulação histórica dele não descreve mais estas configurações. O bot é salvo sem o vínculo com o preset.",
       "presetUnknown": "Preset {{id}} não encontrado",
       "presetKind": "O preset {{id}} é de outro tipo de bot",
       "copyName": "{{name}} cópia",
-      "cycleLocked": "Há um ciclo aberto: só nome, início, reinício e proteção podem mudar.",
+      "cycleLocked": "Há um ciclo aberto: só nome, início, reinício e proteção podem mudar. Para mudar o resto agora, use Fechar ciclo (fecha a mercado) e depois edite.",
       "slotLocked": "O bot está rodando: pause-o para mudar mercado, par ou direção.",
       "leaveTitle": "Descartar as alterações não salvas?",
       "discard": "Descartar alterações",
-      "presetFailed": "Este modelo não passou nas verificações ({{reasons}}). As configurações ficam para aprender; teste primeiro num backtest."
+      "presetFailed": "Este modelo não passou nas verificações ({{reasons}}). As configurações ficam para aprender; teste primeiro num backtest.",
+      "fromPresetPairChecked": "Do preset {{id}}: as configurações e o par correspondem à simulação histórica dele ({{universe}}).",
+      "budgetShort": "Orçamento mínimo {{min}} USDT (cada ordem com pelo menos 5 USDT); {{free}} USDT livres no limite de orçamento DCA/Grid. Aumente o saldo simulado ou o nível de risco:",
+      "custom": {
+        "base": "Configurações próprias: sem simulação histórica.",
+        "passed": "Configurações personalizadas: sem simulação histórica. Modelos com histórico aprovado, em revisão até 1 nov: {{names}}.",
+        "noneDca": "Configurações próprias: sem simulação histórica. 0 de {{total}} modelos DCA passaram nas verificações.",
+        "noneGrid": "Configurações próprias: sem simulação histórica. 0 de {{total}} modelos grid passaram nas verificações."
+      },
+      "presetPairOnly": "O preset {{id}} foi testado só em BTCUSDT e não abre com {{symbol}}."
     },
     "field": {
       "name": "Nome",
@@ -1241,7 +1367,7 @@
       "volumeScale": "1,0 = ordens de segurança do mesmo tamanho.",
       "volumeScaleGrows": "Os tamanhos crescem a cada ordem de segurança: o capital no pior caso aumenta.",
       "tp": "A partir da entrada média, após a execução.",
-      "sl": "Deve ficar além da última ordem de segurança.",
+      "sl": "Deve ficar além da última ordem de segurança e antes do preço de liquidação.",
       "rangeRelative": "Definida em torno do preço no início de cada ciclo.",
       "rangeAbsolute": "Preços fixos.",
       "nGrids": "{{levels}} níveis de preço.",
@@ -1255,7 +1381,8 @@
       "endAt": "Ciclos abertos seguem até a saída.",
       "ddStop": "Fecha o ciclo e para o bot com esta perda desde o pico do patrimônio.",
       "btcGate": "Nenhum ciclo novo enquanto o Sentinel indicar quebra do BTC. Ciclos abertos continuam.",
-      "portfolioBreakerOff": "Fora do disjuntor da carteira: não é contado, nem fechado ou retido quando ele dispara."
+      "portfolioBreakerOff": "Fora do disjuntor da carteira: não é contado, nem fechado ou retido quando ele dispara.",
+      "maxDuration": "Ao ser atingida, fecha o ciclo a mercado. Um bot em execução abre o próximo ciclo depois da espera."
     },
     "sizing": {
       "weights": "Ajustado ao orçamento",
@@ -1290,13 +1417,13 @@
       "totalNotional": "Nocional se tudo executar",
       "liqPrice": "Liquidação est.",
       "liqDistance": "Última ordem até a liquidação",
-      "noLiq": "Nenhuma a 1x",
       "worstLoss": "Pior caso",
       "worstOpen": "Ilimitado: sem stop",
       "basis": {
         "sl": "no stop loss",
         "liq": "na liquidação",
-        "none": "sem stop"
+        "none": "sem stop",
+        "ddStop": "no stop por drawdown"
       },
       "deviation": "Desvio",
       "avgEntry": "Entrada média",
@@ -1323,7 +1450,9 @@
       "slippage": "Slippage",
       "funding": "Funding",
       "fundingCharged": "Cobrado pelo histórico da Binance",
-      "fundingNone": "Nenhum (spot)"
+      "fundingNone": "Nenhum (spot)",
+      "minBudget": "Orçamento mínimo",
+      "noLiqAt": "Nenhuma a {{leverage}}x"
     },
     "warnings": {
       "leveraged": "Alavancagem acima de 1x: as perdas crescem junto.",
@@ -1331,7 +1460,8 @@
       "noStopLoss": "Sem stop: a perda não tem limite.",
       "noStopOut": "Sem stop: a perda do estoque não tem limite.",
       "trailLimitInsideRange": "O limite de arrasto fica dentro do intervalo a este preço: o intervalo nunca se move.",
-      "gridLiqInsideBandNow": "A liquidação estimada entra na faixa a este preço: o bot espera até que saia."
+      "gridLiqInsideBandNow": "A liquidação estimada entra na faixa a este preço: o bot espera até que saia.",
+      "ddStopOnly": "Só o stop por drawdown do bot limita a perda."
     },
     "detail": {
       "preset": "Preset",
@@ -1462,7 +1592,7 @@
       "rearmBody": "Permitido a partir do dia UTC seguinte ao disparo. O pico de P&L volta ao P&L atual."
     },
     "emergency": {
-      "title": "DCA e Grid (papel)",
+      "title": "DCA e Grid",
       "pauseAll": "Pausar todos os bots DCA e Grid ({{count}})",
       "closeAll": "Fechar todos os ciclos DCA e Grid ({{count}})",
       "paused": "Pausados: {{count}}",
@@ -1475,15 +1605,16 @@
         "dca": "Nenhum preset DCA passou nas verificações",
         "grid": "Nenhum preset de grid passou nas verificações"
       },
-      "testMean": "Teste: média por bot-mês",
-      "testMeanNote": "Teste = a última janela de dados, reservada enquanto o preset era escolhido.",
+      "testMean": "Teste: média por bot-mês (um bot novo de 1000 USDT por par a cada mês)",
+      "testMeanNote": "Teste = a última janela de dados, reservada enquanto o preset era escolhido. Cada número é por bot-mês: um bot novo de 1000 USDT por par a cada mês, e o ciclo aberto no fim do mês segue até fechar. Não é um único bot rodando por meses.",
       "ci95": "Intervalo de 95%",
       "monthsPositive": "Meses positivos",
       "worstBotDd": "Pior drawdown de um bot",
       "verdict": "Veredito",
       "verdicts": {
         "presetReady": "Passou nas verificações",
-        "failed": "Não passou"
+        "failed": "Não passou",
+        "underReview": "Aprovado até {{end}} · nova leitura {{date}}"
       },
       "use": "Usar preset",
       "settings": "Configurações",
@@ -1504,7 +1635,7 @@
       "excluded": "Excluídos",
       "capitalModel": "Modelo de capital",
       "capital": {
-        "onePersistentBotPerSymbol": "Um bot por par, orçamento fixo"
+        "botPerSymbolMonth": "Um bot novo de 1000 USDT por par a cada mês; um ciclo aberto no fim do mês segue até fechar"
       },
       "method": "Método",
       "simulator": "Simulador",
@@ -1533,9 +1664,9 @@
       "openAtEnd": "Ciclos abertos no fim dos dados",
       "liquidations": "Liquidações",
       "stoppedDeals": "Ciclos com stop",
-      "parityNote": "Mudar qualquer configuração além de nome, par ou orçamento faz estes números deixarem de descrever o bot.",
+      "parityNote": "Mudar qualquer configuração além de nome ou orçamento, ou usar um par fora da seleção testada, faz estes números deixarem de descrever o bot.",
       "col": {
-        "testMean": "Média teste/mês"
+        "testMean": "Teste por bot-mês"
       },
       "names": {
         "dca_long_classic": "DCA Long Clássico",
@@ -1580,7 +1711,25 @@
         "confirm": "Usar mesmo assim"
       },
       "failedBanner": "Não passou nas verificações:",
-      "passedBanner": "Passou nas quatro verificações: todo período positivo, intervalo do teste acima de zero, todo mês do teste positivo, sem liquidação."
+      "passedBanner": "Passou nas quatro verificações: todo período positivo, intervalo do teste acima de zero, todo mês do teste positivo, sem liquidação.",
+      "live": {
+        "col": "Fantasma desde {{since}}",
+        "tip": "Retorno total desde o início, não por mês (a coluna Teste é por bot-mês). Os modelos rodam para frente no servidor com o simulador dos números históricos; não há dinheiro envolvido. Ciclos abertos marcados no último preço. Sem ranking antes de 30 dias.",
+        "collecting": "Acumulando {{days}}/{{min}} d",
+        "unavailable": "Registro fantasma indisponível: ribqa.com não respondeu.",
+        "line": "Registro fantasma (simulado) desde {{since}} · dia {{days}} de {{min}}, ainda sem ranking · atualizado {{updated}}",
+        "lineReady": "Registro fantasma (simulado) desde {{since}} · {{days}} dias · atualizado {{updated}}",
+        "title": "Registro fantasma (simulado)",
+        "early": "Dia {{days}} de {{min}}: cedo demais para comparar modelos. Os números aparecem, sem ranking.",
+        "return": "Retorno total desde {{since}}, sobre o capital (não por mês)",
+        "medianDd": "Drawdown do bot mediano",
+        "bots": "Bots",
+        "cycles": "Ciclos",
+        "open": "{{count}} abertos",
+        "method": "Mesmo simulador e parâmetros do teste histórico: um bot novo de 1000 USDT por par a cada mês, 1x, listas mensais de moedas, taxas, slippage e funding incluídos; ciclos abertos no último fechamento."
+      },
+      "checksToWindow": "As quatro verificações passaram na janela de teste até {{date}}",
+      "recheckBanner": "Passou nas quatro verificações na janela de teste até {{windowEnd}}. Em {{month}} até agora ({{days}} dias) a média é {{mean}}% por bot-mês com operações ainda abertas, então nem todo mês de teste é positivo ainda. As verificações são lidas de novo em {{nextRead}}, quando o mês estiver completo. Não é garantia."
     },
     "notes": {
       "portfolioDdTripped": "Disjuntor da carteira disparado: ciclos dos bots cobertos fechados. Rearme a partir do dia UTC seguinte.",
@@ -1602,7 +1751,29 @@
       "cycleClosed": "Ciclo fechado: {{reason}}",
       "storeReadFailed": "Não foi possível ler o armazenamento de estratégias.",
       "storeWriteFailed": "Não foi possível salvar no armazenamento de estratégias.",
-      "sizeDownBelowMin": "As ordens ficaram abaixo do mínimo da corretora após perdas: o bot terminou."
+      "sizeDownBelowMin": "As ordens ficaram abaixo do mínimo da corretora após perdas: o bot terminou.",
+      "liveClosedOnExchange": "A posição foi fechada na corretora (stop, liquidação ou manual): o bot parou.",
+      "liveMismatch": "A posição na corretora não corresponde mais ao que o bot enviou: o bot parou. Verifique a posição na corretora.",
+      "liveHedgeMode": "A conta na corretora está em modo hedge; dinheiro real exige modo unidirecional.",
+      "liveBuildRequired": "Bot LIVE de uma versão com dinheiro real: esta versão não acessa a corretora, o bot parou.",
+      "liveQtyBelowMinimum": "A primeira ordem do ciclo está abaixo do mínimo da corretora: o ciclo foi fechado e o bot parou.",
+      "livePartialBelowMinimum": "Uma ordem está abaixo do mínimo da corretora: aguardando um passo maior.",
+      "liveVaultLocked": "Cofre bloqueado: ordens reais esperam o desbloqueio. Após 2 minutos com ordens perdidas, o bot para.",
+      "liveExchangeCheckFailed": "Não foi possível ler a corretora; tentando de novo.",
+      "liveLeverageRejected": "A corretora recusou a margem isolada ou a alavancagem para este símbolo.",
+      "liveOrderFailed": "A corretora recusou a ordem.",
+      "livePartialFailed": "Um fechamento parcial falhou na corretora; tentando de novo.",
+      "liveCloseFailed": "O fechamento falhou na corretora; tentando de novo.",
+      "liveProtectiveStopFailed": "Não foi possível colocar o stop na corretora.",
+      "liveUnprotected": "Não foi possível colocar um stop na corretora e o fechamento ainda não foi confirmado. Tentando de novo; se continuar aberta, feche em Posições → Corretora.",
+      "liveStopFilled": "O stop da corretora fechou a posição no nível de stop; o bot continua ativo.",
+      "liveMissedOrders": "A corretora ficou inacessível por mais de 2 minutos enquanto o bot operava no simulado: o bot parou em vez de compensar ao preço de hoje.",
+      "liveSymbolHasOrders": "O símbolo tem ordens abertas na corretora (um stop antigo ou uma ordem sua): o bot parou. Cancele-as primeiro na corretora.",
+      "resumeRefused": "Não foi retomado após o reinício. {{reason}}",
+      "leverageAboveCeiling": "Alavancagem acima do máximo do seu nível de risco: ciclos novos segurados.",
+      "liveVenueNotDryRun": "Dinheiro real parado: o caminho de ordens desta corretora não passou por um teste na rede de testes dela. A posição real continua sob o stop; feche-a na página Posições e ordens.",
+      "cycleRestoreFailed": "O ciclo aberto não pôde ser lido na inicialização · bot não retomado",
+      "liveStateUnreadable": "O estado de dinheiro real não pôde ser lido na inicialização · bot não retomado"
     },
     "errors": {
       "nameInvalid": "Nome: de 1 a 40 caracteres.",
@@ -1662,15 +1833,101 @@
       "membershipInactive": "Assinatura inativa.",
       "storeReadFailed": "Não foi possível ler o armazenamento de estratégias.",
       "trailingAboveTp": "Desvio móvel: abaixo do take profit.",
-      "slInsideLadder": "Stop loss: além da próxima ordem de segurança em cada degrau da escada."
+      "slInsideLadder": "Stop loss: além da próxima ordem de segurança em cada degrau da escada.",
+      "liveBuildDisabled": "Esta versão apenas simula.",
+      "liveFuturesBinanceOnly": "Dinheiro real só está disponível para bots de futuros na Binance.",
+      "liveConfirmRequired": "Digite {{detail}} para confirmar.",
+      "liveNeedsTradeKey": "Primeiro desbloqueie o cofre com uma chave de trade desta corretora.",
+      "liveNeedsVerifiedKey": "Esta chave foi salva antes da verificação de permissões. Renove em Configurações, Chaves de corretora.",
+      "liveNeedsIdleBot": "Feche o ciclo simulado aberto ou espere ele terminar, depois mude para dinheiro real.",
+      "liveNeedsStop": "Defina primeiro um stop loss, um stop fora da faixa ou um stop por drawdown: o stop da corretora fica ali.",
+      "liveSymbolBusy": "Outro bot ao vivo ou uma posição já usa este símbolo na corretora.",
+      "liveCloseFirst": "Feche primeiro a posição real do bot, depois volte ao simulado.",
+      "liveOrderBelowMinNotional": "A menor ordem do bot está abaixo do mínimo da corretora ({{detail}} USDT) para este símbolo.",
+      "liveSymbolNotTrading": "Este símbolo não está sendo negociado no mercado futuro da corretora.",
+      "liveExchangeCheckFailed": "Não foi possível acessar a corretora. Tente novamente.",
+      "liveEditLocked": "Este bot opera com dinheiro real. Volte para Simulado antes de editar ou excluir.",
+      "liveHaltedStart": "Este bot parou sozinho com dinheiro real. Verifique a posição na corretora e volte-o ao simulado antes de iniciá-lo de novo.",
+      "budgetCapDetail": "Acima do limite de orçamento DCA/Grid: {{free}} USDT livres de {{limit}} USDT. Aumente o saldo simulado ou o nível de risco em Risco e segurança.",
+      "slBeyondLiquidation": "Stop loss no preço de liquidação ou além dele: nunca seria acionado. Use um stop mais próximo ou menos alavancagem.",
+      "budgetBelowMinNotionalMin": "Uma ordem ficaria abaixo do mínimo de 5 USDT. Orçamento mínimo: {{min}} USDT.",
+      "liveVenueNotDryRun": "Dinheiro real ainda não está disponível nesta corretora: o caminho de ordens dela não passou por um teste na rede de testes da corretora. As posições lá ainda podem ser fechadas."
     },
     "leverageConfirm": {
-      "title": "Alavancagem sem stop loss",
+      "title": "Liquidação possível, sem stop",
       "body_long": "{{leverage}}x, stop loss desligado. Se o preço cair {{pct}}% abaixo da última ordem de segurança ({{price}}), a posição é liquidada e todo o orçamento do ciclo é perdido.",
       "body_short": "{{leverage}}x, stop loss desligado. Se o preço subir {{pct}}% acima da última ordem de segurança ({{price}}), a posição é liquidada e todo o orçamento do ciclo é perdido.",
       "bodyGeneric": "{{leverage}}x, stop loss desligado. Depois da última ordem de segurança nada fecha a posição antes da liquidação, e todo o orçamento do ciclo é perdido.",
       "hint": "Um stop loss ou alavancagem 1x remove esse risco.",
-      "confirm": "Continuar sem stop"
+      "confirm": "Continuar sem stop",
+      "body_grid": "Grid a {{leverage}}x, stop fora da faixa desligado. Liquidação est. inf. / sup.: {{price}}. Se o preço chegar lá, a posição é liquidada e todo o orçamento do ciclo é perdido.",
+      "bodyGenericGrid": "Grid a {{leverage}}x, stop fora da faixa desligado. Fora da faixa nada fecha a posição antes da liquidação, e todo o orçamento do ciclo é perdido.",
+      "hintShort": "Só um stop loss remove esse risco: um short também é liquidado a 1x, quando o preço quase dobra.",
+      "hintGrid": "Um stop fora da faixa remove esse risco."
+    },
+    "live": {
+      "title": "Dinheiro real",
+      "paper": "Simulado",
+      "on": "LIVE",
+      "halted": "Parado",
+      "realQty": "Posição real",
+      "entry": "Entrada",
+      "unrealized": "Não realizado",
+      "stop": "Stop na corretora",
+      "realized": "Realizado (bruto)",
+      "fees": "Taxas (est. 0,05%)",
+      "fills": "Execuções reais",
+      "lastSync": "Última sincronização",
+      "enable": "Mudar para dinheiro real",
+      "disable": "Voltar ao simulado",
+      "confirmTitle": "Dinheiro real para {{name}}",
+      "confirmBody": "Cada compra e venda que este bot simula é enviada à Binance Futures como ordem a mercado em {{symbol}}, margem isolada, {{leverage}}x. Um stop fica na corretora no nível de stop do bot. Se a posição na Binance mudar fora do bot, o bot para. Aplicam-se taxas taker.",
+      "buildOff": "Esta versão apenas simula.",
+      "futuresOnly": "Dinheiro real só está disponível para bots da Binance Futures.",
+      "goKeys": "Chaves de corretora",
+      "goSettings": "Configurações do bot",
+      "goExchange": "Posições → Corretora",
+      "goGuide": "Guia de dinheiro real",
+      "req": {
+        "title": "Antes do dinheiro real",
+        "key": "Uma chave de trade verificada (Binance, Bybit ou OKX)",
+        "stop": "Um stop loss, stop-out de grid ou stop por drawdown",
+        "idle": "Nenhum ciclo simulado aberto"
+      },
+      "listLine": "Simulado por padrão: execuções simuladas a preços ao vivo, taxas incluídas. Dinheiro real é opcional por bot em futuros da Binance, Bybit ou OKX.",
+      "pilot": "Piloto: restam {{count}} ciclos a {{pct}}% do tamanho simulado. Encerrar vale a partir do próximo ciclo.",
+      "endPilot": "Encerrar piloto",
+      "venue": "Corretora das ordens",
+      "confirmBodyVenue": "Cada compra e venda que este bot simula é enviada aos futuros da {{exchange}} como ordem a mercado em {{symbol}}, margem isolada, {{leverage}}x. As decisões continuam usando preços da Binance. Um stop fica na corretora no nível de stop do bot. Se a posição mudar fora do bot, o bot para. Taxas taker se aplicam.",
+      "confirmBudget": "Orçamento do bot: {{budget}} USDT, alavancagem {{leverage}}x."
+    },
+    "report": {
+      "title": "Execuções reais vs simuladas",
+      "cycle": "Ciclo",
+      "side": {
+        "buy": "Compra",
+        "sell": "Venda"
+      },
+      "kind": "Ordem",
+      "kinds": {
+        "open": "Entrada / adição",
+        "reduce": "Redução",
+        "close": "Fechamento",
+        "external": "Stop da corretora / externo"
+      },
+      "qty": "Qtd. real",
+      "real": "Preço real",
+      "sim": "Preço simulado",
+      "slippage": "Slippage",
+      "cost": "Custo",
+      "delay": "Atraso",
+      "avgSlippage": "Slippage médio",
+      "totalCost": "Custo de slippage",
+      "fees": "Taxas (est. 0,05%)",
+      "avgDelay": "Atraso médio",
+      "matched": "Execuções pareadas",
+      "note": "Slippage positivo é custo: pagou mais na compra ou recebeu menos na venda. Uma ordem a mercado pode espelhar várias execuções simuladas.",
+      "empty": "Ainda não há execuções reais."
     }
   },
   "errors": {
@@ -1694,8 +1951,8 @@
     "vaultWriteFailed": "Não foi possível salvar o arquivo do cofre.",
     "keychainWriteFailed": "Não foi possível salvar o salt do cofre no chaveiro do sistema.",
     "keychainSaltMissing": "O salt do cofre não está no chaveiro deste computador. Este cofre pertence a outro dispositivo ou conta de usuário.",
-    "keyNoFutures": "Esta chave não tem permissão de Futuros. Ative Futuros na Binance e adicione-a novamente.",
-    "keyRejected": "A Binance rejeitou esta chave de API e seu segredo. Verifique se há erros de digitação.",
+    "keyNoFutures": "Esta chave não tem permissão de Futuros. Ative Futuros na corretora e adicione-a de novo.",
+    "keyRejected": "A corretora recusou esta chave de API e o segredo. Verifique se há erros de digitação.",
     "sentinelUnreachable": "Não foi possível acessar o Sentinel. Verifique sua conexão.",
     "unexpectedResponse": "O Sentinel enviou uma resposta inesperada.",
     "serverRejected": "O Sentinel recusou a solicitação: {{detail}}",
@@ -1705,32 +1962,31 @@
     "refreshFailed": "Não foi possível renovar a sessão.",
     "accountLookupFailed": "Não foi possível ler sua conta.",
     "botDailyLossTripped": "Limite de perda diária atingido. Os bots podem reiniciar no próximo dia UTC.",
-    "botPumpNeedsAmbitious": "O bot Pump exige o nível de risco Ambicioso ou superior.",
     "botNotConfigured": "Este bot ainda não tem configurações salvas.",
     "botMaxPositionsRange": "O máximo de posições deve estar entre {{detail}}.",
     "exchangeUnknown": "Corretora desconhecida: {{detail}}",
     "exchangeNoFutures": "{{detail}} não tem mercado de futuros.",
     "botSaveFirst": "Salve primeiro as configurações do bot.",
     "liveBuildDisabled": "Esta versão apenas simula.",
-    "liveFuturesBinanceOnly": "Negociação com dinheiro real só está disponível para o bot de Futuros da Binance.",
+    "liveFuturesBinanceOnly": "Negociação com dinheiro real só está disponível para o bot de Futuros.",
     "liveConfirmRequired": "Digite {{detail}} para confirmar.",
-    "liveNeedsTradeKey": "Desbloqueie primeiro o cofre com uma chave de Trade da Binance.",
+    "liveNeedsTradeKey": "Primeiro desbloqueie o cofre com uma chave de trade desta corretora.",
     "botMaxPositionsMin": "O máximo de posições deve ser pelo menos 1.",
     "botCapitalInvalid": "O capital por posição deve ser maior que 0.",
     "botLeverageMin": "A alavancagem deve ser pelo menos 1.",
-    "botConfidenceRange": "A confiança mínima deve estar entre 0% e 100%.",
+    "botConfidenceRange": "A pontuação Sentinel mín. deve estar entre 0% e 100%.",
     "botMaxLossInvalid": "A perda máxima deve ser maior que 0%.",
     "botDirectionInvalid": "A direção deve ser todas, long ou short.",
     "botRiskRange": "O risco por operação está fora do intervalo.",
     "botTakeProfitRange": "O take-profit personalizado está fora do intervalo.",
     "botTakeProfitSymbol": "Uma exceção de take-profit precisa de um símbolo.",
-    "exchangeBinanceOnly": "Ações de conta estão disponíveis apenas para a Binance.",
+    "exchangeBinanceOnly": "Ações de conta só estão disponíveis para Binance, Bybit e OKX.",
     "noVaultedKey": "Não há chave desta corretora no cofre. Desbloqueie o cofre e adicione uma.",
-    "binanceKeyRejected": "A Binance rejeitou a solicitação. A chave pode não ter acesso a Futuros ou Trade.",
-    "binanceUnreachable": "Não foi possível acessar a Binance.",
-    "binanceRefused": "A Binance recusou: {{detail}}",
-    "binanceRateLimited": "Limite de requisições da Binance atingido. As requisições ficam pausadas por um minuto.",
-    "binanceUnconfirmed": "A Binance não confirmou o resultado. Verifique a posição antes de tentar de novo.",
+    "binanceKeyRejected": "A corretora recusou a solicitação. A chave pode não ter acesso a Futuros ou Trade.",
+    "binanceUnreachable": "Não foi possível acessar a corretora.",
+    "binanceRefused": "A corretora recusou: {{detail}}",
+    "binanceRateLimited": "Limite de solicitações da corretora atingido. As solicitações ficam pausadas por um minuto.",
+    "binanceUnconfirmed": "A corretora não confirmou o resultado. Verifique a posição antes de tentar de novo.",
     "probeClientUnavailable": "Não foi possível iniciar a verificação de conexão.",
     "cockpitReachable": "Acessível",
     "cockpitUnreachable": "Inacessível",
@@ -1791,15 +2047,25 @@
     "credentialLabelInvalid": "Rótulo: de 1 a {{detail}} caracteres.",
     "vaultPasswordUnchanged": "A senha nova é igual à atual.",
     "vaultIdleInvalid": "Escolha um dos tempos de bloqueio oferecidos.",
-    "keyExchangeUnverified": "Só é possível verificar permissões de chaves da Binance, então só chaves da Binance são aceitas ({{detail}}).",
-    "keyCheckUnavailable": "Não foi possível contatar a Binance para verificar as permissões desta chave. Tente de novo em instantes.",
+    "keyExchangeUnverified": "As permissões das chaves desta corretora ainda não podem ser verificadas, então elas não são aceitas ({{detail}}).",
+    "keyCheckUnavailable": "Não foi possível acessar a corretora para verificar as permissões desta chave. Tente novamente em instantes.",
     "liveNeedsVerifiedKey": "Esta chave foi salva antes da verificação de permissões. Renove em Configurações, Chaves de corretora, e depois ative o modo real.",
     "updateCheckFailed": "Não foi possível verificar atualizações.",
     "updateInstallFailed": "A atualização não pôde ser instalada.",
     "updateNone": "Nenhuma atualização disponível.",
     "updateConfirmRequired": "Digite {{detail}} para instalar a atualização.",
     "closeConfirmRequired": "Digite {{detail}} para fechar.",
-    "resetConfirmRequired": "Digite {{detail}} para redefinir o cofre."
+    "resetConfirmRequired": "Digite {{detail}} para redefinir o cofre.",
+    "vaultBusyLive": "Há dinheiro real em jogo. Feche as posições reais e desative o modo real antes de bloquear o cofre ou trocar chaves.",
+    "updateBlockedLive": "Há dinheiro real em jogo. Feche as posições reais e desative o modo real antes de instalar uma atualização.",
+    "trendUnavailable": "Tendência indisponível: a Binance não respondeu.",
+    "liveVenueNotDryRun": "Dinheiro real ainda não está disponível nesta corretora: o caminho de ordens dela não passou por um teste na rede de testes da corretora. As posições lá ainda podem ser fechadas.",
+    "botHasLivePositions": "Este bot tem posições reais na {{detail}}. Feche-as antes de mudar a corretora dele.",
+    "liveExchangeLocked": "Volte este bot ao simulado antes de mudar a corretora dele: o dinheiro real foi confirmado para {{detail}}.",
+    "closeAllPartial": "Fechar tudo não fechou todas as posições. Ainda abertas: {{detail}}. Confira a lista e feche-as de novo, ou na corretora.",
+    "closeCleanupFailed": "Fechada, mas as ordens de stop ou take-profit em {{detail}} não puderam ser canceladas. Cancele-as na corretora.",
+    "botCapitalAboveCap": "O capital por posição está acima do teto de {{detail}} USDT do seu nível de risco. Reduza-o, ou aumente o saldo simulado ou o nível de risco em Risco e segurança.",
+    "vaultSaltMismatch": "Outra versão do Aleph Edge substituiu o salt deste cofre no chaveiro do sistema, então nenhuma senha consegue abri-lo. Escolha \"Esqueceu a senha? Redefinir cofre\" e adicione suas chaves de corretora novamente."
   },
   "status": {
     "running": "Em execução",
@@ -1820,7 +2086,8 @@
     "down": "Fora do ar",
     "killSwitch": "Stop diário",
     "disconnected": "Desconectado",
-    "locked": "Bloqueado"
+    "locked": "Bloqueado",
+    "underReview": "Em revisão"
   },
   "guide": {
     "contents": "Conteúdo",
@@ -1847,5 +2114,104 @@
     "checkedAt": "Última verificação",
     "notChecked": "Ainda não verificado",
     "signedNote": "Cada atualização é verificada com a chave de assinatura embutida no app antes de instalar."
+  },
+  "preflight": {
+    "title": "Prontidão para real",
+    "run": "Verificar",
+    "running": "Verificando…",
+    "checkedAt": "Verificado {{time}}",
+    "result": "Resultado",
+    "check": "Verificação",
+    "value": "Valor",
+    "detail": "Detalhe",
+    "fix": "Corrigir",
+    "note": "Somente leitura: lê a conta com a chave do seu cofre. Nenhuma ordem é enviada.",
+    "verdict": {
+      "ok": "OK",
+      "warn": "Verificar",
+      "fail": "Bloqueia"
+    },
+    "overall": {
+      "ok": "Pronto",
+      "warn": "Pronto com avisos",
+      "fail": "Não pronto"
+    },
+    "checks": {
+      "build": "Versão real",
+      "endpoint": "Endpoint da {{exchange}}",
+      "key": "Chave só de trade",
+      "clock": "Relógio vs Binance",
+      "account": "Saldo de futuros (disponível / total)",
+      "positionMode": "Modo de posição",
+      "positions": "Posições sem bot",
+      "killSwitch": "Parada diária",
+      "btcRegime": "Regime do BTC",
+      "membership": "Assinatura",
+      "stream": "Fluxo de sinais Sentinel",
+      "liveBots": "Bots reais (sinal + DCA/Grid)",
+      "venue": "Rota de ordens"
+    },
+    "codes": {
+      "buildOff": "Esta versão não opera com dinheiro real",
+      "production": "Produção",
+      "testnet": "Testnet: ordens não são dinheiro real",
+      "keyNotVerified": "Chave não verificada como só de trade",
+      "noKey": "Nenhuma chave da {{exchange}} no cofre",
+      "noVault": "Ainda não há cofre",
+      "vaultLocked": "Cofre bloqueado",
+      "unreachable": "Binance inacessível",
+      "clockDrift": "O relógio do PC está desviado; a assinatura compensa",
+      "needsKey": "Requer uma chave só de trade desbloqueada",
+      "lowBalance": "Margem disponível baixa",
+      "hedgeMode": "Modo hedge: mude os futuros da {{exchange}} para unidirecional",
+      "oneWay": "Unidirecional",
+      "foreignPositions": "Os bots ignoram estes símbolos",
+      "tripped": "Acionada: sem novas entradas hoje",
+      "normal": "Normal",
+      "break": "Ruptura: novas entradas em espera",
+      "unknown": "Desconhecido",
+      "expiring": "Vence em breve",
+      "signedOut": "Sem login: bots de sinal não recebem sinais",
+      "streamDown": "Sem conexão: bots de sinal não recebem sinais",
+      "halted": "Um bot real parou",
+      "binanceKeyRejected": "A {{exchange}} recusou a chave",
+      "binanceUnreachable": "{{exchange}} inacessível",
+      "binanceRefused": "A {{exchange}} recusou ({{code}})",
+      "binanceRateLimited": "Limite de solicitações da {{exchange}}",
+      "binanceUnconfirmed": "Resposta não confirmada",
+      "preflightFailed": "A verificação falhou",
+      "venueDryRun": "Testado de ponta a ponta na rede de testes",
+      "venueNotDryRun": "Ainda não testado na rede de testes da {{exchange}}: dinheiro real desligado",
+      "venueUnsupported": "Não há rota de ordens para esta corretora"
+    },
+    "exchange": "Corretora"
+  },
+  "trend": {
+    "title": "Tendência do mercado",
+    "chip": "Tendência BTC: {{state}} · {{days}} d",
+    "chipTooltip": "Fechamento diário do BTC frente à média de 50 dias. Só informação: nenhum bot a lê.",
+    "state": {
+      "up": "Alta",
+      "down": "Baixa"
+    },
+    "since": "Desde",
+    "days": "{{count}} dias",
+    "close": "Fechamento diário do BTC",
+    "sma50": "Média de 50 dias",
+    "gap": "Distância da média",
+    "switches": "Mudanças de direção, últimos 12 meses",
+    "switchesInfo": "Quantas vezes a tendência virou. Um número alto significa que ela costuma virar antes de um movimento render.",
+    "rule": "Fechamento diário frente à média de 50 dias; 2 fechamentos seguidos para mudar.",
+    "history": {
+      "dca": "Testado, DCA: não abrir ciclos novos em tendência de baixa reduziu o pior drawdown em 5–7 pontos e o retorno em cerca de um terço.",
+      "signal": "Testado, bots de sinais: operações a favor da tendência perderam menos, e ainda assim perderam em 2 de 3 períodos."
+    },
+    "infoOnly": "Só informação: nenhum bot muda sozinho.",
+    "more": "Como é lida",
+    "formNow": "Tendência BTC agora: {{state}}, {{days}} dias.",
+    "warn": {
+      "longInDown": "O BTC está em tendência de baixa de 50 dias ({{days}} dias) e este bot compra comprado.",
+      "shortInUp": "O BTC está em tendência de alta de 50 dias ({{days}} dias) e este bot vende vendido."
+    }
   }
 }

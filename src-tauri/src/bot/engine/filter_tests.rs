@@ -35,6 +35,7 @@ fn sig(combo: Option<&str>, sources: &[&str]) -> Signal {
         id: "s1".into(),
         symbol: "BTCUSDT".into(),
         timeframe: None,
+        market_type: None,
         direction: Direction::Long,
         mode: "hybrid".into(),
         entry: 100.0,

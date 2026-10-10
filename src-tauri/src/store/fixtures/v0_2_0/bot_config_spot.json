@@ -1,0 +1,21 @@
+{
+  "kind": "spot",
+  "exchangeId": "binance",
+  "maxPositions": 5,
+  "capital": 200.0,
+  "leverage": 1,
+  "minConfidence": 0.75,
+  "direction": null,
+  "symbols": [],
+  "combos": [],
+  "engines": [],
+  "live": false,
+  "maxLossPct": null,
+  "sizing": "risk",
+  "riskPerTradePct": 2.0,
+  "takeProfit": {
+    "kind": "tp2"
+  },
+  "takeProfitOverrides": {},
+  "maxSignalAgeMin": 240
+}

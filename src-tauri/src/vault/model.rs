@@ -215,6 +215,11 @@ pub struct VaultFile {
     pub nonce: String,
     /// Base64 AES-256-GCM ciphertext (includes the auth tag).
     pub ciphertext: String,
+    /// Fingerprint of the keychain salt that sealed this file (vault
+    /// `salt_check`). Absent in files written before 0.3.0; added at the next
+    /// unlock. Older apps ignore it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub salt_check: Option<String>,
 }
 
 impl VaultFile {

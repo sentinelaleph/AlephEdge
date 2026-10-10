@@ -53,7 +53,7 @@ export function GuidePage() {
   const title = blocks.flatMap((b) => (b.kind === "h1" ? [b.text] : []))[0];
   return (
     <PageShell title={title ?? t("nav.guide")} crumbs={[{ label: t("nav.groups.research") }]} left={toc}>
-      <article className="ae-guide">{blocks.map(renderBlock)}</article>
+      <article className="ae-guide">{blocks.map((b, i) => renderBlock(b, i))}</article>
     </PageShell>
   );
 }
