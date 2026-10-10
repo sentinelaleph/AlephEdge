@@ -29,6 +29,13 @@ const paths: Record<string, string> = {
   contrast: "M12 3a9 9 0 1 0 0 18zM12 3a9 9 0 0 1 0 18",
   system: "M3 5h18v11H3zM9 20h6M12 16v4",
   panelRight: "M4 5h16v14H4zM15 5v14",
+  sliders: "M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4",
+  phone: "M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2",
+  key: "M15 3a6 6 0 1 1-5.6 8.2L3 17.6V21h3.5v-2H9v-2.5h2.4l1.4-1.4A6 6 0 0 1 15 3zM16.5 7.5h.01",
+  info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v6M12 7.5h.01",
+  external: "M14 4h6v6M20 4l-9 9M18 14v6H4V6h6",
+  folder: "M3 6h6l2 2h10v11H3z",
+  copy: "M9 9h11v11H9zM5 15H4V4h11v1",
   more: "M5 11.2a.8.8 0 1 1 0 1.6a.8.8 0 1 1 0-1.6zM12 11.2a.8.8 0 1 1 0 1.6a.8.8 0 1 1 0-1.6zM19 11.2a.8.8 0 1 1 0 1.6a.8.8 0 1 1 0-1.6z",
 };
 

@@ -1123,7 +1123,163 @@
     "storageBlocked": "Tercihler hatırlanmayacak (depolama engelli).",
     "version": "Sürüm",
     "relay": "Röle",
-    "deskId": "Masa kimliği"
+    "deskId": "Masa kimliği",
+    "sectionsLabel": "Ayar bölümleri",
+    "navHint": {
+      "general": "Dil, tema, kısayollar",
+      "notifications": "Uyarı zilinin gösterdikleri",
+      "devices": "Telefondan uzaktan kontrol",
+      "keys": "API anahtarları, kasa, bağlantılar",
+      "about": "Sürüm, güncellemeler, verileriniz"
+    },
+    "navStatus": {
+      "alerts": "{{total}} uyarıdan {{on}} açık",
+      "keys": "Anahtar: {{count}}",
+      "updateAvailable": "{{version}} yayında"
+    },
+    "summary": {
+      "title": "Bu kurulum",
+      "version": "Sürüm",
+      "updates": "Güncellemeler",
+      "build": "Derleme",
+      "orders": "Binance emirleri",
+      "vault": "Kasa",
+      "vaultUnlocked": "Açık",
+      "keys": "Borsa anahtarları",
+      "phone": "Telefon",
+      "alerts": "Gösterilen uyarılar",
+      "notChecked": "Henüz denetlenmedi"
+    },
+    "help": {
+      "title": "Yardım",
+      "guide": "Rehber",
+      "faq": "SSS",
+      "userGuide": "Web'deki kullanım kılavuzu",
+      "support": "Destek e-postası"
+    },
+    "amountPreview": "Tutar",
+    "timeZone": "Saat dilimi",
+    "languageHint": "Sayılar ve tarihler dile göre biçimlenir. Saatler bu bilgisayarın saat dilimiyle gösterilir; günlük limitler 00:00 UTC'de sıfırlanır.",
+    "themeHint": {
+      "light": "Beyaz yüzeyler. Varsayılan.",
+      "dark": "Az ışık için koyu yüzeyler.",
+      "contrast": "Siyah beyaz, en yüksek kontrast.",
+      "system": "Windows'u izler. Şu an: {{current}}."
+    },
+    "shortcutsHint": "Kısayollar metin alanlarının dışında çalışır.",
+    "motionHint": "Windows'ta ayarlanır: Ayarlar, Erişilebilirlik, Görsel efektler, Animasyon efektleri.",
+    "notify": {
+      "lede": "Uyarılar zilin altında ve Dashboard'da görünür. Bu bilgisayar onları botlarınızın bildirdiklerinden çıkarır. E-posta, telefon ya da Windows bildirimi gönderilmez.",
+      "group": {
+        "safety": "Güvenlik",
+        "bots": "Botlar ve işlemler",
+        "market": "Piyasa ve bağlantı"
+      },
+      "desc": {
+        "killSwitch": "Günlük stop sinyal botlarını ya da portföy kesicisi DCA ve Grid botlarını durdurdu.",
+        "stopLoss": "Bugün bir sinyal işlemi ya da bir DCA/Grid döngüsü stop seviyesinde kapandı.",
+        "vaultAutoLock": "Kasa, seçtiğiniz boşta kalma süresinden sonra kendini kilitledi.",
+        "botError": "Bir bot işlemi başarısız oldu, bir bot teknik bir nedenle giremedi ya da bir DCA/Grid botu sona erdi.",
+        "budget": "Bütçe, pozisyon limiti ya da sermaye üst sınırı dolu olduğu için bir sinyal atlandı.",
+        "dealClosed": "Bugün kapanan sinyal işlemleri ve DCA/Grid döngüleri.",
+        "streamDown": "Sentinel sinyal akışı kesik ve yeniden bağlanmayı deniyor.",
+        "regime": "Sentinel BTC kırılımı ilan etti. Sürdüğü sürece yeni sinyal longları reddedilir."
+      },
+      "severity": {
+        "danger": "Kritik",
+        "warn": "Uyarı",
+        "info": "Bilgi"
+      },
+      "activeNow": "Şu an: {{count}}",
+      "offNote": "Zilde gösterilmez. Botlar yine de buna göre davranır.",
+      "allOn": "Hepsini göster"
+    },
+    "devices": {
+      "canTitle": "Eşlenen telefon neler yapabilir",
+      "can": {
+        "status": "Botların durumunu görmek",
+        "stop": "Bir botta ya da hepsinde yeni girişleri durdurmak",
+        "close": "Bir botun ya da hepsinin pozisyonlarını kapatmak",
+        "start": "Durmuş bir botu yeniden başlatmak"
+      },
+      "cannotTitle": "Neler yapamaz",
+      "cannot": {
+        "settings": "Ayarları ya da risk limitlerini değiştirmek",
+        "keys": "Borsa anahtarı eklemek, okumak ya da değiştirmek",
+        "live": "Gerçek parayı açmak",
+        "funds": "Para taşımak ya da çekmek"
+      },
+      "securityTitle": "Eşleştirme nasıl korunur",
+      "security": {
+        "qr": "QR kod bir kez çalışır ve 2 dakika sonra geçersiz olur.",
+        "signed": "Her mesaj eşleştirme anahtarıyla imzalanır ve bu bilgisayarda doğrulanır.",
+        "relay": "Aktarıcı yalnızca mesajları iletir. Kendi başına komut gönderemez.",
+        "local": "Botlar bu bilgisayarda çalışır. Telefon komut gönderir, masaüstü uygular."
+      },
+      "appNote": "Telefon uygulaması henüz yayınlanmadı. Yayınlandığında eşleştirme çalışır."
+    },
+    "keys": {
+      "requirementsTitle": "Hangi anahtar eklenmeli",
+      "requirements": {
+        "permissions": "İşlem izni açık, para çekme kapalı. Binance'te ayrıca vadeli işlem izni açık.",
+        "checked": "Uygulama anahtarın izinlerini borsadan okur ve para çekebilen anahtarı reddeder.",
+        "local": "Anahtarlar yalnızca bu bilgisayardaki şifreli kasada saklanır, ribqa.com'a asla gönderilmez.",
+        "optional": "Simüle botların anahtara ihtiyacı yok. Anahtarla borsa hesabınızı görebilir ve oradaki pozisyonları kapatabilirsiniz."
+      },
+      "connectionsTitle": "Bağlantılar",
+      "sentinelApi": "Sentinel API"
+    },
+    "about": {
+      "tagline": "Sentinel sinyal botları ile DCA ve Grid botları için, belirlediğiniz risk limitleri içinde çalışan masaüstü uygulaması.",
+      "paperBuild": "Simüle derleme",
+      "liveBuild": "Canlı derleme",
+      "testnetBuild": "Testnet",
+      "buildNote": {
+        "paper": "Bu derleme yalnızca simüle işlem yapar. Gönderebildiği tek gerçek emir, Borsa sekmesindeki Kapat düğmeleridir.",
+        "live": "Bu derleme, LIVE yazarak onayladığınız her bot için Binance Futures'ta gerçek emir verebilir."
+      },
+      "notAdvice": "Bir yazılımdır, yatırım tavsiyesi değildir.",
+      "installTitle": "Kurulum ayrıntıları",
+      "system": "Sistem",
+      "webview": "WebView2",
+      "tauri": "Tauri",
+      "dataDir": "Veri klasörü",
+      "openFolder": "Klasörü aç",
+      "copyDiagnostics": "Tanılama bilgisini kopyala",
+      "copied": "Kopyalandı",
+      "copyFailed": "Kopyalanamadı",
+      "browserPreview": "Tarayıcı önizlemesi",
+      "dataTitle": "Verileriniz",
+      "local": {
+        "title": "Bu bilgisayarda kalır",
+        "keys": "Borsa anahtarları, şifreli kasada",
+        "bots": "Botlar, pozisyonlar, işlem geçmişi ve backtestler",
+        "prefs": "Ayarlar ve uyarı tercihleri"
+      },
+      "sentinel": {
+        "title": "Sentinel'e (ribqa.com) gider",
+        "signIn": "Giriş ve üyelik denetimi",
+        "stream": "Sinyal akışı bağlantısı",
+        "market": "Bot kontrolleri ve backtestler için piyasa verisi istekleri: fonlama, emir defteri derinliği, mumlar",
+        "none": "Anahtarınız, bakiyeniz, pozisyonunuz ya da işleminiz gitmez"
+      },
+      "exchanges": {
+        "title": "Borsalara gider",
+        "public": "Anahtarsız fiyat istekleri",
+        "keyed": "Anahtarınızla: hesabınızın okunması ve onayladığınız kapatma emirleri"
+      },
+      "licenceTitle": "Lisans ve kaynak kod",
+      "licence": "PolyForm Perimeter 1.0.1. Kendi borsa hesabınız dahil kullanmak ve değiştirmek serbest. İzin verilmeyen: Aleph Edge ile rekabet eden bir ürün sunmak.",
+      "builtWith": "Rust, Tauri 2 ve React ile yapıldı.",
+      "source": "Kaynak kod",
+      "releases": "Sürümler",
+      "licenceText": "Lisans metni",
+      "contactTitle": "Yardım ve iletişim",
+      "supportEmail": "support@ribqa.com",
+      "securityTitle": "Güvenlik bildirimleri",
+      "security": "Konu satırında \"security\" yazarak support@ribqa.com adresine yazın ve sorunu yayınlamadan önce düzeltmemiz için bize zaman tanıyın.",
+      "reportSecurity": "Güvenlik sorunu bildir"
+    }
   },
   "accountPage": {
     "plan": "Plan",
@@ -1132,7 +1288,63 @@
     "endsAtPeriodEnd": "Dönem sonunda biter",
     "lastRefresh": "Son yenileme",
     "service": "Servis",
-    "refresh": "Yenile"
+    "refresh": "Yenile",
+    "signedInHere": "Bu bilgisayarda ribqa.com'a giriş yapıldı.",
+    "adminChip": "Yönetici",
+    "membership": "Üyelik",
+    "membershipTitle": "Üyelik",
+    "billingStatus": "Abonelik",
+    "billing": {
+      "active": "Aktif",
+      "trialing": "Deneme",
+      "past_due": "Ödeme bekliyor",
+      "canceled": "İptal edildi",
+      "none": "Yok",
+      "incomplete": "Tamamlanmadı"
+    },
+    "tier": {
+      "aleph": "Aleph",
+      "free": "Ücretsiz",
+      "pro": "Pro",
+      "admin": "Yönetici"
+    },
+    "noEndDate": "Bitiş tarihi yok",
+    "notApplicable": "Geçerli değil",
+    "lastChecked": "Son denetim",
+    "notReadYet": "Henüz okunmadı",
+    "checkedNote": "Uygulama üyeliği girişte, açılışta ve Yenile'ye bastığınızda okur.",
+    "betaNote": "Açık beta: her hesapta Aleph planı ücretsiz olarak açık.",
+    "adminNote": "Yönetici hesapları abonelik olmadan tam erişime sahiptir.",
+    "canTrade": "Botlar işlem açabilir",
+    "yes": "Evet",
+    "no": "Hayır",
+    "coversTitle": "Üyelik neleri kapsar",
+    "covers": {
+      "stream": "Sentinel sinyal akışı ve onu izleyen sinyal botları",
+      "dcaGrid": "Test edilmiş 12 şablonla DCA ve Grid botları",
+      "backtest": "Sentinel'in mum geçmişi üzerinde backtest",
+      "market": "Girişten önce piyasa kontrolleri: fonlama ve emir defteri derinliği"
+    },
+    "coversGate": "Aktif üyelik olmadan hiçbir bot işlem açmaz.",
+    "sessionTitle": "Bu bilgisayardaki oturum",
+    "keptIn": "Saklandığı yer",
+    "keptInValue": "Windows Kimlik Bilgileri Yöneticisi",
+    "afterRestart": "Yeniden başlatınca",
+    "afterRestartValue": "Otomatik olarak yeniden giriş yapılır",
+    "testnet": "TESTNET derlemesi",
+    "testnetValue": "Ayrı giriş yapar",
+    "signOutNote": "Çıkış yapınca sinyal akışı kesilir: siz yeniden giriş yapana kadar sinyal botlarına yeni sinyal gelmez. Botlar, pozisyonlar, geçmiş ve borsa anahtarları bu bilgisayarda kalır.",
+    "signOutConfirmTitle": "Sentinel'den çıkış yapılsın mı?",
+    "manageTitle": "ribqa.com'da yönet",
+    "manageNote": "Ad, parola, iki adımlı doğrulama, ödeme ve API anahtarları web sitesinden yönetilir.",
+    "webAccount": "Profil ve parola",
+    "webBilling": "Ödeme",
+    "webApiKeys": "API anahtarları",
+    "glanceTitle": "Özet",
+    "stream": "Sinyal akışı",
+    "streamUp": "Bağlı",
+    "streamDown": "Bağlı değil",
+    "keys": "Borsa anahtarları"
   },
   "alerts": {
     "title": "Uyarılar",
@@ -2065,7 +2277,8 @@
     "closeAllPartial": "Tümünü kapat her pozisyonu kapatamadı. Hâlâ açık: {{detail}}. Listeyi kontrol edip yeniden ya da borsada kapatın.",
     "closeCleanupFailed": "Kapatıldı, ancak {{detail}} üzerindeki stop veya kâr al emirleri iptal edilemedi. Bunları borsada iptal edin.",
     "botCapitalAboveCap": "Pozisyon başına sermaye, risk seviyenin {{detail}} USDT tavanının üstünde. Düşür ya da Risk ve güvenlik sayfasında simüle bakiyeyi veya risk seviyesini yükselt.",
-    "vaultSaltMismatch": "Bu kasanın sistem anahtar zincirindeki tuzu başka bir Aleph Edge derlemesi tarafından değiştirildi; hiçbir şifre onu açamaz. \"Parolanı mı unuttun? Kasayı sıfırla\" seçeneğini kullan ve borsa anahtarlarını yeniden ekle."
+    "vaultSaltMismatch": "Bu kasanın sistem anahtar zincirindeki tuzu başka bir Aleph Edge derlemesi tarafından değiştirildi; hiçbir şifre onu açamaz. \"Parolanı mı unuttun? Kasayı sıfırla\" seçeneğini kullan ve borsa anahtarlarını yeniden ekle.",
+    "updateOffTestnet": "Testnet derlemesi güncelleme kurmaz."
   },
   "status": {
     "running": "Çalışıyor",
@@ -2113,7 +2326,13 @@
     "latest": "En yeni sürüm",
     "checkedAt": "Son denetim",
     "notChecked": "Henüz denetlenmedi",
-    "signedNote": "Her güncelleme, kurulmadan önce uygulamanın içindeki imza anahtarıyla doğrulanır."
+    "signedNote": "Her güncelleme, kurulmadan önce uygulamanın içindeki imza anahtarıyla doğrulanır.",
+    "published": "Yayın tarihi",
+    "schedule": "Denetim",
+    "scheduleValue": "Açılışta, sonra 6 saatte bir",
+    "notes": "Yenilikler",
+    "offTestnet": "Testnet derlemesinde kapalı",
+    "offTestnetNote": "Testnet derlemesi kendini güncellemez: güncelleme kaynağı normal uygulamayı taşır. Testnet derlemesini kaynak koddan çalıştırın."
   },
   "preflight": {
     "title": "Canlıya hazırlık",

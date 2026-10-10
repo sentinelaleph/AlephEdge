@@ -52,11 +52,14 @@ export function ExchangeKeysTab() {
     setProbes((p) => ({ ...p, [id]: { state: "done", result, at: Date.now() } }));
   };
 
-  const probeRow = (id: string, label: string, probe: () => Promise<PingResult>) => {
+  const probeRow = (id: string, label: string, probe: () => Promise<PingResult>, endpoint?: string) => {
     const p = probes[id];
     return (
       <li key={id} className="ae-proberow">
-        <span className="ae-proberow__name">{label}</span>
+        <span className="ae-proberow__name">
+          {label}
+          {endpoint ? <span className="ae-proberow__endpoint">{endpoint}</span> : null}
+        </span>
         {p?.state === "done" && p.result ? (
           <StatusChip
             status={p.result.ok ? "ok" : "error"}
@@ -87,63 +90,76 @@ export function ExchangeKeysTab() {
 
   return (
     <div className="ae-keystab">
-      <VaultManager vault={vault} />
+      <div className="ae-setgrid ae-setgrid--keys">
+        <div className="ae-setcol">
+          <VaultManager vault={vault} />
 
-      <Panel
-        title={t("accounts.vault")}
-        aside={
-          <Button variant="secondary" size="sm" onClick={() => void vault.lock()} disabled={vault.busy}>
-            {vault.busy ? t("vault.locking") : t("vault.lock")}
-          </Button>
-        }
-      >
-        <FactList
-          rows={[
-            { label: t("accounts.keys"), value: vault.credentials.length },
-            { label: t("accounts.storage"), value: t("accounts.storageFact") },
-          ]}
-        />
-        <div className="ae-keystab__idle">
-          <SegmentedControl
-            label={t("accounts.autoLock")}
-            size="sm"
-            wrap
-            value={idleOptions.some((o) => o.value === idle) ? idle : null}
-            onChange={(v) => void vault.setIdleMinutes(Number(v)).catch(() => undefined)}
-            disabled={vault.busy}
-            options={idleOptions}
-          />
-          <p className="ae-subtle">{t("vault.autoLockHint", { duration: duration(vault.status.idleTimeoutMinutes) })}</p>
+          <Panel title={t("settings.keys.connectionsTitle")}>
+            <ul className="ae-list ae-probelist">
+              {probeRow("sentinel", t("settings.keys.sentinelApi"), cockpitSentinel, endpoints?.apiBase)}
+              {keyed.map((id) => probeRow(id, exchangeName(id, catalog.exchanges), () => cockpitExchange(id)))}
+            </ul>
+            {keyed.length === 0 ? <p className="ae-subtle">{t("accounts.noKeyProbe")}</p> : null}
+            {endpoints ? (
+              <FactList
+                rows={[
+                  {
+                    label: t("accounts.binanceOrders"),
+                    value: (
+                      <span className="ae-keystab__endpoint">
+                        <Chip tone={endpoints.binanceIsProduction ? "neutral" : "warn"}>
+                          {endpoints.binanceIsProduction ? t("accounts.production") : t("app.testnetBadge")}
+                        </Chip>
+                        {endpoints.binanceFuturesBase}
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+            ) : null}
+          </Panel>
         </div>
-      </Panel>
 
-      <ChangePasswordPanel />
+        <div className="ae-setcol">
+          <Panel title={t("settings.keys.requirementsTitle")}>
+            <ul className="ae-setlist">
+              {(["permissions", "checked", "local", "optional"] as const).map((k) => (
+                <li key={k}>{t(`settings.keys.requirements.${k}`)}</li>
+              ))}
+            </ul>
+          </Panel>
 
-      <Panel title={t("accounts.connectivity")}>
-        <ul className="ae-list ae-probelist">
-          {keyed.map((id) => probeRow(id, exchangeName(id, catalog.exchanges), () => cockpitExchange(id)))}
-          {probeRow("sentinel", "Sentinel", cockpitSentinel)}
-        </ul>
-        {keyed.length === 0 ? <p className="ae-subtle">{t("accounts.noKeyProbe")}</p> : null}
-      </Panel>
+          <Panel
+            title={t("accounts.vault")}
+            aside={
+              <Button variant="secondary" size="sm" onClick={() => void vault.lock()} disabled={vault.busy}>
+                {vault.busy ? t("vault.locking") : t("vault.lock")}
+              </Button>
+            }
+          >
+            <FactList
+              rows={[
+                { label: t("accounts.keys"), value: vault.credentials.length },
+                { label: t("accounts.storage"), value: t("accounts.storageFact") },
+              ]}
+            />
+            <div className="ae-keystab__idle">
+              <SegmentedControl
+                label={t("accounts.autoLock")}
+                size="sm"
+                wrap
+                value={idleOptions.some((o) => o.value === idle) ? idle : null}
+                onChange={(v) => void vault.setIdleMinutes(Number(v)).catch(() => undefined)}
+                disabled={vault.busy}
+                options={idleOptions}
+              />
+              <p className="ae-subtle">{t("vault.autoLockHint", { duration: duration(vault.status.idleTimeoutMinutes) })}</p>
+            </div>
+          </Panel>
 
-      {endpoints ? (
-        <Panel
-          title={t("accounts.endpoints")}
-          aside={
-            <Chip tone={endpoints.binanceIsProduction ? "neutral" : "warn"}>
-              {endpoints.binanceIsProduction ? t("accounts.production") : t("app.testnetBadge")}
-            </Chip>
-          }
-        >
-          <FactList
-            rows={[
-              { label: t("accounts.binanceOrders"), value: endpoints.binanceFuturesBase },
-              { label: t("accounts.apiBase"), value: endpoints.apiBase },
-            ]}
-          />
-        </Panel>
-      ) : null}
+          <ChangePasswordPanel />
+        </div>
+      </div>
 
       <Panel title={t("accounts.dangerZone")} tone="danger">
         <p className="ae-muted">{t("vault.resetWarning")}</p>

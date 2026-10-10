@@ -20,6 +20,12 @@ export interface MembershipView {
   tier?: string;
   currentPeriodEnd?: string;
   cancelAtPeriodEnd: boolean;
+  /** Admin role: full access without a subscription. */
+  admin?: boolean;
+  /** The billing status as the server sent it ("active", "trialing", ...). */
+  billingStatus?: string;
+  /** When the app last read the membership from the server (UNIX ms). */
+  checkedAtMs?: number;
 }
 
 export function membershipStatus(): Promise<MembershipView> {

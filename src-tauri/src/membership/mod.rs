@@ -40,6 +40,19 @@ struct MemState {
     base_url: String,
     session: Option<Session>,
     last_status: Option<BillingStatus>,
+    /// When `last_status` was read from the server (UNIX ms).
+    checked_at_ms: Option<i64>,
+}
+
+/// Stores a billing status read (or its absence) with the time it was read.
+fn set_status(g: &mut MemState, status: Option<BillingStatus>) {
+    g.checked_at_ms = status.as_ref().map(|_| {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as i64)
+            .unwrap_or(0)
+    });
+    g.last_status = status;
 }
 
 /// Tauri-managed membership state.
@@ -74,6 +87,7 @@ impl MembershipManager {
                 base_url: base,
                 session: None,
                 last_status: None,
+                checked_at_ms: None,
             }),
             refresh_gate: tokio::sync::Mutex::new(()),
         }
@@ -217,7 +231,7 @@ impl MembershipManager {
                             .is_some_and(|s| s.refresh_token == seen_refresh);
                         if same {
                             g.session = None;
-                            g.last_status = None;
+                            set_status(&mut g, None);
                         }
                         same
                     };
@@ -251,12 +265,12 @@ impl MembershipManager {
                 user: resp.user,
                 access_expires: expiry_from(resp.expires_in),
             });
-            g.last_status = None;
+            set_status(&mut g, None);
         }
         let status = client::billing_status(&self.client, &base, &token)
             .await
             .ok();
-        self.state.lock().expect("membership mutex").last_status = status;
+        set_status(&mut self.state.lock().expect("membership mutex"), status);
         Ok(self.view())
     }
 
@@ -332,14 +346,14 @@ impl MembershipManager {
         let status = client::billing_status(&self.client, &base, &access)
             .await
             .ok();
-        self.state.lock().expect("membership mutex").last_status = status;
+        set_status(&mut self.state.lock().expect("membership mutex"), status);
         self.view()
     }
 
     pub fn logout(&self) {
         let mut g = self.state.lock().expect("membership mutex");
         g.session = None;
-        g.last_status = None;
+        set_status(&mut g, None);
         drop(g);
         clear_persisted_session();
     }
@@ -363,7 +377,7 @@ impl MembershipManager {
         };
         match client::billing_status(&self.client, &base, &access).await {
             Ok(status) => {
-                self.state.lock().expect("membership mutex").last_status = Some(status);
+                set_status(&mut self.state.lock().expect("membership mutex"), Some(status));
                 Ok(self.view())
             }
             Err(ClientError::Unauthorized) => self.refresh_and_retry(&base, &refresh_tok).await,
@@ -379,18 +393,18 @@ impl MembershipManager {
         let new_access = match self.refresh_tokens(refresh_tok).await {
             Ok(access) => access,
             Err(e) => {
-                self.state.lock().expect("membership mutex").last_status = None;
+                set_status(&mut self.state.lock().expect("membership mutex"), None);
                 return Err(e.into_message());
             }
         };
         match client::billing_status(&self.client, base, &new_access).await {
             Ok(status) => {
-                self.state.lock().expect("membership mutex").last_status = Some(status);
+                set_status(&mut self.state.lock().expect("membership mutex"), Some(status));
                 Ok(self.view())
             }
             Err(e) => {
                 if matches!(e, ClientError::Unauthorized) {
-                    self.state.lock().expect("membership mutex").last_status = None;
+                    set_status(&mut self.state.lock().expect("membership mutex"), None);
                 }
                 Err(e.into_message())
             }
@@ -441,6 +455,9 @@ fn build_view(g: &MemState) -> MembershipView {
             tier: Some(tier),
             current_period_end: None,
             cancel_at_period_end: false,
+            admin: true,
+            billing_status: g.last_status.as_ref().map(|b| b.status.clone()),
+            checked_at_ms: g.checked_at_ms,
         };
     }
 
@@ -468,5 +485,8 @@ fn build_view(g: &MemState) -> MembershipView {
         tier,
         current_period_end: period_end,
         cancel_at_period_end: cancel,
+        admin: false,
+        billing_status: g.last_status.as_ref().map(|b| b.status.clone()),
+        checked_at_ms: g.checked_at_ms,
     }
 }

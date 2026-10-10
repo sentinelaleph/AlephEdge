@@ -318,3 +318,24 @@ fn a_token_rotated_by_another_process_is_adopted_not_a_sign_out() {
     assert_eq!(m.access_token().as_deref(), Some("a3"));
     assert_eq!(load_persisted_session().map(|p| p.refresh_token).as_deref(), Some("r3"));
 }
+
+#[test]
+fn the_view_says_when_the_membership_was_last_read_and_forgets_it_on_sign_out() {
+    let base = serve(Arc::new(|_m, path, _b, _body| {
+        if path.starts_with("/api/v1/billing/status") {
+            (200, r#"{"tier":"aleph","status":"active","current_period_end":null,"cancel_at_period_end":false}"#.into())
+        } else {
+            (404, "{}".into())
+        }
+    }));
+    let m = signed_in(base, "access", "refresh", None);
+    assert!(m.view().checked_at_ms.is_none(), "never read yet");
+    let view = tauri::async_runtime::block_on(m.refresh_status()).unwrap();
+    assert!(view.checked_at_ms.is_some_and(|t| t > 1_700_000_000_000));
+    assert_eq!(view.billing_status.as_deref(), Some("active"));
+    assert!(!view.admin);
+    assert!(view.current_period_end.is_none());
+    m.logout();
+    let out = m.view();
+    assert!(out.checked_at_ms.is_none() && out.billing_status.is_none());
+}

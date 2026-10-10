@@ -8,7 +8,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { errorMessage } from "@/lib/ipc/bridge";
 import { checkUpdate, installUpdate, onUpdateProgress, type AvailableUpdate, type UpdateProgress } from "@/lib/ipc/app/update";
 
-export type UpdateStatus = "idle" | "checking" | "upToDate" | "available" | "installing" | "error";
+export type UpdateStatus = "idle" | "checking" | "upToDate" | "available" | "installing" | "error" | "off";
 
 export interface UpdateState {
   status: UpdateStatus;
@@ -53,7 +53,7 @@ export async function runUpdateCheck(): Promise<void> {
   set({ status: "checking", error: null });
   try {
     const r = await checkUpdate();
-    set({ status: r.available ? "available" : "upToDate", current: r.current, available: r.available, checkedAt: Date.now() });
+    set({ status: r.off ? "off" : r.available ? "available" : "upToDate", current: r.current, available: r.available, checkedAt: Date.now() });
   } catch (e) {
     set({ status: "error", error: errorMessage(e, "updateCheckFailed"), checkedAt: Date.now() });
   }

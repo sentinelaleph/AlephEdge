@@ -31,6 +31,8 @@ interface PageShellProps {
   actions?: ReactNode;
   /** Filters / configuration for this page. */
   left?: ReactNode;
+  /** Names the left panel and its fold button when it is not filters (Settings: its sections). */
+  leftLabel?: string;
   /** Summaries and readouts for this page. */
   right?: ReactNode;
   /** The wider left panel (backtest configuration). */
@@ -56,7 +58,7 @@ interface PageShellProps {
  * (or a synonym) as an <h2> at the top of the center column; group content
  * with <Panel title> (framed) or <Section title> (unframed), both 13px/600.
  */
-export function PageShell({ title, crumbs, primary, secondary, actions, left, right, wideLeft, single, children }: PageShellProps) {
+export function PageShell({ title, crumbs, primary, secondary, actions, left, leftLabel, right, wideLeft, single, children }: PageShellProps) {
   const { t } = useTranslation();
   const slots = useShellSlots();
   const { route, kind } = useRouter();
@@ -219,14 +221,14 @@ export function PageShell({ title, crumbs, primary, secondary, actions, left, ri
       {slots.actions ? createPortal(actionBar, slots.actions) : <div className="ae-page__inlineactions">{actionBar}</div>}
 
       {left && !single ? (
-        <aside className="ae-page__left" aria-label={t("nav.filters")}>
+        <aside className="ae-page__left" aria-label={leftLabel ?? t("nav.filters")}>
           <button
             type="button"
             className="ae-page__leftfold"
             aria-expanded={leftOpen}
             onClick={() => setLeftOpen((v) => !v)}
           >
-            {t("nav.filters")}
+            {leftLabel ?? t("nav.filters")}
           </button>
           <div className="ae-page__leftbody">{left}</div>
         </aside>

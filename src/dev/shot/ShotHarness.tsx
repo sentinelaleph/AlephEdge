@@ -24,7 +24,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppShell } from "@/app/AppShell/AppShell";
 import { DeskContextProvider } from "@/app/DeskProvider";
-import { SAMPLE_DESK_CONTEXT } from "./shot.mock";
+import { setBrowserAppInfo } from "@/lib/ipc/app/about";
+import { SAMPLE_APP_INFO, SAMPLE_DESK_CONTEXT } from "./shot.mock";
 import "./ShotHarness.css";
 
 const SHOT_ROUTES = {
@@ -77,6 +78,8 @@ const SAMPLE_LABEL: Record<string, string> = {
   en: "Sample data · simulated fills · not a trading record",
   tr: "Örnek veri · simüle dolumlar · işlem kaydı değil",
 };
+
+setBrowserAppInfo(SAMPLE_APP_INFO);
 
 export function ShotHarness({ shot }: { shot: ShotName }) {
   const { i18n } = useTranslation();

@@ -1123,7 +1123,163 @@
     "storageBlocked": "Preferensi tidak akan diingat (penyimpanan diblokir).",
     "version": "Versi",
     "relay": "Relay",
-    "deskId": "ID meja"
+    "deskId": "ID meja",
+    "sectionsLabel": "Bagian pengaturan",
+    "navHint": {
+      "general": "Bahasa, tema, pintasan",
+      "notifications": "Yang ditampilkan lonceng peringatan",
+      "devices": "Kendali jarak jauh dari ponsel",
+      "keys": "Kunci API, brankas, koneksi",
+      "about": "Versi, pembaruan, data Anda"
+    },
+    "navStatus": {
+      "alerts": "{{on}} dari {{total}} ditampilkan",
+      "keys": "Kunci: {{count}}",
+      "updateAvailable": "{{version}} tersedia"
+    },
+    "summary": {
+      "title": "Instalasi ini",
+      "version": "Versi",
+      "updates": "Pembaruan",
+      "build": "Build",
+      "orders": "Order Binance",
+      "vault": "Brankas",
+      "vaultUnlocked": "Terbuka",
+      "keys": "Kunci exchange",
+      "phone": "Ponsel",
+      "alerts": "Peringatan ditampilkan",
+      "notChecked": "Belum diperiksa"
+    },
+    "help": {
+      "title": "Bantuan",
+      "guide": "Panduan",
+      "faq": "FAQ",
+      "userGuide": "Panduan pengguna di web",
+      "support": "Dukungan lewat email"
+    },
+    "amountPreview": "Jumlah",
+    "timeZone": "Zona waktu",
+    "languageHint": "Angka dan tanggal mengikuti bahasa. Waktu ditampilkan dalam zona waktu komputer ini; batas harian direset pukul 00:00 UTC.",
+    "themeHint": {
+      "light": "Permukaan putih. Bawaan.",
+      "dark": "Permukaan gelap untuk cahaya redup.",
+      "contrast": "Hitam dan putih, kontras paling kuat.",
+      "system": "Mengikuti Windows. Sekarang: {{current}}."
+    },
+    "shortcutsHint": "Pintasan berfungsi di luar kolom teks.",
+    "motionHint": "Atur di Windows: Pengaturan, Aksesibilitas, Efek visual, Efek animasi.",
+    "notify": {
+      "lede": "Peringatan muncul di bawah lonceng dan di Dasbor. Komputer ini menyusunnya dari laporan bot Anda. Tidak ada yang dikirim lewat email, ke ponsel, atau sebagai notifikasi Windows.",
+      "group": {
+        "safety": "Keamanan",
+        "bots": "Bot dan trade",
+        "market": "Pasar dan koneksi"
+      },
+      "desc": {
+        "killSwitch": "Stop harian menghentikan bot sinyal, atau pemutus portofolio menghentikan bot DCA dan Grid.",
+        "stopLoss": "Trade sinyal atau siklus DCA/Grid ditutup di stop-nya hari ini.",
+        "vaultAutoLock": "Brankas terkunci sendiri setelah waktu diam yang Anda pilih.",
+        "botError": "Aksi bot gagal, bot tidak bisa masuk karena alasan teknis, atau bot DCA/Grid selesai.",
+        "budget": "Sinyal dilewati karena anggaran, batas posisi, atau batas modal sudah penuh.",
+        "dealClosed": "Trade sinyal dan siklus DCA/Grid yang ditutup hari ini.",
+        "streamDown": "Aliran sinyal Sentinel putus dan masih mencoba lagi.",
+        "regime": "Sentinel menyatakan BTC patah. Long sinyal baru ditolak selama kondisi ini berlangsung."
+      },
+      "severity": {
+        "danger": "Kritis",
+        "warn": "Waspada",
+        "info": "Info"
+      },
+      "activeNow": "Sekarang: {{count}}",
+      "offNote": "Tidak tampil di lonceng. Bot tetap bertindak seperti biasa.",
+      "allOn": "Tampilkan semua"
+    },
+    "devices": {
+      "canTitle": "Yang bisa dilakukan ponsel yang dipasangkan",
+      "can": {
+        "status": "Melihat status bot",
+        "stop": "Menghentikan entri baru di satu bot atau semua bot",
+        "close": "Menutup posisi satu bot atau semua bot",
+        "start": "Menjalankan lagi bot yang berhenti"
+      },
+      "cannotTitle": "Yang tidak bisa dilakukan",
+      "cannot": {
+        "settings": "Mengubah pengaturan atau batas risiko",
+        "keys": "Menambah, membaca, atau mengubah kunci exchange",
+        "live": "Mengaktifkan uang nyata",
+        "funds": "Memindahkan atau menarik dana"
+      },
+      "securityTitle": "Cara pemasangan dilindungi",
+      "security": {
+        "qr": "Kode QR hanya berlaku sekali dan kedaluwarsa setelah 2 menit.",
+        "signed": "Setiap pesan ditandatangani dengan kunci pairing dan diperiksa di komputer ini.",
+        "relay": "Relay hanya meneruskan pesan. Relay tidak bisa mengirim perintah sendiri.",
+        "local": "Bot berjalan di komputer ini. Ponsel mengirim perintah; meja menjalankannya."
+      },
+      "appNote": "Aplikasi ponsel belum dirilis. Pemasangan berfungsi setelah aplikasi dirilis."
+    },
+    "keys": {
+      "requirementsTitle": "Kunci yang perlu ditambahkan",
+      "requirements": {
+        "permissions": "Izin trading aktif, penarikan nonaktif. Di Binance, izin futures juga aktif.",
+        "checked": "Aplikasi membaca izin kunci dari exchange dan menolak kunci yang bisa menarik dana.",
+        "local": "Kunci hanya disimpan di brankas terenkripsi di komputer ini dan tidak pernah dikirim ke ribqa.com.",
+        "optional": "Bot simulasi tidak memerlukan kunci. Dengan kunci, Anda bisa melihat akun exchange dan menutup posisi di sana."
+      },
+      "connectionsTitle": "Koneksi",
+      "sentinelApi": "API Sentinel"
+    },
+    "about": {
+      "tagline": "Aplikasi desktop untuk bot sinyal Sentinel serta bot DCA dan Grid, dalam batas risiko yang Anda tetapkan.",
+      "paperBuild": "Build simulasi",
+      "liveBuild": "Build nyata",
+      "testnetBuild": "Testnet",
+      "buildNote": {
+        "paper": "Build ini hanya bertransaksi secara simulasi. Tombol Tutup di tab Exchange adalah satu-satunya order nyata yang bisa dikirimnya.",
+        "live": "Build ini dapat menempatkan order nyata di Binance Futures, per bot, setelah Anda mengetik LIVE."
+      },
+      "notAdvice": "Perangkat lunak, bukan nasihat keuangan.",
+      "installTitle": "Detail instalasi",
+      "system": "Sistem",
+      "webview": "WebView2",
+      "tauri": "Tauri",
+      "dataDir": "Folder data",
+      "openFolder": "Buka folder",
+      "copyDiagnostics": "Salin diagnostik",
+      "copied": "Disalin",
+      "copyFailed": "Gagal menyalin",
+      "browserPreview": "Pratinjau browser",
+      "dataTitle": "Data Anda",
+      "local": {
+        "title": "Tetap di komputer ini",
+        "keys": "Kunci exchange, di brankas terenkripsi",
+        "bots": "Bot, posisi, riwayat trade, dan backtest",
+        "prefs": "Pengaturan dan pilihan peringatan"
+      },
+      "sentinel": {
+        "title": "Dikirim ke Sentinel (ribqa.com)",
+        "signIn": "Masuk dan pemeriksaan keanggotaan",
+        "stream": "Koneksi aliran sinyal",
+        "market": "Permintaan data pasar untuk pemeriksaan bot dan backtest: funding, kedalaman order book, candle",
+        "none": "Tidak ada kunci, saldo, posisi, atau trade Anda"
+      },
+      "exchanges": {
+        "title": "Dikirim ke exchange",
+        "public": "Permintaan harga, tanpa kunci",
+        "keyed": "Dengan kunci Anda: membaca akun Anda, dan order penutupan yang Anda konfirmasi"
+      },
+      "licenceTitle": "Lisensi dan kode sumber",
+      "licence": "PolyForm Perimeter 1.0.1. Bebas digunakan dan diubah, termasuk di akun exchange Anda sendiri. Tidak diizinkan: menawarkan produk yang bersaing dengan Aleph Edge.",
+      "builtWith": "Dibuat dengan Rust, Tauri 2, dan React.",
+      "source": "Kode sumber",
+      "releases": "Rilis",
+      "licenceText": "Teks lisensi",
+      "contactTitle": "Bantuan dan kontak",
+      "supportEmail": "support@ribqa.com",
+      "securityTitle": "Laporan keamanan",
+      "security": "Kirim email ke support@ribqa.com dengan \"security\" di subjek, dan beri kami waktu untuk memperbaiki masalahnya sebelum Anda memublikasikannya.",
+      "reportSecurity": "Laporkan masalah keamanan"
+    }
   },
   "accountPage": {
     "plan": "Paket",
@@ -1132,7 +1288,63 @@
     "endsAtPeriodEnd": "Berakhir di akhir periode",
     "lastRefresh": "Pembaruan terakhir",
     "service": "Layanan",
-    "refresh": "Perbarui"
+    "refresh": "Perbarui",
+    "signedInHere": "Masuk ke ribqa.com di komputer ini.",
+    "adminChip": "Admin",
+    "membership": "Keanggotaan",
+    "membershipTitle": "Keanggotaan",
+    "billingStatus": "Langganan",
+    "billing": {
+      "active": "Aktif",
+      "trialing": "Uji coba",
+      "past_due": "Pembayaran jatuh tempo",
+      "canceled": "Dibatalkan",
+      "none": "Tidak ada",
+      "incomplete": "Belum lengkap"
+    },
+    "tier": {
+      "aleph": "Aleph",
+      "free": "Gratis",
+      "pro": "Pro",
+      "admin": "Admin"
+    },
+    "noEndDate": "Tanpa tanggal berakhir",
+    "notApplicable": "Tidak berlaku",
+    "lastChecked": "Terakhir diperiksa",
+    "notReadYet": "Belum dibaca",
+    "checkedNote": "Aplikasi membaca keanggotaan saat masuk, saat dibuka, dan saat Anda menekan Perbarui.",
+    "betaNote": "Beta terbuka: setiap akun mendapat paket Aleph, gratis.",
+    "adminNote": "Akun admin punya akses penuh tanpa langganan.",
+    "canTrade": "Bot boleh trading",
+    "yes": "Ya",
+    "no": "Tidak",
+    "coversTitle": "Yang dicakup keanggotaan",
+    "covers": {
+      "stream": "Aliran sinyal Sentinel dan bot sinyal yang mengikutinya",
+      "dcaGrid": "Bot DCA dan Grid, dengan 12 preset yang sudah diuji",
+      "backtest": "Backtest pada riwayat candle Sentinel",
+      "market": "Pemeriksaan pasar sebelum entri: funding dan kedalaman order book"
+    },
+    "coversGate": "Tanpa keanggotaan aktif, tidak ada bot yang membuka trade.",
+    "sessionTitle": "Sesi masuk di komputer ini",
+    "keptIn": "Disimpan di",
+    "keptInValue": "Windows Credential Manager",
+    "afterRestart": "Setelah mulai ulang",
+    "afterRestartValue": "Masuk lagi secara otomatis",
+    "testnet": "Build TESTNET",
+    "testnetValue": "Masuk secara terpisah",
+    "signOutNote": "Keluar memutus aliran sinyal: bot sinyal tidak menerima sinyal baru sampai Anda masuk lagi. Bot, posisi, riwayat, dan kunci exchange tetap di komputer ini.",
+    "signOutConfirmTitle": "Keluar dari Sentinel?",
+    "manageTitle": "Kelola di ribqa.com",
+    "manageNote": "Nama, kata sandi, autentikasi dua faktor, penagihan, dan kunci API dikelola di situs web.",
+    "webAccount": "Profil dan kata sandi",
+    "webBilling": "Penagihan",
+    "webApiKeys": "Kunci API",
+    "glanceTitle": "Sekilas",
+    "stream": "Aliran sinyal",
+    "streamUp": "Terhubung",
+    "streamDown": "Tidak terhubung",
+    "keys": "Kunci exchange"
   },
   "alerts": {
     "title": "Peringatan",
@@ -2065,7 +2277,8 @@
     "closeAllPartial": "Tutup semua tidak menutup setiap posisi. Masih terbuka: {{detail}}. Periksa daftar dan tutup lagi, atau di bursa.",
     "closeCleanupFailed": "Tertutup, tetapi order stop atau take-profit di {{detail}} tidak bisa dibatalkan. Batalkan di bursa.",
     "botCapitalAboveCap": "Modal per posisi di atas batas {{detail}} USDT untuk level risiko Anda. Turunkan, atau naikkan saldo simulasi atau level risiko di Risiko & keamanan.",
-    "vaultSaltMismatch": "Salt brankas ini di keychain sistem telah diganti oleh build Aleph Edge lain, sehingga tidak ada kata sandi yang dapat membukanya. Pilih \"Lupa kata sandi? Setel ulang brankas\" lalu tambahkan kembali kunci bursa Anda."
+    "vaultSaltMismatch": "Salt brankas ini di keychain sistem telah diganti oleh build Aleph Edge lain, sehingga tidak ada kata sandi yang dapat membukanya. Pilih \"Lupa kata sandi? Setel ulang brankas\" lalu tambahkan kembali kunci bursa Anda.",
+    "updateOffTestnet": "Build testnet tidak memasang pembaruan."
   },
   "status": {
     "running": "Berjalan",
@@ -2113,7 +2326,13 @@
     "latest": "Versi terbaru",
     "checkedAt": "Terakhir diperiksa",
     "notChecked": "Belum diperiksa",
-    "signedNote": "Setiap pembaruan diverifikasi dengan kunci tanda tangan di dalam aplikasi sebelum dipasang."
+    "signedNote": "Setiap pembaruan diverifikasi dengan kunci tanda tangan di dalam aplikasi sebelum dipasang.",
+    "published": "Dirilis",
+    "schedule": "Pemeriksaan",
+    "scheduleValue": "Saat dibuka, lalu setiap 6 jam",
+    "notes": "Yang baru",
+    "offTestnet": "Nonaktif di build testnet",
+    "offTestnetNote": "Build testnet tidak memperbarui dirinya sendiri: kanal pembaruan berisi aplikasi normal. Jalankan build testnet dari kode sumber."
   },
   "preflight": {
     "title": "Kesiapan live",

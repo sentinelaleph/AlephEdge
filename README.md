@@ -30,6 +30,7 @@ Aleph Edge is a Rust + [Tauri 2](https://tauri.app) desktop application with a R
   - [Positions and emergency controls](#positions-and-emergency-controls)
   - [Risk and safety](#risk-and-safety)
   - [Exchange key vault](#exchange-key-vault)
+  - [Settings and account](#settings-and-account)
   - [Phone remote control](#phone-remote-control)
 - [Simulation and real orders](#simulation-and-real-orders)
 - [What this is not](#what-this-is-not)
@@ -148,6 +149,12 @@ API keys live in a local vault: Argon2id key derivation (64 MiB), AES-256-GCM, w
 - Change the vault password; choose auto-lock after 5 minutes to 1 month without use. While real money holds an open position the vault does not lock itself.
 - There is no password recovery by design: a lost password means resetting the vault.
 
+### Settings and account
+
+![Settings, About](assets/screenshots/settings-about.webp)
+
+Settings lists its sections with their current state: language and theme, which alert categories the bell shows (each says when it fires and how many are active), phone pairing and what a paired phone can and cannot do, exchange keys, and About. About shows the version and build, the update check, this installation's details with **Copy diagnostics** (no folder paths), where your data goes, the licence and how to reach us. The Account page shows the ribqa.com membership, when the app last checked it, what it covers, where the sign-in is kept, and links to profile, billing and API keys on the website.
+
 ### Phone remote control
 
 Pair a phone by QR code under Settings, Devices. The desk accepts signed, single-use, time-limited pairing and HMAC-verified messages through a relay that carries messages but cannot originate them. The mobile app itself is not published yet.
@@ -210,7 +217,7 @@ The placebo is the one that matters: 1,335 real signals against 6,581 random-tim
 The Windows x64 installer is on the [Releases](https://github.com/sentinelaleph/AlephEdge/releases) page and on [ribqa.com/edge](https://ribqa.com/edge), which also has a screen-by-screen user guide. It is the default build: paper trading only, with the manual close buttons described above. Windows 10 or 11, 64-bit. A macOS build is not released yet.
 
 - The installer is not Authenticode-signed yet. Windows SmartScreen shows a warning: choose **More info**, then **Run anyway**. Each release lists the installer's SHA-256.
-- Updates install from inside the app. It checks the feed at launch and every 6 hours, and **Settings → About** has a manual check. An update installs only if its signature matches the public key built into the app. 0.2.0 updates itself; 0.1.0 needs one manual install.
+- Updates install from inside the app. It checks the feed at launch and every 6 hours, and **Settings → About** has a manual check. An update installs only if its signature matches the public key built into the app. 0.2.0 and later update themselves; 0.1.0 needs one manual install. The TESTNET build never reads the public feed.
 
 ---
 

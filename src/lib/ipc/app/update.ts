@@ -15,6 +15,8 @@ export interface AvailableUpdate {
 export interface UpdateCheck {
   current: string;
   available: AvailableUpdate | null;
+  /** This build does not update itself (the TESTNET build). */
+  off?: boolean;
 }
 
 export interface UpdateProgress {

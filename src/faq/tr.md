@@ -390,13 +390,13 @@ Bir borsadaki gerçek pozisyonları kapatmak için **Pozisyonlar ve emirler → 
 
 ![Ayarlar: Genel sekmesi](shot:settings-page)
 
-Sekmeler: **Genel**, **Bildirimler**, **Cihazlar**, **Borsa anahtarları**, **Hakkında**.
+Bölümler solda, her birinin güncel durumuyla listelenir (dil ve tema, gösterilen uyarılar, telefon, anahtar sayısı, sürüm). Sağ panel bu kurulumu özetler: sürüm, güncelleme durumu, derleme, Binance emirlerinin gittiği yer, kasa, anahtarlar, telefon ve gösterilen uyarılar; altında yardım bağlantıları.
 
-- **Genel:** **Dil** (sayı ve tarih biçimi önizlemesiyle), **Tema** (Açık, Koyu, Yüksek kontrast, Sistem) ve **Klavye kısayolları**. Örnekler: Ctrl+1…9 menülere gider, N yeni bot açar, Ctrl+B kenar çubuğunu daraltır.
-- **Bildirimler:** hangi **Uygulama içi uyarılar**ı göreceğiniz.
-- **Cihazlar:** telefondan uzaktan kontrol için eşleştirme.
-- **Borsa anahtarları:** API anahtarlarınız ve kasa.
-- **Hakkında:** sürüm ve güncellemeler.
+- **Genel:** **Dil** (sayı, tutar, tarih ve saat dilimi önizlemesiyle), **Tema** (Açık, Koyu, Yüksek kontrast, Sistem; her biri önizlemeli) ve **Klavye kısayolları**. Örnekler: Ctrl+1…9 menülere gider, N yeni bot açar, Ctrl+B kenar çubuğunu daraltır.
+- **Bildirimler:** zilin hangi **Uygulama içi uyarılar**ı göstereceği; Güvenlik, Botlar ve işlemler, Piyasa ve bağlantı olarak gruplanır. Her satır uyarının ne zaman çıktığını ve şu an kaç tane olduğunu söyler. Birini gizlemek yalnızca bildirimi gizler; botlar yine buna göre davranır.
+- **Cihazlar:** telefondan uzaktan kontrol için eşleştirme, eşlenen telefonun neler yapıp neler yapamayacağı ve eşleştirmenin nasıl korunduğu.
+- **Borsa anahtarları:** API anahtarlarınız, hangi anahtarın ekleneceği, bağlantı testleri, kasa ve parolası.
+- **Hakkında:** sürüm ve derleme, güncellemeler, kurulum ayrıntıları (sistem, WebView2, uç noktalar, veri klasörü) ve destek için **Tanılama bilgisini kopyala**, verilerinizin nereye gittiği, lisans ve kaynak kod, iletişim. **Tanılama bilgisini kopyala** veri klasörü yolunu ve masaüstü kimliğini içermez.
 
 ![Borsa anahtarları sekmesi: kayıtlı anahtarlar ve kasa](shot:accounts)
 
@@ -420,7 +420,15 @@ Sekmeler: **Genel**, **Bildirimler**, **Cihazlar**, **Borsa anahtarları**, **Ha
 
 ![Hesap sayfası: Sentinel üyeliği](shot:account)
 
-Sentinel (ribqa.com) üyeliğiniz: ad veya e-posta, üyelik durumu, plan, geçerlilik tarihi ve son yenilenme. **Yenile** üyelik bilgisini hemen tazeler; **Çıkış yap** oturumu kapatır.
+Sentinel (ribqa.com) üyeliğiniz. Üstte: adınız ve e-postanız, üyelik durumu ve plan, **Yenile** ve **Çıkış yap**.
+
+- **Üyelik:** plan, abonelik durumu, geçerlilik tarihi (açık betada **Bitiş tarihi yok**) ve **Son denetim**: uygulamanın üyeliği ribqa.com'dan en son ne zaman okuduğu (girişte, açılışta ve **Yenile**'ye basınca).
+- **Üyelik neleri kapsar:** sinyal akışı ve sinyal botları, DCA ve Grid botları, backtest ve girişten önceki piyasa kontrolleri. Aktif üyelik olmadan hiçbir bot işlem açmaz.
+- **Bu bilgisayardaki oturum:** servis, girişin saklandığı yer (Windows Kimlik Bilgileri Yöneticisi) ve TESTNET derlemesinin ayrı giriş yaptığı.
+- **ribqa.com'da yönet:** profil ve parola, ödeme ve API anahtarları web sitesinde açılır.
+- **Sağ panel:** üyelik, plan, botların işlem açıp açamayacağı, sinyal akışı ve borsa anahtarı sayısı.
+
+**Çıkış yap** önce onay ister. Sonrasında siz yeniden giriş yapana kadar sinyal botlarına yeni sinyal gelmez; botlar, pozisyonlar, geçmiş ve borsa anahtarları bu bilgisayarda kalır.
 
 **Uygulamayı kullanmak için neler gerekiyor?** Üç şey: Sentinel'e giriş yapmış olmak, üyeliğin aktif olması ve kasanın açık olması. Biri eksikse uygulama ilgili ekranı gösterir: giriş, üyelik ya da kasa kilidi.
 

@@ -30,6 +30,18 @@ const HOUR = 60 * MIN;
 const now = Date.now();
 const noop = () => Promise.resolve();
 
+/** About screen sample: a typical Windows installation, the user folder anonymised. */
+export const SAMPLE_APP_INFO = {
+  version: "0.3.1",
+  os: "windows",
+  arch: "x86_64",
+  tauri: "2.11.5",
+  webview: "141.0.3537.71",
+  liveBuild: false,
+  identifier: "com.sentinelaleph.edge",
+  dataDir: "C:\\Users\\you\\AppData\\Roaming\\com.sentinelaleph.edge",
+};
+
 export const SAMPLE_MEMBERSHIP: MembershipController = {
   view: {
     authenticated: true,
@@ -39,6 +51,8 @@ export const SAMPLE_MEMBERSHIP: MembershipController = {
     displayName: "Sample account",
     tier: "aleph",
     cancelAtPeriodEnd: false,
+    billingStatus: "active",
+    checkedAtMs: Date.now() - 4 * 60_000,
   },
   initializing: false,
   busy: false,
@@ -614,13 +628,13 @@ export const SAMPLE_DESK_CONTEXT: DeskContextValue = {
     reconnect: noop,
   },
   endpoints: {
-    apiBase: "http://localhost:8080",
-    relayUrl: "ws://localhost:8080",
+    apiBase: "https://ribqa.com",
+    relayUrl: "wss://ribqa.com",
     deskId: "desk-sample",
-    binanceFuturesBase: "http://localhost:8080",
+    binanceFuturesBase: "https://fapi.binance.com",
     binanceIsProduction: true,
   },
-  version: "0.3.0",
+  version: "0.3.1",
   keyedExchanges: SAMPLE_EXCHANGES,
   accountExchanges: ["binance"],
   accountExchange: "binance",

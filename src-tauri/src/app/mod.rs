@@ -3,6 +3,7 @@
 //! connectivity checks), and `health` (the aggregated health model) live here
 //! so the crate root stays at its two entry files (lib.rs, main.rs).
 
+pub mod about;
 pub mod cockpit;
 pub mod commands;
 pub mod endpoints;

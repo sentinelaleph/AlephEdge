@@ -1123,7 +1123,163 @@
     "storageBlocked": "Preferences will not be remembered (storage blocked).",
     "version": "Version",
     "relay": "Relay",
-    "deskId": "Desk id"
+    "deskId": "Desk id",
+    "sectionsLabel": "Settings sections",
+    "navHint": {
+      "general": "Language, theme, shortcuts",
+      "notifications": "What the alerts bell shows",
+      "devices": "Phone remote control",
+      "keys": "API keys, vault, connections",
+      "about": "Version, updates, your data"
+    },
+    "navStatus": {
+      "alerts": "{{on}} of {{total}} shown",
+      "keys": "Keys: {{count}}",
+      "updateAvailable": "{{version}} available"
+    },
+    "summary": {
+      "title": "This installation",
+      "version": "Version",
+      "updates": "Updates",
+      "build": "Build",
+      "orders": "Binance orders",
+      "vault": "Vault",
+      "vaultUnlocked": "Unlocked",
+      "keys": "Exchange keys",
+      "phone": "Phone",
+      "alerts": "Alerts shown",
+      "notChecked": "Not checked yet"
+    },
+    "help": {
+      "title": "Help",
+      "guide": "Guide",
+      "faq": "FAQ",
+      "userGuide": "User guide on the web",
+      "support": "Email support"
+    },
+    "amountPreview": "Amount",
+    "timeZone": "Time zone",
+    "languageHint": "Numbers and dates follow the language. Times are shown in this computer's time zone; daily limits reset at 00:00 UTC.",
+    "themeHint": {
+      "light": "White surfaces. The default.",
+      "dark": "Dark surfaces for low light.",
+      "contrast": "Black and white, strongest contrast.",
+      "system": "Follows Windows. Now: {{current}}."
+    },
+    "shortcutsHint": "Shortcuts work outside text fields.",
+    "motionHint": "Set in Windows: Settings, Accessibility, Visual effects, Animation effects.",
+    "notify": {
+      "lede": "Alerts appear under the bell and on the Dashboard. This computer works them out from what your bots report. Nothing is sent by email, to a phone or as a Windows notification.",
+      "group": {
+        "safety": "Safety",
+        "bots": "Bots and trades",
+        "market": "Market and connection"
+      },
+      "desc": {
+        "killSwitch": "The daily stop stopped the signal bots, or the portfolio breaker stopped the DCA and Grid bots.",
+        "stopLoss": "A signal trade or a DCA/Grid cycle closed at its stop today.",
+        "vaultAutoLock": "The vault locked itself after the idle time you chose.",
+        "botError": "A bot action failed, a bot could not enter for a technical reason, or a DCA/Grid bot ended.",
+        "budget": "A signal was skipped because a budget, a position limit or the capital cap was full.",
+        "dealClosed": "Signal trades and DCA/Grid cycles closed today.",
+        "streamDown": "The Sentinel signal stream is down and still retrying.",
+        "regime": "Sentinel declared a BTC break. New signal longs are refused while it lasts."
+      },
+      "severity": {
+        "danger": "Critical",
+        "warn": "Warning",
+        "info": "Info"
+      },
+      "activeNow": "Now: {{count}}",
+      "offNote": "Hidden from the bell. The bots still act on it.",
+      "allOn": "Show all"
+    },
+    "devices": {
+      "canTitle": "What a paired phone can do",
+      "can": {
+        "status": "See the bots' status",
+        "stop": "Stop new entries on one bot or on all",
+        "close": "Close the positions of one bot or of all",
+        "start": "Start a stopped bot again"
+      },
+      "cannotTitle": "What it cannot do",
+      "cannot": {
+        "settings": "Change settings or risk limits",
+        "keys": "Add, read or change exchange keys",
+        "live": "Switch real money on",
+        "funds": "Move or withdraw funds"
+      },
+      "securityTitle": "How pairing is protected",
+      "security": {
+        "qr": "The QR code works once and expires after 2 minutes.",
+        "signed": "Every message is signed with the pairing key and checked on this computer.",
+        "relay": "The relay only passes messages on. It cannot send a command of its own.",
+        "local": "The bots run on this computer. The phone sends commands; the desk carries them out."
+      },
+      "appNote": "The phone app is not released yet. Pairing works once it is."
+    },
+    "keys": {
+      "requirementsTitle": "Which key to add",
+      "requirements": {
+        "permissions": "Trade permission on, withdrawals off. On Binance, futures permission on too.",
+        "checked": "The app reads the key's permissions from the exchange and refuses a key that can withdraw.",
+        "local": "Keys are stored only in the encrypted vault on this computer and are never sent to ribqa.com.",
+        "optional": "Paper bots need no key. A key lets you see your exchange account and close positions there."
+      },
+      "connectionsTitle": "Connections",
+      "sentinelApi": "Sentinel API"
+    },
+    "about": {
+      "tagline": "A desktop app for Sentinel signal bots and DCA and Grid bots, inside the risk limits you set.",
+      "paperBuild": "Paper build",
+      "liveBuild": "Live build",
+      "testnetBuild": "Testnet",
+      "buildNote": {
+        "paper": "This build trades on paper only. The Close buttons on the Exchange tab are the one real order it can send.",
+        "live": "This build can place real orders on Binance Futures, per bot, after you type LIVE."
+      },
+      "notAdvice": "Software, not financial advice.",
+      "installTitle": "Installation details",
+      "system": "System",
+      "webview": "WebView2",
+      "tauri": "Tauri",
+      "dataDir": "Data folder",
+      "openFolder": "Open folder",
+      "copyDiagnostics": "Copy diagnostics",
+      "copied": "Copied",
+      "copyFailed": "Copy failed",
+      "browserPreview": "Browser preview",
+      "dataTitle": "Your data",
+      "local": {
+        "title": "Stays on this computer",
+        "keys": "Exchange keys, in the encrypted vault",
+        "bots": "Bots, positions, trade history and backtests",
+        "prefs": "Settings and alert choices"
+      },
+      "sentinel": {
+        "title": "Sent to Sentinel (ribqa.com)",
+        "signIn": "Sign-in and the membership check",
+        "stream": "The signal stream connection",
+        "market": "Market data requests for bot checks and backtests: funding, order book depth, candles",
+        "none": "No key, balance, position or trade of yours"
+      },
+      "exchanges": {
+        "title": "Sent to exchanges",
+        "public": "Price requests, without a key",
+        "keyed": "With your key: reading your account, and the close orders you confirm"
+      },
+      "licenceTitle": "Licence and source",
+      "licence": "PolyForm Perimeter 1.0.1. Free to use and change, including on your own exchange account. Not allowed: offering a product that competes with Aleph Edge.",
+      "builtWith": "Built with Rust, Tauri 2 and React.",
+      "source": "Source code",
+      "releases": "Releases",
+      "licenceText": "Licence text",
+      "contactTitle": "Help and contact",
+      "supportEmail": "support@ribqa.com",
+      "securityTitle": "Security reports",
+      "security": "Write to support@ribqa.com with \"security\" in the subject, and give us time to fix the issue before publishing it.",
+      "reportSecurity": "Report a security issue"
+    }
   },
   "accountPage": {
     "plan": "Plan",
@@ -1132,7 +1288,63 @@
     "endsAtPeriodEnd": "Ends at period end",
     "lastRefresh": "Last refresh",
     "service": "Service",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "signedInHere": "Signed in to ribqa.com on this computer.",
+    "adminChip": "Admin",
+    "membership": "Membership",
+    "membershipTitle": "Membership",
+    "billingStatus": "Subscription",
+    "billing": {
+      "active": "Active",
+      "trialing": "Trial",
+      "past_due": "Payment due",
+      "canceled": "Canceled",
+      "none": "None",
+      "incomplete": "Incomplete"
+    },
+    "tier": {
+      "aleph": "Aleph",
+      "free": "Free",
+      "pro": "Pro",
+      "admin": "Admin"
+    },
+    "noEndDate": "No end date",
+    "notApplicable": "Not applicable",
+    "lastChecked": "Last checked",
+    "notReadYet": "Not read yet",
+    "checkedNote": "The app reads the membership at sign-in, at launch and when you press Refresh.",
+    "betaNote": "Open beta: every account has the Aleph plan, free of charge.",
+    "adminNote": "Admin accounts have full access without a subscription.",
+    "canTrade": "Bots may trade",
+    "yes": "Yes",
+    "no": "No",
+    "coversTitle": "What the membership covers",
+    "covers": {
+      "stream": "The Sentinel signal stream and the signal bots that follow it",
+      "dcaGrid": "DCA and Grid bots, with the 12 tested templates",
+      "backtest": "Backtests on Sentinel's candle history",
+      "market": "Market checks before an entry: funding and order book depth"
+    },
+    "coversGate": "Without an active membership no bot opens a trade.",
+    "sessionTitle": "Sign-in on this computer",
+    "keptIn": "Kept in",
+    "keptInValue": "Windows Credential Manager",
+    "afterRestart": "After a restart",
+    "afterRestartValue": "Signed in again automatically",
+    "testnet": "TESTNET build",
+    "testnetValue": "Signs in separately",
+    "signOutNote": "Signing out disconnects the signal stream: signal bots get no new signals until you sign in again. Bots, positions, history and exchange keys stay on this computer.",
+    "signOutConfirmTitle": "Sign out of Sentinel?",
+    "manageTitle": "Manage on ribqa.com",
+    "manageNote": "Name, password, two-factor authentication, billing and API keys are managed on the website.",
+    "webAccount": "Profile and password",
+    "webBilling": "Billing",
+    "webApiKeys": "API keys",
+    "glanceTitle": "At a glance",
+    "stream": "Signal stream",
+    "streamUp": "Connected",
+    "streamDown": "Not connected",
+    "keys": "Exchange keys"
   },
   "alerts": {
     "title": "Alerts",
@@ -2065,7 +2277,8 @@
     "closeAllPartial": "Close all did not close every position. Still open: {{detail}}. Check the list and close them again, or on the exchange.",
     "closeCleanupFailed": "Closed, but the stop or take-profit orders on {{detail}} could not be cancelled. Cancel them on the exchange.",
     "botCapitalAboveCap": "Capital per position is above your risk level's cap of {{detail}} USDT. Lower it, or raise the simulated balance or the risk level on Risk & safety.",
-    "vaultSaltMismatch": "This vault's salt in the system keychain was replaced by another Aleph Edge build, so no password can open it. Choose \"Forgot your password? Reset vault\" and add your exchange keys again."
+    "vaultSaltMismatch": "This vault's salt in the system keychain was replaced by another Aleph Edge build, so no password can open it. Choose \"Forgot your password? Reset vault\" and add your exchange keys again.",
+    "updateOffTestnet": "The testnet build does not install updates."
   },
   "status": {
     "running": "Running",
@@ -2113,7 +2326,13 @@
     "latest": "Latest version",
     "checkedAt": "Last checked",
     "notChecked": "Not checked yet",
-    "signedNote": "Every update is verified against the signing key built into the app before it installs."
+    "signedNote": "Every update is verified against the signing key built into the app before it installs.",
+    "published": "Published",
+    "schedule": "Checks",
+    "scheduleValue": "At launch, then every 6 hours",
+    "notes": "What's new",
+    "offTestnet": "Off in the testnet build",
+    "offTestnetNote": "The testnet build does not update itself: the update feed carries the normal app. Run the testnet build from the source tree."
   },
   "preflight": {
     "title": "Live readiness",

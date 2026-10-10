@@ -16,6 +16,16 @@ use tauri::{AppHandle, Emitter};
 pub struct UpdateCheck {
     pub current: String,
     pub available: Option<AvailableUpdate>,
+    /// This build does not update itself (the TESTNET identity): the feed is
+    /// never read and nothing is offered.
+    pub off: bool,
+}
+
+/// The public feed ships the normal build under the normal identity.
+/// Offered to the TESTNET build, its installer replaced the normal app and
+/// closed the testnet one (10 Oct 2026), so that build never reads the feed.
+pub fn updates_off(identifier: &str) -> bool {
+    identifier.ends_with(".testnet")
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -41,6 +51,9 @@ pub const UPDATE_CONFIRMATION: &str = "UPDATE";
 
 #[tauri::command]
 pub async fn app_check_update(app: AppHandle) -> Result<UpdateCheck, String> {
+    if updates_off(&app.config().identifier) {
+        return Ok(UpdateCheck { current: app.package_info().version.to_string(), available: None, off: true });
+    }
     check(&app).await
 }
 
@@ -48,6 +61,9 @@ pub async fn app_check_update(app: AppHandle) -> Result<UpdateCheck, String> {
 pub async fn app_install_update(app: AppHandle, confirmation: String) -> Result<(), String> {
     if confirmation.trim() != UPDATE_CONFIRMATION {
         return Err(format!("updateConfirmRequired|{UPDATE_CONFIRMATION}"));
+    }
+    if updates_off(&app.config().identifier) {
+        return Err("updateOffTestnet".to_string());
     }
     // The public feed ships the default (paper) build. Installing it over a
     // live build with real money in play would leave real positions with no
@@ -69,6 +85,7 @@ async fn check(app: &AppHandle) -> Result<UpdateCheck, String> {
     let found = updater.check().await.map_err(|e| format!("updateCheckFailed|{e}"))?;
     Ok(UpdateCheck {
         current,
+        off: false,
         available: found.map(|u| AvailableUpdate {
             version: u.version.clone(),
             notes: u.body.clone(),
@@ -103,10 +120,21 @@ async fn install(app: &AppHandle) -> Result<(), String> {
 
 #[cfg(not(desktop))]
 async fn check(app: &AppHandle) -> Result<UpdateCheck, String> {
-    Ok(UpdateCheck { current: app.package_info().version.to_string(), available: None })
+    Ok(UpdateCheck { current: app.package_info().version.to_string(), available: None, off: false })
 }
 
 #[cfg(not(desktop))]
 async fn install(_app: &AppHandle) -> Result<(), String> {
     Err("updateNone".to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::updates_off;
+
+    #[test]
+    fn only_the_testnet_identity_skips_the_public_feed() {
+        assert!(updates_off("com.sentinelaleph.edge.testnet"));
+        assert!(!updates_off("com.sentinelaleph.edge"));
+    }
 }

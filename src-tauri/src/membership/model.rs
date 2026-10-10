@@ -144,6 +144,15 @@ pub struct MembershipView {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub current_period_end: Option<String>,
     pub cancel_at_period_end: bool,
+    /// The account's role is admin: full access, no billing record.
+    pub admin: bool,
+    /// The billing status as the server sent it ("active", "trialing", ...).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub billing_status: Option<String>,
+    /// When this app last read the membership from the server (UNIX ms):
+    /// at sign-in, at launch and on Refresh.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub checked_at_ms: Option<i64>,
 }
 
 impl MembershipView {
@@ -159,6 +168,9 @@ impl MembershipView {
             tier: None,
             current_period_end: None,
             cancel_at_period_end: false,
+            admin: false,
+            billing_status: None,
+            checked_at_ms: None,
         }
     }
 }

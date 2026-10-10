@@ -1123,7 +1123,163 @@
     "storageBlocked": "Las preferencias no se recordarán (almacenamiento bloqueado).",
     "version": "Versión",
     "relay": "Relay",
-    "deskId": "ID del escritorio"
+    "deskId": "ID del escritorio",
+    "sectionsLabel": "Secciones de ajustes",
+    "navHint": {
+      "general": "Idioma, tema, atajos",
+      "notifications": "Qué muestra la campana de alertas",
+      "devices": "Control remoto por teléfono",
+      "keys": "Claves API, bóveda, conexiones",
+      "about": "Versión, actualizaciones, tus datos"
+    },
+    "navStatus": {
+      "alerts": "{{on}} de {{total}} visibles",
+      "keys": "Claves: {{count}}",
+      "updateAvailable": "{{version}} disponible"
+    },
+    "summary": {
+      "title": "Esta instalación",
+      "version": "Versión",
+      "updates": "Actualizaciones",
+      "build": "Compilación",
+      "orders": "Órdenes de Binance",
+      "vault": "Bóveda",
+      "vaultUnlocked": "Desbloqueada",
+      "keys": "Claves de exchange",
+      "phone": "Teléfono",
+      "alerts": "Alertas visibles",
+      "notChecked": "Aún sin comprobar"
+    },
+    "help": {
+      "title": "Ayuda",
+      "guide": "Guía",
+      "faq": "Preguntas frecuentes",
+      "userGuide": "Guía de usuario en la web",
+      "support": "Soporte por correo"
+    },
+    "amountPreview": "Importe",
+    "timeZone": "Zona horaria",
+    "languageHint": "Los números y las fechas siguen el idioma. Las horas se muestran en la zona horaria de este equipo; los límites diarios se reinician a las 00:00 UTC.",
+    "themeHint": {
+      "light": "Superficies blancas. Opción predeterminada.",
+      "dark": "Superficies oscuras para poca luz.",
+      "contrast": "Blanco y negro, máximo contraste.",
+      "system": "Sigue a Windows. Ahora: {{current}}."
+    },
+    "shortcutsHint": "Los atajos funcionan fuera de los campos de texto.",
+    "motionHint": "Se ajusta en Windows: Configuración, Accesibilidad, Efectos visuales, Efectos de animación.",
+    "notify": {
+      "lede": "Las alertas aparecen bajo la campana y en el Panel. Este equipo las calcula a partir de lo que informan tus bots. No se envía nada por correo, a un teléfono ni como notificación de Windows.",
+      "group": {
+        "safety": "Seguridad",
+        "bots": "Bots y operaciones",
+        "market": "Mercado y conexión"
+      },
+      "desc": {
+        "killSwitch": "El stop diario detuvo los bots de señales, o el cortacircuitos de cartera detuvo los bots DCA y Grid.",
+        "stopLoss": "Una operación de señal o un ciclo DCA/Grid cerró hoy en su stop.",
+        "vaultAutoLock": "La bóveda se bloqueó sola tras el tiempo de inactividad que elegiste.",
+        "botError": "Falló una acción de un bot, un bot no pudo entrar por un motivo técnico o un bot DCA/Grid finalizó.",
+        "budget": "Se omitió una señal porque un presupuesto, un límite de posiciones o el tope de capital estaba lleno.",
+        "dealClosed": "Operaciones de señales y ciclos DCA/Grid cerrados hoy.",
+        "streamDown": "El flujo de señales de Sentinel está caído y sigue reintentando.",
+        "regime": "Sentinel declaró una ruptura de BTC. Los nuevos longs de señales se rechazan mientras dure."
+      },
+      "severity": {
+        "danger": "Crítico",
+        "warn": "Advertencia",
+        "info": "Info"
+      },
+      "activeNow": "Ahora: {{count}}",
+      "offNote": "No aparece en la campana. Los bots siguen actuando igual.",
+      "allOn": "Mostrar todas"
+    },
+    "devices": {
+      "canTitle": "Qué puede hacer un teléfono emparejado",
+      "can": {
+        "status": "Ver el estado de los bots",
+        "stop": "Detener nuevas entradas en un bot o en todos",
+        "close": "Cerrar las posiciones de un bot o de todos",
+        "start": "Volver a iniciar un bot detenido"
+      },
+      "cannotTitle": "Qué no puede hacer",
+      "cannot": {
+        "settings": "Cambiar ajustes o límites de riesgo",
+        "keys": "Agregar, leer o cambiar claves de exchange",
+        "live": "Activar el dinero real",
+        "funds": "Mover o retirar fondos"
+      },
+      "securityTitle": "Cómo se protege el emparejamiento",
+      "security": {
+        "qr": "El código QR funciona una sola vez y caduca a los 2 minutos.",
+        "signed": "Cada mensaje se firma con la clave de emparejamiento y se comprueba en este equipo.",
+        "relay": "El relay solo reenvía mensajes. No puede enviar un comando propio.",
+        "local": "Los bots se ejecutan en este equipo. El teléfono envía comandos; el escritorio los ejecuta."
+      },
+      "appNote": "La app móvil aún no está publicada. El emparejamiento funcionará cuando lo esté."
+    },
+    "keys": {
+      "requirementsTitle": "Qué clave agregar",
+      "requirements": {
+        "permissions": "Permiso de trading activado, retiros desactivados. En Binance, también el permiso de futuros activado.",
+        "checked": "La app lee los permisos de la clave desde el exchange y rechaza una clave que pueda retirar.",
+        "local": "Las claves se guardan solo en la bóveda cifrada de este equipo y nunca se envían a ribqa.com.",
+        "optional": "Los bots simulados no necesitan clave. Una clave te permite ver tu cuenta del exchange y cerrar posiciones en ella."
+      },
+      "connectionsTitle": "Conexiones",
+      "sentinelApi": "API de Sentinel"
+    },
+    "about": {
+      "tagline": "Una app de escritorio para bots de señales de Sentinel y bots DCA y Grid, dentro de los límites de riesgo que tú fijas.",
+      "paperBuild": "Compilación simulada",
+      "liveBuild": "Compilación real",
+      "testnetBuild": "Testnet",
+      "buildNote": {
+        "paper": "Esta compilación opera solo en simulado. Los botones Cerrar de la pestaña Exchange son la única orden real que puede enviar.",
+        "live": "Esta compilación puede colocar órdenes reales en Binance Futures, por bot, después de que escribas LIVE."
+      },
+      "notAdvice": "Software, no asesoramiento financiero.",
+      "installTitle": "Detalles de la instalación",
+      "system": "Sistema",
+      "webview": "WebView2",
+      "tauri": "Tauri",
+      "dataDir": "Carpeta de datos",
+      "openFolder": "Abrir carpeta",
+      "copyDiagnostics": "Copiar diagnóstico",
+      "copied": "Copiado",
+      "copyFailed": "No se pudo copiar",
+      "browserPreview": "Vista previa en navegador",
+      "dataTitle": "Tus datos",
+      "local": {
+        "title": "Se queda en este equipo",
+        "keys": "Claves de exchange, en la bóveda cifrada",
+        "bots": "Bots, posiciones, historial de operaciones y backtests",
+        "prefs": "Ajustes y preferencias de alertas"
+      },
+      "sentinel": {
+        "title": "Se envía a Sentinel (ribqa.com)",
+        "signIn": "Inicio de sesión y verificación de membresía",
+        "stream": "La conexión del flujo de señales",
+        "market": "Solicitudes de datos de mercado para comprobaciones de bots y backtests: funding, profundidad del libro de órdenes, velas",
+        "none": "Ninguna clave, saldo, posición ni operación tuya"
+      },
+      "exchanges": {
+        "title": "Se envía a los exchanges",
+        "public": "Solicitudes de precios, sin clave",
+        "keyed": "Con tu clave: la lectura de tu cuenta y las órdenes de cierre que confirmes"
+      },
+      "licenceTitle": "Licencia y código fuente",
+      "licence": "PolyForm Perimeter 1.0.1. Uso y modificación libres, también en tu propia cuenta de exchange. No permitido: ofrecer un producto que compita con Aleph Edge.",
+      "builtWith": "Hecho con Rust, Tauri 2 y React.",
+      "source": "Código fuente",
+      "releases": "Lanzamientos",
+      "licenceText": "Texto de la licencia",
+      "contactTitle": "Ayuda y contacto",
+      "supportEmail": "support@ribqa.com",
+      "securityTitle": "Informes de seguridad",
+      "security": "Escribe a support@ribqa.com con \"security\" en el asunto y danos tiempo para corregir el problema antes de publicarlo.",
+      "reportSecurity": "Informar de un problema de seguridad"
+    }
   },
   "accountPage": {
     "plan": "Plan",
@@ -1132,7 +1288,63 @@
     "endsAtPeriodEnd": "Termina al final del periodo",
     "lastRefresh": "Última actualización",
     "service": "Servicio",
-    "refresh": "Actualizar"
+    "refresh": "Actualizar",
+    "signedInHere": "Sesión iniciada en ribqa.com en este equipo.",
+    "adminChip": "Admin",
+    "membership": "Membresía",
+    "membershipTitle": "Membresía",
+    "billingStatus": "Suscripción",
+    "billing": {
+      "active": "Activa",
+      "trialing": "Prueba",
+      "past_due": "Pago pendiente",
+      "canceled": "Cancelada",
+      "none": "Ninguna",
+      "incomplete": "Incompleta"
+    },
+    "tier": {
+      "aleph": "Aleph",
+      "free": "Gratis",
+      "pro": "Pro",
+      "admin": "Admin"
+    },
+    "noEndDate": "Sin fecha de fin",
+    "notApplicable": "No aplica",
+    "lastChecked": "Última comprobación",
+    "notReadYet": "Aún sin leer",
+    "checkedNote": "La app lee la membresía al iniciar sesión, al abrirse y cuando pulsas Actualizar.",
+    "betaNote": "Beta abierta: todas las cuentas tienen el plan Aleph, sin coste.",
+    "adminNote": "Las cuentas de administrador tienen acceso completo sin suscripción.",
+    "canTrade": "Los bots pueden operar",
+    "yes": "Sí",
+    "no": "No",
+    "coversTitle": "Qué cubre la membresía",
+    "covers": {
+      "stream": "El flujo de señales de Sentinel y los bots de señales que lo siguen",
+      "dcaGrid": "Bots DCA y Grid, con los 12 preajustes probados",
+      "backtest": "Backtests sobre el historial de velas de Sentinel",
+      "market": "Comprobaciones de mercado antes de una entrada: funding y profundidad del libro de órdenes"
+    },
+    "coversGate": "Sin una membresía activa ningún bot abre operaciones.",
+    "sessionTitle": "Sesión en este equipo",
+    "keptIn": "Guardada en",
+    "keptInValue": "Administrador de credenciales de Windows",
+    "afterRestart": "Tras reiniciar",
+    "afterRestartValue": "Se vuelve a iniciar sesión automáticamente",
+    "testnet": "Compilación TESTNET",
+    "testnetValue": "Inicia sesión por separado",
+    "signOutNote": "Cerrar sesión desconecta el flujo de señales: los bots de señales no reciben señales nuevas hasta que vuelvas a iniciar sesión. Los bots, las posiciones, el historial y las claves de exchange se quedan en este equipo.",
+    "signOutConfirmTitle": "¿Cerrar sesión en Sentinel?",
+    "manageTitle": "Gestionar en ribqa.com",
+    "manageNote": "El nombre, la contraseña, la autenticación en dos pasos, la facturación y las claves API se gestionan en el sitio web.",
+    "webAccount": "Perfil y contraseña",
+    "webBilling": "Facturación",
+    "webApiKeys": "Claves API",
+    "glanceTitle": "De un vistazo",
+    "stream": "Flujo de señales",
+    "streamUp": "Conectado",
+    "streamDown": "Sin conexión",
+    "keys": "Claves de exchange"
   },
   "alerts": {
     "title": "Alertas",
@@ -2065,7 +2277,8 @@
     "closeAllPartial": "Cerrar todo no cerró todas las posiciones. Siguen abiertas: {{detail}}. Revisa la lista y ciérralas de nuevo, o en el exchange.",
     "closeCleanupFailed": "Cerrada, pero no se pudieron cancelar las órdenes de stop o take-profit en {{detail}}. Cancélalas en el exchange.",
     "botCapitalAboveCap": "El capital por posición supera el tope de {{detail}} USDT de tu nivel de riesgo. Bájalo, o sube el saldo simulado o el nivel de riesgo en Riesgo y seguridad.",
-    "vaultSaltMismatch": "Otra compilación de Aleph Edge reemplazó la sal de esta bóveda en el llavero del sistema, así que ninguna contraseña puede abrirla. Elige \"¿Olvidaste tu contraseña? Restablecer bóveda\" y vuelve a añadir tus claves de exchange."
+    "vaultSaltMismatch": "Otra compilación de Aleph Edge reemplazó la sal de esta bóveda en el llavero del sistema, así que ninguna contraseña puede abrirla. Elige \"¿Olvidaste tu contraseña? Restablecer bóveda\" y vuelve a añadir tus claves de exchange.",
+    "updateOffTestnet": "La compilación testnet no instala actualizaciones."
   },
   "status": {
     "running": "En marcha",
@@ -2113,7 +2326,13 @@
     "latest": "Última versión",
     "checkedAt": "Última comprobación",
     "notChecked": "Aún sin comprobar",
-    "signedNote": "Cada actualización se verifica con la clave de firma incluida en la app antes de instalarse."
+    "signedNote": "Cada actualización se verifica con la clave de firma incluida en la app antes de instalarse.",
+    "published": "Publicación",
+    "schedule": "Comprobaciones",
+    "scheduleValue": "Al iniciar y luego cada 6 horas",
+    "notes": "Novedades",
+    "offTestnet": "Desactivado en la compilación testnet",
+    "offTestnetNote": "La compilación testnet no se actualiza sola: el canal de actualizaciones contiene la app normal. Ejecute la compilación testnet desde el código fuente."
   },
   "preflight": {
     "title": "Preparación para real",

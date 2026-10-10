@@ -1123,7 +1123,163 @@
     "storageBlocked": "Tùy chọn sẽ không được ghi nhớ (bộ nhớ bị chặn).",
     "version": "Phiên bản",
     "relay": "Relay",
-    "deskId": "Mã bàn"
+    "deskId": "Mã bàn",
+    "sectionsLabel": "Các mục cài đặt",
+    "navHint": {
+      "general": "Ngôn ngữ, giao diện, phím tắt",
+      "notifications": "Những gì chuông cảnh báo hiển thị",
+      "devices": "Điều khiển từ xa bằng điện thoại",
+      "keys": "Khóa API, kho khóa, kết nối",
+      "about": "Phiên bản, cập nhật, dữ liệu của bạn"
+    },
+    "navStatus": {
+      "alerts": "Hiển thị {{on}} trên {{total}}",
+      "keys": "Khóa: {{count}}",
+      "updateAvailable": "Có bản {{version}}"
+    },
+    "summary": {
+      "title": "Bản cài đặt này",
+      "version": "Phiên bản",
+      "updates": "Cập nhật",
+      "build": "Bản dựng",
+      "orders": "Lệnh Binance",
+      "vault": "Kho khóa",
+      "vaultUnlocked": "Đã mở khóa",
+      "keys": "Khóa sàn",
+      "phone": "Điện thoại",
+      "alerts": "Cảnh báo hiển thị",
+      "notChecked": "Chưa kiểm tra"
+    },
+    "help": {
+      "title": "Trợ giúp",
+      "guide": "Hướng dẫn",
+      "faq": "Câu hỏi thường gặp",
+      "userGuide": "Hướng dẫn sử dụng trên web",
+      "support": "Hỗ trợ qua email"
+    },
+    "amountPreview": "Số tiền",
+    "timeZone": "Múi giờ",
+    "languageHint": "Số và ngày theo ngôn ngữ. Giờ hiển thị theo múi giờ của máy tính này; giới hạn ngày được đặt lại lúc 00:00 UTC.",
+    "themeHint": {
+      "light": "Nền trắng. Mặc định.",
+      "dark": "Nền tối cho nơi thiếu sáng.",
+      "contrast": "Đen và trắng, tương phản mạnh nhất.",
+      "system": "Theo Windows. Hiện tại: {{current}}."
+    },
+    "shortcutsHint": "Phím tắt hoạt động bên ngoài ô nhập văn bản.",
+    "motionHint": "Đặt trong Windows: Settings, Accessibility, Visual effects, Animation effects.",
+    "notify": {
+      "lede": "Cảnh báo hiện dưới biểu tượng chuông và trên Bảng điều khiển. Máy tính này tạo cảnh báo từ những gì bot của bạn báo về. Không có gì được gửi qua email, tới điện thoại hay dưới dạng thông báo Windows.",
+      "group": {
+        "safety": "An toàn",
+        "bots": "Bot và giao dịch",
+        "market": "Thị trường và kết nối"
+      },
+      "desc": {
+        "killSwitch": "Dừng ngày đã dừng các bot tín hiệu, hoặc ngắt danh mục đã dừng các bot DCA và Grid.",
+        "stopLoss": "Một giao dịch tín hiệu hoặc một chu kỳ DCA/Grid đã đóng tại stop hôm nay.",
+        "vaultAutoLock": "Kho khóa tự khóa sau thời gian không hoạt động bạn đã chọn.",
+        "botError": "Một thao tác của bot thất bại, một bot không thể vào lệnh vì lý do kỹ thuật, hoặc một bot DCA/Grid đã kết thúc.",
+        "budget": "Một tín hiệu bị bỏ qua vì ngân sách, giới hạn vị thế hoặc trần vốn đã đầy.",
+        "dealClosed": "Giao dịch tín hiệu và chu kỳ DCA/Grid đã đóng hôm nay.",
+        "streamDown": "Luồng tín hiệu Sentinel đang gián đoạn và vẫn đang thử lại.",
+        "regime": "Sentinel xác nhận BTC gãy. Lệnh long tín hiệu mới bị từ chối trong thời gian đó."
+      },
+      "severity": {
+        "danger": "Nghiêm trọng",
+        "warn": "Cảnh báo",
+        "info": "Thông tin"
+      },
+      "activeNow": "Hiện tại: {{count}}",
+      "offNote": "Ẩn khỏi chuông. Bot vẫn xử lý như bình thường.",
+      "allOn": "Hiện tất cả"
+    },
+    "devices": {
+      "canTitle": "Điện thoại đã ghép nối có thể làm gì",
+      "can": {
+        "status": "Xem trạng thái các bot",
+        "stop": "Dừng vào lệnh mới trên một bot hoặc tất cả bot",
+        "close": "Đóng vị thế của một bot hoặc tất cả bot",
+        "start": "Chạy lại bot đã dừng"
+      },
+      "cannotTitle": "Những gì không thể làm",
+      "cannot": {
+        "settings": "Thay đổi cài đặt hoặc giới hạn rủi ro",
+        "keys": "Thêm, đọc hoặc thay đổi khóa sàn",
+        "live": "Bật tiền thật",
+        "funds": "Chuyển hoặc rút tiền"
+      },
+      "securityTitle": "Cách bảo vệ ghép nối",
+      "security": {
+        "qr": "Mã QR chỉ dùng được một lần và hết hạn sau 2 phút.",
+        "signed": "Mọi tin nhắn đều được ký bằng khóa ghép nối và kiểm tra trên máy tính này.",
+        "relay": "Relay chỉ chuyển tiếp tin nhắn. Relay không thể tự gửi lệnh điều khiển.",
+        "local": "Các bot chạy trên máy tính này. Điện thoại gửi lệnh điều khiển; bàn giao dịch thực hiện chúng."
+      },
+      "appNote": "Ứng dụng điện thoại chưa phát hành. Ghép nối sẽ hoạt động khi ứng dụng được phát hành."
+    },
+    "keys": {
+      "requirementsTitle": "Nên thêm khóa nào",
+      "requirements": {
+        "permissions": "Bật quyền giao dịch, tắt quyền rút tiền. Trên Binance, bật cả quyền futures.",
+        "checked": "Ứng dụng đọc quyền của khóa từ sàn và từ chối khóa có thể rút tiền.",
+        "local": "Khóa chỉ được lưu trong kho khóa mã hóa trên máy tính này và không bao giờ được gửi tới ribqa.com.",
+        "optional": "Bot mô phỏng không cần khóa. Có khóa, bạn xem được tài khoản sàn và đóng vị thế trên đó."
+      },
+      "connectionsTitle": "Kết nối",
+      "sentinelApi": "API Sentinel"
+    },
+    "about": {
+      "tagline": "Ứng dụng máy tính cho bot tín hiệu Sentinel cùng bot DCA và Grid, trong giới hạn rủi ro bạn đặt.",
+      "paperBuild": "Bản dựng mô phỏng",
+      "liveBuild": "Bản dựng thật",
+      "testnetBuild": "Testnet",
+      "buildNote": {
+        "paper": "Bản dựng này chỉ giao dịch mô phỏng. Các nút Đóng ở thẻ Sàn là lệnh thật duy nhất nó có thể gửi.",
+        "live": "Bản dựng này có thể đặt lệnh thật trên Binance Futures, theo từng bot, sau khi bạn gõ LIVE."
+      },
+      "notAdvice": "Phần mềm, không phải lời khuyên tài chính.",
+      "installTitle": "Chi tiết cài đặt",
+      "system": "Hệ thống",
+      "webview": "WebView2",
+      "tauri": "Tauri",
+      "dataDir": "Thư mục dữ liệu",
+      "openFolder": "Mở thư mục",
+      "copyDiagnostics": "Sao chép thông tin chẩn đoán",
+      "copied": "Đã sao chép",
+      "copyFailed": "Sao chép thất bại",
+      "browserPreview": "Xem trước trên trình duyệt",
+      "dataTitle": "Dữ liệu của bạn",
+      "local": {
+        "title": "Ở lại trên máy tính này",
+        "keys": "Khóa sàn, trong kho khóa mã hóa",
+        "bots": "Bot, vị thế, lịch sử giao dịch và backtest",
+        "prefs": "Cài đặt và lựa chọn cảnh báo"
+      },
+      "sentinel": {
+        "title": "Gửi tới Sentinel (ribqa.com)",
+        "signIn": "Đăng nhập và kiểm tra tư cách thành viên",
+        "stream": "Kết nối luồng tín hiệu",
+        "market": "Yêu cầu dữ liệu thị trường cho kiểm tra bot và backtest: funding, độ sâu sổ lệnh, nến",
+        "none": "Không có khóa, số dư, vị thế hay giao dịch nào của bạn"
+      },
+      "exchanges": {
+        "title": "Gửi tới sàn",
+        "public": "Yêu cầu giá, không dùng khóa",
+        "keyed": "Với khóa của bạn: đọc tài khoản của bạn, và các lệnh đóng bạn xác nhận"
+      },
+      "licenceTitle": "Giấy phép và mã nguồn",
+      "licence": "PolyForm Perimeter 1.0.1. Được tự do sử dụng và sửa đổi, kể cả trên tài khoản sàn của chính bạn. Không được phép: cung cấp sản phẩm cạnh tranh với Aleph Edge.",
+      "builtWith": "Xây dựng bằng Rust, Tauri 2 và React.",
+      "source": "Mã nguồn",
+      "releases": "Bản phát hành",
+      "licenceText": "Văn bản giấy phép",
+      "contactTitle": "Trợ giúp và liên hệ",
+      "supportEmail": "support@ribqa.com",
+      "securityTitle": "Báo cáo bảo mật",
+      "security": "Gửi email tới support@ribqa.com với \"security\" trong tiêu đề, và cho chúng tôi thời gian khắc phục sự cố trước khi bạn công bố.",
+      "reportSecurity": "Báo cáo sự cố bảo mật"
+    }
   },
   "accountPage": {
     "plan": "Gói",
@@ -1132,7 +1288,63 @@
     "endsAtPeriodEnd": "Kết thúc cuối kỳ",
     "lastRefresh": "Làm mới gần nhất",
     "service": "Dịch vụ",
-    "refresh": "Làm mới"
+    "refresh": "Làm mới",
+    "signedInHere": "Đã đăng nhập ribqa.com trên máy tính này.",
+    "adminChip": "Quản trị",
+    "membership": "Tư cách thành viên",
+    "membershipTitle": "Tư cách thành viên",
+    "billingStatus": "Gói đăng ký",
+    "billing": {
+      "active": "Đang hoạt động",
+      "trialing": "Dùng thử",
+      "past_due": "Đến hạn thanh toán",
+      "canceled": "Đã hủy",
+      "none": "Không có",
+      "incomplete": "Chưa hoàn tất"
+    },
+    "tier": {
+      "aleph": "Aleph",
+      "free": "Miễn phí",
+      "pro": "Pro",
+      "admin": "Quản trị"
+    },
+    "noEndDate": "Không có ngày kết thúc",
+    "notApplicable": "Không áp dụng",
+    "lastChecked": "Lần kiểm tra cuối",
+    "notReadYet": "Chưa đọc",
+    "checkedNote": "Ứng dụng đọc tư cách thành viên khi đăng nhập, khi khởi động và khi bạn nhấn Làm mới.",
+    "betaNote": "Beta mở: mọi tài khoản đều có gói Aleph, miễn phí.",
+    "adminNote": "Tài khoản quản trị có toàn quyền truy cập mà không cần gói đăng ký.",
+    "canTrade": "Bot được phép giao dịch",
+    "yes": "Có",
+    "no": "Không",
+    "coversTitle": "Tư cách thành viên bao gồm những gì",
+    "covers": {
+      "stream": "Luồng tín hiệu Sentinel và các bot tín hiệu theo luồng đó",
+      "dcaGrid": "Bot DCA và Grid, với 12 cấu hình mẫu đã kiểm thử",
+      "backtest": "Backtest trên lịch sử nến của Sentinel",
+      "market": "Kiểm tra thị trường trước khi vào lệnh: funding và độ sâu sổ lệnh"
+    },
+    "coversGate": "Không có tư cách thành viên đang hoạt động thì không bot nào mở giao dịch.",
+    "sessionTitle": "Đăng nhập trên máy tính này",
+    "keptIn": "Lưu trong",
+    "keptInValue": "Windows Credential Manager",
+    "afterRestart": "Sau khi khởi động lại",
+    "afterRestartValue": "Tự động đăng nhập lại",
+    "testnet": "Bản dựng TESTNET",
+    "testnetValue": "Đăng nhập riêng",
+    "signOutNote": "Đăng xuất sẽ ngắt luồng tín hiệu: bot tín hiệu không nhận tín hiệu mới cho đến khi bạn đăng nhập lại. Bot, vị thế, lịch sử và khóa sàn vẫn ở trên máy tính này.",
+    "signOutConfirmTitle": "Đăng xuất khỏi Sentinel?",
+    "manageTitle": "Quản lý trên ribqa.com",
+    "manageNote": "Tên, mật khẩu, xác thực hai yếu tố, thanh toán và khóa API được quản lý trên trang web.",
+    "webAccount": "Hồ sơ và mật khẩu",
+    "webBilling": "Thanh toán",
+    "webApiKeys": "Khóa API",
+    "glanceTitle": "Tổng quan",
+    "stream": "Luồng tín hiệu",
+    "streamUp": "Đã kết nối",
+    "streamDown": "Chưa kết nối",
+    "keys": "Khóa sàn"
   },
   "alerts": {
     "title": "Cảnh báo",
@@ -2065,7 +2277,8 @@
     "closeAllPartial": "Đóng tất cả chưa đóng được mọi vị thế. Vẫn mở: {{detail}}. Hãy kiểm tra danh sách và đóng lại, hoặc đóng trên sàn.",
     "closeCleanupFailed": "Đã đóng, nhưng không hủy được lệnh dừng lỗ hoặc chốt lời trên {{detail}}. Hãy hủy chúng trên sàn.",
     "botCapitalAboveCap": "Vốn mỗi vị thế vượt trần {{detail}} USDT của mức rủi ro hiện tại. Hãy giảm vốn, hoặc tăng số dư mô phỏng hay mức rủi ro trong Rủi ro & an toàn.",
-    "vaultSaltMismatch": "Salt của kho này trong chuỗi khóa hệ thống đã bị một bản dựng Aleph Edge khác thay thế, nên không mật khẩu nào mở được. Chọn \"Quên mật khẩu? Đặt lại kho\" và thêm lại khóa sàn của bạn."
+    "vaultSaltMismatch": "Salt của kho này trong chuỗi khóa hệ thống đã bị một bản dựng Aleph Edge khác thay thế, nên không mật khẩu nào mở được. Chọn \"Quên mật khẩu? Đặt lại kho\" và thêm lại khóa sàn của bạn.",
+    "updateOffTestnet": "Bản dựng testnet không cài đặt bản cập nhật."
   },
   "status": {
     "running": "Đang chạy",
@@ -2113,7 +2326,13 @@
     "latest": "Phiên bản mới nhất",
     "checkedAt": "Lần kiểm tra cuối",
     "notChecked": "Chưa kiểm tra",
-    "signedNote": "Mỗi bản cập nhật được xác minh bằng khóa ký tích hợp trong ứng dụng trước khi cài."
+    "signedNote": "Mỗi bản cập nhật được xác minh bằng khóa ký tích hợp trong ứng dụng trước khi cài.",
+    "published": "Ngày phát hành",
+    "schedule": "Kiểm tra",
+    "scheduleValue": "Khi khởi động, sau đó mỗi 6 giờ",
+    "notes": "Có gì mới",
+    "offTestnet": "Tắt trong bản dựng testnet",
+    "offTestnetNote": "Bản dựng testnet không tự cập nhật: kênh cập nhật chứa ứng dụng thường. Hãy chạy bản dựng testnet từ mã nguồn."
   },
   "preflight": {
     "title": "Sẵn sàng giao dịch thật",

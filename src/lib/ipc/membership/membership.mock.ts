@@ -22,6 +22,8 @@ export const mock = (() => {
         displayName: email.split("@")[0],
         tier: "aleph",
         cancelAtPeriodEnd: false,
+        billingStatus: "active",
+        checkedAtMs: Date.now(),
       };
       return Promise.resolve(view);
     },

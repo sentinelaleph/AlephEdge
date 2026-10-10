@@ -390,13 +390,13 @@ To close real positions on an exchange use **Positions & orders → Exchange**.
 
 ![Settings: General tab](shot:settings-page)
 
-Tabs: **General**, **Notifications**, **Devices**, **Exchange keys**, **About**.
+The sections are listed on the left, each with its current state (language and theme, alerts shown, phone, number of keys, version). The right panel shows this installation at a glance: version, update state, build, where Binance orders go, the vault, keys, the phone and alerts shown, plus links to help.
 
-- **General:** **Language** (with number and date previews), **Theme** (Light, Dark, High contrast, System) and **Keyboard shortcuts**. For example: Ctrl+1…9 opens the menus, N opens a new bot, Ctrl+B collapses the sidebar.
-- **Notifications:** which **In-app alerts** you see.
-- **Devices:** pairing for phone remote control.
-- **Exchange keys:** your API keys and the vault.
-- **About:** version and updates.
+- **General:** **Language** (with number, amount, date and time zone previews), **Theme** (Light, Dark, High contrast, System, each with a preview) and **Keyboard shortcuts**. For example: Ctrl+1…9 opens the menus, N opens a new bot, Ctrl+B collapses the sidebar.
+- **Notifications:** which **In-app alerts** the bell shows, grouped into Safety, Bots and trades, and Market and connection. Each row says when the alert fires and how many are active now. Hiding one hides the notice only; the bots still act on it.
+- **Devices:** pairing for phone remote control, what a paired phone can and cannot do, and how pairing is protected.
+- **Exchange keys:** your API keys, which key to add, connection tests, the vault and its password.
+- **About:** version and build, updates, installation details (system, WebView2, endpoints, data folder) with **Copy diagnostics** for support, where your data goes, the licence and source, and contact. **Copy diagnostics** leaves out the data folder path and the desk id.
 
 ![Exchange keys tab: stored keys and the vault](shot:accounts)
 
@@ -420,7 +420,15 @@ Tabs: **General**, **Notifications**, **Devices**, **Exchange keys**, **About**.
 
 ![Account page: Sentinel membership](shot:account)
 
-Your Sentinel (ribqa.com) membership: name or email, membership state, plan, valid until and last refresh. **Refresh** reloads the membership; **Sign out** ends the session.
+Your Sentinel (ribqa.com) membership. At the top: your name and email, the membership state and plan, **Refresh** and **Sign out**.
+
+- **Membership:** plan, subscription status, valid until (**No end date** during the open beta) and **Last checked**: when the app last read the membership from ribqa.com (at sign-in, at launch and on **Refresh**).
+- **What the membership covers:** the signal stream and signal bots, DCA and Grid bots, backtests, and the market checks before an entry. Without an active membership no bot opens a trade.
+- **Sign-in on this computer:** the service, where the sign-in is kept (Windows Credential Manager) and that the TESTNET build signs in separately.
+- **Manage on ribqa.com:** profile and password, billing and API keys open on the website.
+- **Right panel:** membership, plan, whether bots may trade, the signal stream and the number of exchange keys.
+
+**Sign out** asks first. Signal bots then get no new signals until you sign in again; bots, positions, history and exchange keys stay on this computer.
 
 **What does the app need to work?** Three things: signed in to Sentinel, an active membership and an unlocked vault. If one is missing the app shows the matching screen: sign-in, membership or vault unlock.
 
