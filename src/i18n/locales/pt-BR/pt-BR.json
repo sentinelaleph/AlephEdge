@@ -466,7 +466,10 @@
     },
     "col": {
       "ledger": "Livro %"
-    }
+    },
+    "avgTrade": "Trade médio",
+    "bestTrade": "Melhor trade",
+    "worstTrade": "Pior trade"
   },
   "link": {
     "title": "Pareamento com o celular",
@@ -1019,14 +1022,45 @@
   "history": {
     "byBot": "Por bot",
     "byExit": "Por motivo de saída",
-    "loadedScope": "Contagem sobre os últimos {{count}} trades carregados.",
-    "filtersNote": "Os filtros valem para a lista ({{shown}} de {{total}}); as estatísticas cobrem todo o escopo.",
+    "filtersNote": "Trades exibidos: {{shown}} de {{total}}. Todos os números desta página seguem os filtros.",
     "exportSkips": "Exportar sinais ignorados",
     "cycles": {
       "title": "Ciclos DCA/Grid",
       "deleted": "Excluído",
       "none": "Nenhum ciclo fechado ainda.",
       "netNote": "Após taxas e funding, bots excluídos incluídos"
+    },
+    "bySymbol": "Por símbolo",
+    "selection": "Seleção",
+    "shown": "Trades",
+    "shownOf": "{{shown}} de {{total}}",
+    "period": "Período",
+    "longShort": "Long / short",
+    "gainsLosses": "Ganhos / perdas",
+    "streaks": "Sequências",
+    "limitNote": "A página lê os últimos {{count}} trades.",
+    "streak": {
+      "current": "Agora",
+      "gains": "Ganhos seguidos: {{count}}",
+      "losses": "Perdas seguidas: {{count}}",
+      "longestGain": "Maior sequência de ganhos",
+      "longestLoss": "Maior sequência de perdas",
+      "note": "Um ganho ou uma perda é um trade que fechou acima ou abaixo de zero após taxas; um trade zerado encerra a sequência."
+    },
+    "col": {
+      "record": "Resultados",
+      "recordTip": "Trades fechados no alvo / no stop, e a parcela fechada no alvo.",
+      "avg": "Média",
+      "avgTip": "Resultado médio por trade, em % do capital da posição."
+    },
+    "chart": {
+      "title": "L/P líquido ao longo do tempo",
+      "tooFew": "O gráfico precisa de pelo menos um trade fechado.",
+      "lineLabel": "L/P líquido acumulado após cada trade fechado, agora {{value}}",
+      "daily": "Diário",
+      "dailyLast": "Diário, últimos dias: {{count}}",
+      "barsLabel": "L/P líquido por dia UTC, dias: {{count}}",
+      "tradesN": "Trades: {{count}}"
     }
   },
   "accounts": {

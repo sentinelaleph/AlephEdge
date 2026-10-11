@@ -348,12 +348,16 @@ Açık olan her şey burada. Simüle (paper) ve gerçek para ayrı sekmelerdedir
 
 Kapanan işlemler ve performans istatistikleri.
 
-- **Sol panel (filtreler):** sembol, dönem (bugün, 7 gün, 30 gün), bot, yön ve çıkış nedeni.
-- **Orta alan:** **Net PnL**, kazanç oranı, **Kâr faktörü**, **Maks düşüş**, işlem sayısı ve bugünkü sonuç; altında işlem tablosu; en altta kapanan döngüleri gösteren **DCA/Grid döngüleri** bölümü (ücretler ve fonlama sonrası, silinen botlar dahil).
-- **Sağ panel:** bot ve çıkış nedenine göre sayılar.
-- Başlıktaki **CSV dışa aktar** işlemleri dosyaya yazar.
+- **Sol panel (filtreler):** sembol, dönem (bugün, 7, 30 ya da 90 gün), bot, yön ve çıkış nedeni.
+- **Orta alan:**
+  - Toplamlar: **Net PnL**, kazanç oranı, **Kâr faktörü**, **Maks düşüş**, işlem sayısı, **Ortalama işlem**, **En iyi işlem** ve **En kötü işlem**.
+  - **Zaman içinde net K/Z**: her kapanan işlemden sonraki toplam ve altında her UTC gününün neti (kazançlar yukarı, kayıplar aşağı).
+  - **Bota göre**, **Çıkış nedenine göre** ve **Sembole göre**: her biri için işlem sayısı, kayıt (hedefte / stopta kapanan), net ve ortalama sonuç.
+  - İşlem tablosu, en altta kapanan döngüleri gösteren **DCA/Grid döngüleri** bölümü (ücretler ve fonlama sonrası, silinen botlar dahil).
+- **Sağ panel:** **Seçim** (gösterilen işlemler, dönem, long / short, kazanç / kayıp) ve **Seriler** (şu anki seri, en uzun kazanç ve kayıp serileri).
+- Başlıktaki **CSV dışa aktar** işlemleri, **Atlanan sinyalleri dışa aktar** atlama kaydını dosyaya yazar.
 
-**Filtre uygulayınca istatistikler neden değişmiyor?** Filtreler yalnızca işlem listesini daraltır; istatistikler seçili kapsamın tamamını gösterir. Ekranda bu ayrıca yazar.
+**Rakamlar filtrelere uyar mı?** Evet. Sayfadaki her rakam, toplamlar, grafik ve kırılımlar dahil, filtrelerden geçen işlemler üzerinden, uygulamanın başka yerlerindeki toplamlarla aynı kurallarla hesaplanır. Üstteki toplamlar sinyal işlemlerini kapsar; DCA/Grid döngülerinin toplamları kendi bölümündedir, Dashboard ikisini toplar.
 
 **Gerçek ve simüle işlemler birlikte mi sayılıyor?** Hayır. Gerçek para destekli sürümde **İstatistik kapsamı** ile **Simülasyon** ya da **Gerçek para** seçilir; ikisi asla toplanmaz.
 

@@ -466,7 +466,10 @@
     },
     "col": {
       "ledger": "Libro %"
-    }
+    },
+    "avgTrade": "Operación media",
+    "bestTrade": "Mejor operación",
+    "worstTrade": "Peor operación"
   },
   "link": {
     "title": "Emparejamiento con el teléfono",
@@ -1019,14 +1022,45 @@
   "history": {
     "byBot": "Por bot",
     "byExit": "Por motivo de salida",
-    "loadedScope": "Recuento sobre las últimas {{count}} operaciones cargadas.",
-    "filtersNote": "Los filtros se aplican a la lista ({{shown}} de {{total}}); las estadísticas cubren todo el alcance.",
+    "filtersNote": "Operaciones mostradas: {{shown}} de {{total}}. Todas las cifras de esta página siguen los filtros.",
     "exportSkips": "Exportar señales omitidas",
     "cycles": {
       "title": "Ciclos DCA/Grid",
       "deleted": "Eliminado",
       "none": "Aún no hay ciclos cerrados.",
       "netNote": "Tras comisiones y financiación, bots eliminados incluidos"
+    },
+    "bySymbol": "Por símbolo",
+    "selection": "Selección",
+    "shown": "Operaciones",
+    "shownOf": "{{shown}} de {{total}}",
+    "period": "Periodo",
+    "longShort": "Largo / corto",
+    "gainsLosses": "Ganancias / pérdidas",
+    "streaks": "Rachas",
+    "limitNote": "La página lee las últimas {{count}} operaciones.",
+    "streak": {
+      "current": "Ahora",
+      "gains": "Ganancias seguidas: {{count}}",
+      "losses": "Pérdidas seguidas: {{count}}",
+      "longestGain": "Racha más larga de ganancias",
+      "longestLoss": "Racha más larga de pérdidas",
+      "note": "Una ganancia o una pérdida es una operación que cerró por encima o por debajo de cero tras comisiones; una operación en cero corta la racha."
+    },
+    "col": {
+      "record": "Resultados",
+      "recordTip": "Operaciones cerradas en el objetivo / en el stop, y la proporción cerrada en el objetivo.",
+      "avg": "Promedio",
+      "avgTip": "Resultado medio por operación, en % del capital de la posición."
+    },
+    "chart": {
+      "title": "PyG neto en el tiempo",
+      "tooFew": "El gráfico necesita al menos una operación cerrada.",
+      "lineLabel": "PyG neto acumulado tras cada operación cerrada, ahora {{value}}",
+      "daily": "Diario",
+      "dailyLast": "Diario, últimos días: {{count}}",
+      "barsLabel": "PyG neto por día UTC, días: {{count}}",
+      "tradesN": "Operaciones: {{count}}"
     }
   },
   "accounts": {

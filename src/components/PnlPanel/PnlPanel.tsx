@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber/AnimatedNumber";
 import { LiveChip, ManualChip } from "@/components/ui/Chip/Chip";
@@ -9,6 +10,7 @@ import { Section } from "@/components/ui/Section/Section";
 import { SegmentedControl } from "@/components/ui/SegmentedControl/SegmentedControl";
 import { Tooltip } from "@/components/ui/Tooltip/Tooltip";
 import { isLiveTrade, type TradeRecord } from "@/lib/ipc/trades/trades";
+import type { TradeStats } from "@/lib/tradeStats";
 import { localeForLanguage } from "@/i18n";
 import {
   formatNumber,
@@ -48,6 +50,12 @@ const EXIT_REASONS_WITH_TOOLTIP = new Set([
 
 interface PnlPanelProps {
   pnl: PnlController;
+  /** The trades to list and total (History filters them first). */
+  trades: TradeRecord[];
+  /** Totals of exactly `trades`; null while they load. */
+  stats: TradeStats | null;
+  /** Rendered between the totals and the trade list (chart, breakdowns). */
+  children?: ReactNode;
 }
 
 /**
@@ -56,10 +64,10 @@ interface PnlPanelProps {
  * captured at open. The page header carries Export CSV; the page title names
  * the section, so there is no heading here.
  */
-export function PnlPanel({ pnl }: PnlPanelProps) {
+export function PnlPanel({ pnl, trades, stats, children }: PnlPanelProps) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
-  const s = pnl.stats;
+  const s = stats;
   const costParams = {
     fees: formatNumber(ROUND_TRIP_FEE_FRAC * 100, locale, { minimumFractionDigits: 2 }),
     funding: formatNumber(FUNDING_COST_FRAC * 100, locale, { minimumFractionDigits: 2 }),
@@ -212,15 +220,34 @@ export function PnlPanel({ pnl }: PnlPanelProps) {
           {/* A drawdown under half a cent is none: "-0.00" in red reads as a loss. */}
           <KpiTile label={t("pnl.maxDrawdown")} value={dd > 0 ? formatSignedUsdt(-dd, locale) : formatUsdt(0, locale)} tone={dd > 0 ? "down" : undefined} />
           <KpiTile label={t("pnl.trades")} value={formatNumber(s.totalTrades, locale)} />
-          <KpiTile label={t("pnl.today")} tone={pnlToneAttr(s.todayPnlQuote)} value={<AnimatedNumber value={s.todayPnlQuote} format={usdt} />} />
+          <KpiTile
+            label={t("pnl.avgTrade")}
+            tone={s.totalTrades ? pnlToneAttr(s.avgPnlQuote) : undefined}
+            value={s.totalTrades ? usdt(s.avgPnlQuote) : NO_VALUE}
+            note={s.totalTrades ? formatSignedPercent(s.avgPnlPct, locale) : undefined}
+          />
+          <KpiTile
+            label={t("pnl.bestTrade")}
+            tone={s.best ? pnlToneAttr(s.best.pnlQuote) : undefined}
+            value={s.best ? usdt(s.best.pnlQuote) : NO_VALUE}
+            note={s.best ? `${s.best.symbol} · ${formatTableTime(s.best.closedAt, locale)}` : undefined}
+          />
+          <KpiTile
+            label={t("pnl.worstTrade")}
+            tone={s.worst ? pnlToneAttr(s.worst.pnlQuote) : undefined}
+            value={s.worst ? usdt(s.worst.pnlQuote) : NO_VALUE}
+            note={s.worst ? `${s.worst.symbol} · ${formatTableTime(s.worst.closedAt, locale)}` : undefined}
+          />
         </KpiGrid>
       ) : null}
 
-      <Section title={t("pnl.trades")} count={pnl.trades.length}>
+      {children}
+
+      <Section title={t("pnl.trades")} count={trades.length}>
       <DataTable
         label={t("pnl.trades")}
         columns={columns}
-        rows={pnl.trades}
+        rows={trades}
         rowKey={(tr) => String(tr.id)}
         empty={<EmptyState title={t("pnl.noTrades")} />}
       />

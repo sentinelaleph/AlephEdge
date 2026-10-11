@@ -28,6 +28,7 @@ Aleph Edge is a Rust + [Tauri 2](https://tauri.app) desktop application with a R
   - [Backtest](#backtest)
   - [In-app guide](#in-app-guide)
   - [Positions and emergency controls](#positions-and-emergency-controls)
+  - [History and stats](#history-and-stats)
   - [Risk and safety](#risk-and-safety)
   - [Exchange key vault](#exchange-key-vault)
   - [Settings and account](#settings-and-account)
@@ -119,6 +120,12 @@ A handbook inside the app, in English and Turkish: start in five minutes, core c
 ![Positions](assets/screenshots/positions.webp)
 
 Simulated positions and DCA/Grid cycles on one tab, the real exchange account on another, never mixed. Each open position shows its last price, **P&L now** (what closing there would book, fees included, the same calculation as a closed trade) and where the price sits between the stop and the target. The Dashboard's bot table shows every bot's open P&L, realized P&L and total. **Close all** on the simulated tab stops the signal bots first, then closes every simulated position and cycle at market. The exchange tab shows your real positions and can close them with reduce-only market orders behind a typed confirmation.
+
+### History and stats
+
+![History and stats](assets/screenshots/history.webp)
+
+Every closed trade and what it adds up to: net P&L, win rate (exits at the target against exits at the stop), profit factor, drawdown, average, best and worst trade, the running net P&L with the net of each day, and breakdowns by bot, exit reason and symbol, with the current and longest streaks. Every figure follows the filters (range, bot, side, exit reason) and uses the same rules as the totals elsewhere in the app. Closed DCA and Grid cycles have their own totals. Trades and skipped signals export as CSV.
 
 ### Risk and safety
 

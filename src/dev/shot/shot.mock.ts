@@ -32,7 +32,7 @@ const noop = () => Promise.resolve();
 
 /** About screen sample: a typical Windows installation, the user folder anonymised. */
 export const SAMPLE_APP_INFO = {
-  version: "0.3.2",
+  version: "0.3.3",
   os: "windows",
   arch: "x86_64",
   tauri: "2.11.5",
@@ -296,6 +296,48 @@ export const SAMPLE_TRADES: TradeRecord[] = [
   trade({ id: 5, symbol: "NEARUSDT", direction: "long", entry: 2.94, exit: 2.87, pnlPct: -0.61, unleveredNetPct: -2.5, exitReason: "veto", vetoReasonCode: "btc_turn", vetoReasonText: "BTC 4h trend turned bearish" }),
   trade({ id: 6, symbol: "ETHUSDT", direction: "long", entry: 2398.0, exit: 2330.1, pnlPct: -1.0, unleveredNetPct: -2.95, exitReason: "sl", tpTarget: "tp1" }),
   trade({ id: 7, symbol: "LTCUSDT", direction: "short", entry: 71.8, exit: 70.9, pnlPct: 0.31, unleveredNetPct: 1.13, exitReason: "horizon" }),
+];
+
+/** Two weeks of older sample trades for the History screen (Dashboard keeps SAMPLE_TRADES). */
+const OLDER: [string, "long" | "short", number, TradeRecord["exitReason"], "futures" | "spot"][] = [
+  ["XRPUSDT", "long", 1.48, "tp", "futures"],
+  ["AVAXUSDT", "long", -1.0, "sl", "futures"],
+  ["LINKUSDT", "long", 0.92, "tp", "spot"],
+  ["DOGEUSDT", "long", -0.42, "horizon", "spot"],
+  ["SUIUSDT", "long", 1.71, "tp", "futures"],
+  ["ARBUSDT", "long", -1.0, "sl", "futures"],
+  ["OPUSDT", "long", 0.64, "tp", "spot"],
+  ["INJUSDT", "long", -0.08, "breakeven", "futures"],
+  ["APTUSDT", "long", 1.2, "tp", "futures"],
+  ["TIAUSDT", "long", -1.0, "sl", "spot"],
+  ["SEIUSDT", "long", 0.85, "tp", "spot"],
+  ["ATOMUSDT", "long", -0.55, "veto", "futures"],
+  ["FILUSDT", "long", 1.33, "tp", "futures"],
+  ["NEARUSDT", "long", -1.0, "sl", "futures"],
+  ["SOLUSDT", "long", 2.05, "tp", "futures"],
+  ["ETCUSDT", "long", 0.4, "horizon", "spot"],
+  ["BNBUSDT", "long", -1.0, "sl", "spot"],
+  ["XRPUSDT", "long", 1.1, "tp", "spot"],
+];
+
+export const SAMPLE_HISTORY: TradeRecord[] = [
+  ...SAMPLE_TRADES,
+  ...OLDER.map(([symbol, direction, pnlPct, exitReason, botKind], i) => {
+    const closedAt = now - (2 + i * 0.7) * 24 * HOUR;
+    return trade({
+      id: 100 + i,
+      symbol,
+      direction,
+      entry: 1,
+      exit: 1 + pnlPct / 500,
+      pnlPct,
+      exitReason,
+      botKind,
+      leverage: botKind === "spot" ? 1 : 5,
+      openedAt: closedAt - 6 * HOUR,
+      closedAt,
+    });
+  }),
 ];
 
 function stats(trades: TradeRecord[]): PnlStats {
@@ -655,7 +697,7 @@ export const SAMPLE_DESK_CONTEXT: DeskContextValue = {
     binanceFuturesBase: "https://fapi.binance.com",
     binanceIsProduction: true,
   },
-  version: "0.3.2",
+  version: "0.3.3",
   keyedExchanges: SAMPLE_EXCHANGES,
   accountExchanges: ["binance"],
   accountExchange: "binance",

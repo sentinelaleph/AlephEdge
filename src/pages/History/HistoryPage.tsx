@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNow } from "@/app/alerts";
 import { useDeskContext } from "@/app/DeskProvider";
 import { Link, navigate, useRouter } from "@/app/router/router";
 import { withQuery } from "@/app/router/routes";
 import { PnlPanel } from "@/components/PnlPanel/PnlPanel";
-import type { PnlController } from "@/components/PnlPanel/usePnl";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber/AnimatedNumber";
 import { Button } from "@/components/ui/Button/Button";
 import { Chip } from "@/components/ui/Chip/Chip";
@@ -15,21 +14,24 @@ import { FilterGroup, listParam, SearchField } from "@/components/ui/FilterPanel
 import { KpiGrid } from "@/components/ui/KpiGrid/KpiGrid";
 import { KpiTile } from "@/components/ui/KpiTile/KpiTile";
 import { PageShell } from "@/components/ui/PageShell/PageShell";
-import { Panel } from "@/components/ui/Panel/Panel";
+import { FactList, Panel } from "@/components/ui/Panel/Panel";
 import { Section } from "@/components/ui/Section/Section";
 import { localeForLanguage } from "@/i18n";
-import { formatNumber, formatPnl, formatTableTime, NO_VALUE, pnlToneAttr } from "@/lib/format";
+import { formatNumber, formatPercent, formatPnl, formatSignedPercent, formatTableTime, NO_VALUE, pnlToneAttr } from "@/lib/format";
 import { errorMessage } from "@/lib/ipc/bridge";
 import type { ClosedCycleRow, StrategyPnl } from "@/lib/ipc/strategy/strategy";
-import { skipsExportCsv } from "@/lib/ipc/trades/trades";
+import { isLiveTrade, skipsExportCsv, tradesList, type TradeRecord } from "@/lib/ipc/trades/trades";
 import { sideText } from "@/lib/strategyText";
+import { aggregateTrades, breakdown, cumulative, dailyNet, DAY_MS, streaks, utcDayStart, type Bucket } from "@/lib/tradeStats";
+import { PnlChart } from "./PnlChart";
+import "./History.css";
 
-const RANGES: Record<string, number> = { "7d": 7, "30d": 30 };
-
-function utcDayStart(now: number): number {
-  const d = new Date(now);
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-}
+const RANGES: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
+/** Trades the page reads; the store keeps every closed trade, this is a safety ceiling. */
+export const HISTORY_LIMIT = 10_000;
+const POLL_MS = 10_000;
+/** Symbols listed in the breakdown (largest results first). */
+const SYMBOL_ROWS = 8;
 
 function countBy<T>(items: T[], key: (x: T) => string): [string, number][] {
   const m = new Map<string, number>();
@@ -38,11 +40,40 @@ function countBy<T>(items: T[], key: (x: T) => string): [string, number][] {
 }
 
 /**
- * #/history: closed trades and stats. The stats come from Rust per scope
- * (real and simulated are never summed); the filters narrow the trade list.
+ * Every closed trade (not the Dashboard's latest 50), polled. In a live build
+ * only the selected scope's money: real and simulated are never mixed.
+ */
+function useAllTrades(split: boolean, scope: "simulated" | "real"): TradeRecord[] | null {
+  const [rows, setRows] = useState<TradeRecord[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    let timer: number | undefined;
+    const tick = async () => {
+      try {
+        const all = await tradesList(HISTORY_LIMIT);
+        if (alive) setRows(split ? all.filter((tr) => isLiveTrade(tr) === (scope === "real")) : all);
+      } catch {
+        /* keep last-good */
+      }
+      if (alive) timer = window.setTimeout(tick, POLL_MS);
+    };
+    void tick();
+    return () => {
+      alive = false;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [split, scope]);
+  return rows;
+}
+
+/**
+ * #/history: closed trades and what they add up to. Every figure on the page
+ * (totals, chart, breakdowns, the list) is computed over the trades the
+ * filters leave, by the same rules as Rust's stats.
  */
 export function HistoryPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const [skipsNote, setSkipsNote] = useState<{ ok: boolean; text: string } | null>(null);
   const exportSkips = async () => {
     setSkipsNote(null);
@@ -70,25 +101,44 @@ export function HistoryPage() {
   };
   const anyFilter = !!(f.q || f.kind.length || f.side.length || f.exit.length || f.range);
 
-  const all = pnl.trades;
-  const since =
-    f.range === "today" ? utcDayStart(now) : RANGES[f.range] ? utcDayStart(now) - (RANGES[f.range] - 1) * 86_400_000 : 0;
-  const trades = all.filter(
-    (tr) =>
-      (!f.q || tr.symbol.toLowerCase().includes(f.q.trim().toLowerCase())) &&
-      (!f.kind.length || f.kind.includes(tr.botKind)) &&
-      (!f.side.length || f.side.includes(tr.direction)) &&
-      (!f.exit.length || f.exit.includes(tr.exitReason)) &&
-      tr.closedAt >= since,
+  const loaded = useAllTrades(pnl.split, pnl.scope);
+  const today = utcDayStart(now);
+  const since = f.range === "today" ? today : RANGES[f.range] ? today - (RANGES[f.range] - 1) * DAY_MS : 0;
+  const needle = f.q.trim().toLowerCase();
+  const kindKey = f.kind.join();
+  const sideKey = f.side.join();
+  const exitKey = f.exit.join();
+  const trades = useMemo(
+    () =>
+      (loaded ?? []).filter(
+        (tr) =>
+          (!needle || tr.symbol.toLowerCase().includes(needle)) &&
+          (!kindKey || kindKey.split(",").includes(tr.botKind)) &&
+          (!sideKey || sideKey.split(",").includes(tr.direction)) &&
+          (!exitKey || exitKey.split(",").includes(tr.exitReason)) &&
+          tr.closedAt >= since,
+      ),
+    [loaded, needle, kindKey, sideKey, exitKey, since],
   );
-  const filtered: PnlController = { ...pnl, trades };
+  const all = loaded ?? [];
+  const stats = loaded ? aggregateTrades(trades, today) : null;
+  const points = useMemo(() => cumulative(trades), [trades]);
+  const days = useMemo(() => dailyNet(trades), [trades]);
+  const byBot = useMemo(() => breakdown(trades, (x) => x.botKind), [trades]);
+  const byExit = useMemo(() => breakdown(trades, (x) => x.exitReason), [trades]);
+  const bySymbol = useMemo(() => breakdown(trades, (x) => x.symbol).slice(0, SYMBOL_ROWS), [trades]);
+  const run = useMemo(() => streaks(trades), [trades]);
+
   // Closed DCA / Grid cycles are paper money: shown with the paper scope only.
   const cycleMoney = !pnl.split || pnl.scope === "simulated" ? strategy.pnl : null;
-  const cycles = (cycleMoney?.recent ?? []).filter(
-    (c) => (!f.q || c.symbol.toLowerCase().includes(f.q.trim().toLowerCase())) && c.closedAt >= since,
-  );
+  const cycles = (cycleMoney?.recent ?? []).filter((c) => (!needle || c.symbol.toLowerCase().includes(needle)) && c.closedAt >= since);
   const kinds = countBy(all, (x) => x.botKind);
   const exits = countBy(all, (x) => x.exitReason);
+  const longs = trades.filter((x) => x.direction !== "short").length;
+  const gains = trades.filter((x) => x.pnlQuote > 0).length;
+  const lossesN = trades.filter((x) => x.pnlQuote < 0).length;
+  const first = trades.length ? Math.min(...trades.map((x) => x.closedAt)) : null;
+  const last = trades.length ? Math.max(...trades.map((x) => x.closedAt)) : null;
 
   const left = (
     <>
@@ -99,6 +149,7 @@ export function HistoryPage() {
           { value: "today", label: t("filters.todayUtc") },
           { value: "7d", label: "7d" },
           { value: "30d", label: "30d" },
+          { value: "90d", label: "90d" },
         ]}
         selected={f.range ? [f.range] : []}
         onChange={(v) => set({ range: v[0] ?? "" })}
@@ -132,29 +183,41 @@ export function HistoryPage() {
     </>
   );
 
+  const dayText = (ms: number) => new Date(ms).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
+  const streakText =
+    run.current === null
+      ? NO_VALUE
+      : t(run.current.kind === "gain" ? "history.streak.gains" : "history.streak.losses", { count: run.current.count });
   const right = (
     <>
-      <Panel title={t("history.byBot")} aside={<span className="ae-subtle tabular">{all.length}</span>}>
-        <ul className="ae-list">
-          {kinds.map(([k, n]) => (
-            <li key={k}>
-              <span>{t(`bots.kind.${k}`, { defaultValue: k })}</span>
-              <span className="tabular">{n}</span>
-            </li>
-          ))}
-        </ul>
+      <Panel title={t("history.selection")}>
+        <FactList
+          rows={[
+            { label: t("history.shown"), value: loaded ? t("history.shownOf", { shown: trades.length, total: all.length }) : NO_VALUE },
+            {
+              label: t("history.period"),
+              value: first !== null && last !== null ? `${dayText(first)} – ${dayText(last)}` : NO_VALUE,
+            },
+            { label: t("history.longShort"), value: trades.length ? `${longs} / ${trades.length - longs}` : NO_VALUE },
+            { label: t("history.gainsLosses"), value: trades.length ? `${gains} / ${lossesN}` : NO_VALUE },
+          ]}
+        />
       </Panel>
-      <Panel title={t("history.byExit")}>
-        <ul className="ae-list">
-          {exits.map(([k, n]) => (
-            <li key={k}>
-              <span>{t(`pnl.exit.${k}`, { defaultValue: k })}</span>
-              <span className="tabular">{n}</span>
-            </li>
-          ))}
-        </ul>
+      <Panel title={t("history.streaks")}>
+        <FactList
+          rows={[
+            {
+              label: t("history.streak.current"),
+              value: streakText,
+              tone: run.current?.kind === "loss" ? "down" : run.current ? "up" : undefined,
+            },
+            { label: t("history.streak.longestGain"), value: run.longestGain || NO_VALUE },
+            { label: t("history.streak.longestLoss"), value: run.longestLoss || NO_VALUE },
+          ]}
+        />
+        <p className="ae-subtle">{t("history.streak.note")}</p>
       </Panel>
-      <p className="ae-subtle">{t("history.loadedScope", { count: all.length })}</p>
+      {loaded && loaded.length >= HISTORY_LIMIT ? <p className="ae-subtle">{t("history.limitNote", { count: HISTORY_LIMIT })}</p> : null}
     </>
   );
 
@@ -177,9 +240,62 @@ export function HistoryPage() {
     >
       {skipsNote ? <p className={skipsNote.ok ? "ae-muted" : "ae-error"}>{skipsNote.text}</p> : null}
       {anyFilter ? <p className="ae-muted">{t("history.filtersNote", { shown: trades.length, total: all.length })}</p> : null}
-      <PnlPanel pnl={filtered} />
+      <PnlPanel pnl={pnl} trades={trades} stats={stats}>
+        {trades.length > 0 ? (
+          <>
+            <Section title={t("history.chart.title")}>
+              <PnlChart points={points} days={days} />
+            </Section>
+            <div className="ae-histgrid">
+              <BreakdownTable title={t("history.byBot")} rows={byBot} name={(k) => t(`bots.kind.${k}`, { defaultValue: k })} />
+              <BreakdownTable title={t("history.byExit")} rows={byExit} name={(k) => t(`pnl.exit.${k}`, { defaultValue: k })} />
+            </div>
+            <BreakdownTable title={t("history.bySymbol")} rows={bySymbol} name={(k) => k} />
+          </>
+        ) : null}
+      </PnlPanel>
       {cycleMoney ? <CyclesSection money={cycleMoney} rows={cycles} /> : null}
     </PageShell>
+  );
+}
+
+/** One breakdown: trades, record, net and average result per group. */
+function BreakdownTable({ title, rows, name }: { title: string; rows: Bucket[]; name: (key: string) => string }) {
+  const { t, i18n } = useTranslation();
+  const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
+  const columns: DataColumn<Bucket>[] = [
+    { id: "name", header: t("table.name"), cell: (b) => name(b.key) },
+    { id: "trades", header: t("pnl.trades"), numeric: true, cell: (b) => formatNumber(b.trades, locale) },
+    {
+      id: "record",
+      header: t("history.col.record"),
+      headerTip: t("history.col.recordTip"),
+      numeric: true,
+      priority: 2,
+      cell: (b) => (b.wins + b.losses > 0 ? `${b.wins}/${b.losses} · ${formatPercent((b.wins / (b.wins + b.losses)) * 100, locale, 0)}` : NO_VALUE),
+    },
+    {
+      id: "net",
+      header: t("pnl.net"),
+      numeric: true,
+      keep: true,
+      cell: (b) => formatPnl(b.net, locale, { unit: "none" }).text,
+      tone: (b) => pnlToneAttr(b.net),
+    },
+    {
+      id: "avg",
+      header: t("history.col.avg"),
+      headerTip: t("history.col.avgTip"),
+      numeric: true,
+      priority: 2,
+      cell: (b) => formatSignedPercent(b.avgPct, locale),
+      tone: (b) => pnlToneAttr(b.avgPct),
+    },
+  ];
+  return (
+    <Section title={title} count={rows.length}>
+      <DataTable label={title} columns={columns} rows={rows} rowKey={(b) => b.key} compact />
+    </Section>
   );
 }
 

@@ -466,7 +466,10 @@
     },
     "col": {
       "ledger": "Sổ cái %"
-    }
+    },
+    "avgTrade": "Giao dịch trung bình",
+    "bestTrade": "Giao dịch tốt nhất",
+    "worstTrade": "Giao dịch tệ nhất"
   },
   "link": {
     "title": "Ghép nối điện thoại",
@@ -1019,14 +1022,45 @@
   "history": {
     "byBot": "Theo bot",
     "byExit": "Theo lý do thoát",
-    "loadedScope": "Đếm trên {{count}} giao dịch đã tải gần nhất.",
-    "filtersNote": "Bộ lọc áp dụng cho danh sách ({{shown}} / {{total}}); thống kê bao trùm toàn phạm vi.",
+    "filtersNote": "Đang hiển thị {{shown}} / {{total}} giao dịch. Mọi số liệu trên trang này đều theo bộ lọc.",
     "exportSkips": "Xuất tín hiệu bị bỏ qua",
     "cycles": {
       "title": "Chu kỳ DCA/Grid",
       "deleted": "Đã xóa",
       "none": "Chưa có chu kỳ đã đóng.",
       "netNote": "Sau phí và funding, gồm cả bot đã xóa"
+    },
+    "bySymbol": "Theo mã",
+    "selection": "Lựa chọn",
+    "shown": "Giao dịch",
+    "shownOf": "{{shown}} / {{total}}",
+    "period": "Giai đoạn",
+    "longShort": "Long / short",
+    "gainsLosses": "Lãi / lỗ",
+    "streaks": "Chuỗi",
+    "limitNote": "Trang này đọc {{count}} giao dịch gần nhất.",
+    "streak": {
+      "current": "Hiện tại",
+      "gains": "Lãi liên tiếp: {{count}}",
+      "losses": "Lỗ liên tiếp: {{count}}",
+      "longestGain": "Chuỗi lãi dài nhất",
+      "longestLoss": "Chuỗi lỗ dài nhất",
+      "note": "Lãi hoặc lỗ là giao dịch đóng trên hoặc dưới mức 0 sau phí; giao dịch hòa vốn sẽ kết thúc chuỗi."
+    },
+    "col": {
+      "record": "Thành tích",
+      "recordTip": "Giao dịch đóng tại mục tiêu / tại stop, và tỷ lệ đóng tại mục tiêu.",
+      "avg": "Trung bình",
+      "avgTip": "Kết quả trung bình mỗi giao dịch, % vốn của vị thế."
+    },
+    "chart": {
+      "title": "Lãi/lỗ ròng theo thời gian",
+      "tooFew": "Biểu đồ cần ít nhất một giao dịch đã đóng.",
+      "lineLabel": "Lãi/lỗ ròng lũy kế sau mỗi giao dịch đã đóng, hiện tại {{value}}",
+      "daily": "Theo ngày",
+      "dailyLast": "Theo ngày, {{count}} ngày gần nhất",
+      "barsLabel": "Lãi/lỗ ròng theo ngày UTC, {{count}} ngày",
+      "tradesN": "Giao dịch: {{count}}"
     }
   },
   "accounts": {

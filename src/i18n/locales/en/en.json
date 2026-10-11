@@ -488,7 +488,10 @@
     },
     "col": {
       "ledger": "Ledger %"
-    }
+    },
+    "avgTrade": "Average trade",
+    "bestTrade": "Best trade",
+    "worstTrade": "Worst trade"
   },
   "link": {
     "title": "Phone pairing",
@@ -1019,14 +1022,45 @@
   "history": {
     "byBot": "By bot",
     "byExit": "By exit reason",
-    "loadedScope": "Counts over the latest {{count}} loaded trades.",
-    "filtersNote": "Filters apply to the trade list ({{shown}} of {{total}}); the stats cover the whole scope.",
+    "filtersNote": "Showing {{shown}} of {{total}} trades. Every figure on this page follows the filters.",
     "exportSkips": "Export skipped signals",
     "cycles": {
       "title": "DCA/Grid cycles",
       "deleted": "Deleted",
       "none": "No closed cycles yet.",
       "netNote": "After fees and funding, deleted bots included"
+    },
+    "bySymbol": "By symbol",
+    "selection": "Selection",
+    "shown": "Trades",
+    "shownOf": "{{shown}} of {{total}}",
+    "period": "Period",
+    "longShort": "Long / short",
+    "gainsLosses": "Gains / losses",
+    "streaks": "Streaks",
+    "limitNote": "The page reads the latest {{count}} trades.",
+    "streak": {
+      "current": "Now",
+      "gains": "Gains: {{count}} in a row",
+      "losses": "Losses: {{count}} in a row",
+      "longestGain": "Longest run of gains",
+      "longestLoss": "Longest run of losses",
+      "note": "A gain or a loss is a trade that closed above or below zero after fees; a flat trade ends a run."
+    },
+    "col": {
+      "record": "Record",
+      "recordTip": "Trades closed at the target / at the stop, and the share closed at the target.",
+      "avg": "Average",
+      "avgTip": "Mean result per trade, % of the position's capital."
+    },
+    "chart": {
+      "title": "Net P&L over time",
+      "tooFew": "The chart needs at least one closed trade.",
+      "lineLabel": "Running net P&L after each closed trade, now {{value}}",
+      "daily": "Daily",
+      "dailyLast": "Daily, last {{count}} days",
+      "barsLabel": "Net P&L per UTC day, {{count}} days",
+      "tradesN": "Trades: {{count}}"
     }
   },
   "accounts": {

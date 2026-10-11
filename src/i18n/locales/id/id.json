@@ -466,7 +466,10 @@
     },
     "col": {
       "ledger": "Katalog %"
-    }
+    },
+    "avgTrade": "Rata-rata trade",
+    "bestTrade": "Trade terbaik",
+    "worstTrade": "Trade terburuk"
   },
   "link": {
     "title": "Pemasangan ponsel",
@@ -1019,14 +1022,45 @@
   "history": {
     "byBot": "Per bot",
     "byExit": "Per alasan keluar",
-    "loadedScope": "Hitungan dari {{count}} trade terakhir yang dimuat.",
-    "filtersNote": "Filter berlaku untuk daftar trade ({{shown}} dari {{total}}); statistik mencakup seluruh cakupan.",
+    "filtersNote": "Menampilkan {{shown}} dari {{total}} trade. Semua angka di halaman ini mengikuti filter.",
     "exportSkips": "Ekspor sinyal yang dilewati",
     "cycles": {
       "title": "Siklus DCA/Grid",
       "deleted": "Dihapus",
       "none": "Belum ada siklus tertutup.",
       "netNote": "Setelah biaya dan funding, termasuk bot yang dihapus"
+    },
+    "bySymbol": "Per simbol",
+    "selection": "Pilihan",
+    "shown": "Trade",
+    "shownOf": "{{shown}} dari {{total}}",
+    "period": "Periode",
+    "longShort": "Long / short",
+    "gainsLosses": "Untung / rugi",
+    "streaks": "Rentetan",
+    "limitNote": "Halaman ini membaca {{count}} trade terakhir.",
+    "streak": {
+      "current": "Sekarang",
+      "gains": "Untung beruntun: {{count}}",
+      "losses": "Rugi beruntun: {{count}}",
+      "longestGain": "Untung beruntun terpanjang",
+      "longestLoss": "Rugi beruntun terpanjang",
+      "note": "Untung atau rugi adalah trade yang ditutup di atas atau di bawah nol setelah biaya; trade yang impas mengakhiri rentetan."
+    },
+    "col": {
+      "record": "Hasil",
+      "recordTip": "Trade yang ditutup di target / di stop, dan porsi yang ditutup di target.",
+      "avg": "Rata-rata",
+      "avgTip": "Hasil rata-rata per trade, % dari modal posisi."
+    },
+    "chart": {
+      "title": "L/R bersih dari waktu ke waktu",
+      "tooFew": "Grafik memerlukan setidaknya satu trade tertutup.",
+      "lineLabel": "L/R bersih kumulatif setelah setiap trade tertutup, saat ini {{value}}",
+      "daily": "Harian",
+      "dailyLast": "Harian, {{count}} hari terakhir",
+      "barsLabel": "L/R bersih per hari UTC, {{count}} hari",
+      "tradesN": "Trade: {{count}}"
     }
   },
   "accounts": {

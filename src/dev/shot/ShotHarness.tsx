@@ -25,7 +25,8 @@ import { useTranslation } from "react-i18next";
 import { AppShell } from "@/app/AppShell/AppShell";
 import { DeskContextProvider } from "@/app/DeskProvider";
 import { setBrowserAppInfo } from "@/lib/ipc/app/about";
-import { SAMPLE_APP_INFO, SAMPLE_DESK_CONTEXT } from "./shot.mock";
+import { setSampleTrades } from "@/lib/ipc/trades/trades.mock";
+import { SAMPLE_APP_INFO, SAMPLE_DESK_CONTEXT, SAMPLE_HISTORY } from "./shot.mock";
 import "./ShotHarness.css";
 
 const SHOT_ROUTES = {
@@ -80,6 +81,7 @@ const SAMPLE_LABEL: Record<string, string> = {
 };
 
 setBrowserAppInfo(SAMPLE_APP_INFO);
+setSampleTrades(SAMPLE_HISTORY);
 
 export function ShotHarness({ shot }: { shot: ShotName }) {
   const { i18n } = useTranslation();

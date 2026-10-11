@@ -348,12 +348,16 @@ Everything that is open. Paper and real money are on separate tabs and never mix
 
 Closed trades and performance stats.
 
-- **Left panel (filters):** symbol, range (today, 7 days, 30 days), bot, direction and exit reason.
-- **Center:** **Net PnL**, win rate, **Profit factor**, **Max drawdown**, trades and today; the trade table below; then the **DCA/Grid cycles** section with the closed cycles, after fees and funding, deleted bots included.
-- **Right panel:** counts by bot and by exit reason.
-- **Export CSV** in the header writes the trades to a file.
+- **Left panel (filters):** symbol, range (today, 7, 30 or 90 days), bot, direction and exit reason.
+- **Center:**
+  - Totals: **Net PnL**, win rate, **Profit factor**, **Max drawdown**, trades, **Average trade**, **Best trade** and **Worst trade**.
+  - **Net P&L over time**: the running total after each closed trade, and below it the net of each UTC day (gains up, losses down).
+  - **By bot**, **By exit reason** and **By symbol**: trades, record (closed at the target / at the stop), net and average result for each.
+  - The trade table, then the **DCA/Grid cycles** section with the closed cycles, after fees and funding, deleted bots included.
+- **Right panel:** **Selection** (trades shown, period, long / short, gains / losses) and **Streaks** (the current run and the longest runs of gains and of losses).
+- **Export CSV** in the header writes the trades to a file; **Export skipped signals** writes the skip log.
 
-**Why don't the stats change when I filter?** Filters narrow only the trade list; the stats cover the whole scope. The page says so.
+**Do the figures follow the filters?** Yes. Every figure on the page, the totals, chart and breakdowns included, is worked out over the trades the filters leave, with the same rules as the totals elsewhere in the app. The totals at the top cover signal trades; the DCA/Grid cycles have their own totals in their section, and the Dashboard adds the two.
 
 **Are real and simulated trades counted together?** No. In a build with real money, **Statistics scope** switches between **Simulated** and **Real money**; the two are never added together.
 

@@ -466,7 +466,10 @@
     },
     "col": {
       "ledger": "Defter %"
-    }
+    },
+    "avgTrade": "Ortalama işlem",
+    "bestTrade": "En iyi işlem",
+    "worstTrade": "En kötü işlem"
   },
   "link": {
     "title": "Telefon eşleştirme",
@@ -1019,14 +1022,45 @@
   "history": {
     "byBot": "Bota göre",
     "byExit": "Çıkış nedenine göre",
-    "loadedScope": "Son yüklenen {{count}} işlem üzerinden sayım.",
-    "filtersNote": "Filtreler işlem listesine uygulanır ({{total}} içinden {{shown}}); istatistikler tüm kapsamı kapsar.",
+    "filtersNote": "{{total}} işlemden {{shown}} tanesi gösteriliyor. Bu sayfadaki her rakam filtrelere göre hesaplanır.",
     "exportSkips": "Atlanan sinyalleri dışa aktar",
     "cycles": {
       "title": "DCA/Grid döngüleri",
       "deleted": "Silindi",
       "none": "Henüz kapanmış döngü yok.",
       "netNote": "Ücretler ve fonlama sonrası, silinen botlar dahil"
+    },
+    "bySymbol": "Sembole göre",
+    "selection": "Seçim",
+    "shown": "İşlemler",
+    "shownOf": "{{total}} işlemden {{shown}}",
+    "period": "Dönem",
+    "longShort": "Long / short",
+    "gainsLosses": "Kazanç / kayıp",
+    "streaks": "Seriler",
+    "limitNote": "Sayfa son {{count}} işlemi okur.",
+    "streak": {
+      "current": "Şu an",
+      "gains": "Kazanç: art arda {{count}}",
+      "losses": "Kayıp: art arda {{count}}",
+      "longestGain": "En uzun kazanç serisi",
+      "longestLoss": "En uzun kayıp serisi",
+      "note": "Kazanç ya da kayıp, ücretler sonrası sıfırın üstünde ya da altında kapanan işlemdir; sıfırda kapanan işlem seriyi bitirir."
+    },
+    "col": {
+      "record": "Kayıt",
+      "recordTip": "Hedefte / stopta kapanan işlemler ve hedefte kapananların payı.",
+      "avg": "Ortalama",
+      "avgTip": "İşlem başına ortalama sonuç, pozisyon sermayesinin %'si."
+    },
+    "chart": {
+      "title": "Zaman içinde net K/Z",
+      "tooFew": "Grafik için en az bir kapanmış işlem gerekir.",
+      "lineLabel": "Her kapanan işlemden sonraki toplam net K/Z, şu an {{value}}",
+      "daily": "Günlük",
+      "dailyLast": "Günlük, son {{count}} gün",
+      "barsLabel": "UTC günü başına net K/Z, {{count}} gün",
+      "tradesN": "İşlem: {{count}}"
     }
   },
   "accounts": {

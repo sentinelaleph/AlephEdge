@@ -1,0 +1,121 @@
+/* History & stats: the P&L chart and the breakdown grid. Tokens only. */
+
+.ae-pnlchart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+.ae-pnlchart__plot {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-rows: 160px;
+  gap: var(--space-2);
+}
+.ae-pnlchart__plot--bars {
+  grid-template-rows: 48px;
+}
+.ae-pnlchart__axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ae-pnlchart__plot--bars .ae-pnlchart__axis {
+  justify-content: center;
+  font-family: inherit;
+}
+/* A fixed height: with only width set, the 100x100 viewBox would size the
+   SVG square and spill over the content below. */
+.ae-pnlchart__svg {
+  display: block;
+  width: 100%;
+  height: 160px;
+  overflow: visible;
+}
+.ae-pnlchart__zero {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+.ae-pnlchart__line {
+  fill: none;
+  stroke-width: 1.75;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+}
+.ae-pnlchart__line[data-tone="up"] {
+  stroke: var(--pnl-up);
+}
+.ae-pnlchart__line[data-tone="down"] {
+  stroke: var(--pnl-down);
+}
+.ae-pnlchart__area {
+  stroke: none;
+  opacity: 0.1;
+}
+.ae-pnlchart__area[data-tone="up"] {
+  fill: var(--pnl-up);
+}
+.ae-pnlchart__area[data-tone="down"] {
+  fill: var(--pnl-down);
+}
+.ae-pnlchart__bars {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  height: 100%;
+}
+/* The zero line the daily bars stand on (gains) and hang from (losses). */
+.ae-pnlchart__bars::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px solid var(--border);
+}
+.ae-pnlchart__day {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 2px;
+  height: 100%;
+}
+.ae-pnlchart__bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+.ae-pnlchart__bar[data-tone="up"] {
+  bottom: 50%;
+  border-radius: 1px 1px 0 0;
+  background: var(--pnl-up);
+}
+.ae-pnlchart__bar[data-tone="down"] {
+  top: 50%;
+  border-radius: 0 0 1px 1px;
+  background: var(--pnl-down);
+}
+.ae-pnlchart__dates {
+  display: flex;
+  justify-content: space-between;
+  margin-left: calc(96px + var(--space-2));
+  font-size: var(--text-2xs);
+  color: var(--text-subtle);
+}
+
+.ae-histgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
