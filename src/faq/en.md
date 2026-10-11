@@ -38,8 +38,9 @@ The Dashboard shows on one screen what is running, what it made or lost and what
 - **Left panel:** **Scope** (paper and live bots running), **Bots** (how many of each type run), the **BTC regime** and **Signal stream** cards.
 - **Center:**
   - **Getting started** checklist: signed in to Sentinel, a bot configured, a bot running. Any bot type counts. With no bot yet, it points to DCA Long Classic, a template that passed its test. The signal stream step appears once a signal bot is configured. Once all are done, **Hide checklist** removes it.
-  - Summary tiles: **Realized today**, **Net P&L, all time**, **Daily loss used**, open positions, **Capital in use**, **Signal win rate**.
-  - **Configured bots** table: start and stop any bot from here.
+  - Summary tiles: **Open P&L now**, **Realized today**, **Net P&L, all time**, **Daily loss used**, **Capital in use**, **Signal win rate**.
+  - **Bot performance** table: every bot with its state, what it has open, **Open P&L** (what closing it all now would book), **Realized** (closed trades or cycles, after fees), **Total** (the two together: whether the bot is up or down) and its **Record**. Start and stop any bot from here.
+  - **Open positions**: the open signal positions at their last price, worst first, with the **Stop → target** bar.
   - **Recent trades**: the last 10 closed trades.
 - **Right panel:** **Alerts**, the **Daily stop** card and, when an exchange account is connected, the **Exchange account (real)** panel.
 
@@ -90,7 +91,7 @@ The three bots that trade Sentinel's published signals.
 On screen:
 
 - **Left panel:** risk level summary, **BTC regime**, **Signal stream** and feed filters (**Feed: bot**, **Feed: skip reason**).
-- **Center:** the bot table, **Open positions**, **Skipped trades** and the selected bot's settings form.
+- **Center:** the bot table with **Open P&L**, **Realized** and **Total** per bot, **Open positions** with **Price**, **P&L now** and the **Stop → target** bar, **Skipped trades** and the selected bot's settings form.
 - **Right panel:** trades opened and closed today, **Skip reasons** counts and **How this bot works**.
 
 ![A signal bot's settings form](shot:settings)
@@ -323,7 +324,9 @@ The in-app handbook for DCA and Grid bots: how they work, worked examples, every
 
 Everything that is open. Paper and real money are on separate tabs and never mix.
 
-- **Paper tab:** signal bots' open positions and DCA/Grid bots' open cycles. Filters on the left (symbol, bot, direction); totals and exposure of the declared balance on the right.
+- **Paper tab:** signal bots' open positions, with the last **Price** and **P&L now**, and DCA/Grid bots' open cycles. Filters on the left (symbol, bot, direction); on the right the totals, open P&L of positions and cycles, and exposure of the declared balance.
+
+**What is "P&L now"?** What closing the position at the last price would book: fees included, in USDT and as % of the position's capital, the same calculation as the closed trade. The engine reads the price every 4 seconds while a position is open; a position it has not priced yet shows **Waiting for price**, never an estimate. The **Stop → target** bar shows where the price sits between the stop (left) and the target (right); the tick is the entry.
 - **Exchange tab:** the real positions on each exchange whose key is in the vault.
 
 ![Exchange tab: real positions on the Binance account](shot:positions-exchange)

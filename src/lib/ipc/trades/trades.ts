@@ -75,6 +75,18 @@ export interface PnlStats {
   todayPnlQuote: number;
 }
 
+/** Closed-trade stats of one signal bot (`trades_stats_by_bot`). */
+export interface BotStats {
+  botKind: string;
+  stats: PnlStats;
+}
+
+export function tradesStatsByBot(live?: boolean): Promise<BotStats[]> {
+  return inTauri()
+    ? invoke<BotStats[]>("trades_stats_by_bot", live === undefined ? {} : { live })
+    : devMock(() => import("./trades.mock"), (m) => m.mock.statsByBot());
+}
+
 export function tradesList(limit = 50): Promise<TradeRecord[]> {
   return inTauri() ? invoke<TradeRecord[]>("trades_list", { limit }) : devMock(() => import("./trades.mock"), (m) => m.mock.list());
 }

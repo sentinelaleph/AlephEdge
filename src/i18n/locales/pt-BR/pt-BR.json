@@ -757,19 +757,38 @@
       "dailyLossUsed": "Perda diária usada",
       "capitalInUse": "Capital em uso",
       "split": "Sinal {{signal}} · DCA/Grid {{strategy}}, após taxas",
-      "signalWinRate": "Taxa de acerto dos sinais"
+      "signalWinRate": "Taxa de acerto dos sinais",
+      "openPnl": "L/P aberto agora"
     },
     "afterFees": "{{scope}}, após taxas",
     "noTradesToday": "Nenhum trade hoje",
     "tradesN": "Trades: {{count}}",
     "ofBalance": "{{pct}}% do saldo declarado",
-    "runningBots": "Bots configurados",
     "noBots": "Ainda não há bots",
     "noSignals": "Fluxo de sinais fora do ar: os bots de sinais não recebem sinais novos.",
     "recentTrades": "Trades recentes",
     "exchangeAccount": "Conta da corretora (real)",
     "dismissChecklist": "Ocultar lista",
-    "cyclesNote": "Ciclos DCA/Grid: {{count}}"
+    "botPerformance": "Desempenho dos bots",
+    "openPositions": "Posições abertas",
+    "morePositions": "Mais {{count}} em Posições e ordens",
+    "openPnlNone": "Nenhuma posição ou ciclo aberto",
+    "openPnlNote": "Sinal {{signal}} · DCA/Grid {{strategy}}",
+    "record": "{{wins}} ganhos · {{losses}} perdidos · {{rate}}",
+    "recordNone": "Nenhum trade fechado",
+    "cyclesDone": "Ciclos fechados: {{count}}",
+    "col": {
+      "open": "Aberto",
+      "openTip": "Posições abertas (bots de sinais) ou o ciclo aberto (DCA/Grid).",
+      "openPnl": "L/P aberto",
+      "openPnlTip": "O que fechar tudo o que está aberto registraria ao último preço, taxas incluídas.",
+      "realized": "Realizado",
+      "realizedTip": "Trades ou ciclos fechados, após taxas, desde o início.",
+      "total": "Total",
+      "totalTip": "Realizado mais L/P aberto: onde o bot está agora.",
+      "record": "Resultados",
+      "recordTip": "Bots de sinais: trades fechados no alvo (ganhos) e no stop (perdidos). DCA/Grid: ciclos fechados."
+    }
   },
   "signalBots": {
     "feedKind": "Feed: bot",
@@ -962,7 +981,6 @@
     "notional": "Nocional",
     "capitalInUse": "Capital em uso",
     "exposure": "Exposição sobre o saldo declarado",
-    "floatingPending": "O L/P flutuante aparece quando o painel reportar preços ao vivo.",
     "closeAllBody": "Fecha {{count}} posições reais a mercado (só reduzir).",
     "closeOneBody": "Fecha {{size}} {{symbol}} a mercado (só reduzir).",
     "snapshotOld": "Dados com mais de 60 s: os botões de fechar aguardam dados novos.",
@@ -981,6 +999,21 @@
       "done": "Fechadas: {{closed}} · não fechadas: {{failed}}",
       "failed": "Falha ao fechar.",
       "strategyLiveNote": "Bots com dinheiro real: a posição deles na corretora é fechada a mercado na próxima passagem."
+    },
+    "openPnlPositions": "L/P aberto, posições",
+    "openPnlCycles": "L/P aberto, DCA/Grid",
+    "openPnlTotal": "L/P aberto, total",
+    "pricedOf": "{{priced}} de {{open}} posições com preço até agora.",
+    "mark": {
+      "price": "Preço",
+      "priceTip": "O último preço que o motor leu para esta posição; ele lê a cada 4 segundos enquanto a posição está aberta.",
+      "at": "Preço às {{time}}",
+      "pnl": "L/P agora",
+      "pnlTip": "L/P agora é o que fechar ao último preço registraria: taxas incluídas, em USDT e em % do capital da posição.",
+      "pending": "Aguardando preço",
+      "range": "Stop → alvo",
+      "rangeTip": "Onde o preço está entre o stop (esquerda) e o alvo (direita). A marca é a entrada.",
+      "rangeLabel": "Preço a {{pct}}% do caminho do stop ao alvo"
     }
   },
   "history": {

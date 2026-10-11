@@ -475,6 +475,26 @@ pub struct BotDeskStatus {
     /// confirmations and the header say so.
     #[serde(default)]
     pub venue_sandbox: bool,
+    /// The last market price the engine read for each open position, and
+    /// what closing it there would book.
+    #[serde(default)]
+    pub marks: Vec<PositionMark>,
+}
+
+/// An open position at the last price the engine read for it (every tick
+/// while positions are open). `pnl_pct` / `pnl_usdt` are what closing it at
+/// that price would book: the trade record's own formula, fees and a banked
+/// partial included, as a share of the position's capital.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PositionMark {
+    pub signal_id: String,
+    pub bot_kind: BotKind,
+    pub price: f64,
+    /// UNIX millis of the price read.
+    pub at_ms: u64,
+    pub pnl_pct: f64,
+    pub pnl_usdt: f64,
 }
 
 /// Pilot (owner 2026-10-05): the first real entries after LIVE is switched

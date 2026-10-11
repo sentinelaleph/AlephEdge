@@ -362,3 +362,49 @@ fn the_level_position_limit_applies_per_signal_bot() {
     let free = super::entry::signal_bot_budget(&m, BotKind::Futures, 10_000.0, 100.0);
     assert!(judge_budget(&limits, &futures, &free).is_ok());
 }
+
+// The status carries each open position at its last read price with what
+// closing there would book (the trade record's formula); closed positions
+// drop out.
+#[test]
+fn open_positions_carry_their_last_price_and_pnl_if_closed_now() {
+    let m = BotManager::new();
+    let mut pos = position(&signal("long", 100.0, 106.0, 90.0), None);
+    pos.capital = 100.0;
+    assert!(m.add_position_if_free(pos.clone()));
+    assert!(m.status().marks.is_empty(), "not priced yet");
+    m.record_mark(&pos, 103.0, 1_000);
+    let marks = m.status().marks;
+    assert_eq!(marks.len(), 1);
+    let want = super::pnl::unrealized_net_pnl_pct(&pos, 103.0);
+    assert_eq!(marks[0].pnl_pct.to_bits(), want.to_bits());
+    assert!((marks[0].pnl_usdt - want).abs() < 1e-9, "capital 100 → USDT equals %");
+    assert!(marks[0].pnl_usdt > 0.0 && marks[0].pnl_usdt < 3.0 * f64::from(pos.leverage), "fees taken off a 3% move");
+    m.record_mark(&pos, f64::NAN, 2_000);
+    assert_eq!(m.status().marks[0].at_ms, 1_000, "a bad quote is not a mark");
+    m.remove_position(&pos.signal_id, pos.bot_kind);
+    assert!(m.status().marks.is_empty());
+}
+
+// Regression (10 Oct 2026): status() locked `positions` inside its struct
+// literal and then again for the marks; the main-thread command deadlocked
+// and froze the window. It must return, with the marks, while positions are
+// open and priced.
+#[test]
+fn status_returns_with_marks_while_positions_are_open() {
+    let m = std::sync::Arc::new(BotManager::new());
+    let pos = position(&signal("long", 100.0, 106.0, 90.0), None);
+    assert!(m.add_position_if_free(pos.clone()));
+    m.record_mark(&pos, 101.0, 1_000);
+    let (tx, rx) = std::sync::mpsc::channel();
+    let mm = m.clone();
+    std::thread::spawn(move || {
+        let _ = tx.send(mm.status());
+    });
+    let st = rx
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .expect("status() did not return: lock taken twice");
+    assert_eq!(st.open_positions.len(), 1);
+    assert_eq!(st.marks.len(), 1);
+    assert_eq!(st.marks[0].price, 101.0);
+}

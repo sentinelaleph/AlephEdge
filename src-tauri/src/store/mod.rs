@@ -2,6 +2,7 @@
 //! database NEVER holds keys, secrets, or anything vault-adjacent.
 
 pub(crate) mod backtest;
+pub mod bot_stats;
 mod commands;
 mod manual;
 mod meta;
@@ -12,7 +13,7 @@ pub(crate) mod skips;
 pub(crate) mod strategy;
 mod trades;
 
-pub use commands::{skips_export_csv, trades_export_csv, trades_list, trades_stats};
+pub use commands::{skips_export_csv, trades_export_csv, trades_list, trades_stats, trades_stats_by_bot};
 
 use std::path::Path;
 use std::sync::Mutex;
@@ -101,6 +102,11 @@ impl StoreManager {
 
     pub fn stats(&self, dir: &Path) -> Result<PnlStats, String> {
         self.with_conn(dir, |c| trades::stats(c, utc_day_start_ms()))
+    }
+
+    /// Stats per signal bot, over real, simulated or all trades.
+    pub fn stats_by_bot(&self, dir: &Path, live: Option<bool>) -> Result<Vec<bot_stats::BotStats>, String> {
+        self.with_conn(dir, |c| bot_stats::by_bot(c, utc_day_start_ms(), live))
     }
 
     /// Stats over real (`true`) or simulated (`false`) trades only.

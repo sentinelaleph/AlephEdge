@@ -4,6 +4,7 @@ import { Link } from "@/app/router/router";
 import { Button } from "@/components/ui/Button/Button";
 import { LiveChip } from "@/components/ui/Chip/Chip";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
+import { botMoneyColumns, useSignalBotMoney } from "./botMoney";
 import { StatusChip } from "@/components/ui/StatusChip/StatusChip";
 import { Tooltip } from "@/components/ui/Tooltip/Tooltip";
 import { localeForLanguage } from "@/i18n";
@@ -84,6 +85,7 @@ export function BotsTable({ rows, sort, onSort, selected, onSelect }: BotsTableP
     onSelect(next);
   };
 
+  const money = useSignalBotMoney();
   const columns: DataColumn<BotRow>[] = [
     ...(onSelect
       ? [
@@ -138,6 +140,7 @@ export function BotsTable({ rows, sort, onSort, selected, onSelect }: BotsTableP
       priority: 2,
       cell: (row) => row.openPositions,
     },
+    ...botMoneyColumns<BotRow>(t, locale, (row) => (row.config ? money(row.kind) : null)),
     {
       id: "capital",
       header: t("table.capital"),

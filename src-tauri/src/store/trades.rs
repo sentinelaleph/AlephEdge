@@ -198,12 +198,17 @@ pub fn stats_scoped(
         .map_err(|_| "storeQueryFailed".to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|_| "storeRowMalformed".to_string())?;
+    Ok(aggregate(&rows, utc_day_start_ms))
+}
 
+/// The stats of closed trades given as (pnl_quote, pnl_pct, exit_reason,
+/// closed_at), oldest first (the drawdown walks them in order).
+pub fn aggregate(rows: &[(f64, f64, String, u64)], utc_day_start_ms: u64) -> PnlStats {
     let (mut wins, mut losses) = (0u32, 0u32);
     let (mut gross_profit, mut gross_loss) = (0f64, 0f64);
     let (mut net, mut today, mut sum_pct) = (0f64, 0f64, 0f64);
     let (mut peak, mut max_dd) = (0f64, 0f64);
-    for (pnl_quote, pnl_pct, reason, closed_at) in &rows {
+    for (pnl_quote, pnl_pct, reason, closed_at) in rows {
         net += pnl_quote;
         sum_pct += pnl_pct;
         if *closed_at >= utc_day_start_ms {
@@ -225,7 +230,7 @@ pub fn stats_scoped(
     }
 
     let resolved = wins + losses;
-    Ok(PnlStats {
+    PnlStats {
         total_trades: rows.len() as u32,
         wins,
         losses,
@@ -239,7 +244,7 @@ pub fn stats_scoped(
         profit_factor: (gross_loss > 0.0 && gross_profit > 0.0).then(|| gross_profit / gross_loss),
         max_drawdown_quote: max_dd,
         today_pnl_quote: today,
-    })
+    }
 }
 
 /// One CSV text field (RFC 4180). Free text reaches this file — veto reasons

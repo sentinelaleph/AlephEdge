@@ -757,19 +757,38 @@
       "dailyLossUsed": "Pérdida diaria usada",
       "capitalInUse": "Capital en uso",
       "split": "Señal {{signal}} · DCA/Grid {{strategy}}, tras comisiones",
-      "signalWinRate": "Tasa de acierto de señales"
+      "signalWinRate": "Tasa de acierto de señales",
+      "openPnl": "PyG abierto ahora"
     },
     "afterFees": "{{scope}}, tras comisiones",
     "noTradesToday": "Sin operaciones hoy",
     "tradesN": "Operaciones: {{count}}",
     "ofBalance": "{{pct}} % del saldo declarado",
-    "runningBots": "Bots configurados",
     "noBots": "Aún no hay bots",
     "noSignals": "Flujo de señales caído: los bots de señales no reciben señales nuevas.",
     "recentTrades": "Operaciones recientes",
     "exchangeAccount": "Cuenta del exchange (real)",
     "dismissChecklist": "Ocultar lista",
-    "cyclesNote": "Ciclos DCA/Grid: {{count}}"
+    "botPerformance": "Rendimiento de bots",
+    "openPositions": "Posiciones abiertas",
+    "morePositions": "{{count}} más en Posiciones y órdenes",
+    "openPnlNone": "Sin posiciones ni ciclos abiertos",
+    "openPnlNote": "Señal {{signal}} · DCA/Grid {{strategy}}",
+    "record": "{{wins}} ganadas · {{losses}} perdidas · {{rate}}",
+    "recordNone": "Sin operaciones cerradas",
+    "cyclesDone": "Ciclos cerrados: {{count}}",
+    "col": {
+      "open": "Abierto",
+      "openTip": "Posiciones abiertas (bots de señales) o el ciclo abierto (DCA/Grid).",
+      "openPnl": "PyG abierto",
+      "openPnlTip": "Lo que registraría cerrar todo lo abierto al último precio, comisiones incluidas.",
+      "realized": "Realizado",
+      "realizedTip": "Operaciones o ciclos cerrados, tras comisiones, desde el inicio.",
+      "total": "Total",
+      "totalTip": "Realizado más PyG abierto: dónde está el bot ahora.",
+      "record": "Resultados",
+      "recordTip": "Bots de señales: operaciones cerradas en el objetivo (ganadas) y en el stop (perdidas). DCA/Grid: ciclos cerrados."
+    }
   },
   "signalBots": {
     "feedKind": "Feed: bot",
@@ -962,7 +981,6 @@
     "notional": "Nocional",
     "capitalInUse": "Capital en uso",
     "exposure": "Exposición sobre el saldo declarado",
-    "floatingPending": "El PyG flotante aparece cuando el escritorio reporte precios en vivo.",
     "closeAllBody": "Cierra {{count}} posiciones reales a mercado (solo reducir).",
     "closeOneBody": "Cierra {{size}} {{symbol}} a mercado (solo reducir).",
     "snapshotOld": "Datos de más de 60 s: los botones de cierre esperan datos nuevos.",
@@ -981,6 +999,21 @@
       "done": "Cerradas: {{closed}} · sin cerrar: {{failed}}",
       "failed": "No se pudo cerrar.",
       "strategyLiveNote": "Bots con dinero real: su posición en el exchange se cierra a mercado en la siguiente pasada."
+    },
+    "openPnlPositions": "PyG abierto, posiciones",
+    "openPnlCycles": "PyG abierto, DCA/Grid",
+    "openPnlTotal": "PyG abierto, total",
+    "pricedOf": "{{priced}} de {{open}} posiciones con precio por ahora.",
+    "mark": {
+      "price": "Precio",
+      "priceTip": "El último precio que el motor leyó para esta posición; lo lee cada 4 segundos mientras la posición está abierta.",
+      "at": "Precio a las {{time}}",
+      "pnl": "PyG ahora",
+      "pnlTip": "PyG ahora es lo que registraría cerrar al último precio: comisiones incluidas, en USDT y en % del capital de la posición.",
+      "pending": "Esperando precio",
+      "range": "Stop → objetivo",
+      "rangeTip": "Dónde está el precio entre el stop (izquierda) y el objetivo (derecha). La marca es la entrada.",
+      "rangeLabel": "Precio al {{pct}}% del recorrido del stop al objetivo"
     }
   },
   "history": {

@@ -38,8 +38,9 @@ Pano, neyin çalıştığını, ne kazandırıp ne kaybettirdiğini ve neyin dik
 - **Sol panel:** **Kapsam** (çalışan simüle ve canlı bot sayısı), **Botlar** (her türden kaç bot çalışıyor), **BTC rejimi** ve **Sinyal akışı** kartları.
 - **Orta alan:**
   - **Başlarken** listesi: Sentinel'e giriş, bir botun ayarlanması ve çalışması. Her bot türü sayılır. Henüz bot yoksa liste, testini geçen DCA Long Classic şablonunu önerir. Sinyal akışı adımı ancak bir sinyal botu ayarlandığında görünür. Hepsi tamamlanınca **Listeyi gizle** ile kaldırılır.
-  - Özet kutuları: **Bugün gerçekleşen**, **Net K/Z, tüm zamanlar**, **Kullanılan günlük zarar**, açık pozisyon, **Kullanılan sermaye**, **Sinyal kazanç oranı**.
-  - **Ayarlı botlar** tablosu: her botu buradan başlatıp durdurabilirsiniz.
+  - Özet kutuları: **Anlık açık K/Z**, **Bugün gerçekleşen**, **Net K/Z, tüm zamanlar**, **Kullanılan günlük zarar**, **Kullanılan sermaye**, **Sinyal kazanç oranı**.
+  - **Bot performansı** tablosu: her bot durumuyla, açık olanları, **Açık K/Z** (hepsi şimdi kapansa yazılacak sonuç), **Gerçekleşen** (kapanan işlemler ya da döngüler, ücretler sonrası), **Toplam** (ikisi birlikte: bot artıda mı ekside mi) ve **Kayıt**. Her botu buradan başlatıp durdurabilirsiniz.
+  - **Açık pozisyonlar**: açık sinyal pozisyonları son fiyatlarıyla, en kötüsü önce, **Stop → hedef** çubuğuyla.
   - **Son işlemler**: kapanan son 10 işlem.
 - **Sağ panel:** **Uyarılar**, **Günlük stop** kartı ve bir borsa hesabı bağlıysa **Borsa hesabı (gerçek)** paneli.
 
@@ -90,7 +91,7 @@ Sentinel'in yayınladığı sinyallerle işlem yapan üç bot burada.
 Ekranda:
 
 - **Sol panel:** risk seviyesi özeti, **BTC rejimi**, **Sinyal akışı** ve akış filtreleri (**Akış: bot**, **Akış: atlama nedeni**).
-- **Orta alan:** bot tablosu, **Açık pozisyonlar**, **Atlanan işlemler** ve seçili botun ayar formu.
+- **Orta alan:** her bot için **Açık K/Z**, **Gerçekleşen** ve **Toplam** içeren bot tablosu, **Fiyat**, **Anlık K/Z** ve **Stop → hedef** çubuğuyla **Açık pozisyonlar**, **Atlanan işlemler** ve seçili botun ayar formu.
 - **Sağ panel:** bugün açılan ve kapanan işlemler, **Atlama nedenleri** sayıları ve **Bu bot nasıl çalışır** ilkeleri.
 
 ![Bir sinyal botunun ayar formu](shot:settings)
@@ -323,7 +324,9 @@ DCA ve Grid botlarının uygulama içi el kitabı: nasıl çalıştıkları, say
 
 Açık olan her şey burada. Simüle (paper) ve gerçek para ayrı sekmelerdedir ve birbirine karışmaz.
 
-- **Simüle sekmesi:** sinyal botlarının açık pozisyonları ve DCA/Grid botlarının açık döngüleri. Solda sembol, bot ve yön filtreleri; sağda toplamlar ve beyan edilen bakiyeye göre maruziyet.
+- **Simüle sekmesi:** son **Fiyat** ve **Anlık K/Z** ile sinyal botlarının açık pozisyonları ve DCA/Grid botlarının açık döngüleri. Solda sembol, bot ve yön filtreleri; sağda toplamlar, pozisyonların ve döngülerin açık K/Z'si ve beyan edilen bakiyeye göre maruziyet.
+
+**"Anlık K/Z" nedir?** Pozisyon son fiyattan kapansa yazılacak sonuç: ücretler dahil, USDT ve pozisyon sermayesinin %'si olarak; kapanan işlemle aynı hesap. Motor, pozisyon açıkken fiyatı 4 saniyede bir okur; henüz fiyatı okunmamış pozisyonda tahmin değil **Fiyat bekleniyor** yazar. **Stop → hedef** çubuğu fiyatın stop (sol) ile hedef (sağ) arasındaki yerini gösterir; çentik girişi gösterir.
 - **Borsa sekmesi:** anahtarı kasada olan her borsadaki gerçek pozisyonlar.
 
 ![Borsa sekmesi: Binance hesabındaki gerçek pozisyonlar](shot:positions-exchange)

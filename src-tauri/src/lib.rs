@@ -53,7 +53,7 @@ use risk::{
 use signal::{
     combo_catalog, signal_connect, signal_disconnect, signal_health, signal_recent, SignalManager,
 };
-use store::{skips_export_csv, trades_export_csv, trades_list, trades_stats, StoreManager};
+use store::{skips_export_csv, trades_export_csv, trades_list, trades_stats, trades_stats_by_bot, StoreManager};
 use tauri::Manager;
 use vault::{
     spawn_idle_watchdog, vault_add_credential, vault_create, vault_list_credentials, vault_lock,
@@ -188,6 +188,7 @@ pub fn run() {
             risk_set_daily_loss,
             trades_list,
             trades_stats,
+            trades_stats_by_bot,
             trades_export_csv,
             skips_export_csv,
             bot_configure,

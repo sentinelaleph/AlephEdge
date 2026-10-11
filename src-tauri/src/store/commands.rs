@@ -38,6 +38,17 @@ pub fn trades_stats(
     }
 }
 
+/// Closed-trade stats per signal bot (`live` as for `trades_stats`).
+#[tauri::command]
+pub fn trades_stats_by_bot(
+    app: AppHandle,
+    store: State<StoreManager>,
+    live: Option<bool>,
+) -> Result<Vec<super::bot_stats::BotStats>, String> {
+    let dir = data_dir(&app)?;
+    store.stats_by_bot(&dir, live)
+}
+
 /// Writes the CSV next to the database and returns its full path (the UI
 /// shows it; no file dialogs in the Rust core).
 #[tauri::command]

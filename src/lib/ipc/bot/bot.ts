@@ -229,6 +229,22 @@ export interface BotDeskStatus {
    * account (Rust `ALEPH_EDGE_VENUE_SANDBOX=1`).
    */
   venueSandbox?: boolean;
+  /** Each open position at the last price the engine read (positionMarks.ts). */
+  marks?: PositionMark[];
+}
+
+/**
+ * An open position at the last price the engine read for it, and what
+ * closing it there would book: the trade record's formula, fees and a banked
+ * partial included, as a share of the position's capital.
+ */
+export interface PositionMark {
+  signalId: string;
+  botKind: BotKind;
+  price: number;
+  atMs: number;
+  pnlPct: number;
+  pnlUsdt: number;
 }
 
 /** Largest real entry while a signal bot's pilot runs (model.rs PILOT_NOTIONAL_USDT). */

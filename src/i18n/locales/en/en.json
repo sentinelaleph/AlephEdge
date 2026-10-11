@@ -757,19 +757,38 @@
       "dailyLossUsed": "Daily loss used",
       "capitalInUse": "Capital in use",
       "split": "Signal {{signal}} · DCA/Grid {{strategy}}, after fees",
-      "signalWinRate": "Signal win rate"
+      "signalWinRate": "Signal win rate",
+      "openPnl": "Open P&L now"
     },
     "afterFees": "{{scope}}, after fees",
     "noTradesToday": "No trades today",
     "tradesN": "Trades: {{count}}",
     "ofBalance": "{{pct}}% of declared balance",
-    "runningBots": "Configured bots",
     "noBots": "No bots yet",
     "noSignals": "Signal stream down: signal bots receive no new signals.",
     "recentTrades": "Recent trades",
     "exchangeAccount": "Exchange account (real)",
     "dismissChecklist": "Hide checklist",
-    "cyclesNote": "DCA/Grid cycles: {{count}}"
+    "botPerformance": "Bot performance",
+    "openPositions": "Open positions",
+    "morePositions": "{{count}} more on Positions & orders",
+    "openPnlNone": "No open positions or cycles",
+    "openPnlNote": "Signal {{signal}} · DCA/Grid {{strategy}}",
+    "record": "{{wins}} won · {{losses}} lost · {{rate}}",
+    "recordNone": "No closed trades",
+    "cyclesDone": "Cycles closed: {{count}}",
+    "col": {
+      "open": "Open",
+      "openTip": "Open positions (signal bots) or the open cycle (DCA/Grid).",
+      "openPnl": "Open P&L",
+      "openPnlTip": "What closing everything open would book at the last price, fees included.",
+      "realized": "Realized",
+      "realizedTip": "Closed trades or cycles, after fees, all time.",
+      "total": "Total",
+      "totalTip": "Realized plus open P&L: where the bot stands now.",
+      "record": "Record",
+      "recordTip": "Signal bots: trades closed at the target (won) and at the stop (lost). DCA/Grid: cycles closed."
+    }
   },
   "signalBots": {
     "feedKind": "Feed: bot",
@@ -962,7 +981,6 @@
     "notional": "Notional",
     "capitalInUse": "Capital in use",
     "exposure": "Exposure of declared balance",
-    "floatingPending": "Floating P&L appears once the desk reports live marks.",
     "closeAllBody": "Closes {{count}} real positions at market (reduce-only).",
     "closeOneBody": "Closes {{size}} {{symbol}} at market (reduce-only).",
     "snapshotOld": "Snapshot older than 60 s: the close buttons wait for a fresh one.",
@@ -981,6 +999,21 @@
       "done": "Closed: {{closed}} · not closed: {{failed}}",
       "failed": "Closing failed.",
       "strategyLiveNote": "Bots on real money: their exchange position is closed at market on the next pass."
+    },
+    "openPnlPositions": "Open P&L, positions",
+    "openPnlCycles": "Open P&L, DCA/Grid",
+    "openPnlTotal": "Open P&L, total",
+    "pricedOf": "{{priced}} of {{open}} positions priced so far.",
+    "mark": {
+      "price": "Price",
+      "priceTip": "The last price the engine read for this position; it reads every 4 seconds while the position is open.",
+      "at": "Price at {{time}}",
+      "pnl": "P&L now",
+      "pnlTip": "P&L now is what closing at the last price would book: fees included, as USDT and % of the position's capital.",
+      "pending": "Waiting for price",
+      "range": "Stop → target",
+      "rangeTip": "Where the price sits between the stop (left) and the target (right). The tick is the entry.",
+      "rangeLabel": "Price {{pct}}% of the way from the stop to the target"
     }
   },
   "history": {

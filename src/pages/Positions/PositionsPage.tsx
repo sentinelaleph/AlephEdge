@@ -11,8 +11,9 @@ import { FactList, Panel } from "@/components/ui/Panel/Panel";
 import { Section } from "@/components/ui/Section/Section";
 import { Tabs } from "@/components/ui/Tabs/Tabs";
 import { localeForLanguage } from "@/i18n";
-import { formatPercent, formatUsdt, NO_VALUE } from "@/lib/format";
+import { formatPercent, formatPnl, formatUsdt, NO_VALUE, pnlToneAttr } from "@/lib/format";
 import type { BotKind } from "@/lib/ipc/bot/bot";
+import { marksByPosition, openPnl } from "@/lib/positionMarks";
 import { SkeletonRows } from "@/pages/Bots/SkeletonRows";
 import { PaperCloseAll } from "./PaperCloseAll";
 import { PositionsTable } from "./PositionsTable";
@@ -69,6 +70,13 @@ export function PositionsPage() {
   const notional = rows.reduce((n, p) => n + (p.notionalUsdt > 0 ? p.notionalUsdt : 0), 0);
   const capital = rows.reduce((n, p) => n + p.capital, 0);
   const balance = risk.state?.balance ?? null;
+  const open = openPnl(rows, marksByPosition(desk.status));
+  const cyclesPnl = cycleBots.reduce((n, b) => n + (b.openCycle?.unrealizedQuote ?? 0), 0);
+  const pnlRow = (label: string, v: number | null) => ({
+    label,
+    value: v === null ? NO_VALUE : formatPnl(v, locale).text,
+    tone: v === null ? undefined : (pnlToneAttr(v) as "up" | "down" | undefined),
+  });
 
   const paperLeft = (
     <>
@@ -94,6 +102,9 @@ export function PositionsPage() {
         rows={[
           { label: t("table.openPositions"), value: rows.length },
           { label: t("positions.strategyCycles"), value: strategy.bots === null ? NO_VALUE : cycleBots.length },
+          pnlRow(t("positions.openPnlPositions"), open.priced > 0 ? open.pnlUsdt : rows.length ? null : 0),
+          pnlRow(t("positions.openPnlCycles"), cycleBots.length ? cyclesPnl : 0),
+          pnlRow(t("positions.openPnlTotal"), open.priced < open.open ? null : open.pnlUsdt + cyclesPnl),
           { label: t("positions.notional"), value: formatUsdt(notional, locale, 0) },
           { label: t("positions.capitalInUse"), value: formatUsdt(capital, locale) },
           {
@@ -102,7 +113,10 @@ export function PositionsPage() {
           },
         ]}
       />
-      <p className="ae-subtle">{t("positions.floatingPending")}</p>
+      <p className="ae-subtle">
+        {open.priced < open.open ? `${t("positions.pricedOf", { priced: open.priced, open: open.open })} ` : ""}
+        {t("positions.mark.pnlTip")}
+      </p>
     </Panel>
   );
 

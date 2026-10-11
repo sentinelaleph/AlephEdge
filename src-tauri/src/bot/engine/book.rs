@@ -52,6 +52,7 @@ pub async fn close_phase(app: &AppHandle) {
         let invalidated = signals.is_invalidated(&pos.signal_id);
         let had_partial = pos.partial_price.is_some();
         let now = now_ms();
+        bots.record_mark(&pos, price, now);
         // Paper books stops and targets at their level (management::Fill);
         // a live position's exit is recorded from its real fills.
         let fill = if pos.is_live() {

@@ -5,7 +5,7 @@
  * P&L or win rate is invented.
  */
 
-import type { PnlStats, TradeRecord } from "./trades";
+import type { BotStats, PnlStats, TradeRecord } from "./trades";
 
 const EMPTY: PnlStats = {
   totalTrades: 0,
@@ -22,5 +22,6 @@ const EMPTY: PnlStats = {
 export const mock = {
   list: (): Promise<TradeRecord[]> => Promise.resolve([]),
   stats: (): Promise<PnlStats> => Promise.resolve({ ...EMPTY }),
+  statsByBot: (): Promise<BotStats[]> => Promise.resolve([]),
   exportCsv: (): Promise<string> => Promise.reject("No trade store in the browser preview."),
 };

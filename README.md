@@ -118,7 +118,7 @@ A handbook inside the app, in English and Turkish: start in five minutes, core c
 
 ![Positions](assets/screenshots/positions.webp)
 
-Simulated positions and DCA/Grid cycles on one tab, the real exchange account on another, never mixed. **Close all** on the simulated tab stops the signal bots first, then closes every simulated position and cycle at market. The exchange tab shows your real positions and can close them with reduce-only market orders behind a typed confirmation.
+Simulated positions and DCA/Grid cycles on one tab, the real exchange account on another, never mixed. Each open position shows its last price, **P&L now** (what closing there would book, fees included, the same calculation as a closed trade) and where the price sits between the stop and the target. The Dashboard's bot table shows every bot's open P&L, realized P&L and total. **Close all** on the simulated tab stops the signal bots first, then closes every simulated position and cycle at market. The exchange tab shows your real positions and can close them with reduce-only market orders behind a typed confirmation.
 
 ### Risk and safety
 

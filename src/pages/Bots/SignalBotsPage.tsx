@@ -9,6 +9,7 @@ import { RegimeCard, RiskReadout, StreamCard } from "@/components/Desk/Readouts"
 import { Button } from "@/components/ui/Button/Button";
 import { LiveChip, UntestedChip } from "@/components/ui/Chip/Chip";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
+import { botMoneyColumns, useSignalBotMoney } from "./botMoney";
 import { FilterGroup, listParam } from "@/components/ui/FilterPanel/FilterPanel";
 import { PageShell } from "@/components/ui/PageShell/PageShell";
 import { FactList, Panel } from "@/components/ui/Panel/Panel";
@@ -78,6 +79,7 @@ export function SignalBotsPage() {
     requestAnimationFrame(() => settingsRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
   };
 
+  const money = useSignalBotMoney();
   const columns: DataColumn<BotRow>[] = [
     {
       id: "name",
@@ -101,6 +103,7 @@ export function SignalBotsPage() {
     },
     { id: "state", header: t("table.state"), cell: (r) => <BotStateChip row={r} /> },
     { id: "open", header: t("table.openPositions"), numeric: true, priority: 2, cell: (r) => r.openPositions },
+    ...botMoneyColumns<BotRow>(t, locale, (r) => (r.config ? money(r.kind) : null)),
     {
       id: "capital",
       header: t("table.capital"),

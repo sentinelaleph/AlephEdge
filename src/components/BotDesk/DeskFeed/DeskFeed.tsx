@@ -1,10 +1,15 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useNow } from "@/app/alerts";
+import { useDeskContext } from "@/app/DeskProvider";
+import { positionPnlColumns } from "@/components/PositionPnl/PositionPnl";
 import { Chip, LiveChip, ManualChip } from "@/components/ui/Chip/Chip";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
 import { Section } from "@/components/ui/Section/Section";
 import { localeForLanguage } from "@/i18n";
 import { formatDuration, formatNumber, formatPrice, formatTableTime, formatUsdt, NO_VALUE } from "@/lib/format";
 import { isLivePosition, type OpenPosition, type SkipNote } from "@/lib/ipc/bot/bot";
+import { marksByPosition } from "@/lib/positionMarks";
 import { skipParams } from "@/lib/skipNotes";
 import { targetLabel } from "@/lib/takeProfit";
 import "./DeskFeed.css";
@@ -26,6 +31,9 @@ export function DeskFeed({ positions, skips }: DeskFeedProps) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const custom = t("bots.tp.custom");
+  const now = useNow(5_000);
+  const { desk } = useDeskContext();
+  const marks = useMemo(() => marksByPosition(desk.status), [desk.status]);
 
   const positionColumns: DataColumn<OpenPosition>[] = [
     {
@@ -46,6 +54,7 @@ export function DeskFeed({ positions, skips }: DeskFeedProps) {
     { id: "entry", header: t("table.entry"), numeric: true, cell: (p) => formatPrice(p.entry, locale) },
     { id: "tp", header: t("table.tp"), numeric: true, cell: (p) => formatPrice(p.tp, locale) },
     { id: "sl", header: t("table.sl"), numeric: true, cell: (p) => formatPrice(p.sl, locale) },
+    ...positionPnlColumns(t, locale, marks, now),
     { id: "lev", header: t("table.leverage"), numeric: true, priority: 3, cell: (p) => `${p.leverage}x` },
     {
       id: "target",

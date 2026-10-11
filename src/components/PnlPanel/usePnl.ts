@@ -4,6 +4,8 @@ import {
   tradesExportCsv,
   tradesList,
   tradesStats,
+  tradesStatsByBot,
+  type BotStats,
   type PnlStats,
   type TradeRecord,
 } from "@/lib/ipc/trades/trades";
@@ -17,6 +19,8 @@ export type PnlScope = "simulated" | "real";
 export interface PnlController {
   /** Stats for `scope` when `split`, for everything otherwise. */
   stats: PnlStats | null;
+  /** The same stats per signal bot (same scope); null while loading. */
+  byBot: BotStats[] | null;
   /**
    * True in a live build: stats are fetched per scope and never summed
    * across real and simulated money.
@@ -42,6 +46,7 @@ export interface PnlController {
 export function usePnl(split: boolean | null): PnlController {
   const { t } = useTranslation();
   const [stats, setStats] = useState<PnlStats | null>(null);
+  const [byBot, setByBot] = useState<BotStats[] | null>(null);
   const [scope, setScope] = useState<PnlScope>("simulated");
   const [trades, setTrades] = useState<TradeRecord[]>([]);
   const [exportedTo, setExportedTo] = useState<string | null>(null);
@@ -54,14 +59,18 @@ export function usePnl(split: boolean | null): PnlController {
     // are cleared so they are never shown under the new label.
     let live = true;
     setStats(null);
+    setByBot(null);
     let timer: number | undefined;
     const statsCall = (): Promise<PnlStats | null> =>
       split === null ? Promise.resolve(null) : tradesStats(split ? scope === "real" : undefined);
+    const byBotCall = (): Promise<BotStats[] | null> =>
+      split === null ? Promise.resolve(null) : tradesStatsByBot(split ? scope === "real" : undefined);
     const tick = async () => {
       try {
-        const [s, t] = await Promise.all([statsCall(), tradesList(50)]);
+        const [s, b, t] = await Promise.all([statsCall(), byBotCall(), tradesList(50)]);
         if (alive.current && live) {
           setStats(s);
+          setByBot(b);
           setTrades(t);
         }
       } catch {
@@ -94,5 +103,5 @@ export function usePnl(split: boolean | null): PnlController {
     }
   }, [t]);
 
-  return { stats, split: split === true, scope, setScope, trades, exportedTo, exportError, exportCsv };
+  return { stats, byBot, split: split === true, scope, setScope, trades, exportedTo, exportError, exportCsv };
 }

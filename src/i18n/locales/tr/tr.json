@@ -757,19 +757,38 @@
       "dailyLossUsed": "Kullanılan günlük zarar",
       "capitalInUse": "Kullanılan sermaye",
       "split": "Sinyal {{signal}} · DCA/Grid {{strategy}}, ücretler sonrası",
-      "signalWinRate": "Sinyal kazanç oranı"
+      "signalWinRate": "Sinyal kazanç oranı",
+      "openPnl": "Anlık açık K/Z"
     },
     "afterFees": "{{scope}}, ücretler düşülmüş",
     "noTradesToday": "Bugün işlem yok",
     "tradesN": "İşlem: {{count}}",
     "ofBalance": "Beyan edilen bakiyenin %{{pct}}'i",
-    "runningBots": "Ayarlı botlar",
     "noBots": "Henüz bot yok",
     "noSignals": "Sinyal akışı kesik: sinyal botları yeni sinyal almıyor.",
     "recentTrades": "Son işlemler",
     "exchangeAccount": "Borsa hesabı (gerçek)",
     "dismissChecklist": "Listeyi gizle",
-    "cyclesNote": "DCA/Grid döngüleri: {{count}}"
+    "botPerformance": "Bot performansı",
+    "openPositions": "Açık pozisyonlar",
+    "morePositions": "Pozisyonlar ve emirler'de {{count}} tane daha",
+    "openPnlNone": "Açık pozisyon ya da döngü yok",
+    "openPnlNote": "Sinyal {{signal}} · DCA/Grid {{strategy}}",
+    "record": "{{wins}} kazanç · {{losses}} kayıp · {{rate}}",
+    "recordNone": "Kapanan işlem yok",
+    "cyclesDone": "Kapanan döngü: {{count}}",
+    "col": {
+      "open": "Açık",
+      "openTip": "Açık pozisyonlar (sinyal botları) ya da açık döngü (DCA/Grid).",
+      "openPnl": "Açık K/Z",
+      "openPnlTip": "Açık olan her şey son fiyattan kapansa yazılacak sonuç, ücretler dahil.",
+      "realized": "Gerçekleşen",
+      "realizedTip": "Kapanan işlemler ya da döngüler, ücretler sonrası, tüm zamanlar.",
+      "total": "Toplam",
+      "totalTip": "Gerçekleşen artı açık K/Z: botun şu anki durumu.",
+      "record": "Kayıt",
+      "recordTip": "Sinyal botları: hedefte kapanan (kazanç) ve stopta kapanan (kayıp) işlemler. DCA/Grid: kapanan döngüler."
+    }
   },
   "signalBots": {
     "feedKind": "Akış: bot",
@@ -962,7 +981,6 @@
     "notional": "Nominal",
     "capitalInUse": "Kullanılan sermaye",
     "exposure": "Beyan edilen bakiyeye göre maruziyet",
-    "floatingPending": "Açık K/Z, masa canlı fiyat raporladığında görünür.",
     "closeAllBody": "{{count}} gerçek pozisyonu piyasa fiyatından kapatır (yalnız azaltma).",
     "closeOneBody": "{{size}} {{symbol}} piyasa fiyatından kapatılır (yalnız azaltma).",
     "snapshotOld": "Veri 60 sn'den eski: kapatma düğmeleri yenisini bekliyor.",
@@ -981,6 +999,21 @@
       "done": "Kapandı: {{closed}} · kapanmayan: {{failed}}",
       "failed": "Kapatma başarısız.",
       "strategyLiveNote": "Gerçek paradaki botlar: borsadaki pozisyonları bir sonraki turda piyasa fiyatından kapatılır."
+    },
+    "openPnlPositions": "Açık K/Z, pozisyonlar",
+    "openPnlCycles": "Açık K/Z, DCA/Grid",
+    "openPnlTotal": "Açık K/Z, toplam",
+    "pricedOf": "Şu ana kadar {{open}} pozisyondan {{priced}} tanesinin fiyatı okundu.",
+    "mark": {
+      "price": "Fiyat",
+      "priceTip": "Motorun bu pozisyon için okuduğu son fiyat; pozisyon açıkken 4 saniyede bir okur.",
+      "at": "Fiyat zamanı {{time}}",
+      "pnl": "Anlık K/Z",
+      "pnlTip": "Anlık K/Z, son fiyattan kapansa yazılacak sonuçtur: ücretler dahil, USDT ve pozisyon sermayesinin %'si olarak.",
+      "pending": "Fiyat bekleniyor",
+      "range": "Stop → hedef",
+      "rangeTip": "Fiyatın stop (sol) ile hedef (sağ) arasındaki yeri. Çentik girişi gösterir.",
+      "rangeLabel": "Fiyat stoptan hedefe giden yolun %{{pct}}'inde"
     }
   },
   "history": {

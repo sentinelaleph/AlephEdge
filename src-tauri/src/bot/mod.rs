@@ -28,7 +28,7 @@ use crate::signal::model::Signal;
 use crate::store::{utc_day_start_ms, StoreManager};
 use close_claim::CloseClaims;
 use judged::JudgeLedger;
-use model::{BotConfig, BotDeskStatus, BotKind, OpenPosition, SkipNote, LIVE_TRADING_ENABLED};
+use model::{BotConfig, BotDeskStatus, BotKind, OpenPosition, PositionMark, SkipNote, LIVE_TRADING_ENABLED};
 
 const TICK_INTERVAL: Duration = Duration::from_secs(4);
 /// A paper position last evaluated longer ago than this was not watched in
@@ -74,6 +74,8 @@ pub struct BotManager {
     /// When each open position was last evaluated on the safe side of its
     /// levels (memory only: a restart starts unwatched).
     watched: Mutex<HashMap<(String, BotKind), u64>>,
+    /// Last price the close phase read per open position, with its time (ms).
+    marks: Mutex<HashMap<(String, BotKind), (f64, u64)>>,
 }
 
 impl BotManager {
@@ -91,6 +93,7 @@ impl BotManager {
             equity: Mutex::new(None),
             pilot: Mutex::new(HashMap::new()),
             watched: Mutex::new(HashMap::new()),
+            marks: Mutex::new(HashMap::new()),
         }
     }
 
@@ -602,6 +605,12 @@ impl BotManager {
     }
 
     pub fn status(&self) -> BotDeskStatus {
+        // Read the positions (and their marks) BEFORE the struct literal: a
+        // guard taken inside it lives until the whole expression ends, so
+        // locking `positions` again there deadlocked this (main-thread)
+        // command and froze the window (10 Oct 2026).
+        let open_positions = self.positions.lock().expect("bot mutex").clone();
+        let marks = self.marks_of(&open_positions);
         let configs = self.configs.lock().expect("bot mutex");
         let running = self.running.lock().expect("bot mutex");
         BotDeskStatus {
@@ -613,7 +622,7 @@ impl BotManager {
             futures_running: running.contains(&BotKind::Futures),
             spot_running: running.contains(&BotKind::Spot),
             pump_running: running.contains(&BotKind::Pump),
-            open_positions: self.positions.lock().expect("bot mutex").clone(),
+            open_positions,
             recent_skips: self
                 .skips
                 .lock()
@@ -627,7 +636,42 @@ impl BotManager {
             pilot_left: self.pilot_left(BotKind::Futures),
             live_venues: crate::exchange::live_venues(),
             venue_sandbox: crate::exchange::venue::ccxt::sandbox_from_env(),
+            marks,
         }
+    }
+
+    /// Remembers the price the close phase just read for a position.
+    pub fn record_mark(&self, pos: &OpenPosition, price: f64, at_ms: u64) {
+        if !(price.is_finite() && price > 0.0) {
+            return;
+        }
+        self.marks
+            .lock()
+            .expect("bot mutex")
+            .insert((pos.signal_id.clone(), pos.bot_kind), (price, at_ms));
+    }
+
+    /// One mark per position in `positions` that has been priced (read
+    /// already; this takes only the marks lock). Marks of closed positions
+    /// are dropped on the way.
+    fn marks_of(&self, positions: &[OpenPosition]) -> Vec<PositionMark> {
+        let mut marks = self.marks.lock().expect("bot mutex");
+        marks.retain(|(id, kind), _| positions.iter().any(|p| &p.signal_id == id && p.bot_kind == *kind));
+        positions
+            .iter()
+            .filter_map(|p| {
+                let (price, at_ms) = *marks.get(&(p.signal_id.clone(), p.bot_kind))?;
+                let pnl_pct = engine::pnl::unrealized_net_pnl_pct(p, price);
+                Some(PositionMark {
+                    signal_id: p.signal_id.clone(),
+                    bot_kind: p.bot_kind,
+                    price,
+                    at_ms,
+                    pnl_pct,
+                    pnl_usdt: p.capital * pnl_pct / 100.0,
+                })
+            })
+            .collect()
     }
 }
 

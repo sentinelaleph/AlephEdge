@@ -32,10 +32,13 @@ import {
 } from "@/lib/format";
 import type { PnlStats, TradeRecord } from "@/lib/ipc/trades/trades";
 import { isActive, type StrategyBotView, type StrategyKind, type StrategyPnlTotals } from "@/lib/ipc/strategy/strategy";
-import { runActionKey, runStateText, sideText } from "@/lib/strategyText";
+import { runActionKey, runStateText } from "@/lib/strategyText";
 import { signalBotRows, type BotRow } from "@/pages/Bots/botRows";
 import { BotStateChip, SignalRowAction } from "@/pages/Bots/BotsTable";
-import { runStatusKind, totalPnlPct } from "@/pages/Bots/strategy/StrategyBotsTable";
+import { runStatusKind } from "@/pages/Bots/strategy/StrategyBotsTable";
+import { marksByPosition, openPnl } from "@/lib/positionMarks";
+import { botMoneyColumns, strategyBotMoney, useSignalBotMoney, type BotMoney } from "@/pages/Bots/botMoney";
+import { OpenPositionsPeek } from "./OpenPositionsPeek";
 import { useStrategyActions } from "@/pages/Bots/strategy/useStrategyActions";
 import "@/pages/Bots/bots.css";
 import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
@@ -116,7 +119,6 @@ export function DashboardPage() {
   const { liveIds: strategyLiveIds } = useStrategyLive();
   const strategyActive = strategyBots ? strategyBots.filter((b) => isActive(b) && !strategyLiveIds.has(b.id)).length : 0;
   const strategyLiveActive = strategyBots ? strategyBots.filter((b) => isActive(b) && strategyLiveIds.has(b.id)).length : 0;
-  const strategyCycles = strategyBots ? strategyBots.filter((b) => b.openCycle !== null).length : 0;
   const strategyCount = (kind: StrategyKind) => {
     if (!strategyBots) return NO_VALUE;
     const of = strategyBots.filter((b) => b.kind === kind);
@@ -129,8 +131,25 @@ export function DashboardPage() {
   // scope stays signal-only; real DCA / Grid results are reported per bot).
   const cycleMoney = !pnl.split || pnl.scope === "simulated" ? (strategy.pnl?.totals ?? null) : null;
   const { anyResult, hasCycles, realizedToday, netAll } = deskMoney(stats, cycleMoney);
+  // Notes carry signed figures without the unit (the tile above has it), so they fit.
+  const bare = (n: number) => formatPnl(n, locale, { unit: "none" }).text;
   const splitNote = (signal: number, cycles: number) =>
-    t("dashboard.kpi.split", { signal: usdt(signal), strategy: usdt(cycles) });
+    t("dashboard.kpi.split", { signal: bare(signal), strategy: bare(cycles) });
+
+  const marks = useMemo(() => marksByPosition(s), [s]);
+  // Open P&L (if everything open closed now, fees included): signal
+  // positions at the engine's last price plus the DCA / Grid open cycles.
+  // Paper scope only, like the cycle money above.
+  const paperPositions = s.openPositions.filter((p) => !p.live);
+  const signalOpen = openPnl(paperPositions, marks);
+  const cycleOpen = (strategyBots ?? []).filter((b) => b.openCycle && !strategyLiveIds.has(b.id));
+  const cycleOpenPnl = cycleOpen.reduce((n, b) => n + (b.openCycle?.unrealizedQuote ?? 0), 0);
+  const allPriced = signalOpen.priced === signalOpen.open;
+  const openTotal = allPriced ? signalOpen.pnlUsdt + cycleOpenPnl : null;
+  const botStats = new Map((pnl.byBot ?? []).map((b) => [b.botKind, b.stats]));
+
+  const signalMoney = useSignalBotMoney();
+  const money = (r: DashBotRow): BotMoney => (r.signal ? signalMoney(r.signal.kind) : strategyBotMoney(r.bot!));
 
   const botRows: DashBotRow[] = [
     ...configured.map((r) => ({ id: r.id, signal: r })),
@@ -161,24 +180,6 @@ export function DashboardPage() {
       cell: (r) => t(`botsList.type.${r.signal ? "signal" : r.bot?.kind}`),
     },
     {
-      id: "market",
-      header: t("table.market"),
-      priority: 3,
-      cell: (r) =>
-        r.signal
-          ? t(`filters.market.${r.signal.market}`)
-          : r.bot
-            ? `${t(`filters.market.${r.bot.market}`)} · ${sideText(t, r.bot.side)}${r.bot.leverage > 1 ? ` · ${r.bot.leverage}x` : ""}`
-            : NO_VALUE,
-    },
-    {
-      id: "pairs",
-      header: t("table.pairs"),
-      priority: 2,
-      cell: (r) =>
-        r.signal ? (r.signal.symbols.length === 0 ? t("botsList.allPairs") : r.signal.symbols.join(", ")) : r.bot?.symbol,
-    },
-    {
       id: "state",
       header: t("table.state"),
       cell: (r) =>
@@ -190,19 +191,30 @@ export function DashboardPage() {
     },
     {
       id: "open",
-      header: t("table.openPositions"),
+      header: t("dashboard.col.open"),
+      headerTip: t("dashboard.col.openTip"),
       numeric: true,
       priority: 2,
-      cell: (r) => (r.signal ? r.signal.openPositions : r.bot?.openCycle ? 1 : 0),
+      cell: (r) => money(r).open,
     },
+    ...botMoneyColumns<DashBotRow>(t, locale, money),
     {
-      id: "pnl",
-      header: t("strategy.col.totalPnl"),
-      numeric: true,
-      // Shown wherever Type and Pairs are: the only DCA / Grid result in this table.
-      priority: 2,
-      cell: (r) => (r.bot ? formatSignedPercent(totalPnlPct(r.bot), locale) : NO_VALUE),
-      tone: (r) => (r.bot ? pnlToneAttr(totalPnlPct(r.bot)) : "muted"),
+      id: "record",
+      header: t("dashboard.col.record"),
+      headerTip: t("dashboard.col.recordTip"),
+      priority: 3,
+      cell: (r) => {
+        if (r.bot) return t("dashboard.cyclesDone", { count: r.bot.cyclesDone });
+        const st = r.signal ? botStats.get(r.signal.kind) : undefined;
+        if (!st || st.totalTrades === 0) return <span className="ae-subtle">{t("dashboard.recordNone")}</span>;
+        const decided = st.wins + st.losses;
+        return t("dashboard.record", {
+          wins: st.wins,
+          losses: st.losses,
+          rate: decided > 0 ? formatPercent((st.wins / decided) * 100, locale, 0) : NO_VALUE,
+          trades: st.totalTrades,
+        });
+      },
     },
   ];
   const tradeColumns: DataColumn<TradeRecord>[] = [
@@ -334,6 +346,28 @@ export function DashboardPage() {
 
       <KpiGrid>
         <KpiTile
+          label={t("dashboard.kpi.openPnl")}
+          value={
+            !desk.loaded || strategyBots === null
+              ? null
+              : signalOpen.open + cycleOpen.length === 0
+                ? NO_VALUE
+                : openTotal === null
+                  ? NO_VALUE
+                  : <AnimatedNumber value={openTotal} format={usdt} />
+          }
+          tone={openTotal === null || signalOpen.open + cycleOpen.length === 0 ? undefined : pnlToneAttr(openTotal)}
+          note={
+            !desk.loaded || strategyBots === null
+              ? undefined
+              : signalOpen.open + cycleOpen.length === 0
+                ? t("dashboard.openPnlNone")
+                : !allPriced
+                  ? t("positions.pricedOf", { priced: signalOpen.priced, open: signalOpen.open })
+                  : t("dashboard.openPnlNote", { signal: bare(signalOpen.pnlUsdt), strategy: bare(cycleOpenPnl) })
+          }
+        />
+        <KpiTile
           label={t("dashboard.kpi.realizedToday")}
           value={stats === null || realizedToday === null ? null : !anyResult ? NO_VALUE : <AnimatedNumber value={realizedToday} format={usdt} />}
           tone={pnlToneAttr(anyResult ? realizedToday : null)}
@@ -369,11 +403,6 @@ export function DashboardPage() {
           }
         />
         <KpiTile
-          label={t("table.openPositions")}
-          value={desk.loaded ? s.openPositions.length : null}
-          note={strategyCycles > 0 ? t("dashboard.cyclesNote", { count: strategyCycles }) : undefined}
-        />
-        <KpiTile
           label={t("dashboard.kpi.capitalInUse")}
           value={desk.loaded ? formatUsdt(capitalInUse, locale, 0) : null}
           note={balance ? t("dashboard.ofBalance", { pct: formatNumber((capitalInUse / balance) * 100, locale, { maximumFractionDigits: 1 }) }) : undefined}
@@ -394,7 +423,7 @@ export function DashboardPage() {
       ) : null}
 
       <Section
-        title={t("dashboard.runningBots")}
+        title={t("dashboard.botPerformance")}
         count={desk.loaded ? botRows.length : undefined}
         aside={
           <Link to="/bots" className="ae-link ae-muted">
@@ -413,7 +442,7 @@ export function DashboardPage() {
           />
         ) : (
           <DataTable
-            label={t("dashboard.runningBots")}
+            label={t("dashboard.botPerformance")}
             columns={botColumns}
             rows={botRows}
             rowKey={(r) => r.id}
@@ -439,6 +468,8 @@ export function DashboardPage() {
           />
         )}
       </Section>
+
+      <OpenPositionsPeek positions={paperPositions} marks={marks} />
 
       <Section
         title={t("dashboard.recentTrades")}

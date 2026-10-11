@@ -757,19 +757,38 @@
       "dailyLossUsed": "Rugi harian terpakai",
       "capitalInUse": "Modal terpakai",
       "split": "Sinyal {{signal}} · DCA/Grid {{strategy}}, setelah biaya",
-      "signalWinRate": "Tingkat menang sinyal"
+      "signalWinRate": "Tingkat menang sinyal",
+      "openPnl": "L/R terbuka saat ini"
     },
     "afterFees": "{{scope}}, setelah biaya",
     "noTradesToday": "Tidak ada trade hari ini",
     "tradesN": "Trade: {{count}}",
     "ofBalance": "{{pct}}% dari saldo yang dinyatakan",
-    "runningBots": "Bot yang diatur",
     "noBots": "Belum ada bot",
     "noSignals": "Aliran sinyal putus: bot sinyal tidak menerima sinyal baru.",
     "recentTrades": "Trade terbaru",
     "exchangeAccount": "Akun exchange (nyata)",
     "dismissChecklist": "Sembunyikan daftar",
-    "cyclesNote": "Siklus DCA/Grid: {{count}}"
+    "botPerformance": "Kinerja bot",
+    "openPositions": "Posisi terbuka",
+    "morePositions": "{{count}} lagi di Posisi & order",
+    "openPnlNone": "Tidak ada posisi atau siklus terbuka",
+    "openPnlNote": "Sinyal {{signal}} · DCA/Grid {{strategy}}",
+    "record": "{{wins}} menang · {{losses}} kalah · {{rate}}",
+    "recordNone": "Tidak ada trade tertutup",
+    "cyclesDone": "Siklus ditutup: {{count}}",
+    "col": {
+      "open": "Terbuka",
+      "openTip": "Posisi terbuka (bot sinyal) atau siklus terbuka (DCA/Grid).",
+      "openPnl": "L/R terbuka",
+      "openPnlTip": "Hasil jika semua yang terbuka ditutup pada harga terakhir, termasuk biaya.",
+      "realized": "Terealisasi",
+      "realizedTip": "Trade atau siklus yang ditutup, setelah biaya, sepanjang waktu.",
+      "total": "Total",
+      "totalTip": "Terealisasi ditambah L/R terbuka: kondisi bot saat ini.",
+      "record": "Hasil",
+      "recordTip": "Bot sinyal: trade yang ditutup di target (menang) dan di stop (kalah). DCA/Grid: siklus yang ditutup."
+    }
   },
   "signalBots": {
     "feedKind": "Feed: bot",
@@ -962,7 +981,6 @@
     "notional": "Nosional",
     "capitalInUse": "Modal terpakai",
     "exposure": "Eksposur terhadap saldo yang dinyatakan",
-    "floatingPending": "L/R mengambang muncul setelah meja melaporkan harga live.",
     "closeAllBody": "Menutup {{count}} posisi nyata di harga pasar (hanya mengurangi).",
     "closeOneBody": "Menutup {{size}} {{symbol}} di harga pasar (hanya mengurangi).",
     "snapshotOld": "Data lebih dari 60 dtk: tombol tutup menunggu data baru.",
@@ -981,6 +999,21 @@
       "done": "Ditutup: {{closed}} · tidak tertutup: {{failed}}",
       "failed": "Gagal menutup.",
       "strategyLiveNote": "Bot dengan uang nyata: posisi mereka di bursa ditutup di harga pasar pada putaran berikutnya."
+    },
+    "openPnlPositions": "L/R terbuka, posisi",
+    "openPnlCycles": "L/R terbuka, DCA/Grid",
+    "openPnlTotal": "L/R terbuka, total",
+    "pricedOf": "{{priced}} dari {{open}} posisi sudah punya harga.",
+    "mark": {
+      "price": "Harga",
+      "priceTip": "Harga terakhir yang dibaca mesin untuk posisi ini; mesin membacanya setiap 4 detik selama posisi terbuka.",
+      "at": "Harga pukul {{time}}",
+      "pnl": "L/R saat ini",
+      "pnlTip": "L/R saat ini adalah hasil jika ditutup pada harga terakhir: termasuk biaya, dalam USDT dan % modal posisi.",
+      "pending": "Menunggu harga",
+      "range": "Stop → target",
+      "rangeTip": "Letak harga di antara stop (kiri) dan target (kanan). Tanda kecil adalah harga masuk.",
+      "rangeLabel": "Harga di {{pct}}% jarak dari stop ke target"
     }
   },
   "history": {

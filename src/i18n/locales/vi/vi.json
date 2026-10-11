@@ -757,19 +757,38 @@
       "dailyLossUsed": "Lỗ ngày đã dùng",
       "capitalInUse": "Vốn đang dùng",
       "split": "Tín hiệu {{signal}} · DCA/Grid {{strategy}}, sau phí",
-      "signalWinRate": "Tỷ lệ thắng tín hiệu"
+      "signalWinRate": "Tỷ lệ thắng tín hiệu",
+      "openPnl": "Lãi/lỗ đang mở hiện tại"
     },
     "afterFees": "{{scope}}, sau phí",
     "noTradesToday": "Hôm nay chưa có giao dịch",
     "tradesN": "Giao dịch: {{count}}",
     "ofBalance": "{{pct}}% số dư đã khai báo",
-    "runningBots": "Bot đã cấu hình",
     "noBots": "Chưa có bot",
     "noSignals": "Luồng tín hiệu gián đoạn: bot tín hiệu không nhận tín hiệu mới.",
     "recentTrades": "Giao dịch gần đây",
     "exchangeAccount": "Tài khoản sàn (thật)",
     "dismissChecklist": "Ẩn danh sách",
-    "cyclesNote": "Chu kỳ DCA/Grid: {{count}}"
+    "botPerformance": "Hiệu suất bot",
+    "openPositions": "Vị thế mở",
+    "morePositions": "Thêm {{count}} trong Vị thế & lệnh",
+    "openPnlNone": "Không có vị thế hay chu kỳ đang mở",
+    "openPnlNote": "Tín hiệu {{signal}} · DCA/Grid {{strategy}}",
+    "record": "{{wins}} thắng · {{losses}} thua · {{rate}}",
+    "recordNone": "Không có giao dịch đã đóng",
+    "cyclesDone": "Chu kỳ đã đóng: {{count}}",
+    "col": {
+      "open": "Đang mở",
+      "openTip": "Vị thế đang mở (bot tín hiệu) hoặc chu kỳ đang mở (DCA/Grid).",
+      "openPnl": "Lãi/lỗ đang mở",
+      "openPnlTip": "Kết quả nếu đóng mọi thứ đang mở theo giá gần nhất, đã tính phí.",
+      "realized": "Đã chốt",
+      "realizedTip": "Giao dịch hoặc chu kỳ đã đóng, sau phí, toàn thời gian.",
+      "total": "Tổng",
+      "totalTip": "Đã chốt cộng lãi/lỗ đang mở: tình trạng hiện tại của bot.",
+      "record": "Thành tích",
+      "recordTip": "Bot tín hiệu: giao dịch đóng tại mục tiêu (thắng) và tại stop (thua). DCA/Grid: chu kỳ đã đóng."
+    }
   },
   "signalBots": {
     "feedKind": "Luồng: bot",
@@ -962,7 +981,6 @@
     "notional": "Giá trị danh nghĩa",
     "capitalInUse": "Vốn đang dùng",
     "exposure": "Mức tiếp xúc so với số dư đã khai báo",
-    "floatingPending": "Lãi/lỗ thả nổi sẽ xuất hiện khi bàn báo cáo giá thực.",
     "closeAllBody": "Đóng {{count}} vị thế thật theo giá thị trường (chỉ giảm).",
     "closeOneBody": "Đóng {{size}} {{symbol}} theo giá thị trường (chỉ giảm).",
     "snapshotOld": "Dữ liệu cũ hơn 60 giây: nút đóng chờ dữ liệu mới.",
@@ -981,6 +999,21 @@
       "done": "Đã đóng: {{closed}} · chưa đóng: {{failed}}",
       "failed": "Đóng thất bại.",
       "strategyLiveNote": "Bot dùng tiền thật: vị thế của chúng trên sàn được đóng theo giá thị trường ở lượt kế tiếp."
+    },
+    "openPnlPositions": "Lãi/lỗ đang mở, vị thế",
+    "openPnlCycles": "Lãi/lỗ đang mở, DCA/Grid",
+    "openPnlTotal": "Lãi/lỗ đang mở, tổng",
+    "pricedOf": "Đã có giá cho {{priced}} trên {{open}} vị thế.",
+    "mark": {
+      "price": "Giá",
+      "priceTip": "Giá gần nhất mà bộ máy đọc cho vị thế này; bộ máy đọc mỗi 4 giây khi vị thế còn mở.",
+      "at": "Giá lúc {{time}}",
+      "pnl": "Lãi/lỗ hiện tại",
+      "pnlTip": "Lãi/lỗ hiện tại là kết quả nếu đóng theo giá gần nhất: đã tính phí, theo USDT và % vốn của vị thế.",
+      "pending": "Đang chờ giá",
+      "range": "Stop → mục tiêu",
+      "rangeTip": "Vị trí của giá giữa stop (trái) và mục tiêu (phải). Vạch nhỏ là điểm vào.",
+      "rangeLabel": "Giá ở {{pct}}% quãng đường từ stop đến mục tiêu"
     }
   },
   "history": {

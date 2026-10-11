@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNow } from "@/app/alerts";
+import { useDeskContext } from "@/app/DeskProvider";
+import { positionPnlColumns } from "@/components/PositionPnl/PositionPnl";
 import { CLOSE_WORD } from "@/components/Account/AccountPanel/AccountPanel";
 import { Button } from "@/components/ui/Button/Button";
 import { Chip, LiveChip, ManualChip } from "@/components/ui/Chip/Chip";
@@ -9,6 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState/EmptyState";
 import { localeForLanguage } from "@/i18n";
 import { formatAge, formatPrice, formatUsdt, NO_VALUE } from "@/lib/format";
 import type { OpenPosition } from "@/lib/ipc/bot/bot";
+import { marksByPosition } from "@/lib/positionMarks";
 import "./Positions.css";
 
 /**
@@ -34,7 +38,9 @@ export function PositionsTable({
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const rowKey = (p: OpenPosition) => `${p.botKind}:${p.signalId}`;
-  const now = Date.now();
+  const now = useNow(5_000);
+  const { desk } = useDeskContext();
+  const marks = useMemo(() => marksByPosition(desk.status), [desk.status]);
 
   const confirmClose = async () => {
     if (!target || !onClose) return;
@@ -76,6 +82,7 @@ export function PositionsTable({
     { id: "entry", header: t("table.entry"), numeric: true, cell: (p) => formatPrice(p.entry, locale) },
     { id: "sl", header: t("table.sl"), numeric: true, cell: (p) => formatPrice(p.sl, locale) },
     { id: "tp", header: t("table.tp"), numeric: true, cell: (p) => formatPrice(p.tp, locale) },
+    ...positionPnlColumns(t, locale, marks, now),
     { id: "leverage", header: t("table.leverage"), numeric: true, priority: 3, cell: (p) => `${p.leverage}x` },
     { id: "age", header: t("table.age"), numeric: true, priority: 2, cell: (p) => formatAge((now - p.openedAt) / 1000, locale) },
   ];
