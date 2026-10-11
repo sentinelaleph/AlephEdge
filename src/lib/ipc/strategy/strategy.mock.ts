@@ -427,6 +427,51 @@ export function presets(): Promise<Preset[]> {
         liquidations: 4,
       },
     },
+    // One grid template, so the preview's grid surfaces are not empty.
+    {
+      ...c,
+      id: "grid_neutral",
+      verdict: "failed",
+      failReasons: ["negativeSplit", "ciIncludesZero", "monthsNotAllPositive"],
+      situation: "rangeWide",
+      config: {
+        ...c.config,
+        name: "Grid Neutral",
+        side: "neutral",
+        presetId: "grid_neutral",
+        params: {
+          kind: "grid",
+          range: { type: "relative", lowerPct: 10, upperPct: 10 },
+          nGrids: 20,
+          spacing: "geom",
+          stopOutPct: 5,
+          trailingUp: false,
+          trailUpLimit: null,
+          takeProfitPct: null,
+          maxDurationMin: 20160,
+        },
+      },
+      history: {
+        ...c.history,
+        splits: [
+          { split: "train", meanPerBotMonthPct: -3.0, ci95LowPct: -5.7, ci95HighPct: -0.48, monthsPositive: 2, months: 7, oneBotReturnPerDayPct: null },
+          { split: "valid", meanPerBotMonthPct: -2.62, ci95LowPct: -5.56, ci95HighPct: 0.21, monthsPositive: 2, months: 7, oneBotReturnPerDayPct: null },
+          { split: "test", meanPerBotMonthPct: -2.43, ci95LowPct: -5.92, ci95HighPct: 0.85, monthsPositive: 4, months: 8, oneBotReturnPerDayPct: null },
+        ],
+        testBots: 40,
+        testShareBotsPositive: 0.475,
+        testWorstBotDrawdownPct: -34.1,
+        testMeanAtTaker010Pct: null,
+        testSignTestP: 0.6367,
+        oneBotWorstDrawdownPct: null,
+        oneBotMedianDrawdownPct: null,
+        maxDealDays: 14,
+        openDealsAtDataEnd: 3,
+        liquidations: 0,
+        stoppedDeals: 264,
+        recheck: null,
+      },
+    },
   ]);
 }
 
