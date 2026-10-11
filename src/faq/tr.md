@@ -363,9 +363,15 @@ Kapanan işlemler ve performans istatistikleri.
 
 ## Risk ve güvenlik {#risk}
 
-![Risk ve güvenlik: canlıya hazırlık, risk seviyesi ve seviye limitleri](shot:risk)
+![Risk ve güvenlik: riske genel bakış, bölümler ve risk seviyesi](shot:risk)
 
-Bütün sınırlar ve güvenlik kontrolleri tek yerde. Değişiklikler hemen uygulanır. Soldaki **Bölümler** listesi sayfanın bölümlerine götürür.
+Bütün sınırlar ve güvenlik kontrolleri tek yerde. Değişiklikler hemen uygulanır. Soldaki **Bölümler** listesi her bölüme götürür ve durumunu gösterir.
+
+- **Şu anki risk** (üstte): **Bütün stoplar vurursa** (açık pozisyonların mevcut stoplarında yazılacak sonuç, ücretler dahil), **Günlük stopa kalan** (bütün stoplar vurursa tetiklenip tetiklenmeyeceğiyle), **Kullanılan sermaye**, **Kullanılan DCA/Grid bütçesi** ve **Kesiciye kalan**.
+- **Açık risk**: her açık pozisyon mevcut stopuyla (breakeven devreye girdiyse **Girişte**), fiyatın stopa uzaklığı ve orada yazılacak sonuçla. En büyük kayıp önce.
+- Ardından risk seviyesi ve limitleri, günlük stop, BTC rejim kapısı, LIVE kapısı, acil durum kontrolleri ile DCA/Grid bütçesi ve kesici. Sağda: bota göre maruziyet ve telefondan uzaktan kontrol.
+
+**"Günlük stopa kalan" nasıl hesaplanır?** Günlük stop, bugün gerçekleşen NET sonuç limite (simüle bakiyenin bir payı) inince tetiklenir. Bugün yapılan kâr alanı büyütür, zarar tüketir. Gerçekleşmemiş zararlar pozisyon kapanana kadar sayılmaz.
 
 **Risk seviyeleri neyi değiştirir?**
 

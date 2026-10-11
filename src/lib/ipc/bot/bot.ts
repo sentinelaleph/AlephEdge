@@ -231,6 +231,19 @@ export interface BotDeskStatus {
   venueSandbox?: boolean;
   /** Each open position at the last price the engine read (positionMarks.ts). */
   marks?: PositionMark[];
+  /** Each open position at its current stop (riskReadout.ts). */
+  atStop?: PositionAtStop[];
+}
+
+/**
+ * An open position at its current stop (the entry once breakeven armed):
+ * what that fill would book, fees included, the trade record's formula.
+ */
+export interface PositionAtStop {
+  signalId: string;
+  botKind: BotKind;
+  stop: number;
+  pnlUsdt: number;
 }
 
 /**

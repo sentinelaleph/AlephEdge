@@ -15,7 +15,7 @@ import type { BotDeskController } from "@/components/BotDesk/useBotDesk";
 import type { VaultController } from "@/components/Vault/useVault";
 import type { PnlController } from "@/components/PnlPanel/usePnl";
 import type { RiskController } from "@/components/RiskSelector/useRisk";
-import type { BotConfig, BotDeskStatus, OpenPosition, PositionMark } from "@/lib/ipc/bot/bot";
+import type { BotConfig, BotDeskStatus, OpenPosition, PositionAtStop, PositionMark } from "@/lib/ipc/bot/bot";
 import type { ExchangeInfo } from "@/lib/ipc/exchange/exchange";
 import type { RiskState } from "@/lib/ipc/risk/risk";
 import type { Signal } from "@/lib/ipc/signal/signal";
@@ -32,7 +32,7 @@ const noop = () => Promise.resolve();
 
 /** About screen sample: a typical Windows installation, the user folder anonymised. */
 export const SAMPLE_APP_INFO = {
-  version: "0.3.3",
+  version: "0.3.4",
   os: "windows",
   arch: "x86_64",
   tauri: "2.11.5",
@@ -185,6 +185,13 @@ function sampleMark(p: OpenPosition, price: number): PositionMark {
   return { signalId: p.signalId, botKind: p.botKind, price, atMs: now - 3_000, pnlPct, pnlUsdt: (p.capital * pnlPct) / 100 };
 }
 
+/** Each sample position at its current stop (the entry once breakeven armed), same formula. */
+export const SAMPLE_AT_STOP: PositionAtStop[] = SAMPLE_POSITIONS.map((p) => {
+  const stop = p.breakevenArmed ? p.entry : p.sl;
+  const m = sampleMark(p, stop);
+  return { signalId: p.signalId, botKind: p.botKind, stop, pnlUsdt: m.pnlUsdt };
+});
+
 export const SAMPLE_MARKS: PositionMark[] = [
   sampleMark(SAMPLE_POSITIONS[0], 148.9),
   sampleMark(SAMPLE_POSITIONS[1], 15.02),
@@ -202,6 +209,7 @@ export const SAMPLE_DESK_STATUS: BotDeskStatus = {
   pumpRunning: false,
   openPositions: SAMPLE_POSITIONS,
   marks: SAMPLE_MARKS,
+  atStop: SAMPLE_AT_STOP,
   recentSkips: [
     { atMs: now - 4 * MIN, symbol: "DOGEUSDT", reason: "frAgainst", detail: "+0.061%" },
     { atMs: now - 11 * MIN, symbol: "AVAXUSDT", reason: "fillCrossedLevel", detail: "0.74%" },
@@ -697,7 +705,7 @@ export const SAMPLE_DESK_CONTEXT: DeskContextValue = {
     binanceFuturesBase: "https://fapi.binance.com",
     binanceIsProduction: true,
   },
-  version: "0.3.3",
+  version: "0.3.4",
   keyedExchanges: SAMPLE_EXCHANGES,
   accountExchanges: ["binance"],
   accountExchange: "binance",

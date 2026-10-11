@@ -1091,7 +1091,10 @@
       "regime": "Cổng chế độ BTC",
       "live": "Cổng LIVE",
       "emergency": "Khẩn cấp",
-      "preflight": "Sẵn sàng giao dịch thật"
+      "preflight": "Sẵn sàng giao dịch thật",
+      "summary": "Đang chịu rủi ro",
+      "open": "Rủi ro đang mở",
+      "strategy": "Ngân sách DCA/Grid"
     },
     "level": {
       "title": "Mức rủi ro"
@@ -1148,6 +1151,40 @@
       "dailyStopSignal": "Dừng trong ngày (bot tín hiệu)",
       "strategyBudget": "Trần ngân sách DCA/Grid",
       "strategyBreaker": "Phanh DCA/Grid"
+    },
+    "nav": {
+      "atStops": "{{value}} tại các stop",
+      "positions": "Vị thế: {{count}}",
+      "regime": {
+        "normal": "Bình thường",
+        "break": "BTC gãy",
+        "unknown": "Chưa rõ"
+      },
+      "live": "Bot thật: {{count}}",
+      "budget": "Đã giữ: {{reserved}}"
+    },
+    "summary": {
+      "label": "Tổng quan rủi ro",
+      "atStops": "Nếu mọi stop đều bị chạm",
+      "noPositions": "Không có vị thế đang mở",
+      "atStopsNote": "Vị thế: {{count}} · {{pct}}% số dư",
+      "dailyLeft": "Còn lại trước khi dừng ngày",
+      "tripped": "Dừng ngày đã kích hoạt hôm nay",
+      "ofLimit": "Giới hạn {{limit}}",
+      "wouldTrip": "Nếu mọi stop đều bị chạm, dừng ngày sẽ kích hoạt",
+      "roomForStops": "Đủ biên cho mọi stop",
+      "strategyBudget": "Ngân sách DCA/Grid đã dùng",
+      "budgetNote": "Trần {{cap}} · còn trống {{free}}",
+      "breakerLeft": "Còn lại trước khi ngắt danh mục",
+      "breakerNote": "Ngắt danh mục tại {{limit}} · bot: {{bots}}"
+    },
+    "open": {
+      "stop": "Stop",
+      "atEntry": "Tại điểm vào",
+      "distance": "Đến stop",
+      "distanceTip": "Khoảng cách từ giá gần nhất đến stop, % theo giá.",
+      "atStop": "Tại stop",
+      "atStopTip": "Kết quả nếu stop được khớp, đã tính phí: cùng cách tính như giao dịch đã đóng."
     }
   },
   "settings": {

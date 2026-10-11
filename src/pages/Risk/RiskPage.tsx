@@ -22,12 +22,30 @@ import { RISK_LEVELS, RISK_LIMITS_TABLE, type RiskLevel } from "@/lib/ipc/risk/r
 import { tradeVenues } from "@/lib/venues";
 import { StrategyEmergency } from "@/pages/Bots/strategy/StrategyEmergency";
 import { StrategyRiskPanel } from "@/pages/Bots/strategy/StrategyRiskPanel";
+import { Icon, type IconName } from "@/app/AppShell/icons";
+import { formatPnl, formatUsdt } from "@/lib/format";
+import { stopRisk } from "@/lib/riskReadout";
 import { LivePreflight } from "./LivePreflight";
+import { OpenRiskTable } from "./OpenRiskTable";
+import { RiskSummary } from "./RiskSummary";
+import "@/pages/Settings/SettingsPage.css";
 import "./RiskPage.css";
 import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
 
 const KINDS: BotKind[] = ["futures", "spot", "pump"];
-const SECTIONS = ["preflight", "level", "table", "killSwitch", "regime", "live", "emergency"] as const;
+const SECTIONS = ["summary", "preflight", "level", "open", "killSwitch", "regime", "live", "emergency", "strategy"] as const;
+type SectionId = (typeof SECTIONS)[number];
+const SECTION_ICONS: Record<SectionId, IconName> = {
+  summary: "risk",
+  preflight: "lock",
+  level: "sliders",
+  open: "positions",
+  killSwitch: "history",
+  regime: "signals",
+  live: "key",
+  emergency: "close",
+  strategy: "dca",
+};
 
 /**
  * The page's sections. Live readiness audits a real-money setup, so only a
@@ -89,25 +107,57 @@ export function RiskPage() {
     setLiveError(await desk.setLive(kind, false, ""));
   };
 
+  const stops = stopRisk(s.openPositions, s.atStop);
+  const liveCount = KINDS.filter((k) => s[k]?.live).length + strategyLiveBots.length;
+  const sectionStatus: Partial<Record<SectionId, { text: string; attention?: boolean }>> = {
+    summary: s.openPositions.length
+      ? { text: t("safety.nav.atStops", { value: formatPnl(stops.atStops, locale, { unit: "none" }).text }) }
+      : { text: t("safety.summary.noPositions") },
+    level: level ? { text: t(`risk.levels.${level}`) } : undefined,
+    open: { text: t("safety.nav.positions", { count: s.openPositions.length }) },
+    killSwitch: desk.loaded
+      ? s.killSwitchTripped
+        ? { text: t("safety.killSwitch.tripped"), attention: true }
+        : { text: t("safety.killSwitch.ok") }
+      : undefined,
+    regime: desk.loaded ? { text: t(`safety.nav.regime.${s.btcRegime}`), attention: s.btcRegime !== "normal" } : undefined,
+    live: desk.loaded
+      ? !liveBuild
+        ? { text: t("settings.about.paperBuild") }
+        : { text: t("safety.nav.live", { count: liveCount }), attention: liveCount > 0 }
+      : undefined,
+    strategy: strategy.risk ? { text: t("safety.nav.budget", { reserved: formatUsdt(strategy.risk.reservedBudget, locale, 0) }), attention: strategy.risk.tripped } : undefined,
+  };
+
   const left = (
-    <Panel title={t("safety.sections")}>
-      <ul className="ae-list">
-        {riskSections(liveBuild).map((id) => (
-          <li key={id}>
-            <a
-              href={`#/risk`}
-              className="ae-link"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById(`risk-${id}`)?.scrollIntoView({ block: "start" });
-              }}
-            >
-              {t(`safety.section.${id}`)}
-            </a>
-          </li>
-        ))}
+    <nav className="ae-setnav" aria-label={t("safety.sections")}>
+      <ul>
+        {riskSections(liveBuild).map((id) => {
+          const st = sectionStatus[id];
+          return (
+            <li key={id}>
+              <button
+                type="button"
+                className="ae-setnav__item"
+                onClick={() => document.getElementById(`risk-${id}`)?.scrollIntoView({ block: "start" })}
+              >
+                <span className="ae-setnav__icon" aria-hidden="true">
+                  <Icon name={SECTION_ICONS[id]} size={16} />
+                </span>
+                <span className="ae-setnav__text">
+                  <span className="ae-setnav__label">{t(`safety.section.${id}`)}</span>
+                  {st ? (
+                    <span className="ae-setnav__status" data-attention={st.attention || undefined}>
+                      {st.text}
+                    </span>
+                  ) : null}
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
-    </Panel>
+    </nav>
   );
 
   const right = (
@@ -116,6 +166,13 @@ export function RiskPage() {
       <Panel title={t("safety.exposure")}>
         <FactList
           rows={[
+            ...KINDS.filter((k) => s.openPositions.some((p) => p.botKind === k)).map((k) => {
+              const of = s.openPositions.filter((p) => p.botKind === k);
+              return {
+                label: t(`bots.kind.${k}`),
+                value: `${of.length} · ${formatUsdt(of.reduce((n, p) => n + p.capital, 0), locale, 0)}`,
+              };
+            }),
             { label: t("table.openPositions"), value: s.openPositions.length },
             { label: t("positions.capitalInUse"), value: `${formatNumber(capital, locale, { maximumFractionDigits: 2 })} USDT` },
             {
@@ -129,7 +186,11 @@ export function RiskPage() {
   );
 
   return (
-    <PageShell title={t("nav.risk")} crumbs={[{ label: t("nav.groups.control") }]} left={left} right={right}>
+    <PageShell title={t("nav.risk")} crumbs={[{ label: t("nav.groups.control") }]} left={left} leftLabel={t("safety.sections")} right={right}>
+      <section id="risk-summary" className="ae-risk-section">
+        <RiskSummary />
+      </section>
+
       {liveBuild ? (
         <section id="risk-preflight" className="ae-risk-section">
           <LivePreflight />
@@ -138,9 +199,7 @@ export function RiskPage() {
 
       <section id="risk-level" className="ae-risk-section">
         <RiskSelector risk={risk} />
-      </section>
 
-      <section id="risk-table" className="ae-risk-section">
         <Section title={t("safety.section.table")}>
           <DataTable
             label={t("safety.section.table")}
@@ -153,13 +212,18 @@ export function RiskPage() {
         </Section>
       </section>
 
-      <section id="risk-killSwitch" className="ae-risk-section">
-        <KillSwitchCard />
+      <section id="risk-open" className="ae-risk-section">
+        <OpenRiskTable />
       </section>
 
-      <section id="risk-regime" className="ae-risk-section">
-        <RegimeCard />
-      </section>
+      <div className="ae-setgrid">
+        <section id="risk-killSwitch" className="ae-risk-section">
+          <KillSwitchCard />
+        </section>
+        <section id="risk-regime" className="ae-risk-section">
+          <RegimeCard />
+        </section>
+      </div>
 
       <section id="risk-live" className="ae-risk-section">
         <Panel title={t("safety.section.live")} tone={KINDS.some((k) => s[k]?.live) ? "live" : "default"}>
@@ -248,6 +312,9 @@ export function RiskPage() {
           <h3 className="ae-section-title">{t("strategy.emergency.title")}</h3>
           <StrategyEmergency />
         </Panel>
+      </section>
+
+      <section id="risk-strategy" className="ae-risk-section">
         <StrategyRiskPanel />
       </section>
     </PageShell>

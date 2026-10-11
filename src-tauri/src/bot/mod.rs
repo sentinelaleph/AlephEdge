@@ -28,7 +28,7 @@ use crate::signal::model::Signal;
 use crate::store::{utc_day_start_ms, StoreManager};
 use close_claim::CloseClaims;
 use judged::JudgeLedger;
-use model::{BotConfig, BotDeskStatus, BotKind, OpenPosition, PositionMark, SkipNote, LIVE_TRADING_ENABLED};
+use model::{BotConfig, BotDeskStatus, BotKind, OpenPosition, PositionAtStop, PositionMark, SkipNote, LIVE_TRADING_ENABLED};
 
 const TICK_INTERVAL: Duration = Duration::from_secs(4);
 /// A paper position last evaluated longer ago than this was not watched in
@@ -611,6 +611,18 @@ impl BotManager {
         // command and froze the window (10 Oct 2026).
         let open_positions = self.positions.lock().expect("bot mutex").clone();
         let marks = self.marks_of(&open_positions);
+        let at_stop = open_positions
+            .iter()
+            .map(|p| {
+                let stop = engine::management::stop_level(p);
+                PositionAtStop {
+                    signal_id: p.signal_id.clone(),
+                    bot_kind: p.bot_kind,
+                    stop,
+                    pnl_usdt: p.capital * engine::pnl::unrealized_net_pnl_pct(p, stop) / 100.0,
+                }
+            })
+            .collect();
         let configs = self.configs.lock().expect("bot mutex");
         let running = self.running.lock().expect("bot mutex");
         BotDeskStatus {
@@ -637,6 +649,7 @@ impl BotManager {
             live_venues: crate::exchange::live_venues(),
             venue_sandbox: crate::exchange::venue::ccxt::sandbox_from_env(),
             marks,
+            at_stop,
         }
     }
 

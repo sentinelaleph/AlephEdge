@@ -139,6 +139,7 @@ Every closed trade and what it adds up to: net P&L, win rate (exits at the targe
 | Ambitious | 10x | 12 | −10% | 60% |
 | Greedy | 20x | 20 | −15% | 80% |
 
+- **At risk now**: what every open position would book if its current stop filled (the entry once the breakeven move has armed), the room left before the daily stop and the DCA/Grid breaker, and each open position with its stop, its distance and what it would book there.
 - A **daily stop** on realized losses stops the signal bots and can close their open positions; they cannot be started again until the next UTC day (DCA and Grid are accounted for separately).
 - A **portfolio breaker** closes the DCA and Grid bots inside it when their combined loss reaches 15% of their budgets.
 - The **BTC regime** read is shown live and gates entries.

@@ -1091,7 +1091,10 @@
       "regime": "BTC regime gate",
       "live": "LIVE gate",
       "emergency": "Emergency",
-      "preflight": "Live readiness"
+      "preflight": "Live readiness",
+      "summary": "At risk now",
+      "open": "Open risk",
+      "strategy": "DCA/Grid budget"
     },
     "level": {
       "title": "Risk level"
@@ -1148,6 +1151,40 @@
       "dailyStopSignal": "Daily stop (signal bots)",
       "strategyBudget": "DCA/Grid budget cap",
       "strategyBreaker": "DCA/Grid breaker"
+    },
+    "nav": {
+      "atStops": "{{value}} at the stops",
+      "positions": "Positions: {{count}}",
+      "regime": {
+        "normal": "Normal",
+        "break": "BTC break",
+        "unknown": "Unknown"
+      },
+      "live": "Live bots: {{count}}",
+      "budget": "Reserved: {{reserved}}"
+    },
+    "summary": {
+      "label": "Risk at a glance",
+      "atStops": "If every stop hits",
+      "noPositions": "No open positions",
+      "atStopsNote": "Positions: {{count}} · {{pct}}% of balance",
+      "dailyLeft": "Left before the daily stop",
+      "tripped": "Daily stop tripped today",
+      "ofLimit": "Limit {{limit}}",
+      "wouldTrip": "Every stop hitting would trip it",
+      "roomForStops": "Room for every stop",
+      "strategyBudget": "DCA/Grid budget used",
+      "budgetNote": "Cap {{cap}} · {{free}} free",
+      "breakerLeft": "Left before the breaker",
+      "breakerNote": "Breaker at {{limit}} · bots: {{bots}}"
+    },
+    "open": {
+      "stop": "Stop",
+      "atEntry": "At entry",
+      "distance": "To stop",
+      "distanceTip": "How far the last price is from the stop, % of the price.",
+      "atStop": "At stop",
+      "atStopTip": "What the stop filling would book, fees included: the same calculation as a closed trade."
     }
   },
   "settings": {

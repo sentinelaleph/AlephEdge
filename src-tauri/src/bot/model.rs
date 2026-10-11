@@ -479,6 +479,21 @@ pub struct BotDeskStatus {
     /// what closing it there would book.
     #[serde(default)]
     pub marks: Vec<PositionMark>,
+    /// What each open position would book if its current stop filled.
+    #[serde(default)]
+    pub at_stop: Vec<PositionAtStop>,
+}
+
+/// An open position at its current stop (the entry once breakeven has
+/// armed): the trade record's formula at that level, so the sum over all
+/// positions is what every stop hitting would book, fees included.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PositionAtStop {
+    pub signal_id: String,
+    pub bot_kind: BotKind,
+    pub stop: f64,
+    pub pnl_usdt: f64,
 }
 
 /// An open position at the last price the engine read for it (every tick

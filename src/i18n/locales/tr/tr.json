@@ -1091,7 +1091,10 @@
       "regime": "BTC rejim kapısı",
       "live": "LIVE kapısı",
       "emergency": "Acil durum",
-      "preflight": "Canlıya hazırlık"
+      "preflight": "Canlıya hazırlık",
+      "summary": "Şu anki risk",
+      "open": "Açık risk",
+      "strategy": "DCA/Grid bütçesi"
     },
     "level": {
       "title": "Risk seviyesi"
@@ -1148,6 +1151,40 @@
       "dailyStopSignal": "Günlük stop (sinyal botları)",
       "strategyBudget": "DCA/Grid bütçe tavanı",
       "strategyBreaker": "DCA/Grid freni"
+    },
+    "nav": {
+      "atStops": "Stoplarda {{value}}",
+      "positions": "Pozisyon: {{count}}",
+      "regime": {
+        "normal": "Normal",
+        "break": "BTC kırılımı",
+        "unknown": "Bilinmiyor"
+      },
+      "live": "Canlı bot: {{count}}",
+      "budget": "Ayrılan: {{reserved}}"
+    },
+    "summary": {
+      "label": "Riske genel bakış",
+      "atStops": "Bütün stoplar vurursa",
+      "noPositions": "Açık pozisyon yok",
+      "atStopsNote": "Pozisyon: {{count}} · bakiyenin %{{pct}}'i",
+      "dailyLeft": "Günlük stopa kalan",
+      "tripped": "Günlük stop bugün tetiklendi",
+      "ofLimit": "Limit {{limit}}",
+      "wouldTrip": "Bütün stoplar vurursa tetiklenir",
+      "roomForStops": "Bütün stoplara yer var",
+      "strategyBudget": "Kullanılan DCA/Grid bütçesi",
+      "budgetNote": "Üst sınır {{cap}} · {{free}} boş",
+      "breakerLeft": "Kesiciye kalan",
+      "breakerNote": "Kesici {{limit}} · bot: {{bots}}"
+    },
+    "open": {
+      "stop": "Stop",
+      "atEntry": "Girişte",
+      "distance": "Stopa uzaklık",
+      "distanceTip": "Son fiyatın stopa uzaklığı, fiyatın %'si olarak.",
+      "atStop": "Stopta",
+      "atStopTip": "Stop dolarsa yazılacak sonuç, ücretler dahil: kapanan işlemle aynı hesap."
     }
   },
   "settings": {

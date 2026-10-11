@@ -363,9 +363,15 @@ Closed trades and performance stats.
 
 ## Risk & safety {#risk}
 
-![Risk & safety: live readiness, risk level and level limits](shot:risk)
+![Risk & safety: risk at a glance, the sections and the risk level](shot:risk)
 
-Every limit and safety control in one place. Changes apply at once. The **Sections** list on the left jumps to each part.
+Every limit and safety control in one place. Changes apply at once. The **Sections** list on the left jumps to each part and shows its state.
+
+- **At risk now** (top): **If every stop hits** (what all open positions would book at their current stops, fees included), **Left before the daily stop** (with whether every stop hitting would trip it), **Capital in use**, **DCA/Grid budget used** and **Left before the breaker**.
+- **Open risk**: every open position with its current stop (**At entry** once the breakeven move has armed), how far the price is from it, and what it would book there. Largest loss first.
+- Then the risk level and its limits, the daily stop, the BTC regime gate, the LIVE gate, emergency controls and the DCA/Grid budget and breaker. On the right: exposure per bot and phone remote control.
+
+**How is "Left before the daily stop" worked out?** The daily stop trips when today's realized NET result reaches the limit (a share of the simulated balance). A gain made today adds to the room; a loss uses it up. Unrealized losses do not count until a position closes.
 
 **What do the risk levels change?**
 

@@ -14,6 +14,9 @@ describe("paper build surfaces", () => {
   it("Risk & safety has no Live readiness section in the paper build", () => {
     expect(riskSections(false)).not.toContain("preflight");
     expect(riskSections(false)).toContain("live");
-    expect(riskSections(true)[0]).toBe("preflight");
+    // A live build audits its setup right under the risk summary, before any setting.
+    const live = riskSections(true);
+    expect(live.slice(0, 2)).toEqual(["summary", "preflight"]);
+    expect(live.indexOf("preflight")).toBeLessThan(live.indexOf("level"));
   });
 });

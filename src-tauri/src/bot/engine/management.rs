@@ -141,11 +141,7 @@ pub fn close_step_with(
     };
 
     // The adverse stop level (step 1), needed by step 0 too.
-    let stop = if pos.breakeven_armed {
-        pos.entry
-    } else {
-        pos.sl
-    };
+    let stop = stop_level(pos);
     let stopped = if long { price <= stop } else { price >= stop };
 
     // 0. Isolated liquidation (paper only): price past the liquidation
@@ -223,4 +219,15 @@ pub fn close_step_with(
         }
     }
     step
+}
+
+/// The stop the position is held to now: the fill entry once the breakeven
+/// move has armed, the signal's stop before that. The close step and the
+/// risk readout (what every stop hitting would book) read it here.
+pub fn stop_level(pos: &OpenPosition) -> f64 {
+    if pos.breakeven_armed {
+        pos.entry
+    } else {
+        pos.sl
+    }
 }

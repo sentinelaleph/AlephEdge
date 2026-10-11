@@ -408,3 +408,25 @@ fn status_returns_with_marks_while_positions_are_open() {
     assert_eq!(st.marks.len(), 1);
     assert_eq!(st.marks[0].price, 101.0);
 }
+
+// Every open position reports what its current stop would book: the signal's
+// stop before the breakeven move, the fill entry after it (fees only).
+#[test]
+fn status_reports_each_position_at_its_current_stop() {
+    let m = BotManager::new();
+    let mut pos = position(&signal("long", 100.0, 106.0, 90.0), None);
+    pos.capital = 100.0;
+    assert!(m.add_position_if_free(pos.clone()));
+    let st = m.status();
+    assert_eq!(st.at_stop.len(), 1);
+    assert_eq!(st.at_stop[0].stop, pos.sl);
+    let want = pos.capital * super::pnl::unrealized_net_pnl_pct(&pos, pos.sl) / 100.0;
+    assert_eq!(st.at_stop[0].pnl_usdt.to_bits(), want.to_bits());
+    assert!(st.at_stop[0].pnl_usdt < 0.0);
+
+    let mut armed = pos.clone();
+    armed.breakeven_armed = true;
+    assert_eq!(super::management::stop_level(&armed), armed.entry);
+    let fees_only = armed.capital * super::pnl::unrealized_net_pnl_pct(&armed, armed.entry) / 100.0;
+    assert!(fees_only < 0.0 && fees_only > want, "at entry only the fees are lost");
+}

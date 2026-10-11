@@ -1091,7 +1091,10 @@
       "regime": "Gerbang rezim BTC",
       "live": "Gerbang LIVE",
       "emergency": "Darurat",
-      "preflight": "Kesiapan live"
+      "preflight": "Kesiapan live",
+      "summary": "Berisiko saat ini",
+      "open": "Risiko terbuka",
+      "strategy": "Anggaran DCA/Grid"
     },
     "level": {
       "title": "Tingkat risiko"
@@ -1148,6 +1151,40 @@
       "dailyStopSignal": "Stop harian (bot sinyal)",
       "strategyBudget": "Batas anggaran DCA/Grid",
       "strategyBreaker": "Rem DCA/Grid"
+    },
+    "nav": {
+      "atStops": "{{value}} di stop",
+      "positions": "Posisi: {{count}}",
+      "regime": {
+        "normal": "Normal",
+        "break": "BTC patah",
+        "unknown": "Tidak diketahui"
+      },
+      "live": "Bot nyata: {{count}}",
+      "budget": "Dicadangkan: {{reserved}}"
+    },
+    "summary": {
+      "label": "Risiko sekilas",
+      "atStops": "Jika semua stop kena",
+      "noPositions": "Tidak ada posisi terbuka",
+      "atStopsNote": "Posisi: {{count}} · {{pct}}% dari saldo",
+      "dailyLeft": "Sisa sebelum stop harian",
+      "tripped": "Stop harian terpicu hari ini",
+      "ofLimit": "Batas {{limit}}",
+      "wouldTrip": "Jika semua stop kena, stop harian akan terpicu",
+      "roomForStops": "Cukup ruang untuk semua stop",
+      "strategyBudget": "Anggaran DCA/Grid terpakai",
+      "budgetNote": "Batas {{cap}} · sisa {{free}}",
+      "breakerLeft": "Sisa sebelum pemutus",
+      "breakerNote": "Pemutus di {{limit}} · bot: {{bots}}"
+    },
+    "open": {
+      "stop": "Stop",
+      "atEntry": "Saat masuk",
+      "distance": "Ke stop",
+      "distanceTip": "Jarak harga terakhir ke stop, % dari harga.",
+      "atStop": "Di stop",
+      "atStopTip": "Hasil jika stop terisi, termasuk biaya: perhitungan yang sama dengan trade tertutup."
     }
   },
   "settings": {

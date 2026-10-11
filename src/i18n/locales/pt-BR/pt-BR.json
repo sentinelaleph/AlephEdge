@@ -1091,7 +1091,10 @@
       "regime": "Filtro de regime do BTC",
       "live": "Controle LIVE",
       "emergency": "Emergência",
-      "preflight": "Prontidão para real"
+      "preflight": "Prontidão para real",
+      "summary": "Em risco agora",
+      "open": "Risco aberto",
+      "strategy": "Orçamento DCA/Grid"
     },
     "level": {
       "title": "Nível de risco"
@@ -1148,6 +1151,40 @@
       "dailyStopSignal": "Stop diário (bots de sinais)",
       "strategyBudget": "Teto de orçamento DCA/Grid",
       "strategyBreaker": "Freio DCA/Grid"
+    },
+    "nav": {
+      "atStops": "{{value}} nos stops",
+      "positions": "Posições: {{count}}",
+      "regime": {
+        "normal": "Normal",
+        "break": "Ruptura do BTC",
+        "unknown": "Desconhecido"
+      },
+      "live": "Bots reais: {{count}}",
+      "budget": "Reservado: {{reserved}}"
+    },
+    "summary": {
+      "label": "Risco em resumo",
+      "atStops": "Se todos os stops forem atingidos",
+      "noPositions": "Nenhuma posição aberta",
+      "atStopsNote": "Posições: {{count}} · {{pct}}% do saldo",
+      "dailyLeft": "Restante até o stop diário",
+      "tripped": "Stop diário acionado hoje",
+      "ofLimit": "Limite {{limit}}",
+      "wouldTrip": "Se todos os stops forem atingidos, o stop diário será acionado",
+      "roomForStops": "Há margem para todos os stops",
+      "strategyBudget": "Orçamento DCA/Grid usado",
+      "budgetNote": "Teto {{cap}} · {{free}} livre",
+      "breakerLeft": "Restante até o disjuntor",
+      "breakerNote": "Disjuntor em {{limit}} · bots: {{bots}}"
+    },
+    "open": {
+      "stop": "Stop",
+      "atEntry": "Na entrada",
+      "distance": "Até o stop",
+      "distanceTip": "Distância do último preço até o stop, em % do preço.",
+      "atStop": "No stop",
+      "atStopTip": "O que a execução do stop registraria, taxas incluídas: o mesmo cálculo de um trade fechado."
     }
   },
   "settings": {

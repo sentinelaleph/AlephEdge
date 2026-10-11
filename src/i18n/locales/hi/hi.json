@@ -1091,7 +1091,10 @@
       "regime": "BTC रेजीम गेट",
       "live": "LIVE गेट",
       "emergency": "आपातकाल",
-      "preflight": "लाइव तैयारी"
+      "preflight": "लाइव तैयारी",
+      "summary": "अभी जोखिम में",
+      "open": "खुला जोखिम",
+      "strategy": "DCA/Grid बजट"
     },
     "level": {
       "title": "जोखिम स्तर"
@@ -1148,6 +1151,40 @@
       "dailyStopSignal": "दैनिक स्टॉप (सिग्नल बॉट)",
       "strategyBudget": "DCA/Grid बजट सीमा",
       "strategyBreaker": "DCA/Grid ब्रेक"
+    },
+    "nav": {
+      "atStops": "स्टॉप पर {{value}}",
+      "positions": "पोज़िशन: {{count}}",
+      "regime": {
+        "normal": "सामान्य",
+        "break": "BTC ब्रेक",
+        "unknown": "अज्ञात"
+      },
+      "live": "लाइव बॉट: {{count}}",
+      "budget": "आरक्षित: {{reserved}}"
+    },
+    "summary": {
+      "label": "एक नज़र में जोखिम",
+      "atStops": "अगर हर स्टॉप लगे",
+      "noPositions": "कोई खुली पोज़िशन नहीं",
+      "atStopsNote": "पोज़िशन: {{count}} · बैलेंस का {{pct}}%",
+      "dailyLeft": "दैनिक स्टॉप से पहले शेष",
+      "tripped": "आज दैनिक स्टॉप लगा",
+      "ofLimit": "सीमा {{limit}}",
+      "wouldTrip": "हर स्टॉप लगने पर दैनिक स्टॉप लग जाएगा",
+      "roomForStops": "हर स्टॉप के लिए गुंजाइश है",
+      "strategyBudget": "उपयोग हुआ DCA/Grid बजट",
+      "budgetNote": "सीमा {{cap}} · {{free}} खाली",
+      "breakerLeft": "पोर्टफ़ोलियो ब्रेकर से पहले शेष",
+      "breakerNote": "पोर्टफ़ोलियो ब्रेकर {{limit}} पर · बॉट: {{bots}}"
+    },
+    "open": {
+      "stop": "स्टॉप",
+      "atEntry": "एंट्री पर",
+      "distance": "स्टॉप तक",
+      "distanceTip": "आख़िरी कीमत स्टॉप से कितनी दूर है, कीमत का %।",
+      "atStop": "स्टॉप पर",
+      "atStopTip": "स्टॉप भरने पर जो दर्ज होगा, शुल्क सहित: बंद ट्रेड जैसी ही गणना।"
     }
   },
   "settings": {
