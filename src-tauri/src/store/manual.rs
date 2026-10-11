@@ -1,5 +1,5 @@
 //! Desktop-only record of the trades the user opened by hand on one signal
-//! (Execute, "Open position"). Kept apart from `trades`: the VDS paper runner
+//! (Execute, "Open position"). Kept apart from `trades`: the server-side paper runner
 //! compiles `trades.rs` and writes the same schema, and it never opens a
 //! manual trade. A trade is keyed as `trades::is_settled` keys it.
 

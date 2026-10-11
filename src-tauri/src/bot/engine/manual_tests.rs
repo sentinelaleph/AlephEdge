@@ -195,7 +195,7 @@ fn the_book_never_holds_a_signal_or_symbol_twice_for_one_bot() {
     assert_eq!(m.open_count(), 2);
 }
 
-// Runner parity: the loop's gate (which the VDS paper runner compiles) is
+// Runner parity: the loop's gate (which the server-side paper runner compiles) is
 // exactly the Auto mode, case for case.
 #[test]
 fn the_loops_gate_is_unchanged() {

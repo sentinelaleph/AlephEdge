@@ -17,7 +17,7 @@ use super::VaultManager;
 
 /// New-credential input from the UI. `added_at` is stamped server-side so the UI
 /// never controls it.
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AddCredentialInput {
     pub exchange_id: String,
@@ -27,6 +27,19 @@ pub struct AddCredentialInput {
     pub passphrase: Option<String>,
     // The UI's declared permission is not read: the vault stores only what
     // Binance itself reports (serde ignores the field the UI still sends).
+}
+
+/// Hand-written so a stray `{:?}` can never print the key, secret or passphrase.
+impl std::fmt::Debug for AddCredentialInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AddCredentialInput")
+            .field("exchange_id", &self.exchange_id)
+            .field("label", &self.label)
+            .field("api_key", &"<redacted>")
+            .field("api_secret", &"<redacted>")
+            .field("passphrase", &self.passphrase.as_ref().map(|_| "<redacted>"))
+            .finish()
+    }
 }
 
 /// The vault file's location. `pub(super)` because the idle watchdog needs the

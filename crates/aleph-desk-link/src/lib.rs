@@ -243,14 +243,12 @@ impl<C: DeskControl> DeskLink<C> {
 /// cagiran kodun) bir calisma zamanina ihtiyaci oldu. Bu yardimci, gercek G/C
 /// yapmayan gelecekler icin yeterlidir; Aleph Edge kendi calisma zamanini
 /// (`tauri::async_runtime`) kullanir.
-pub fn block_on<F: std::future::Future>(mut fut: F) -> F::Output {
-    use std::pin::Pin;
+pub fn block_on<F: std::future::Future>(fut: F) -> F::Output {
     use std::task::{Context, Poll, Waker};
 
     let waker = Waker::noop();
     let mut cx = Context::from_waker(waker);
-    // SAFETY: `fut` bu fonksiyondan disari tasinmiyor.
-    let mut fut = unsafe { Pin::new_unchecked(&mut fut) };
+    let mut fut = std::pin::pin!(fut);
     loop {
         match fut.as_mut().poll(&mut cx) {
             Poll::Ready(v) => return v,

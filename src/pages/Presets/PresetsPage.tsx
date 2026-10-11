@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { KpiGrid } from "@/components/ui/KpiGrid/KpiGrid";
+import { KpiTile } from "@/components/ui/KpiTile/KpiTile";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Link, navigate, useRoute } from "@/app/router/router";
@@ -11,32 +13,15 @@ import { PageShell } from "@/components/ui/PageShell/PageShell";
 import { FactList, Panel, type Fact } from "@/components/ui/Panel/Panel";
 import { localeForLanguage } from "@/i18n";
 import { formatNumber, formatPercent, formatSignedPercent, NO_VALUE, pnlToneAttr } from "@/lib/format";
-import { errorMessage } from "@/lib/ipc/bridge";
 import { liveRankable, presetsLive, type LiveTemplate, type PresetsLive } from "@/lib/ipc/strategy/presetsLive";
-import { strategyPresets, type Preset, type StrategyKind } from "@/lib/ipc/strategy/strategy";
-import { presetName, sideText, strategyErrorText, universeText } from "@/lib/strategyText";
-import { monthName, reasonLines, shortDate, testSplit, useTemplateLauncher, VerdictChip } from "./presetUi";
+import type { Preset, StrategyKind } from "@/lib/ipc/strategy/strategy";
+import { presetName, sideText, universeText } from "@/lib/strategyText";
+import { monthName, reasonLines, shortDate, testSplit, usePresets, useTemplateLauncher, VerdictChip, verdictBucket } from "./presetUi";
 import { InfoTip } from "@/components/ui/InfoTip/InfoTip";
 import { MetaLine } from "@/components/ui/MetaLine/MetaLine";
 import "./Presets.css";
 
 const KINDS: StrategyKind[] = ["dca", "grid"];
-
-function usePresets() {
-  const { t } = useTranslation();
-  const [presets, setPresets] = useState<Preset[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    strategyPresets()
-      .then((p) => alive && setPresets(p))
-      .catch((e: unknown) => alive && setError(strategyErrorText(t, errorMessage(e, "storeReadFailed"))));
-    return () => {
-      alive = false;
-    };
-  }, [t]);
-  return { presets, error };
-}
 
 /** The server's ghost track (null while loading or when unavailable). */
 function usePresetsLive() {
@@ -173,6 +158,11 @@ export function PresetsPage() {
   const rows = presets?.filter((p) => !filter || p.config.params.kind === filter) ?? null;
   const { launch, dialog } = useTemplateLauncher();
   const { live, failed: liveFailed } = usePresetsLive();
+  const count = (b: ReturnType<typeof verdictBucket>) => rows?.filter((p) => verdictBucket(p) === b).length ?? 0;
+  const nextRead = (rows ?? [])
+    .map((p) => p.history.recheck?.nextRead)
+    .filter((d): d is string => !!d)
+    .sort()[0];
 
   const left = (
     <FilterGroup
@@ -188,6 +178,7 @@ export function PresetsPage() {
     {
       id: "name",
       header: t("table.name"),
+      width: "28%",
       cell: (p) => (
         <>
           <Link to={`/presets/${p.id}`} className="ae-link">
@@ -252,7 +243,7 @@ export function PresetsPage() {
         const l = liveOf(live, p.id);
         if (!live || !l) return NO_VALUE;
         if (!liveRankable(live)) {
-          return <span className="ae-subtle">{t("strategy.preset.live.collecting", { days: Math.floor(live.days), min: live.minDaysForRanking })}</span>;
+          return <span className="ae-subtle">{t("strategy.preset.live.collectingShort", { days: Math.floor(live.days), min: live.minDaysForRanking })}</span>;
         }
         return formatSignedPercent(l.returnPct, locale);
       },
@@ -301,7 +292,30 @@ export function PresetsPage() {
           />
         }
       />
-      <LiveLine live={live} failed={liveFailed} />
+      {rows && rows.length > 0 ? (
+        <KpiGrid minTile={150} label={t("strategy.preset.summary.label")}>
+          <KpiTile label={t("strategy.preset.summary.passed")} value={count("passed")} tone={count("passed") > 0 ? "up" : undefined} note={t("strategy.preset.summary.passedNote")} />
+          <KpiTile
+            label={t("strategy.preset.summary.review")}
+            value={count("review")}
+            note={nextRead ? t("strategy.preset.summary.reviewNote", { date: shortDate(nextRead, locale) }) : undefined}
+          />
+          <KpiTile label={t("strategy.preset.summary.failed")} value={count("failed")} tone={count("failed") > 0 ? "down" : undefined} note={t("strategy.preset.summary.failedNote")} />
+          <KpiTile
+            label={t("strategy.preset.live.title")}
+            value={live ? (liveRankable(live) ? t("strategy.preset.summary.ghostDays", { days: Math.floor(live.days) }) : t("strategy.preset.summary.ghostDay", { days: Math.floor(live.days), min: live.minDaysForRanking })) : NO_VALUE}
+            note={
+              liveFailed
+                ? t("strategy.preset.summary.ghostOff")
+                : live
+                  ? t("strategy.preset.summary.ghostNote", { since: liveDate(live.t0, locale), updated: liveDate(live.updatedAt, locale, true) })
+                  : undefined
+            }
+          />
+        </KpiGrid>
+      ) : (
+        <LiveLine live={live} failed={liveFailed} />
+      )}
       {error ? (
         <EmptyState tone="error" title={error} />
       ) : (

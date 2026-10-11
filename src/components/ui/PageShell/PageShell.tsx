@@ -137,6 +137,10 @@ export function PageShell({ title, crumbs, primary, secondary, actions, left, le
     if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(measure);
     if (head.parentElement) ro.observe(head.parentElement);
+    // Header chips that appear later (status, BTC trend) narrow the heading
+    // without resizing its parent: watch the heading and the bar too.
+    ro.observe(head);
+    ro.observe(bar);
     ro.observe(m);
     return () => ro.disconnect();
   });

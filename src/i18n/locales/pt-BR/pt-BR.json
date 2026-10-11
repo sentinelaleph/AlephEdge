@@ -722,7 +722,18 @@
       "paperOnly": "Simulado: execuções simuladas a preços ao vivo, taxas incluídas"
     },
     "presetsLink": "Presets deste tipo",
-    "create": "Criar"
+    "create": "Criar",
+    "how": {
+      "signal": "Abre uma posição em cada sinal do Sentinel que passa nos seus filtros e sai nos alvos ou no stop do sinal.",
+      "dca": "Abre com uma ordem base, adiciona ordens de segurança quando o preço vai contra e fecha a posição inteira em um único take profit sobre o preço médio.",
+      "grid": "Coloca ordens de compra e venda em níveis fixos ao longo de uma faixa de preço e opera os movimentos entre eles."
+    },
+    "yours": "Seus bots",
+    "yoursNone": "Nenhum ainda",
+    "yoursValue": "{{total}} · rodando {{running}}",
+    "templates": "Presets",
+    "templatesNone": "Nenhum nesta versão",
+    "templatesValue": "Passaram {{passed}} de {{total}}"
   },
   "botDetail": {
     "notFound": "Bot não encontrado",
@@ -737,7 +748,6 @@
       "settings": "Configurações",
       "log": "Registro"
     },
-    "closedLoaded": "Trades fechados (carregados)",
     "loadedWindow": "Dos últimos {{count}} trades do painel",
     "noTrades": "Nenhum trade fechado deste bot no período carregado.",
     "noOrders": "Nenhuma ordem ativa.",
@@ -747,7 +757,10 @@
     },
     "closeLong": "Vender (fechar long)",
     "closeShort": "Comprar (fechar short)",
-    "logScope": "Notas de trades pulados de todo o painel (todos os bots de sinais), mais recentes primeiro."
+    "logScope": "Notas de trades pulados de todo o painel (todos os bots de sinais), mais recentes primeiro.",
+    "record": "{{wins}} ganhos · {{losses}} perdidos",
+    "recordNote": "Acerto {{rate}}% · trades {{trades}}",
+    "tradesN": "Trades: {{count}}"
   },
   "dashboard": {
     "scope": "Escopo",
@@ -867,6 +880,28 @@
         "stopPassed": "O preço já passou do stop",
         "targetPassedBeforeEntry": "O preço já passou do alvo ({{detail}}) antes da entrada"
       }
+    },
+    "col": {
+      "toTp1": "Até TP1",
+      "toTp1Tip": "Movimento da entrada até o primeiro alvo, em % da entrada.",
+      "toSl": "Até o stop",
+      "toSlTip": "Movimento da entrada até o stop, em % da entrada.",
+      "rrTip": "Retorno sobre risco na entrada publicada: o movimento até o alvo dividido pelo movimento até o stop.",
+      "held": "Em bots",
+      "heldTip": "Seus bots com uma posição aberta neste sinal agora."
+    },
+    "ladder": {
+      "label": "Stop, entrada e alvos do sinal em uma mesma escala, com o movimento de cada nível a partir da entrada"
+    },
+    "summary": {
+      "label": "Feed de sinais em resumo",
+      "active": "Ativos agora",
+      "activeNote": "Long {{long}} · short {{short}}",
+      "expiredNote": "Expirados: {{count}}",
+      "held": "Nos seus bots",
+      "heldNote": "Posições abertas: {{count}}",
+      "rr": "R:R mediano, ativos",
+      "rrNote": "Na entrada publicada"
     }
   },
   "backtest": {
@@ -2031,7 +2066,6 @@
       "live": {
         "col": "Fantasma desde {{since}}",
         "tip": "Retorno total desde o início, não por mês (a coluna Teste é por bot-mês). Os modelos rodam para frente no servidor com o simulador dos números históricos; não há dinheiro envolvido. Ciclos abertos marcados no último preço. Sem ranking antes de 30 dias.",
-        "collecting": "Acumulando {{days}}/{{min}} d",
         "unavailable": "Registro fantasma indisponível: ribqa.com não respondeu.",
         "line": "Registro fantasma (simulado) desde {{since}} · dia {{days}} de {{min}}, ainda sem ranking · atualizado {{updated}}",
         "lineReady": "Registro fantasma (simulado) desde {{since}} · {{days}} dias · atualizado {{updated}}",
@@ -2042,10 +2076,24 @@
         "bots": "Bots",
         "cycles": "Ciclos",
         "open": "{{count}} abertos",
-        "method": "Mesmo simulador e parâmetros do teste histórico: um bot novo de 1000 USDT por par a cada mês, 1x, listas mensais de moedas, taxas, slippage e funding incluídos; ciclos abertos no último fechamento."
+        "method": "Mesmo simulador e parâmetros do teste histórico: um bot novo de 1000 USDT por par a cada mês, 1x, listas mensais de moedas, taxas, slippage e funding incluídos; ciclos abertos no último fechamento.",
+        "collectingShort": "{{days}}/{{min}} d"
       },
       "checksToWindow": "As quatro verificações passaram na janela de teste até {{date}}",
-      "recheckBanner": "Passou nas quatro verificações na janela de teste até {{windowEnd}}. Em {{month}} até agora ({{days}} dias) a média é {{mean}}% por bot-mês com operações ainda abertas, então nem todo mês de teste é positivo ainda. As verificações são lidas de novo em {{nextRead}}, quando o mês estiver completo. Não é garantia."
+      "recheckBanner": "Passou nas quatro verificações na janela de teste até {{windowEnd}}. Em {{month}} até agora ({{days}} dias) a média é {{mean}}% por bot-mês com operações ainda abertas, então nem todo mês de teste é positivo ainda. As verificações são lidas de novo em {{nextRead}}, quando o mês estiver completo. Não é garantia.",
+      "summary": {
+        "label": "Presets em resumo",
+        "passed": "Passaram nas verificações",
+        "passedNote": "Cada verificação na janela de teste",
+        "review": "Em revisão",
+        "reviewNote": "Próxima leitura {{date}}",
+        "failed": "Não passaram",
+        "failedNote": "Com as verificações em que falharam",
+        "ghostDay": "Dia {{days}} / {{min}}",
+        "ghostDays": "{{days}} dias",
+        "ghostNote": "Desde {{since}}, último {{updated}}",
+        "ghostOff": "ribqa.com não respondeu"
+      }
     },
     "notes": {
       "portfolioDdTripped": "Disjuntor da carteira disparado: ciclos dos bots cobertos fechados. Rearme a partir do dia UTC seguinte.",
@@ -2536,5 +2584,15 @@
       "longInDown": "O BTC está em tendência de baixa de 50 dias ({{days}} dias) e este bot compra comprado.",
       "shortInUp": "O BTC está em tendência de alta de 50 dias ({{days}} dias) e este bot vende vendido."
     }
+  },
+  "botsSummary": {
+    "label": "Seus bots em resumo",
+    "running": "Rodando",
+    "runningOf": "{{running}} / {{total}}",
+    "positions": "Posições abertas: {{count}}",
+    "positionsCycles": "Posições {{positions}} · ciclos {{cycles}}",
+    "cycles": "Ciclos abertos: {{count}}",
+    "realizedNote": "Após taxas, desde o início",
+    "totalNote": "Realizado mais aberto"
   }
 }

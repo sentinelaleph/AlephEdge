@@ -37,8 +37,11 @@ const DEV: Endpoints = {
 };
 
 export async function getEndpoints(): Promise<Endpoints> {
-  if (!inTauri()) return DEV;
-  return invoke<Endpoints>("get_endpoints");
+  if (inTauri()) return invoke<Endpoints>("get_endpoints");
+  // The placeholder is for `npm run dev` only; a production bundle outside
+  // Tauri has no endpoints to show and says so.
+  if (import.meta.env.DEV) return DEV;
+  throw new Error("getEndpoints: not running inside Tauri");
 }
 
 /** The desktop build's version (Cargo package version). */

@@ -244,10 +244,10 @@ async fn connect_once(
                         }
                     }
                     Err(e) => {
-                        // Doğrulanmayan zarf: sessizce yutulmaz, loglanır; ama
-                        // yanıt da üretilmez, yoksa imzasız zarf gönderen biri
-                        // masanın varlığını yoklayabilirdi.
-                        eprintln!("link: zarf reddedildi: {e}");
+                        // An envelope that fails verification is logged, not
+                        // swallowed; but no reply goes out, or anyone sending
+                        // unsigned envelopes could probe for the desk.
+                        eprintln!("link: envelope rejected: {e}");
                     }
                 }
             }

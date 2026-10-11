@@ -722,7 +722,18 @@
       "paperOnly": "Paper: simulated fills at live prices, fees included"
     },
     "presetsLink": "Presets for this type",
-    "create": "Create"
+    "create": "Create",
+    "how": {
+      "signal": "Opens a position on each Sentinel signal that passes your filters and exits at the signal's targets or stop.",
+      "dca": "Opens with a base order, adds safety orders as the price moves against it, and closes the whole position at one take-profit on the average price.",
+      "grid": "Places buy and sell orders at fixed levels across a price range and trades the moves between them."
+    },
+    "yours": "Your bots",
+    "yoursNone": "None yet",
+    "yoursValue": "{{total}} · running {{running}}",
+    "templates": "Presets",
+    "templatesNone": "None in this build",
+    "templatesValue": "Passed {{passed}} of {{total}}"
   },
   "botDetail": {
     "notFound": "Bot not found",
@@ -737,7 +748,6 @@
       "settings": "Settings",
       "log": "Log"
     },
-    "closedLoaded": "Closed trades (loaded)",
     "loadedWindow": "From the latest {{count}} desk trades",
     "noTrades": "No closed trades for this bot in the loaded window.",
     "noOrders": "No working orders.",
@@ -747,7 +757,10 @@
     },
     "closeLong": "Sell (close long)",
     "closeShort": "Buy (close short)",
-    "logScope": "Desk-wide skip notes (all signal bots), newest first."
+    "logScope": "Desk-wide skip notes (all signal bots), newest first.",
+    "record": "{{wins}} won · {{losses}} lost",
+    "recordNote": "Win rate {{rate}}% · trades {{trades}}",
+    "tradesN": "Trades: {{count}}"
   },
   "dashboard": {
     "scope": "Scope",
@@ -867,6 +880,28 @@
         "stopPassed": "Price already passed the stop",
         "targetPassedBeforeEntry": "Price already passed the target ({{detail}}) before entry"
       }
+    },
+    "col": {
+      "toTp1": "To TP1",
+      "toTp1Tip": "Move from the entry to the first target, % of the entry.",
+      "toSl": "To stop",
+      "toSlTip": "Move from the entry to the stop, % of the entry.",
+      "rrTip": "Reward to risk at the published entry: the move to the target over the move to the stop.",
+      "held": "In bots",
+      "heldTip": "Your bots holding a position on this signal now."
+    },
+    "ladder": {
+      "label": "The signal's stop, entry and targets on one scale, with each level's move from the entry"
+    },
+    "summary": {
+      "label": "Signal feed at a glance",
+      "active": "Active now",
+      "activeNote": "Long {{long}} · short {{short}}",
+      "expiredNote": "Expired: {{count}}",
+      "held": "Held by your bots",
+      "heldNote": "Open positions: {{count}}",
+      "rr": "Median R:R, active",
+      "rrNote": "At the published entry"
     }
   },
   "backtest": {
@@ -2031,7 +2066,6 @@
       "live": {
         "col": "Ghost since {{since}}",
         "tip": "Total return since the start, not per month (the Test column is per bot-month). The templates run forward on the server by the simulator behind the historical numbers; no money is involved. Open cycles marked at the last price. Not ranked before 30 days.",
-        "collecting": "Collecting {{days}}/{{min}} d",
         "unavailable": "Ghost track unavailable: ribqa.com did not answer.",
         "line": "Ghost track (simulated) since {{since}} · day {{days}} of {{min}}, not ranked yet · updated {{updated}}",
         "lineReady": "Ghost track (simulated) since {{since}} · {{days}} days · updated {{updated}}",
@@ -2042,10 +2076,24 @@
         "bots": "Bots",
         "cycles": "Cycles",
         "open": "{{count}} open",
-        "method": "Same simulator and parameters as the historical test: a new 1000 USDT bot per pair each month, 1x, monthly coin lists, fees, slippage and funding included, open cycles marked at the last close."
+        "method": "Same simulator and parameters as the historical test: a new 1000 USDT bot per pair each month, 1x, monthly coin lists, fees, slippage and funding included, open cycles marked at the last close.",
+        "collectingShort": "{{days}}/{{min}} d"
       },
       "checksToWindow": "All four checks passed on the test window to {{date}}",
-      "recheckBanner": "Passed all four checks on the test window to {{windowEnd}}. In {{month}} so far ({{days}} days) the mean is {{mean}}% per bot-month with deals still open, so not every test month is positive yet. The checks are read again on {{nextRead}}, when the month is complete. Not a guarantee."
+      "recheckBanner": "Passed all four checks on the test window to {{windowEnd}}. In {{month}} so far ({{days}} days) the mean is {{mean}}% per bot-month with deals still open, so not every test month is positive yet. The checks are read again on {{nextRead}}, when the month is complete. Not a guarantee.",
+      "summary": {
+        "label": "Presets at a glance",
+        "passed": "Passed checks",
+        "passedNote": "Every check on the test window",
+        "review": "Under review",
+        "reviewNote": "Next read {{date}}",
+        "failed": "Did not pass",
+        "failedNote": "Listed with the checks they failed",
+        "ghostDay": "Day {{days}} / {{min}}",
+        "ghostDays": "{{days}} days",
+        "ghostNote": "From {{since}}, last {{updated}}",
+        "ghostOff": "ribqa.com did not answer"
+      }
     },
     "notes": {
       "portfolioDdTripped": "Portfolio breaker tripped: cycles of the bots inside it closed. Re-arm from the next UTC day.",
@@ -2536,5 +2584,15 @@
       "longInDown": "BTC is in a 50-day downtrend ({{days}} days) and this bot buys long.",
       "shortInUp": "BTC is in a 50-day uptrend ({{days}} days) and this bot sells short."
     }
+  },
+  "botsSummary": {
+    "label": "Your bots at a glance",
+    "running": "Running",
+    "runningOf": "{{running}} of {{total}}",
+    "positions": "Open positions: {{count}}",
+    "positionsCycles": "Positions {{positions}} · cycles {{cycles}}",
+    "cycles": "Open cycles: {{count}}",
+    "realizedNote": "After fees, all time",
+    "totalNote": "Realized plus open"
   }
 }

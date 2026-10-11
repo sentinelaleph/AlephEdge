@@ -57,7 +57,7 @@ The Dashboard shows on one screen what is running, what it made or lost and what
 Every bot of every type (signal, DCA, Grid) in one table.
 
 - **Left panel (filters):** search (bot name or symbol), type, state, market (Spot/Futures), mode (Paper/LIVE), exchange and **Clear filters**. Filters are kept in the address.
-- **Center:** signal bots and **DCA and Grid bots** in separate sections. You can select several signal bots and stop them together.
+- **Center:** four tiles for the bots on the page: **Running** (of how many), **Open P&L** (with the open positions and cycles), **Realized** (after fees, all time) and **Total**. Below them, signal bots and **DCA and Grid bots** in separate sections. You can select several signal bots and stop them together. The Signal bots, DCA bots and Grid bots pages open with the same four tiles for their own bots.
 - **Right panel:** a summary per bot type and **Needs attention**: signal bots stopped by the daily stop, paused or ended DCA/Grid bots.
 
 **Can I create a new signal bot?** No. There are three fixed signal bots: **Futures**, **Spot** and **Pump**. You change their settings, start or stop them. You can create up to 10 DCA and Grid bots.
@@ -91,7 +91,7 @@ The three bots that trade Sentinel's published signals.
 On screen:
 
 - **Left panel:** risk level summary, **BTC regime**, **Signal stream** and feed filters (**Feed: bot**, **Feed: skip reason**).
-- **Center:** the bot table with **Open P&L**, **Realized** and **Total** per bot, **Open positions** with **Price**, **P&L now** and the **Stop → target** bar, **Skipped trades** and the selected bot's settings form.
+- **Center:** the four tiles of the signal bots, the bot table with **Open P&L**, **Realized** and **Total** per bot, **Open positions** with **Price**, **P&L now** and the **Stop → target** bar, **Skipped trades** and the selected bot's settings form.
 - **Right panel:** trades opened and closed today, **Skip reasons** counts and **How this bot works**.
 
 ![A signal bot's settings form](shot:settings)
@@ -142,7 +142,7 @@ Sections of the settings form:
 
 ![A signal bot's page: overview and open positions](shot:bot-detail)
 
-Opens when you click a bot's name. Tabs: **Overview** (open positions), **Trades** (closed trades and CSV), **Orders** (each open position's take profit and stop loss), **Settings** and **Log** (skip notes).
+Opens when you click a bot's name. The **Overview** tab opens with the bot's own **Open P&L**, **Realized**, **Total** and **Record** (won and lost, win rate and trade count over all its closed trades), then its open positions. Tabs: **Overview**, **Trades** (closed trades and CSV), **Orders** (each open position's take profit and stop loss), **Settings** and **Log** (skip notes).
 
 **Can I close an open position by hand?** Yes, with **Close** on the position's row. A paper position is booked at the live price. On a real-money position a real market order goes to the exchange, so you are asked to type CLOSE.
 
@@ -225,7 +225,7 @@ The list, the bot page, the buttons, the states, the budget cap and the delete r
 
 ![New bot: the three bot types](shot:bot-new)
 
-The page where you choose a bot type. Three cards: **Signal bot (Sentinel)**, **DCA bot** and **Grid bot**. Each card has a **Create** button; the DCA and Grid cards also have **Presets for this type**. The N key opens this page too.
+The page where you choose a bot type. Three cards: **Signal bot (Sentinel)**, **DCA bot** and **Grid bot**. Each card says how that type trades, which market it suits, **Your bots** of that type (how many, how many running) and, for DCA and Grid, how many of its **Presets** passed their checks. Each card has a **Create** button; a type with presets also has **Presets for this type**. The line above the cards says whether this build trades on paper only. The N key opens this page too.
 
 ![The DCA bot form](shot:dca-new)
 
@@ -255,8 +255,8 @@ A blank **New DCA bot** form starts from the DCA Long Classic ladder, with the d
 Sentinel's published signals as a table. Each row and the selected signal's panel have an **Execute** button.
 
 - **Left panel (filters):** symbol, direction, timeframe, state (active or expired), **Min. score** and age.
-- **Center:** time, symbol, timeframe, side, entry, TP1–TP3, stop loss, **Score**, setup, state and age.
-- **Right panel:** the selected signal's detail (entry, targets, risk/reward, confluence, **Management plan**) and **Bot decisions**: what your bots did with it.
+- **Center:** four tiles: **Active now** (long and short), **Last 24 h** (with how many expired), **Held by your bots** (signals with an open position on one of your bots) and the **Median R:R** of the active signals. Then the table: time, symbol, timeframe, side, entry, TP1–TP3, stop loss, **To TP1** and **To stop** (the move from the published entry, % of the entry), **R:R**, **Score**, setup, state, **In bots** (which of your bots hold it now) and age.
+- **Right panel:** the selected signal's detail: its stop, entry and targets on one scale with each level's move from the entry, then risk/reward, confluence, **Management plan** and **Bot decisions**: what your bots did with it.
 
 **What does Execute do?** It opens a window for the signal with these sections, in order. **Take this signal now · paper** opens the signal as a paper position on a fitting signal bot: Futures for a futures signal, Spot for a spot long, Pump when it is configured and the signal is a futures one. It enters at the current price, also when the signal's entry has passed, as long as the price is between the stop and the bot's target; past the target or the stop it is refused. Before the click each bot shows the fill at the current price, the signal's entry, the reward:risk at the fill next to the published one (a warning below 0.5: the trade has moved), the position size, and the loss at the stop and the gain at the target, both with fees. **Open position** opens it; the bot does not have to be running, it needs saved settings. The bot's own filters are skipped (age limit, Min. score, direction, symbols, setups, engines, the Pump rule): you decided. Its risk limits stay: position limits, per-position cap, the exchange minimum, the liquidation check, the daily stop, funding and depth, the BTC guard. A refusal shows its reason. The position carries a **Manual** label on Positions & orders, the bot page and in History. Execute never opens real money: a bot switched to LIVE refuses. Below that: a link to the signal bots, which also take Sentinel signals by themselves within their filters; the DCA and Grid templates that fit the signal's side (a long signal shows long DCA and long or neutral Grid templates), each with its verdict and test mean per bot-month; and a blank DCA or Grid form. **Open with** fills the create form with the template and the signal's pair. A template that did not pass asks first. A BTC-only template appears only for BTCUSDT. The templates were tested on their own pairs, not on this one, and the bot runs on paper unless the build is live and LIVE is typed.
 
@@ -280,6 +280,8 @@ DCA and Grid templates tested on past prices. Each has its test results and a ve
 - **Under review:** passed all four checks on the original test window, but a later re-run with a partial month did not confirm every check. The template stays, with that month shown, until the dated re-read.
 - **Did not pass:** at least one check failed; the failed one is named.
 
+The page opens with the count of each verdict for the type shown, the date of the next re-read and the ghost track's day.
+
 ![A preset's results page](shot:preset)
 
 Click a template to see its settings, results per data window and the test method. **Use preset** fills the form with it; **Backtest** opens it on the Backtest page.
@@ -288,7 +290,7 @@ Click a template to see its settings, results per data window and the test metho
 
 **What if I change a template's settings?** Name and budget are free. If you change any other setting, the template's results no longer describe your bot; the form says so and the bot is saved without the preset link. The pair matters too. The banner names the pairs the template was tested on. BTC-only templates need BTCUSDT; on any other pair the link is dropped. For templates tested on a ranked list (for example the top 5 by volume, or the altcoin template's pairs ranked 6 to 15), the banner says your pair is not checked against that list.
 
-**What is the "Ghost since 8 Oct" column?** Since 8 Oct 2026 the server runs all 12 templates forward, every 6 hours, with the same simulator and settings as their test: a new 1000 USDT bot per pair each month, 1x, the month's coin list, fees, slippage and funding included, open cycles valued at the last close. Nobody's money is in them; they show how each template does after its test ended. The column is the total return since the start, not per month; the test column is per bot-month. For the first 30 days the column says **Collecting** and nothing is ranked: a few weeks mostly show what the market did. The template's own page shows the numbers from day one, with that note.
+**What is the "Ghost since 8 Oct" column?** Since 8 Oct 2026 the server runs all 12 templates forward, every 6 hours, with the same simulator and settings as their test: a new 1000 USDT bot per pair each month, 1x, the month's coin list, fees, slippage and funding included, open cycles valued at the last close. Nobody's money is in them; they show how each template does after its test ended. The column is the total return since the start, not per month; the test column is per bot-month. For the first 30 days the column shows the day count (for example **3/30 d**) and nothing is ranked: a few weeks mostly show what the market did. The template's own page shows the numbers from day one, with that note.
 
 **Do these results show future profit?** No. They are a simulation on past prices with the costs shown; not a trading record and not a forecast.
 

@@ -31,7 +31,7 @@ impl AuthUser {
 }
 
 /// Login response envelope from `/api/v1/auth/login`.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct LoginResponse {
     pub access_token: String,
     pub refresh_token: String,
@@ -43,7 +43,7 @@ pub struct LoginResponse {
 }
 
 /// Refresh response from `/api/v1/auth/refresh`.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct TokenResponse {
     pub access_token: String,
     pub refresh_token: String,
@@ -67,7 +67,7 @@ pub struct BillingStatus {
 }
 
 /// The in-memory authenticated session (tokens never leave the process).
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Session {
     pub access_token: String,
     pub refresh_token: String,
@@ -82,7 +82,7 @@ pub struct Session {
 /// silently restore a session via `/api/v1/auth/refresh` without asking the
 /// user to sign in again. No access token (short-lived; a fresh one is
 /// fetched immediately via refresh on restore).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PersistedSession {
     pub refresh_token: String,
     pub id: String,
@@ -91,6 +91,55 @@ pub struct PersistedSession {
     #[serde(default)]
     pub role: String,
     pub display_name: String,
+}
+
+// Hand-written Debug for every type that carries a token: a stray `{:?}` (a
+// log line, a panic message) must never print one.
+const REDACTED: &str = "<redacted>";
+
+impl std::fmt::Debug for LoginResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LoginResponse")
+            .field("access_token", &REDACTED)
+            .field("refresh_token", &REDACTED)
+            .field("user", &self.user)
+            .field("expires_in", &self.expires_in)
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for TokenResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TokenResponse")
+            .field("access_token", &REDACTED)
+            .field("refresh_token", &REDACTED)
+            .field("expires_in", &self.expires_in)
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for Session {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Session")
+            .field("access_token", &REDACTED)
+            .field("refresh_token", &REDACTED)
+            .field("user", &self.user)
+            .field("access_expires", &self.access_expires)
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for PersistedSession {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PersistedSession")
+            .field("refresh_token", &REDACTED)
+            .field("id", &self.id)
+            .field("email", &self.email)
+            .field("tier", &self.tier)
+            .field("role", &self.role)
+            .field("display_name", &self.display_name)
+            .finish()
+    }
 }
 
 impl PersistedSession {

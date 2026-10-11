@@ -183,9 +183,16 @@ pub struct VetoEvent {
 }
 
 /// Response from `POST /api/v1/stream/ticket`.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct StreamTicketResponse {
     pub ticket: String,
+}
+
+/// Hand-written so a stray `{:?}` can never print the ticket.
+impl std::fmt::Debug for StreamTicketResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StreamTicketResponse").field("ticket", &"<redacted>").finish()
+    }
 }
 
 /// Where the stream connection is, independent of any error text.

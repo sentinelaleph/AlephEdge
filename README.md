@@ -65,6 +65,12 @@ The skip log on the right shows what was refused and why, in your language. Open
 
 The risk level's position limit applies to each signal bot separately: Spot holding its maximum does not stop Futures.
 
+Every bot list (all bots, signal bots, DCA, Grid) opens with how many bots run, their open P&L, realized result after fees and the two together. A signal bot's own page adds its record: trades won and lost and the win rate over all its closed trades.
+
+![Signals](assets/screenshots/signals.webp)
+
+The **Signals** page lists every published signal with the move to TP1 and to the stop from its published entry, the reward to risk and which of your bots hold it now, under a summary of the active signals. The selected signal shows its stop, entry and targets on one scale.
+
 ![Execute a signal](assets/screenshots/execute.webp)
 
 **Execute** on any signal opens every way to act on it. **Take this signal now** opens it as a paper position on a fitting signal bot at the current price, while the price is still between the stop and the target; before you confirm it shows the fill, the reward to risk at that fill next to the published one, the size, and the loss and gain with fees. The bot's filters are skipped, its risk limits are not, and real money never goes through Execute. The same window opens a DCA or Grid template, or a blank form, with the signal's pair filled in.
@@ -101,7 +107,7 @@ Twelve DCA and Grid templates (long, short, BTC-only, altcoins, with a stop, fou
 3. every test month positive;
 4. no liquidation.
 
-**Two templates passed** on the original test window (DCA Long Classic and DCA Long Safe). A re-run on 9 Oct 2026 that included a partial October did not confirm every check, so both are marked **Under review** until a dated re-read on 1 Nov 2026. The other ten are kept for learning, marked **Did not pass** with the checks they missed, and the app asks before one is used. The same twelve run forward on the Sentinel server since 8 Oct 2026 (the ghost track, on [ribqa.com/edge](https://ribqa.com/edge)). Both short DCA templates were liquidated even at 1x; all four grids lost money in most periods. A passed template only shows that it worked in those two years under those rules.
+**Two templates passed** on the original test window (DCA Long Classic and DCA Long Safe). A re-run on 9 Oct 2026 that included a partial October did not confirm every check, so both are marked **Under review** until a dated re-read on 1 Nov 2026. The other ten are kept for learning, marked **Did not pass** with the checks they missed, and the app asks before one is used. The same twelve run forward on the Sentinel server since 8 Oct 2026 (the ghost track, on [ribqa.com/edge](https://ribqa.com/edge)). Both short DCA templates were liquidated even at 1x; all four grids lost money in most periods. A passed template only shows that it worked in those two years under those rules. The Presets page opens with how many templates passed, are under review or did not pass, and the ghost track's day.
 
 ### Backtest
 

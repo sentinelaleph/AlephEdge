@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { BotsSummary } from "./BotsSummary";
 import { useDeskContext } from "@/app/DeskProvider";
 import { navigate } from "@/app/router/router";
 import { Button } from "@/components/ui/Button/Button";
@@ -96,6 +97,7 @@ export function StrategyBotsPage({ kind }: { kind: StrategyKind }) {
           {strategyErrorText(t, strategy.loadError)}
         </p>
       ) : null}
+      <BotsSummary scope={kind} />
       {rows === null ? (
         strategy.loadError ? null : <SkeletonRows rows={4} />
       ) : rows.length === 0 ? (

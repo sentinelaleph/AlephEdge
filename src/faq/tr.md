@@ -57,7 +57,7 @@ Pano, neyin çalıştığını, ne kazandırıp ne kaybettirdiğini ve neyin dik
 Her türden botu (sinyal, DCA, Grid) tek tabloda gösterir.
 
 - **Sol panel (filtreler):** arama (bot adı ya da sembol), tür, durum, piyasa (Spot/Futures), mod (Paper/LIVE), borsa ve **Filtreleri temizle**. Filtreler adres satırında saklanır.
-- **Orta alan:** sinyal botları ve **DCA ve Grid botları** ayrı bölümlerde. Birden çok sinyal botunu seçip birlikte durdurabilirsiniz.
+- **Orta alan:** sayfadaki botlar için dört kutucuk: **Çalışan** (kaç bottan), **Açık K/Z** (açık pozisyon ve döngülerle), **Gerçekleşen** (ücretler sonrası, tüm zamanlar) ve **Toplam**. Altında sinyal botları ve **DCA ve Grid botları** ayrı bölümlerde. Birden çok sinyal botunu seçip birlikte durdurabilirsiniz. Sinyal botları, DCA botları ve Grid botları sayfaları da kendi botları için aynı dört kutucukla açılır.
 - **Sağ panel:** her bot türü için özet ve **Dikkat gerekenler** listesi: günlük stop yüzünden durmuş sinyal botları, duraklatılmış ya da sona ermiş DCA/Grid botları.
 
 **Yeni bir sinyal botu oluşturabilir miyim?** Hayır. Üç sinyal botu sabittir: **Futures**, **Spot** ve **Pump**. Yalnızca ayarlarını değiştirir, başlatır ya da durdurursunuz. DCA ve Grid botlarından ise en fazla 10 tane oluşturabilirsiniz.
@@ -91,7 +91,7 @@ Sentinel'in yayınladığı sinyallerle işlem yapan üç bot burada.
 Ekranda:
 
 - **Sol panel:** risk seviyesi özeti, **BTC rejimi**, **Sinyal akışı** ve akış filtreleri (**Akış: bot**, **Akış: atlama nedeni**).
-- **Orta alan:** her bot için **Açık K/Z**, **Gerçekleşen** ve **Toplam** içeren bot tablosu, **Fiyat**, **Anlık K/Z** ve **Stop → hedef** çubuğuyla **Açık pozisyonlar**, **Atlanan işlemler** ve seçili botun ayar formu.
+- **Orta alan:** sinyal botlarının dört kutucuğu, her bot için **Açık K/Z**, **Gerçekleşen** ve **Toplam** içeren bot tablosu, **Fiyat**, **Anlık K/Z** ve **Stop → hedef** çubuğuyla **Açık pozisyonlar**, **Atlanan işlemler** ve seçili botun ayar formu.
 - **Sağ panel:** bugün açılan ve kapanan işlemler, **Atlama nedenleri** sayıları ve **Bu bot nasıl çalışır** ilkeleri.
 
 ![Bir sinyal botunun ayar formu](shot:settings)
@@ -142,7 +142,7 @@ Ayar formunun bölümleri:
 
 ![Sinyal botu sayfası: genel bakış, açık pozisyonlar](shot:bot-detail)
 
-Tablodaki bot adına tıklayınca açılır. Sekmeler: **Genel bakış** (açık pozisyonlar), **İşlemler** (kapanan işlemler ve CSV), **Emirler** (her açık pozisyonun kâr al ve zarar durdur emirleri), **Ayarlar** ve **Kayıt** (atlama notları).
+Tablodaki bot adına tıklayınca açılır. **Genel bakış** sekmesi botun kendi **Açık K/Z**, **Gerçekleşen**, **Toplam** ve **Kayıt** (kapanan tüm işlemleri üzerinden kazanç ve kayıp sayısı, kazanma oranı ve işlem sayısı) kutucuklarıyla, ardından açık pozisyonlarıyla açılır. Sekmeler: **Genel bakış**, **İşlemler** (kapanan işlemler ve CSV), **Emirler** (her açık pozisyonun kâr al ve zarar durdur emirleri), **Ayarlar** ve **Kayıt** (atlama notları).
 
 **Açık bir pozisyonu elle kapatabilir miyim?** Evet, pozisyon satırındaki **Kapat** düğmesiyle. Paper pozisyon anlık fiyattan kapanmış sayılır. Gerçek parayla açılmış bir pozisyonda ise borsaya gerçek bir piyasa emri gider; bu yüzden onay için CLOSE yazmanız istenir.
 
@@ -225,7 +225,7 @@ Liste, bot sayfası, düğmeler, durumlar, bütçe sınırı ve silme kuralları
 
 ![Yeni bot: üç bot türü](shot:bot-new)
 
-Bot türünü seçtiğiniz sayfa. Üç kart vardır: **Sinyal botu (Sentinel)**, **DCA botu** ve **Grid botu**. Her kartta **Oluştur** düğmesi vardır; DCA ve Grid kartlarında ayrıca **Bu türün hazır ayarları** bağlantısı bulunur. Klavyede N tuşu da bu sayfayı açar.
+Bot türünü seçtiğiniz sayfa. Üç kart vardır: **Sinyal botu (Sentinel)**, **DCA botu** ve **Grid botu**. Her kart o türün nasıl işlem yaptığını, hangi piyasaya uygun olduğunu, o türdeki **Botlarınız**ı (kaç tane, kaçı çalışıyor) ve DCA ile Grid için **Hazır ayarlar**ından kaçının kontrolleri geçtiğini gösterir. Her kartta **Oluştur** düğmesi vardır; hazır ayarı olan türde ayrıca **Bu türün hazır ayarları** bağlantısı bulunur. Kartların üstündeki satır bu sürümün yalnızca paper işlem yapıp yapmadığını söyler. Klavyede N tuşu da bu sayfayı açar.
 
 ![DCA botu oluşturma formu](shot:dca-new)
 
@@ -255,8 +255,8 @@ Boş bir **Yeni DCA botu** formu, DCA Long Classic merdiveniyle açılır; bot d
 Sentinel'in yayınladığı sinyalleri tablo olarak gösterir. Her satırda ve seçili sinyalin panelinde bir **Çalıştır** düğmesi vardır.
 
 - **Sol panel (filtreler):** sembol, yön, zaman dilimi, durum (aktif ya da süresi dolmuş), **Min. puan** ve sinyal yaşı.
-- **Orta alan:** zaman, sembol, zaman dilimi, yön, giriş, TP1–TP3, zarar durdur, **Puan**, kurulum, durum ve yaş.
-- **Sağ panel:** seçili sinyalin ayrıntısı (giriş, hedefler, risk/ödül, konfluans, **Yönetim planı**) ve **Bot kararları**: botlarınızın bu sinyalle ne yaptığı.
+- **Orta alan:** dört kutucuk: **Şu an aktif** (long ve short), **Son 24 sa** (kaçının süresi dolduğuyla), **Botlarınızda** (botlarınızdan birinde açık pozisyonu olan sinyaller) ve aktif sinyallerin **Medyan R:R** değeri. Ardından tablo: zaman, sembol, zaman dilimi, yön, giriş, TP1–TP3, zarar durdur, **TP1'e** ve **Stopa** (yayınlanan girişten hareket, girişin %'si), **R:R**, **Puan**, kurulum, durum, **Botlarda** (şu an hangi botlarınızda olduğu) ve yaş.
+- **Sağ panel:** seçili sinyalin ayrıntısı: stopu, girişi ve hedefleri tek ölçekte, her seviyenin girişten hareketiyle; ardından risk/ödül, konfluans, **Yönetim planı** ve **Bot kararları**: botlarınızın bu sinyalle ne yaptığı.
 
 **Çalıştır ne yapar?** Sinyal için şu bölümleri sırayla gösteren bir pencere açar. **Bu sinyali şimdi al · simüle** sinyali uygun bir sinyal botunda simüle pozisyon olarak açar: vadeli sinyalde Futures, spot long'da Spot, ayarlıysa ve sinyal vadeliyse Pump. Giriş güncel fiyattan yapılır; sinyalin giriş fiyatı geçilmiş olsa da fiyat stop ile botun hedefi arasındaysa açılır, hedef ya da stop geçildiyse reddedilir. Tıklamadan önce her bot güncel fiyattaki dolumu, sinyalin girişini, dolumdaki ödül:riski yayınlanan değerin yanında (0,5'in altında uyarı: işlem hareket etti), pozisyon büyüklüğünü, stopta zararı ve hedefte kârı (ikisi de komisyon dahil) gösterir. **Pozisyon aç** pozisyonu açar; botun çalışıyor olması gerekmez, kayıtlı ayarı olması yeter. Botun kendi filtreleri atlanır (yaş sınırı, Min. puan, yön, semboller, kurulumlar, motorlar, Pump kuralı): kararı siz verdiniz. Risk limitleri geçerlidir: pozisyon sınırları, pozisyon başı tavan, borsa minimumu, likidasyon kontrolü, günlük stop, funding ve derinlik, BTC koruması. Reddedilirse nedeni yazılır. Pozisyon Pozisyonlar ve emirler, bot sayfası ve Geçmiş'te **Elle** etiketi taşır. Çalıştır gerçek parayla pozisyon açmaz: LIVE'a alınmış bot reddeder. Altında: Sentinel sinyallerini filtreleri içinde kendileri de alan sinyal botlarına bağlantı; sinyalin yönüne uyan DCA ve Grid hazır ayarları (long sinyalde long DCA ile long ya da nötr Grid), her biri kararı ve bot-ay başına test ortalamasıyla; ve boş bir DCA ya da Grid formu. **… ile aç** oluşturma formunu hazır ayarla ve sinyalin paritesiyle doldurur. Kontrolleri geçemeyen hazır ayar önce onay ister. Yalnızca BTC için olan hazır ayar sadece BTCUSDT'de görünür. Hazır ayarlar bu paritede değil kendi paritelerinde test edildi; bot, canlı derleme ve yazılı LIVE onayı olmadan simüle çalışır.
 
@@ -280,6 +280,8 @@ Geçmiş fiyatlar üzerinde test edilmiş DCA ve Grid şablonları. Her şablonu
 - **İncelemede:** dört kontrolün hepsini özgün test penceresinde geçti, ama yarım bir ayı da içeren sonraki bir çalıştırma her kontrolü doğrulamadı. Şablon, o ay gösterilerek, tarihli yeniden okumaya kadar listede kalır.
 - **Geçemedi:** en az bir kontrol başarısız. Hangisinin başarısız olduğu yazar.
 
+Sayfa, gösterilen tür için her kararın sayısı, sonraki yeniden okumanın tarihi ve gölge kaydın günüyle açılır.
+
 ![Bir hazır ayarın sonuç sayfası](shot:preset)
 
 Bir şablona tıklayınca ayarları, veri dönemlerine göre sonuçları ve test yöntemi açılır. **Hazır ayarı kullan** formu bu şablonla doldurur; **Test et** şablonu geriye dönük test sayfasında açar.
@@ -288,7 +290,7 @@ Bir şablona tıklayınca ayarları, veri dönemlerine göre sonuçları ve test
 
 **Şablonun ayarlarını değiştirirsem ne olur?** Ad ve bütçe serbesttir. Başka bir ayarı değiştirirseniz şablonun test sonuçları artık sizin botunuzu anlatmaz; form bunu bir uyarıyla bildirir ve bot şablon bağlantısı olmadan kaydedilir. Parite de önemlidir. Uyarı satırı, şablonun hangi paritelerde test edildiğini yazar. Yalnızca BTC şablonları BTCUSDT ister; başka paritede bağlantı düşer. Sıralı bir listede test edilen şablonlarda (örneğin hacme göre ilk 5 ya da altcoin şablonunun 6-15. sıradaki pariteleri) uyarı, paritenizin bu listede olup olmadığının denetlenmediğini söyler.
 
-**"8 Ekim tarihinden beri gölge" sütunu nedir?** 8 Ekim 2026'dan beri sunucu 12 şablonun hepsini, testlerindeki simülatör ve ayarlarla 6 saatte bir ileriye doğru çalıştırıyor: her ay parite başına yeni bir 1000 USDT bot, 1x, ayın coin listesi; ücret, kayma ve funding dahil; açık döngüler son kapanıştan değerlenir. İçlerinde kimsenin parası yok; her şablonun testi bittikten sonra nasıl gittiğini gösterir. Sütun, başlangıçtan beri toplam getiridir, aylık değildir; test sütunu ise bot-ay başınadır. İlk 30 gün sütunda **Veri birikiyor** yazar ve hiçbir şey sıralanmaz: birkaç hafta çoğunlukla piyasanın ne yaptığını gösterir. Şablonun kendi sayfası rakamları ilk günden, bu notla gösterir.
+**"8 Ekim tarihinden beri gölge" sütunu nedir?** 8 Ekim 2026'dan beri sunucu 12 şablonun hepsini, testlerindeki simülatör ve ayarlarla 6 saatte bir ileriye doğru çalıştırıyor: her ay parite başına yeni bir 1000 USDT bot, 1x, ayın coin listesi; ücret, kayma ve funding dahil; açık döngüler son kapanıştan değerlenir. İçlerinde kimsenin parası yok; her şablonun testi bittikten sonra nasıl gittiğini gösterir. Sütun, başlangıçtan beri toplam getiridir, aylık değildir; test sütunu ise bot-ay başınadır. İlk 30 gün sütunda gün sayısı görünür (örneğin **3/30 g**) ve hiçbir şey sıralanmaz: birkaç hafta çoğunlukla piyasanın ne yaptığını gösterir. Şablonun kendi sayfası rakamları ilk günden, bu notla gösterir.
 
 **Bu sonuçlar gelecekteki kârı gösterir mi?** Hayır. Geçmiş fiyatlar üzerinde, gösterilen masraflarla yapılmış bir simülasyondur; bir işlem kaydı ya da tahmin değildir.
 

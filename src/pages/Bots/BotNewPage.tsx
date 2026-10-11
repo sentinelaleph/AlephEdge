@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/Button/Button";
 import { Chip } from "@/components/ui/Chip/Chip";
 import { PageShell } from "@/components/ui/PageShell/PageShell";
 import { FactList, Panel } from "@/components/ui/Panel/Panel";
+import { NO_VALUE } from "@/lib/format";
+import { isActive } from "@/lib/ipc/strategy/strategy";
+import { usePresets, verdictBucket } from "@/pages/Presets/presetUi";
+import { signalBotRows } from "./botRows";
 import "./bots.css";
 
 interface TypeCard {
@@ -36,10 +40,32 @@ export function modeKey(liveTradingEnabled: boolean): string {
  */
 export function BotNewPage() {
   const { t } = useTranslation();
-  const { desk } = useDeskContext();
+  const { desk, risk, strategy } = useDeskContext();
+  const { presets } = usePresets();
   const mode = modeKey(desk.loaded && desk.status.liveTradingEnabled);
+  const signalRows = desk.loaded ? signalBotRows(desk.status, risk.state?.maxCapitalQuote ?? null).filter((r) => r.config) : null;
+
+  /** "2 · running 1", "None yet", or null while the desk loads. */
+  const yours = (id: TypeCard["id"]): string | null => {
+    const mine =
+      id === "signal"
+        ? signalRows && { total: signalRows.length, running: signalRows.filter((r) => r.running).length }
+        : strategy.bots && {
+            total: strategy.bots.filter((b) => b.kind === id).length,
+            running: strategy.bots.filter((b) => b.kind === id && isActive(b)).length,
+          };
+    if (!mine) return null;
+    return mine.total === 0 ? t("botCreate.yoursNone") : t("botCreate.yoursValue", mine);
+  };
+  const templates = (id: "dca" | "grid"): string | null => {
+    if (!presets) return null;
+    const of = presets.filter((p) => p.config.params.kind === id);
+    return of.length === 0 ? t("botCreate.templatesNone") : t("botCreate.templatesValue", { passed: of.filter((p) => verdictBucket(p) === "passed").length, total: of.length });
+  };
+
   return (
     <PageShell title={t("page.botNew")} crumbs={[{ label: t("nav.groups.bots"), to: "/bots" }]} single>
+      <p className="ae-subtle">{t(mode)}</p>
       <div className="ae-typegrid">
         {CARDS.map((c) => (
           <Panel
@@ -53,14 +79,16 @@ export function BotNewPage() {
               </span>
             }
           >
+            <p className="ae-typegrid__how">{t(`botCreate.how.${c.id}`)}</p>
             <FactList
               rows={[
                 { label: t("botCreate.suitsLabel"), value: t(c.suitsKey) },
-                { label: t("table.mode"), value: t(mode) },
+                { label: t("botCreate.yours"), value: yours(c.id) ?? NO_VALUE },
+                ...(c.id === "signal" ? [] : [{ label: t("botCreate.templates"), value: templates(c.id) ?? NO_VALUE }]),
               ]}
             />
             <div className="ae-typegrid__foot">
-              {c.id !== "signal" ? (
+              {c.id !== "signal" && presets?.some((p) => p.config.params.kind === c.id) ? (
                 <Link to={`/presets?type=${c.id}`} className="ae-link ae-muted">
                   {t("botCreate.presetsLink")}
                 </Link>

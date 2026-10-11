@@ -23,6 +23,18 @@ export function totalOf(m: BotMoney): number | null {
   return m.realized + (m.open > 0 ? (m.openPnl ?? 0) : 0);
 }
 
+/** Sums the money of several bots; null parts stay null (never half a figure). */
+export function sumMoney(rows: BotMoney[]): BotMoney {
+  return rows.reduce<BotMoney>(
+    (acc, m) => ({
+      open: acc.open + m.open,
+      openPnl: acc.openPnl === null || (m.open > 0 && m.openPnl === null) ? null : acc.openPnl + (m.open > 0 ? (m.openPnl ?? 0) : 0),
+      realized: acc.realized === null || m.realized === null ? null : acc.realized + m.realized,
+    }),
+    { open: 0, openPnl: 0, realized: 0 },
+  );
+}
+
 /** Money of a signal bot, from the engine's marks and the per-bot trade stats. */
 export function useSignalBotMoney(): (kind: BotKind) => BotMoney {
   const { desk, pnl } = useDeskContext();

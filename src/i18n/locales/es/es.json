@@ -722,7 +722,18 @@
       "paperOnly": "Simulado: ejecuciones simuladas a precios en vivo, comisiones incluidas"
     },
     "presetsLink": "Presets de este tipo",
-    "create": "Crear"
+    "create": "Crear",
+    "how": {
+      "signal": "Abre una posición con cada señal de Sentinel que pasa tus filtros y sale en los objetivos o el stop de la señal.",
+      "dca": "Abre con una orden base, añade órdenes de seguridad cuando el precio va en contra y cierra toda la posición con un único take profit sobre el precio medio.",
+      "grid": "Coloca órdenes de compra y venta en niveles fijos dentro de un rango de precios y opera los movimientos entre ellos."
+    },
+    "yours": "Tus bots",
+    "yoursNone": "Aún ninguno",
+    "yoursValue": "{{total}} · en marcha {{running}}",
+    "templates": "Presets",
+    "templatesNone": "Ninguno en esta versión",
+    "templatesValue": "Superaron {{passed}} de {{total}}"
   },
   "botDetail": {
     "notFound": "Bot no encontrado",
@@ -737,7 +748,6 @@
       "settings": "Ajustes",
       "log": "Registro"
     },
-    "closedLoaded": "Operaciones cerradas (cargadas)",
     "loadedWindow": "De las últimas {{count}} operaciones del escritorio",
     "noTrades": "Sin operaciones cerradas de este bot en el periodo cargado.",
     "noOrders": "Sin órdenes activas.",
@@ -747,7 +757,10 @@
     },
     "closeLong": "Vender (cerrar long)",
     "closeShort": "Comprar (cerrar short)",
-    "logScope": "Notas de omisión de todo el escritorio (todos los bots de señales), las más recientes primero."
+    "logScope": "Notas de omisión de todo el escritorio (todos los bots de señales), las más recientes primero.",
+    "record": "{{wins}} ganadas · {{losses}} perdidas",
+    "recordNote": "Acierto {{rate}}% · operaciones {{trades}}",
+    "tradesN": "Operaciones: {{count}}"
   },
   "dashboard": {
     "scope": "Alcance",
@@ -867,6 +880,28 @@
         "stopPassed": "El precio ya pasó el stop",
         "targetPassedBeforeEntry": "El precio ya pasó el objetivo ({{detail}}) antes de entrar"
       }
+    },
+    "col": {
+      "toTp1": "Hasta TP1",
+      "toTp1Tip": "Movimiento de la entrada al primer objetivo, en % de la entrada.",
+      "toSl": "Hasta el stop",
+      "toSlTip": "Movimiento de la entrada al stop, en % de la entrada.",
+      "rrTip": "Recompensa sobre riesgo en la entrada publicada: el movimiento hasta el objetivo dividido entre el movimiento hasta el stop.",
+      "held": "En bots",
+      "heldTip": "Tus bots que tienen ahora una posición con esta señal."
+    },
+    "ladder": {
+      "label": "Stop, entrada y objetivos de la señal en una misma escala, con el movimiento de cada nivel desde la entrada"
+    },
+    "summary": {
+      "label": "Feed de señales de un vistazo",
+      "active": "Activas ahora",
+      "activeNote": "Largo {{long}} · corto {{short}}",
+      "expiredNote": "Expiradas: {{count}}",
+      "held": "En tus bots",
+      "heldNote": "Posiciones abiertas: {{count}}",
+      "rr": "R:R mediano, activas",
+      "rrNote": "En la entrada publicada"
     }
   },
   "backtest": {
@@ -2031,7 +2066,6 @@
       "live": {
         "col": "Fantasma desde {{since}}",
         "tip": "Rendimiento total desde el inicio, no por mes (la columna Test es por bot-mes). Las plantillas corren hacia delante en el servidor con el simulador de las cifras históricas; no hay dinero de por medio. Ciclos abiertos valorados al último precio. Sin ranking antes de 30 días.",
-        "collecting": "Acumulando {{days}}/{{min}} d",
         "unavailable": "Registro fantasma no disponible: ribqa.com no respondió.",
         "line": "Registro fantasma (simulado) desde {{since}} · día {{days}} de {{min}}, aún sin ranking · actualizado {{updated}}",
         "lineReady": "Registro fantasma (simulado) desde {{since}} · {{days}} días · actualizado {{updated}}",
@@ -2042,10 +2076,24 @@
         "bots": "Bots",
         "cycles": "Ciclos",
         "open": "{{count}} abiertos",
-        "method": "Mismo simulador y parámetros que la prueba histórica: un bot nuevo de 1000 USDT por par cada mes, 1x, listas mensuales de monedas, comisiones, slippage y funding incluidos; ciclos abiertos al último cierre."
+        "method": "Mismo simulador y parámetros que la prueba histórica: un bot nuevo de 1000 USDT por par cada mes, 1x, listas mensuales de monedas, comisiones, slippage y funding incluidos; ciclos abiertos al último cierre.",
+        "collectingShort": "{{days}}/{{min}} d"
       },
       "checksToWindow": "Las cuatro comprobaciones se superaron en la ventana de prueba hasta {{date}}",
-      "recheckBanner": "Superó las cuatro comprobaciones en la ventana de prueba hasta {{windowEnd}}. En {{month}} hasta ahora ({{days}} días) la media es {{mean}}% por bot-mes con operaciones aún abiertas, así que todavía no todos los meses de prueba son positivos. Las comprobaciones se vuelven a leer el {{nextRead}}, cuando el mes esté completo. No es una garantía."
+      "recheckBanner": "Superó las cuatro comprobaciones en la ventana de prueba hasta {{windowEnd}}. En {{month}} hasta ahora ({{days}} días) la media es {{mean}}% por bot-mes con operaciones aún abiertas, así que todavía no todos los meses de prueba son positivos. Las comprobaciones se vuelven a leer el {{nextRead}}, cuando el mes esté completo. No es una garantía.",
+      "summary": {
+        "label": "Presets de un vistazo",
+        "passed": "Superaron los controles",
+        "passedNote": "Cada control en la ventana de prueba",
+        "review": "En revisión",
+        "reviewNote": "Próxima lectura {{date}}",
+        "failed": "No superaron",
+        "failedNote": "Con los controles que no superaron",
+        "ghostDay": "Día {{days}} / {{min}}",
+        "ghostDays": "{{days}} días",
+        "ghostNote": "Desde {{since}}, último {{updated}}",
+        "ghostOff": "ribqa.com no respondió"
+      }
     },
     "notes": {
       "portfolioDdTripped": "Cortacircuitos de cartera activado: ciclos de los bots cubiertos cerrados. Rearme desde el día UTC siguiente.",
@@ -2536,5 +2584,15 @@
       "longInDown": "BTC está en tendencia bajista de 50 días ({{days}} días) y este bot compra en largo.",
       "shortInUp": "BTC está en tendencia alcista de 50 días ({{days}} días) y este bot vende en corto."
     }
+  },
+  "botsSummary": {
+    "label": "Tus bots de un vistazo",
+    "running": "En marcha",
+    "runningOf": "{{running}} / {{total}}",
+    "positions": "Posiciones abiertas: {{count}}",
+    "positionsCycles": "Posiciones {{positions}} · ciclos {{cycles}}",
+    "cycles": "Ciclos abiertos: {{count}}",
+    "realizedNote": "Tras comisiones, desde el inicio",
+    "totalNote": "Realizado más abierto"
   }
 }

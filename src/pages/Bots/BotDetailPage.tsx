@@ -11,7 +11,7 @@ import { PageShell } from "@/components/ui/PageShell/PageShell";
 import { FactList, Panel } from "@/components/ui/Panel/Panel";
 import { Tabs } from "@/components/ui/Tabs/Tabs";
 import { localeForLanguage } from "@/i18n";
-import { formatPnl, formatPrice, formatSignedPercent, formatTableTime, formatUsdt, NO_VALUE, pnlToneAttr } from "@/lib/format";
+import { formatNumber, formatPnl, formatPrice, formatSignedPercent, formatTableTime, formatUsdt, NO_VALUE, pnlToneAttr } from "@/lib/format";
 import type { OpenPosition, SkipNote } from "@/lib/ipc/bot/bot";
 import { exchangeName } from "@/lib/ipc/exchange/exchange";
 import type { TradeRecord } from "@/lib/ipc/trades/trades";
@@ -20,6 +20,7 @@ import { PositionsTable } from "@/pages/Positions/PositionsTable";
 import { isStrategyBotId } from "@/lib/ipc/strategy/strategy";
 import { kindForBotId, signalBotRows } from "./botRows";
 import { BotStateChip } from "./BotsTable";
+import { totalOf, useSignalBotMoney } from "./botMoney";
 import { SignalBotForm } from "./signal/SignalBotForm";
 import { StrategyBotDetail } from "./strategy/StrategyBotDetail";
 import "./bots.css";
@@ -80,6 +81,7 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
   const { desk, risk, pnl, catalog } = ctx;
   const { from } = useRouter();
   const [tabParam, setTab] = useQueryParam("tab");
+  const signalMoney = useSignalBotMoney();
   const tab: Tab = (TABS as readonly string[]).includes(tabParam ?? "") ? (tabParam as Tab) : "overview";
   const kind = kindForBotId(botId);
   const fromAll = from === "/bots";
@@ -105,6 +107,9 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
   const row = signalBotRows(desk.status, risk.state?.maxCapitalQuote ?? null).find((r) => r.kind === kind)!;
   const positions = desk.status.openPositions.filter((p) => p.botKind === kind);
   const trades = pnl.trades.filter((tr) => tr.botKind === kind);
+  const money = signalMoney(kind);
+  const total = totalOf(money);
+  const botStats = pnl.byBot?.find((b) => b.botKind === kind)?.stats ?? null;
   const s = desk.status;
   const maxLeverage = kind === "spot" ? 1 : risk.state?.limits.maxLeverage ?? null;
   const side = (direction: string) => t(`signalDesk.direction.${direction === "short" ? "short" : "long"}`);
@@ -230,10 +235,43 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
       >
         {tab === "overview" ? (
           <>
-            <KpiGrid>
-              <KpiTile label={t("table.openPositions")} value={positions.length} />
-              <KpiTile label={t("botDetail.closedLoaded")} value={trades.length} note={t("botDetail.loadedWindow", { count: pnl.trades.length })} />
-              <KpiTile label={t("table.capital")} value={row.capital !== null ? formatUsdt(row.capital, locale) : NO_VALUE} />
+            <KpiGrid minTile={150}>
+              <KpiTile
+                label={t("dashboard.col.openPnl")}
+                value={money.open === 0 ? NO_VALUE : money.openPnl === null ? NO_VALUE : formatPnl(money.openPnl, locale).text}
+                tone={money.open === 0 || money.openPnl === null ? undefined : pnlToneAttr(money.openPnl)}
+                note={t("botsSummary.positions", { count: positions.length })}
+              />
+              <KpiTile
+                label={t("dashboard.col.realized")}
+                value={money.realized === null ? null : formatPnl(money.realized, locale).text}
+                tone={pnlToneAttr(money.realized)}
+                note={t("botsSummary.realizedNote")}
+              />
+              <KpiTile
+                label={t("dashboard.col.total")}
+                value={total === null ? NO_VALUE : formatPnl(total, locale).text}
+                tone={pnlToneAttr(total)}
+                note={t("botsSummary.totalNote")}
+              />
+              <KpiTile
+                label={t("dashboard.col.record")}
+                value={
+                  !botStats || botStats.totalTrades === 0
+                    ? NO_VALUE
+                    : t("botDetail.record", { wins: botStats.wins, losses: botStats.losses })
+                }
+                note={
+                  botStats && botStats.wins + botStats.losses > 0
+                    ? t("botDetail.recordNote", {
+                        rate: formatNumber((botStats.wins / (botStats.wins + botStats.losses)) * 100, locale, { maximumFractionDigits: 0 }),
+                        trades: botStats.totalTrades,
+                      })
+                    : botStats
+                      ? t("botDetail.tradesN", { count: botStats.totalTrades })
+                      : undefined
+                }
+              />
             </KpiGrid>
             <PositionsTable positions={positions} onClose={desk.closePosition} />
           </>

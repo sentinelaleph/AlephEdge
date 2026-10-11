@@ -7,7 +7,13 @@ use std::sync::{Mutex, OnceLock};
 
 use serde::{Deserialize, Serialize};
 
-const URL: &str = "https://ribqa.com/downloads/aleph-edge/presets-live.json";
+/// Where the server publishes the track, on the deployment this build talks to
+/// (`ALEPH_EDGE_API_BASE`, ribqa.com by default).
+const PATH: &str = "/downloads/aleph-edge/presets-live.json";
+
+fn url_on(base: &str) -> String {
+    format!("{}{PATH}", base.trim_end_matches('/'))
+}
 const CACHE_MS: u64 = 10 * 60_000;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -119,7 +125,7 @@ pub async fn presets_live() -> Result<PresetsLive, String> {
         }
     }
     let body = client()
-        .get(URL)
+        .get(url_on(&super::endpoints::api_base()))
         .send()
         .await
         .map_err(|_| "liveUnavailable".to_string())?
@@ -133,6 +139,15 @@ pub async fn presets_live() -> Result<PresetsLive, String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn url_follows_the_api_base() {
+        assert_eq!(
+            super::url_on(super::super::endpoints::DEFAULT_API_BASE),
+            "https://ribqa.com/downloads/aleph-edge/presets-live.json"
+        );
+        assert_eq!(super::url_on("http://localhost:8080/"), "http://localhost:8080/downloads/aleph-edge/presets-live.json");
+    }
+
     use super::parse;
 
     #[test]

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { navigate } from "@/app/router/router";
@@ -6,8 +6,9 @@ import { withQuery } from "@/app/router/routes";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { StatusChip } from "@/components/ui/StatusChip/StatusChip";
 import { localeForLanguage } from "@/i18n";
-import type { Preset } from "@/lib/ipc/strategy/strategy";
-import { presetName } from "@/lib/strategyText";
+import { errorMessage } from "@/lib/ipc/bridge";
+import { strategyPresets, type Preset } from "@/lib/ipc/strategy/strategy";
+import { presetName, strategyErrorText } from "@/lib/strategyText";
 
 /** "1 Nov" / "1 Kas" from an ISO date; "October 2026" from "2026-10". */
 export function shortDate(iso: string, locale: string): string {
@@ -17,6 +18,31 @@ export function shortDate(iso: string, locale: string): string {
 export function monthName(ym: string, locale: string): string {
   const d = new Date(`${ym}-01T00:00:00Z`);
   return Number.isNaN(d.getTime()) ? ym : d.toLocaleDateString(locale, { month: "long", year: "numeric", timeZone: "UTC" });
+}
+
+/** The engine's templates (strategy_presets); null while loading. */
+export function usePresets() {
+  const { t } = useTranslation();
+  const [presets, setPresets] = useState<Preset[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    strategyPresets()
+      .then((p) => alive && setPresets(p))
+      .catch((e: unknown) => alive && setError(strategyErrorText(t, errorMessage(e, "storeReadFailed"))));
+    return () => {
+      alive = false;
+    };
+  }, [t]);
+  return { presets, error };
+}
+
+/** Where a template stands: passed, passed to a date and waiting for a re-read, or failed. */
+export type VerdictBucket = "passed" | "review" | "failed";
+
+export function verdictBucket(p: Preset): VerdictBucket {
+  if (p.verdict !== "presetReady") return "failed";
+  return p.history.recheck ? "review" : "passed";
 }
 
 export function testSplit(p: Preset) {

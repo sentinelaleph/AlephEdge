@@ -722,7 +722,18 @@
       "paperOnly": "Simüle: canlı fiyatlarla simüle dolumlar, ücretler dahil"
     },
     "presetsLink": "Bu türün hazır ayarları",
-    "create": "Oluştur"
+    "create": "Oluştur",
+    "how": {
+      "signal": "Filtrelerinizden geçen her Sentinel sinyalinde pozisyon açar, sinyalin hedeflerinde ya da stopunda çıkar.",
+      "dca": "Bir ana emirle açar, fiyat aleyhine gittikçe güvenlik emirleri ekler ve tüm pozisyonu ortalama fiyat üzerinden tek bir kâr al ile kapatır.",
+      "grid": "Bir fiyat aralığında sabit seviyelere alış ve satış emirleri dizer, seviyeler arasındaki hareketlerde işlem yapar."
+    },
+    "yours": "Botlarınız",
+    "yoursNone": "Henüz yok",
+    "yoursValue": "{{total}} · çalışan {{running}}",
+    "templates": "Hazır ayarlar",
+    "templatesNone": "Bu sürümde yok",
+    "templatesValue": "Geçen {{passed}} / {{total}}"
   },
   "botDetail": {
     "notFound": "Bot bulunamadı",
@@ -737,7 +748,6 @@
       "settings": "Ayarlar",
       "log": "Kayıt"
     },
-    "closedLoaded": "Kapanan işlemler (yüklenen)",
     "loadedWindow": "Masanın son {{count}} işleminden",
     "noTrades": "Yüklenen aralıkta bu botun kapanan işlemi yok.",
     "noOrders": "Bekleyen emir yok.",
@@ -747,7 +757,10 @@
     },
     "closeLong": "Sat (long kapat)",
     "closeShort": "Al (short kapat)",
-    "logScope": "Masa genelindeki atlama notları (tüm sinyal botları), en yeni önce."
+    "logScope": "Masa genelindeki atlama notları (tüm sinyal botları), en yeni önce.",
+    "record": "{{wins}} kazanç · {{losses}} kayıp",
+    "recordNote": "Kazanma oranı %{{rate}} · işlem {{trades}}",
+    "tradesN": "İşlem: {{count}}"
   },
   "dashboard": {
     "scope": "Kapsam",
@@ -867,6 +880,28 @@
         "stopPassed": "Fiyat stopu çoktan geçti",
         "targetPassedBeforeEntry": "Fiyat girişten önce hedefi ({{detail}}) geçti"
       }
+    },
+    "col": {
+      "toTp1": "TP1'e",
+      "toTp1Tip": "Girişten ilk hedefe hareket, girişin %'si.",
+      "toSl": "Stopa",
+      "toSlTip": "Girişten stopa hareket, girişin %'si.",
+      "rrTip": "Yayınlanan girişteki ödül/risk: hedefe hareketin stopa harekete oranı.",
+      "held": "Botlarda",
+      "heldTip": "Şu an bu sinyalde pozisyonu olan botlarınız."
+    },
+    "ladder": {
+      "label": "Sinyalin stopu, girişi ve hedefleri tek ölçekte, her seviyenin girişten hareketiyle"
+    },
+    "summary": {
+      "label": "Sinyal akışına genel bakış",
+      "active": "Şu an aktif",
+      "activeNote": "Long {{long}} · short {{short}}",
+      "expiredNote": "Süresi dolan: {{count}}",
+      "held": "Botlarınızda",
+      "heldNote": "Açık pozisyon: {{count}}",
+      "rr": "Medyan R:R, aktif",
+      "rrNote": "Yayınlanan girişte"
     }
   },
   "backtest": {
@@ -2031,7 +2066,6 @@
       "live": {
         "col": "{{since}} tarihinden beri gölge",
         "tip": "Başlangıçtan beri toplam getiri, aylık değil (Test sütunu bot-ay başınadır). Şablonlar, geçmiş rakamları üreten simülatörle sunucuda ileriye doğru çalışır; içinde para yoktur. Açık döngüler son fiyattan değerlenir. 30 gün dolmadan sıralanmaz.",
-        "collecting": "Veri birikiyor {{days}}/{{min}} g",
         "unavailable": "Gölge kayıt okunamadı: ribqa.com yanıt vermedi.",
         "line": "Gölge kayıt (simülasyon) {{since}} tarihinden beri · {{min}} günün {{days}}. günü, henüz sıralanmıyor · güncellendi {{updated}}",
         "lineReady": "Gölge kayıt (simülasyon) {{since}} tarihinden beri · {{days}} gün · güncellendi {{updated}}",
@@ -2042,10 +2076,24 @@
         "bots": "Bot",
         "cycles": "Döngü",
         "open": "{{count}} açık",
-        "method": "Geçmiş testle aynı simülatör ve ayarlar: her ay parite başına yeni bir 1000 USDT bot, 1x, aylık coin listeleri; ücret, kayma ve funding dahil; açık döngüler son kapanıştan değerlenir."
+        "method": "Geçmiş testle aynı simülatör ve ayarlar: her ay parite başına yeni bir 1000 USDT bot, 1x, aylık coin listeleri; ücret, kayma ve funding dahil; açık döngüler son kapanıştan değerlenir.",
+        "collectingShort": "{{days}}/{{min}} g"
       },
       "checksToWindow": "Dört kontrol {{date}} tarihine kadarki test penceresinde geçti",
-      "recheckBanner": "Dört kontrol {{windowEnd}} tarihine kadarki test penceresinde geçti. {{month}} şimdiye kadar ({{days}} gün) bot-ay başına ortalama %{{mean}}, işlemler hâlâ açık; bu yüzden her test ayı henüz pozitif değil. Ay tamamlanınca, {{nextRead}} tarihinde kontroller yeniden okunur. Garanti değildir."
+      "recheckBanner": "Dört kontrol {{windowEnd}} tarihine kadarki test penceresinde geçti. {{month}} şimdiye kadar ({{days}} gün) bot-ay başına ortalama %{{mean}}, işlemler hâlâ açık; bu yüzden her test ayı henüz pozitif değil. Ay tamamlanınca, {{nextRead}} tarihinde kontroller yeniden okunur. Garanti değildir.",
+      "summary": {
+        "label": "Hazır ayarlara genel bakış",
+        "passed": "Kontrolleri geçti",
+        "passedNote": "Test penceresindeki tüm kontroller",
+        "review": "İncelemede",
+        "reviewNote": "Sonraki okuma {{date}}",
+        "failed": "Geçemedi",
+        "failedNote": "Geçemediği kontrollerle listelenir",
+        "ghostDay": "Gün {{days}} / {{min}}",
+        "ghostDays": "{{days}} gün",
+        "ghostNote": "Başlangıç {{since}}, son {{updated}}",
+        "ghostOff": "ribqa.com yanıt vermedi"
+      }
     },
     "notes": {
       "portfolioDdTripped": "Portföy kesicisi tetiklendi: kapsamındaki botların döngüleri kapandı. Ertesi UTC gününden yeniden kurun.",
@@ -2536,5 +2584,15 @@
       "longInDown": "BTC 50 günlük düşüş trendinde ({{days}} gündür) ve bu bot long alım yapıyor.",
       "shortInUp": "BTC 50 günlük yükseliş trendinde ({{days}} gündür) ve bu bot short satış yapıyor."
     }
+  },
+  "botsSummary": {
+    "label": "Botlarınıza genel bakış",
+    "running": "Çalışan",
+    "runningOf": "{{running}} / {{total}}",
+    "positions": "Açık pozisyon: {{count}}",
+    "positionsCycles": "Pozisyon {{positions}} · döngü {{cycles}}",
+    "cycles": "Açık döngü: {{count}}",
+    "realizedNote": "Ücretler sonrası, tüm zamanlar",
+    "totalNote": "Gerçekleşen artı açık"
   }
 }

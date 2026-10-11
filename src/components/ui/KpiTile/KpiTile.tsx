@@ -31,7 +31,12 @@ export function KpiTile({ label, value, tone, note, error }: KpiTileProps) {
           {value}
         </span>
       )}
-      {note ? <span className="ae-kpi__note">{note}</span> : null}
+      {note ? (
+        // The note is cut to one line in narrow tiles: the full text on hover.
+        <span className="ae-kpi__note" title={typeof note === "string" ? note : undefined}>
+          {note}
+        </span>
+      ) : null}
     </div>
   );
 }

@@ -236,7 +236,7 @@ pub fn manual_fill(
 
 /// Below the exchange's minimum order the trade cannot exist, on paper either
 /// (see EXCHANGE_MIN_ORDER_USDT). Called by the app's entry loop only, not by
-/// `plan_entry`: the VDS paper runner compiles this file and its
+/// `plan_entry`: the server-side paper runner compiles this file and its
 /// pre-registered arms must keep their sizing rules.
 pub fn exchange_minimum_gate(plan: &PlannedEntry) -> Result<(), Skip> {
     if plan.size.notional < crate::bot::model::EXCHANGE_MIN_ORDER_USDT {

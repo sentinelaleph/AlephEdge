@@ -722,7 +722,18 @@
       "paperOnly": "Simulasi: eksekusi simulasi di harga live, termasuk biaya"
     },
     "presetsLink": "Preset untuk jenis ini",
-    "create": "Buat"
+    "create": "Buat",
+    "how": {
+      "signal": "Membuka posisi pada setiap sinyal Sentinel yang lolos filter Anda dan keluar di target atau stop sinyal.",
+      "dca": "Dibuka dengan order dasar, menambah safety order saat harga bergerak berlawanan, dan menutup seluruh posisi di satu take profit dari harga rata-rata.",
+      "grid": "Memasang order beli dan jual di level tetap dalam rentang harga dan memperdagangkan pergerakan di antaranya."
+    },
+    "yours": "Bot Anda",
+    "yoursNone": "Belum ada",
+    "yoursValue": "{{total}} · berjalan {{running}}",
+    "templates": "Preset",
+    "templatesNone": "Tidak ada di versi ini",
+    "templatesValue": "Lolos {{passed}} dari {{total}}"
   },
   "botDetail": {
     "notFound": "Bot tidak ditemukan",
@@ -737,7 +748,6 @@
       "settings": "Pengaturan",
       "log": "Log"
     },
-    "closedLoaded": "Trade ditutup (dimuat)",
     "loadedWindow": "Dari {{count}} trade terakhir meja",
     "noTrades": "Tidak ada trade ditutup untuk bot ini dalam rentang yang dimuat.",
     "noOrders": "Tidak ada order aktif.",
@@ -747,7 +757,10 @@
     },
     "closeLong": "Jual (tutup long)",
     "closeShort": "Beli (tutup short)",
-    "logScope": "Catatan lewati seluruh meja (semua bot sinyal), terbaru dulu."
+    "logScope": "Catatan lewati seluruh meja (semua bot sinyal), terbaru dulu.",
+    "record": "{{wins}} menang · {{losses}} kalah",
+    "recordNote": "Menang {{rate}}% · trade {{trades}}",
+    "tradesN": "Trade: {{count}}"
   },
   "dashboard": {
     "scope": "Cakupan",
@@ -867,6 +880,28 @@
         "stopPassed": "Harga sudah melewati stop",
         "targetPassedBeforeEntry": "Harga sudah melewati target ({{detail}}) sebelum entry"
       }
+    },
+    "col": {
+      "toTp1": "Ke TP1",
+      "toTp1Tip": "Pergerakan dari entri ke target pertama, % dari entri.",
+      "toSl": "Ke stop",
+      "toSlTip": "Pergerakan dari entri ke stop, % dari entri.",
+      "rrTip": "Imbalan terhadap risiko di entri yang dipublikasikan: pergerakan ke target dibagi pergerakan ke stop.",
+      "held": "Di bot",
+      "heldTip": "Bot Anda yang sedang memegang posisi pada sinyal ini."
+    },
+    "ladder": {
+      "label": "Stop, entri, dan target sinyal dalam satu skala, dengan pergerakan tiap level dari entri"
+    },
+    "summary": {
+      "label": "Feed sinyal sekilas",
+      "active": "Aktif sekarang",
+      "activeNote": "Long {{long}} · short {{short}}",
+      "expiredNote": "Kedaluwarsa: {{count}}",
+      "held": "Dipegang bot Anda",
+      "heldNote": "Posisi terbuka: {{count}}",
+      "rr": "R:R median, aktif",
+      "rrNote": "Di entri yang dipublikasikan"
     }
   },
   "backtest": {
@@ -2031,7 +2066,6 @@
       "live": {
         "col": "Bayangan sejak {{since}}",
         "tip": "Imbal hasil total sejak awal, bukan per bulan (kolom Uji per bot-bulan). Template berjalan maju di server dengan simulator angka historis; tidak ada uang yang terlibat. Siklus terbuka dinilai pada harga terakhir. Tidak diperingkat sebelum 30 hari.",
-        "collecting": "Mengumpulkan {{days}}/{{min}} h",
         "unavailable": "Catatan bayangan tidak tersedia: ribqa.com tidak menjawab.",
         "line": "Catatan bayangan (simulasi) sejak {{since}} · hari {{days}} dari {{min}}, belum diperingkat · diperbarui {{updated}}",
         "lineReady": "Catatan bayangan (simulasi) sejak {{since}} · {{days}} hari · diperbarui {{updated}}",
@@ -2042,10 +2076,24 @@
         "bots": "Bot",
         "cycles": "Siklus",
         "open": "{{count}} terbuka",
-        "method": "Simulator dan parameter sama dengan uji historis: bot baru 1000 USDT per pasangan setiap bulan, 1x, daftar koin bulanan, biaya, slippage dan funding termasuk; siklus terbuka dinilai pada penutupan terakhir."
+        "method": "Simulator dan parameter sama dengan uji historis: bot baru 1000 USDT per pasangan setiap bulan, 1x, daftar koin bulanan, biaya, slippage dan funding termasuk; siklus terbuka dinilai pada penutupan terakhir.",
+        "collectingShort": "{{days}}/{{min}} hr"
       },
       "checksToWindow": "Keempat pemeriksaan lulus pada jendela uji hingga {{date}}",
-      "recheckBanner": "Lulus keempat pemeriksaan pada jendela uji hingga {{windowEnd}}. Di {{month}} sejauh ini ({{days}} hari) rata-ratanya {{mean}}% per bot-bulan dengan deal masih terbuka, jadi belum semua bulan uji positif. Pemeriksaan dibaca ulang pada {{nextRead}}, saat bulan itu selesai. Bukan jaminan."
+      "recheckBanner": "Lulus keempat pemeriksaan pada jendela uji hingga {{windowEnd}}. Di {{month}} sejauh ini ({{days}} hari) rata-ratanya {{mean}}% per bot-bulan dengan deal masih terbuka, jadi belum semua bulan uji positif. Pemeriksaan dibaca ulang pada {{nextRead}}, saat bulan itu selesai. Bukan jaminan.",
+      "summary": {
+        "label": "Preset sekilas",
+        "passed": "Lolos pemeriksaan",
+        "passedNote": "Semua pemeriksaan di jendela uji",
+        "review": "Sedang ditinjau",
+        "reviewNote": "Dibaca ulang {{date}}",
+        "failed": "Tidak lolos",
+        "failedNote": "Dengan pemeriksaan yang gagal",
+        "ghostDay": "Hari {{days}} / {{min}}",
+        "ghostDays": "{{days}} hari",
+        "ghostNote": "Sejak {{since}}, terakhir {{updated}}",
+        "ghostOff": "ribqa.com tidak menjawab"
+      }
     },
     "notes": {
       "portfolioDdTripped": "Pemutus portofolio terpicu: siklus bot yang tercakup ditutup. Aktifkan ulang mulai hari UTC berikutnya.",
@@ -2536,5 +2584,15 @@
       "longInDown": "BTC dalam tren turun 50 hari ({{days}} hari) dan bot ini membeli long.",
       "shortInUp": "BTC dalam tren naik 50 hari ({{days}} hari) dan bot ini menjual short."
     }
+  },
+  "botsSummary": {
+    "label": "Bot Anda sekilas",
+    "running": "Berjalan",
+    "runningOf": "{{running}} / {{total}}",
+    "positions": "Posisi terbuka: {{count}}",
+    "positionsCycles": "Posisi {{positions}} · siklus {{cycles}}",
+    "cycles": "Siklus terbuka: {{count}}",
+    "realizedNote": "Setelah biaya, sepanjang waktu",
+    "totalNote": "Terealisasi ditambah terbuka"
   }
 }

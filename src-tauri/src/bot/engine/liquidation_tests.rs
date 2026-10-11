@@ -172,7 +172,7 @@ fn spot_and_one_x_longs_have_no_liquidation() {
 // 9 Oct 2026: a 100 USDT balance at Cautious caps a position at 2 USDT. Binance
 // refuses orders under ~5 USDT, so the app's paper book refuses them too
 // instead of filling trades the exchange never would. plan_entry itself keeps
-// planning them: the VDS paper runner shares it and its arms must not shift.
+// planning them: the server-side paper runner shares it and its arms must not shift.
 #[test]
 fn entries_below_the_exchange_minimum_are_refused_on_paper_too() {
     use super::entry_rules::exchange_minimum_gate;

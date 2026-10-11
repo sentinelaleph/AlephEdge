@@ -722,7 +722,18 @@
       "paperOnly": "Mô phỏng: khớp lệnh mô phỏng theo giá trực tiếp, đã tính phí"
     },
     "presetsLink": "Cấu hình mẫu cho loại này",
-    "create": "Tạo"
+    "create": "Tạo",
+    "how": {
+      "signal": "Mở vị thế với mỗi tín hiệu Sentinel qua bộ lọc của bạn và thoát tại mục tiêu hoặc stop của tín hiệu.",
+      "dca": "Mở bằng lệnh cơ sở, thêm lệnh an toàn khi giá đi ngược, và đóng toàn bộ vị thế tại một mức chốt lời tính trên giá trung bình.",
+      "grid": "Đặt lệnh mua và bán tại các mức cố định trong một khoảng giá và giao dịch các biến động giữa chúng."
+    },
+    "yours": "Bot của bạn",
+    "yoursNone": "Chưa có",
+    "yoursValue": "{{total}} · đang chạy {{running}}",
+    "templates": "Cấu hình mẫu",
+    "templatesNone": "Bản này không có",
+    "templatesValue": "Đạt {{passed}}/{{total}}"
   },
   "botDetail": {
     "notFound": "Không tìm thấy bot",
@@ -737,7 +748,6 @@
       "settings": "Cài đặt",
       "log": "Nhật ký"
     },
-    "closedLoaded": "Giao dịch đã đóng (đã tải)",
     "loadedWindow": "Từ {{count}} giao dịch gần nhất của bàn",
     "noTrades": "Bot này không có giao dịch đã đóng trong khoảng đã tải.",
     "noOrders": "Không có lệnh đang chờ.",
@@ -747,7 +757,10 @@
     },
     "closeLong": "Bán (đóng long)",
     "closeShort": "Mua (đóng short)",
-    "logScope": "Ghi chú bỏ qua của cả bàn (tất cả bot tín hiệu), mới nhất trước."
+    "logScope": "Ghi chú bỏ qua của cả bàn (tất cả bot tín hiệu), mới nhất trước.",
+    "record": "{{wins}} thắng · {{losses}} thua",
+    "recordNote": "Thắng {{rate}}% · giao dịch {{trades}}",
+    "tradesN": "Giao dịch: {{count}}"
   },
   "dashboard": {
     "scope": "Phạm vi",
@@ -867,6 +880,28 @@
         "stopPassed": "Giá đã vượt qua stop",
         "targetPassedBeforeEntry": "Giá đã vượt mục tiêu ({{detail}}) trước khi vào lệnh"
       }
+    },
+    "col": {
+      "toTp1": "Đến TP1",
+      "toTp1Tip": "Biến động từ điểm vào đến mục tiêu đầu tiên, % theo giá vào.",
+      "toSl": "Đến stop",
+      "toSlTip": "Biến động từ điểm vào đến stop, % theo giá vào.",
+      "rrTip": "Lợi nhuận trên rủi ro tại điểm vào đã công bố: biến động đến mục tiêu chia cho biến động đến stop.",
+      "held": "Trong bot",
+      "heldTip": "Các bot của bạn đang giữ vị thế theo tín hiệu này."
+    },
+    "ladder": {
+      "label": "Stop, điểm vào và các mục tiêu của tín hiệu trên một thang, kèm biến động của từng mức so với điểm vào"
+    },
+    "summary": {
+      "label": "Tổng quan luồng tín hiệu",
+      "active": "Đang hoạt động",
+      "activeNote": "Long {{long}} · short {{short}}",
+      "expiredNote": "Hết hạn: {{count}}",
+      "held": "Bot của bạn đang giữ",
+      "heldNote": "Vị thế mở: {{count}}",
+      "rr": "R:R trung vị, đang hoạt động",
+      "rrNote": "Tại điểm vào đã công bố"
     }
   },
   "backtest": {
@@ -2031,7 +2066,6 @@
       "live": {
         "col": "Bóng từ {{since}}",
         "tip": "Tổng lợi nhuận từ lúc bắt đầu, không phải mỗi tháng (cột Kiểm thử tính theo bot-tháng). Các mẫu chạy tiến trên máy chủ bằng trình mô phỏng tạo ra số liệu lịch sử; không có tiền thật. Chu kỳ mở định giá theo giá cuối. Không xếp hạng trước 30 ngày.",
-        "collecting": "Đang thu thập {{days}}/{{min}} ngày",
         "unavailable": "Không có bản ghi bóng: ribqa.com không phản hồi.",
         "line": "Bản ghi bóng (mô phỏng) từ {{since}} · ngày {{days}}/{{min}}, chưa xếp hạng · cập nhật {{updated}}",
         "lineReady": "Bản ghi bóng (mô phỏng) từ {{since}} · {{days}} ngày · cập nhật {{updated}}",
@@ -2042,10 +2076,24 @@
         "bots": "Bot",
         "cycles": "Chu kỳ",
         "open": "{{count}} đang mở",
-        "method": "Cùng trình mô phỏng và tham số với bài kiểm tra lịch sử: mỗi tháng một bot mới 1000 USDT cho mỗi cặp, 1x, danh sách coin hàng tháng, đã tính phí, trượt giá và funding; chu kỳ mở theo giá đóng cửa cuối."
+        "method": "Cùng trình mô phỏng và tham số với bài kiểm tra lịch sử: mỗi tháng một bot mới 1000 USDT cho mỗi cặp, 1x, danh sách coin hàng tháng, đã tính phí, trượt giá và funding; chu kỳ mở theo giá đóng cửa cuối.",
+        "collectingShort": "{{days}}/{{min}} ngày"
       },
       "checksToWindow": "Cả bốn kiểm tra đạt trên cửa sổ kiểm thử đến {{date}}",
-      "recheckBanner": "Đạt cả bốn kiểm tra trên cửa sổ kiểm thử đến {{windowEnd}}. Trong {{month}} đến nay ({{days}} ngày) trung bình là {{mean}}% mỗi bot-tháng với các deal vẫn mở, nên chưa phải mọi tháng kiểm thử đều dương. Các kiểm tra được đọc lại vào {{nextRead}}, khi tháng kết thúc. Không phải là bảo đảm."
+      "recheckBanner": "Đạt cả bốn kiểm tra trên cửa sổ kiểm thử đến {{windowEnd}}. Trong {{month}} đến nay ({{days}} ngày) trung bình là {{mean}}% mỗi bot-tháng với các deal vẫn mở, nên chưa phải mọi tháng kiểm thử đều dương. Các kiểm tra được đọc lại vào {{nextRead}}, khi tháng kết thúc. Không phải là bảo đảm.",
+      "summary": {
+        "label": "Tổng quan cấu hình mẫu",
+        "passed": "Đã qua kiểm tra",
+        "passedNote": "Mọi kiểm tra trên cửa sổ kiểm thử",
+        "review": "Đang xem xét",
+        "reviewNote": "Đọc lại {{date}}",
+        "failed": "Không đạt",
+        "failedNote": "Kèm các kiểm tra không đạt",
+        "ghostDay": "Ngày {{days}} / {{min}}",
+        "ghostDays": "{{days}} ngày",
+        "ghostNote": "Từ {{since}}, cập nhật {{updated}}",
+        "ghostOff": "ribqa.com không phản hồi"
+      }
     },
     "notes": {
       "portfolioDdTripped": "Ngắt danh mục đã kích hoạt: chu kỳ của các bot được bao gồm đã đóng. Bật lại từ ngày UTC kế tiếp.",
@@ -2536,5 +2584,15 @@
       "longInDown": "BTC đang trong xu hướng giảm 50 ngày ({{days}} ngày) và bot này mua long.",
       "shortInUp": "BTC đang trong xu hướng tăng 50 ngày ({{days}} ngày) và bot này bán short."
     }
+  },
+  "botsSummary": {
+    "label": "Tổng quan bot của bạn",
+    "running": "Đang chạy",
+    "runningOf": "{{running}} / {{total}}",
+    "positions": "Vị thế mở: {{count}}",
+    "positionsCycles": "Vị thế {{positions}} · chu kỳ {{cycles}}",
+    "cycles": "Chu kỳ mở: {{count}}",
+    "realizedNote": "Sau phí, toàn thời gian",
+    "totalNote": "Đã chốt cộng đang mở"
   }
 }

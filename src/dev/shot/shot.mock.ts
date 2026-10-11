@@ -135,7 +135,7 @@ function position(p: Partial<OpenPosition> & Pick<OpenPosition, "signalId" | "sy
 
 export const SAMPLE_POSITIONS: OpenPosition[] = [
   position({
-    signalId: "sample-1",
+    signalId: "s3",
     symbol: "SOLUSDT",
     direction: "long",
     entry: 142.35,
@@ -149,7 +149,7 @@ export const SAMPLE_POSITIONS: OpenPosition[] = [
     partialPrice: 151.2,
   }),
   position({
-    signalId: "sample-2",
+    signalId: "s2",
     symbol: "LINKUSDT",
     direction: "short",
     entry: 14.82,
@@ -161,7 +161,7 @@ export const SAMPLE_POSITIONS: OpenPosition[] = [
     horizonMs: now + 63 * HOUR,
   }),
   position({
-    signalId: "sample-3",
+    signalId: "s1",
     symbol: "ETHUSDT",
     direction: "long",
     entry: 2461.5,

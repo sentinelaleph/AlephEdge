@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { BotsSummary } from "./BotsSummary";
 import { useDeskContext } from "@/app/DeskProvider";
 import { Link, navigate, useRouter } from "@/app/router/router";
 import { withQuery } from "@/app/router/routes";
@@ -198,6 +199,7 @@ export function SignalBotsPage() {
           {t("bots.btcBreak")}
         </p>
       ) : null}
+      <BotsSummary scope="signal" />
       {/* The risk level or balance changed under a running bot: its capital
           is now above the cap and every signal is skipped. One line per bot,
           not one skip per signal. */}

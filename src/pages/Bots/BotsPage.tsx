@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { BotsSummary } from "./BotsSummary";
 import { useDeskContext } from "@/app/DeskProvider";
 import { Link, navigate, useRouter } from "@/app/router/router";
 import { withQuery } from "@/app/router/routes";
@@ -250,6 +251,7 @@ export function BotsPage() {
           {desk.error}
         </p>
       ) : null}
+      <BotsSummary scope="all" />
       {!desk.loaded ? (
         <SkeletonRows rows={6} />
       ) : rows.length === 0 && strategyRows.length === 0 ? (

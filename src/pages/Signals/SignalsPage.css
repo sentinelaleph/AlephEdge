@@ -13,3 +13,88 @@
   align-self: flex-start;
   margin-bottom: var(--space-2);
 }
+
+/* Level ladder: stop (left) to the furthest target (right) on one scale. */
+.ae-ladder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.ae-ladder__track {
+  position: relative;
+  height: 14px;
+}
+.ae-ladder__risk,
+.ae-ladder__reward {
+  position: absolute;
+  top: 5px;
+  height: 4px;
+}
+.ae-ladder__risk {
+  border-radius: 2px 0 0 2px;
+  background: var(--pnl-down);
+  opacity: 0.35;
+}
+.ae-ladder__reward {
+  border-radius: 0 2px 2px 0;
+  background: var(--pnl-up);
+  opacity: 0.35;
+}
+.ae-ladder__tick {
+  position: absolute;
+  top: 1px;
+  width: 2px;
+  height: 12px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--pnl-up);
+}
+.ae-ladder__tick[data-kind="sl"] {
+  background: var(--pnl-down);
+}
+.ae-ladder__tick[data-kind="entry"] {
+  background: var(--text);
+}
+.ae-ladder__levels {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-xs);
+}
+.ae-ladder__levels li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+.ae-ladder__name {
+  color: var(--text-muted);
+}
+.ae-ladder__levels li[data-kind="entry"] .ae-ladder__name,
+.ae-ladder__levels li[data-kind="entry"] .ae-ladder__price {
+  color: var(--text);
+  font-weight: 600;
+}
+.ae-ladder__price {
+  font-family: var(--font-mono);
+  text-align: right;
+}
+.ae-ladder__pct {
+  min-width: 64px;
+  font-family: var(--font-mono);
+  text-align: right;
+  color: var(--text-subtle);
+}
+.ae-ladder__pct[data-tone="up"] {
+  color: var(--pnl-up);
+}
+.ae-ladder__pct[data-tone="down"] {
+  color: var(--pnl-down);
+}
+
+.ae-sigheld {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}

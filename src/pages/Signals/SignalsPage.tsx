@@ -15,10 +15,14 @@ import { FactList, Panel } from "@/components/ui/Panel/Panel";
 import { StatusChip } from "@/components/ui/StatusChip/StatusChip";
 import { Tooltip } from "@/components/ui/Tooltip/Tooltip";
 import { localeForLanguage } from "@/i18n";
-import { formatAge, formatNumber, formatPrice, formatTableTime, NO_VALUE } from "@/lib/format";
+import { KpiGrid } from "@/components/ui/KpiGrid/KpiGrid";
+import { KpiTile } from "@/components/ui/KpiTile/KpiTile";
+import { formatAge, formatNumber, formatPrice, formatSignedPercent, formatTableTime, NO_VALUE } from "@/lib/format";
+import { medianRr, movePct } from "@/lib/signalLevels";
 import type { Signal } from "@/lib/ipc/signal/signal";
 import { SkeletonRows } from "@/pages/Bots/SkeletonRows";
 import { ExecuteDialog } from "./ExecuteDialog";
+import { SignalLadder } from "./SignalLadder";
 import "./SignalsPage.css";
 import { streamAlertSeverity, streamErrorText, streamLabelKey } from "@/lib/ipc/signal/streamStatus";
 
@@ -92,11 +96,18 @@ export function SignalsPage() {
   });
   const selected = all.find((s) => s.id === f.id) ?? null;
   const last24 = all.filter((s) => now - new Date(s.created_at).getTime() <= AGE_WINDOWS["24h"]);
+  const active = all.filter((s) => statusOf(s, now) === "active");
+  // Which bots hold each signal now (open positions carry the signal id).
+  const held = new Map<string, string[]>();
+  for (const p of desk.status.openPositions) held.set(p.signalId, [...(held.get(p.signalId) ?? []), p.botKind]);
+  const heldSignals = all.filter((s) => held.has(s.id)).length;
+  const rrMid = medianRr(active);
 
   const columns: DataColumn<Signal>[] = [
     {
       id: "time",
       header: t("table.time"),
+      priority: 2,
       cell: (s) => <span className="tabular">{formatTableTime(s.created_at, locale, now)}</span>,
     },
     {
@@ -110,7 +121,7 @@ export function SignalsPage() {
       header: "TF",
       headerTip: t("filters.timeframe"),
       detailLabel: t("filters.timeframe"),
-      priority: 2,
+      priority: 3,
       cell: (s) => s.timeframe ?? NO_VALUE,
     },
     {
@@ -124,11 +135,29 @@ export function SignalsPage() {
         id: `tp${i + 1}`,
         header: `TP${i + 1}`,
         numeric: true,
-        priority: i === 0 ? 1 : i === 1 ? 2 : 3,
+        // TP1 always; TP2 and TP3 fold first (the % columns carry the distances).
+        priority: i === 0 ? 1 : 3,
         cell: (s) => (s.tp[i] != null ? formatPrice(s.tp[i], locale) : NO_VALUE),
       }),
     ),
     { id: "sl", header: t("table.sl"), numeric: true, cell: (s) => formatPrice(s.sl, locale) },
+    {
+      id: "toTp1",
+      header: t("signalsPage.col.toTp1"),
+      headerTip: t("signalsPage.col.toTp1Tip"),
+      numeric: true,
+      cell: (s) => (s.tp[0] != null ? formatSignedPercent(movePct(s, s.tp[0]), locale) : NO_VALUE),
+      tone: (s) => (s.tp[0] != null ? "up" : "muted"),
+    },
+    {
+      id: "toSl",
+      header: t("signalsPage.col.toSl"),
+      headerTip: t("signalsPage.col.toSlTip"),
+      numeric: true,
+      cell: (s) => formatSignedPercent(movePct(s, s.sl), locale),
+      tone: () => "down",
+    },
+    { id: "rr", header: "R:R", headerTip: t("signalsPage.col.rrTip"), numeric: true, priority: 3, cell: (s) => two(s.rr, locale) },
     {
       id: "evidence",
       header: t("signalsPage.evidence"),
@@ -161,6 +190,24 @@ export function SignalsPage() {
       cell: (s) => {
         const st = statusOf(s, now);
         return <StatusChip status={st === "active" ? "running" : "stopped"} label={t(`signalsPage.status.${st}`)} />;
+      },
+    },
+    {
+      id: "held",
+      header: t("signalsPage.col.held"),
+      headerTip: t("signalsPage.col.heldTip"),
+      keep: true,
+      cell: (s) => {
+        const kinds = held.get(s.id);
+        return kinds ? (
+          <span className="ae-sigheld">
+            {kinds.map((k) => (
+              <Chip key={k} tone="accent">
+                {t(`bots.kind.${k}`)}
+              </Chip>
+            ))}
+          </span>
+        ) : null;
       },
     },
     {
@@ -223,27 +270,15 @@ export function SignalsPage() {
   const right = (
     <>
       <StreamCard />
-      <Panel title={t("signalsPage.last24h")}>
-        <FactList
-          rows={[
-            { label: t("signalsPage.status.active"), value: last24.filter((s) => statusOf(s, now) === "active").length },
-            { label: t("signalsPage.status.expired"), value: last24.filter((s) => statusOf(s, now) === "expired").length },
-            { label: t("signalDesk.direction.long"), value: last24.filter((s) => s.direction === "long").length },
-            { label: t("signalDesk.direction.short"), value: last24.filter((s) => s.direction === "short").length },
-          ]}
-        />
-      </Panel>
       {selected ? (
         <>
           <Panel title={`${selected.symbol} ${selected.timeframe ?? ""}`} aside={<Chip tone={selected.direction === "long" ? "success" : "danger"}>{t(`signalDesk.direction.${selected.direction}`)}</Chip>}>
             <Button size="sm" className="ae-sigexec" onClick={() => setExecuting(selected)}>
               {t("signalsPage.execute.button")}
             </Button>
+            <SignalLadder signal={selected} />
             <FactList
               rows={[
-                { label: t("table.entry"), value: formatPrice(selected.entry, locale) },
-                ...selected.tp.map((tp, i) => ({ label: `TP${i + 1}`, value: formatPrice(tp, locale) })),
-                { label: t("table.sl"), value: formatPrice(selected.sl, locale) },
                 { label: "R:R", value: two(selected.rr, locale) },
                 {
                   label: t("signalsPage.evidence"),
@@ -312,6 +347,33 @@ export function SignalsPage() {
         <p className="ae-banner" data-tone="danger" role="alert">
           {streamErrorText(feed.health)}
         </p>
+      ) : null}
+      {feed.loaded && all.length > 0 ? (
+        <KpiGrid minTile={150} label={t("signalsPage.summary.label")}>
+          <KpiTile
+            label={t("signalsPage.summary.active")}
+            value={formatNumber(active.length, locale)}
+            note={t("signalsPage.summary.activeNote", {
+              long: active.filter((s) => s.direction === "long").length,
+              short: active.filter((s) => s.direction === "short").length,
+            })}
+          />
+          <KpiTile
+            label={t("signalsPage.last24h")}
+            value={formatNumber(last24.length, locale)}
+            note={t("signalsPage.summary.expiredNote", { count: last24.filter((s) => statusOf(s, now) === "expired").length })}
+          />
+          <KpiTile
+            label={t("signalsPage.summary.held")}
+            value={formatNumber(heldSignals, locale)}
+            note={t("signalsPage.summary.heldNote", { count: desk.status.openPositions.length })}
+          />
+          <KpiTile
+            label={t("signalsPage.summary.rr")}
+            value={rrMid === null ? NO_VALUE : two(rrMid, locale)}
+            note={t("signalsPage.summary.rrNote")}
+          />
+        </KpiGrid>
       ) : null}
       {!feed.loaded ? (
         <SkeletonRows rows={8} />
