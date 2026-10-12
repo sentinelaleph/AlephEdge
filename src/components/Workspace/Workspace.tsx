@@ -14,7 +14,7 @@ interface WorkspaceProps {
 }
 
 /**
- * The single-stage flow gate (PRD: Open → verify membership → unlock vault →
+ * The single-stage flow gate (Open → verify membership → unlock vault →
  * desk). Each guard fails safe: the vault surface is unreachable until
  * membership is active, and the desk (router, pages, bots) is unreachable until
  * the vault is unlocked. The gates never read the URL hash; a deep link is

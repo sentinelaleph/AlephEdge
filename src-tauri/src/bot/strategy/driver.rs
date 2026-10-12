@@ -539,8 +539,7 @@ pub(crate) mod tests {
         assert!(out.notes.iter().any(|n| n.0 == "ddStop"));
     }
 
-    // Owner's 4h backtest 3 Oct: a 25% drawdown stop closed a cycle at -29.4%
-    // of budget, because it was only checked at the bar close.
+    // A drawdown stop checked only at the bar close would overshoot its level.
     #[test]
     fn drawdown_stop_fills_at_its_level_inside_a_long_bar() {
         let mut bot = sample_bot();
@@ -563,8 +562,8 @@ pub(crate) mod tests {
         assert_eq!(bot.state, BotRunState::Stopped);
     }
 
-    // Audit 8 Oct: a down bar touching both the TP and the drawdown level
-    // booked the TP (+19.30) and re-armed; adverse first, the stop fills.
+    // A down bar touching both the TP and the drawdown level: adverse first,
+    // the stop fills (never the TP and a re-arm).
     #[test]
     fn drawdown_stop_wins_the_intrabar_tie_like_a_stop_loss() {
         let mk = |lev: u8, dd: f64, sl: Option<f64>| {

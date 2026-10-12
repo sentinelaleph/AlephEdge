@@ -1,7 +1,7 @@
-//! Open-position table. Positions used to live only in memory, so a restart
-//! orphaned every open paper position: it never closed and never reached the
-//! trade history. Rows are the position's JSON so management fields can grow
-//! without a migration per field (the bot model's serde defaults absorb it).
+//! Open-position table: every open position survives a restart, so it still
+//! closes and reaches the trade history. Rows are the position's JSON so
+//! management fields can grow without a migration per field (the bot model's
+//! serde defaults absorb it).
 
 use rusqlite::{params, Connection};
 

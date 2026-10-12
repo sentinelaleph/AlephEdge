@@ -1,11 +1,12 @@
-//! "Take this signal now" (owner, 10 Oct): the user opens one buffered
+//! "Take this signal now": the user opens one buffered
 //! signal on a signal bot by hand, from Execute on the Signals page.
 //!
 //! Paper only. The entry runs the loop's own pipeline (`entry::prepare_entry`
 //! in `EntryMode::Manual`): the bot's signal filters are skipped (the user
 //! decided), every risk check stays. The fill is the live price whenever it
 //! lies strictly between the stop and the bot's target, also after the
-//! signal's entry has passed (owner: Execute comes long after publication). A configured bot takes it whether it
+//! signal's entry has passed (Execute often comes long after publication). A
+//! configured bot takes it whether it
 //! runs or not; the engine loop is started so the position is managed.
 //! Desktop only: the paper runner never compiles this file.
 

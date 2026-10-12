@@ -3,8 +3,7 @@ import { modeKey } from "@/pages/Bots/BotNewPage";
 import { riskSections } from "@/pages/Risk/RiskPage";
 
 // The public build places no real orders: it must not advertise a LIVE
-// opt-in or audit a real-money setup it cannot have (audit 2026-10-08,
-// ux_global 4). A live build keeps both.
+// opt-in or audit a real-money setup it cannot have. A live build keeps both.
 describe("paper build surfaces", () => {
   it("the bot type cards say paper only, without a LIVE opt-in", () => {
     expect(modeKey(false)).toBe("botCreate.mode.paperOnly");

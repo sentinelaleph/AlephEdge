@@ -17,7 +17,7 @@ const stats = (over: Partial<PnlStats> = {}): PnlStats => ({
 
 describe("Dashboard money tiles", () => {
   it("a DCA-only desk shows its cycle losses, not 'No trades today'", () => {
-    // Testnet 8 Oct: Grid/DCA cycles lost 8.40 USDT net while the tile read "No trades today".
+    // Regression: cycles lost 8.40 USDT net while the tile read "No trades today".
     const m = deskMoney(stats(), { cycles: 2, netQuote: -8.4034, todayCycles: 2, todayQuote: -8.4034 });
     expect(m.anyResult).toBe(true);
     expect(m.hasCycles).toBe(true);

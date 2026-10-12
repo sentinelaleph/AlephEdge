@@ -47,8 +47,7 @@ describe("strategyErrorText", () => {
 });
 
 describe("cycleNetQuote", () => {
-  // Audit 8 Oct: the Cycles tab showed stored % x today's budget, so a +20
-  // USDT cycle read +10.00 after the budget was halved.
+  // Stored % x today's budget would misread a +20 USDT cycle after a budget change.
   it("is the row's own net money, whatever the budget is now", () => {
     expect(cycleNetQuote({ realizedQuote: 21, feesQuote: 0.8, fundingQuote: 0.2, closedAt: 1 })).toBeCloseTo(20, 12);
     expect(cycleNetQuote({ realizedQuote: 21, feesQuote: 0.8, fundingQuote: 0.2, closedAt: null })).toBeNull();
@@ -113,7 +112,7 @@ describe("isLiveView", () => {
 describe("run action label", () => {
   const fresh = { acceptingNewCycles: false, cyclesDone: 0, openCycle: null, runState: "stopped" as const };
   it("a bot that never ran says Start, not Resume", () => {
-    // New DCA / Grid bots are created stopped (audit 2026-10-08, ux_global 6).
+    // New DCA / Grid bots are created stopped.
     expect(neverStarted(fresh)).toBe(true);
     expect(runActionKey(fresh)).toBe("strategy.actions.startFirst");
   });

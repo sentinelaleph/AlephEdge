@@ -1,10 +1,10 @@
 //! Market trend panel (`market_trend`): BTC's slow trend, shown as
 //! information only. No bot reads it and nothing trades on it.
 //!
-//! Definition, as in the 8 Oct 2026 pre-registered test (trend50):
-//! daily BTCUSDT close vs its 50-day average; the confirmed state switches only
-//! after 2 consecutive closes on the other side. That test FAILED as a trading
-//! rule, so the app shows the state and its history and lets the user decide.
+//! Definition: daily BTCUSDT close vs its 50-day average; the confirmed state
+//! switches only after 2 consecutive closes on the other side. Tested as a
+//! trading rule it showed no edge, so the app shows the state and its history
+//! and lets the user decide.
 //!
 //! Source: Binance spot daily klines (public, keyless, production even in a
 //! testnet build: testnet prices are not the market).

@@ -23,9 +23,8 @@
 //!   one stop slot per position, OKX amends the algo. Nothing is cancelled
 //!   afterwards (on Bybit a cancel writes "0" into the same slot).
 //!
-//! Bitget had an order path here until 2026-10-09. Its keys were refused (no
-//! permission verifier) and it never ran a dry run, so the path was removed
-//! rather than kept as a module nothing could reach.
+//! Bitget has no order path: its keys are refused (no permission verifier)
+//! and it has no dry run, so no module for it is kept that nothing could reach.
 //!
 //! Errors map onto `BinanceKeyCheckError` so the engine's retry / refuse
 //! logic stays one code path: OrderNotFound → Rejected{-2013},
@@ -1036,7 +1035,7 @@ mod tests {
 
     #[test]
     fn okx_contracts_are_never_one_lot_short() {
-        // The audit's probes: a float division lands under a whole contract.
+        // A plain float division lands under a whole contract on these.
         assert_eq!(contracts_for(0.3, 0.1, 1.0), 3.0);
         assert_eq!(contracts_for(4.3, 0.1, 1.0), 43.0, "a size read from the account round-trips");
         assert_eq!(contracts_for(0.0003, 0.0001, 1.0), 3.0);

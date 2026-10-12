@@ -1,14 +1,14 @@
 /**
  * Motion presets — the single source of truth for animation feel.
  *
- * Grounded in Emil Kowalski's rules: custom easing curves (built-ins are too
- * weak), UI durations under 300ms, subtle springs (bounce 0.1–0.3) only where
- * an element should feel "alive". Durations mirror tokens.css so CSS and JS
- * motion stay in lockstep.
+ * Custom easing curves (the built-ins are too weak), UI durations under
+ * 300ms, subtle springs (bounce 0.1–0.3) only where an element should feel
+ * "alive". `EASE` and `DUR` equal the `--ease-*` / `--dur-*` tokens in
+ * tokens.css (motion.test.ts checks it), so CSS and JS motion stay in lockstep.
  */
 import type { Transition } from "framer-motion";
 
-/** Strong custom easings (match tokens.css). */
+/** Strong custom easings (`--ease-*` in tokens.css). */
 export const EASE = {
   out: [0.23, 1, 0.32, 1],
   inOut: [0.77, 0, 0.175, 1],
@@ -22,7 +22,7 @@ export const DUR = {
   panel: 0.26,
 } as const;
 
-/** Apple-style spring — easy to reason about (duration + bounce). */
+/** Springs set by duration + bounce, which is easy to reason about. */
 export const SPRING = {
   /** The sliding-indicator feel (theme toggle pill). Alive but disciplined. */
   toggle: { type: "spring", duration: 0.42, bounce: 0.22 } as Transition,

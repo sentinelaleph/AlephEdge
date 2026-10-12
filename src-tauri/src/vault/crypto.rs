@@ -87,8 +87,7 @@ mod tests {
 
     #[test]
     fn a_header_asking_for_four_gibibytes_is_refused_before_argon2_allocates() {
-        // The exact value from the pre-publication review: mCost is in KiB, so
-        // 4_000_000 is a ~4 GiB allocation on unlock.
+        // mCost is in KiB, so 4_000_000 is a ~4 GiB allocation on unlock.
         let tampered = KdfParams {
             m_cost: 4_000_000,
             ..KdfParams::default()

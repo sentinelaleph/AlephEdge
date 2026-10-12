@@ -1,12 +1,12 @@
-//! Telefon bağlantısı: masayı uzaktan kumandaya bağlayan katman.
+//! Phone link: the layer that connects the desk to the remote control.
 //!
-//! Protokolün ve karar mantığının tamamı `aleph-desk-link` crate'inde ve orada
-//! test edilmiş durumda. Burada yapılan tek şey **kablolama**: `DeskControl`
-//! arayüzünü Aleph Edge'in gerçek bot masasıyla doldurmak.
+//! The protocol and all of the decision logic live in the `aleph-desk-link`
+//! crate and are tested there. The only job here is **wiring**: implementing
+//! the `DeskControl` trait with Aleph Edge's real bot desk.
 //!
-//! Bu ayrım kasıtlı. Karar mantığı burada yazılsaydı, testleri bir Tauri
-//! uygulaması ayağa kaldırmadan koşturmak mümkün olmazdı ve pratikte hiç
-//! koşmazdı.
+//! The split is deliberate. Decision logic written here could not be tested
+//! without bringing up a Tauri app, and in practice those tests would never
+//! run.
 
 pub mod commands;
 pub mod health;
@@ -24,7 +24,7 @@ use crate::bot::{engine, BotManager};
 use crate::risk::RiskManager;
 use crate::store::StoreManager;
 
-/// Uzaktan komutları gerçek masaya uygulayan köprü.
+/// The bridge that applies remote commands to the real desk.
 pub struct DeskBridge {
     app: AppHandle,
 }
@@ -34,7 +34,7 @@ impl DeskBridge {
         Self { app }
     }
 
-    /// `BotSelector`'ı Aleph Edge'in bot türlerine çevirir.
+    /// Maps a `BotSelector` to Aleph Edge's bot kinds.
     fn kinds(sel: BotSelector) -> Vec<BotKind> {
         match sel {
             BotSelector::All => vec![BotKind::Futures, BotKind::Spot, BotKind::Pump],
@@ -44,7 +44,7 @@ impl DeskBridge {
         }
     }
 
-    /// `BotKind`'ı onaydaki tek bot seçicisine çevirir.
+    /// Maps a `BotKind` to the single-bot selector used in acknowledgements.
     fn selector(k: BotKind) -> BotSelector {
         match k {
             BotKind::Futures => BotSelector::Futures,
@@ -61,11 +61,11 @@ impl DeskBridge {
 }
 
 impl DeskControl for DeskBridge {
-    /// Yeni pozisyon açmayı durdurur.
+    /// Stops opening new positions.
     ///
-    /// `BotManager::stop` tam olarak bunu yapar: açık pozisyonlar yönetilmeye
-    /// devam eder, yalnızca YENİ girişler durur. Telefondaki "Durdur" düğmesi
-    /// buraya bağlıdır ve açık pozisyonlara dokunmaz.
+    /// `BotManager::stop` does exactly this: open positions stay managed and
+    /// only NEW entries stop. The phone's "Stop" button maps here and does not
+    /// touch open positions.
     async fn stop_opening(&mut self, bot: BotSelector) -> Result<AckReply, AckReply> {
         let bots = self.app.state::<BotManager>();
         let kinds = Self::kinds(bot);
@@ -75,66 +75,67 @@ impl DeskControl for DeskBridge {
         if Self::includes_strategy(bot) {
             strategy_engine::stop_all(&self.app).await;
         }
-        let acik = bots.open_count() + self.app.state::<StrategyManager>().open_cycle_count();
-        Ok(AckReply::stopped(acik as u64))
+        let open_now = bots.open_count() + self.app.state::<StrategyManager>().open_cycle_count();
+        Ok(AckReply::stopped(open_now as u64))
     }
 
-    /// Açık pozisyonları da kapatır.
+    /// Closes the open positions as well.
     ///
-    /// Önce yeni girişler durdurulur, sonra `force_close_all` beklenir. Sıra
-    /// önemli: kapatma sürerken bot yeni pozisyon açabilseydi, "hepsini kapat"
-    /// komutu kendi arkasından yeni pozisyon bırakabilirdi.
+    /// New entries are stopped first, then `engine::force_close_kinds` (and,
+    /// for "all", `strategy_engine::force_close_all`) is awaited. The order
+    /// matters: if a bot could open a position while the close runs, "close
+    /// all" could leave a new position behind it.
     ///
-    /// `await` de önemli — onay ancak kapatma bittikten sonra gider.
+    /// The `await` matters too: the acknowledgement goes out only once the
+    /// close is done.
     async fn close_all(&mut self, bot: BotSelector) -> Result<AckReply, AckReply> {
         let kinds = Self::kinds(bot);
-        let acik = |bots: &BotManager| kinds.iter().map(|k| bots.open_count_for(*k)).sum::<usize>();
-        let oncesi = {
+        let open_now = |bots: &BotManager| kinds.iter().map(|k| bots.open_count_for(*k)).sum::<usize>();
+        let before = {
             let bots = self.app.state::<BotManager>();
             for k in &kinds {
                 bots.stop(&self.app, *k);
             }
-            acik(&bots)
+            open_now(&bots)
         };
 
-        // Yalnızca seçilen botların pozisyonları: "spot'u kapat" komutu
-        // futures pozisyonlarına dokunmamalı.
+        // Only the selected bots' positions: "close spot" must not touch
+        // futures positions.
         engine::force_close_kinds(&self.app, "remoteKill", &kinds).await;
         // "Close all" includes the DCA / Grid cycles. A live bot's real
         // position follows its simulated close on the next mirror pass
         // (`strategy_live::sync_all`).
-        let (strateji_kapanan, strateji_kalan) = if Self::includes_strategy(bot) {
+        let (strategy_closed, strategy_left) = if Self::includes_strategy(bot) {
             strategy_engine::force_close_all(&self.app, "remoteKill").await
         } else {
             (0, 0)
         };
 
-        let kalan = acik(&self.app.state::<BotManager>()) + strateji_kalan as usize;
-        let kapanan = oncesi.saturating_sub(acik(&self.app.state::<BotManager>())) + strateji_kapanan as usize;
-        // Fiyatlanamayan pozisyonlar bir sonraki kapanış turuna bırakılır.
-        // Bunu SÖYLEMEK zorundayız: "hepsi kapandı" demek, kalan pozisyonu
-        // kullanıcıdan saklamak olurdu (`closed_partial`).
-        Ok(AckReply::closed(kapanan as u64, kalan as u64))
+        let left = open_now(&self.app.state::<BotManager>()) + strategy_left as usize;
+        let closed = before.saturating_sub(open_now(&self.app.state::<BotManager>())) + strategy_closed as usize;
+        // Positions that could not be priced are left for the next close
+        // round, and the acknowledgement SAYS so (`closed_partial`).
+        Ok(AckReply::closed(closed as u64, left as u64))
     }
 
     async fn start(&mut self, bot: BotSelector) -> Result<AckReply, AckReply> {
         let bots = self.app.state::<BotManager>();
         if bots.kill_switch_tripped() {
-            // Günlük zarar durdurucusu devredeyken uzaktan başlatmaya izin
-            // vermek, o durdurucuyu anlamsız kılardı.
+            // A remote start while the daily loss stop is active would make
+            // that stop meaningless.
             return Err(AckReply::new(ack_code::KILL_SWITCH_TRIPPED));
         }
-        let mut basladi = Vec::new();
+        let mut started = Vec::new();
         for k in Self::kinds(bot) {
             if bots.config_for(k).is_some() {
                 bots.start(self.app.clone(), k).map_err(|e| start_refusal(&e))?;
-                basladi.push(Self::selector(k));
+                started.push(Self::selector(k));
             }
         }
-        if basladi.is_empty() {
+        if started.is_empty() {
             return Err(AckReply::new(ack_code::NOTHING_TO_START));
         }
-        Ok(AckReply::started(&basladi))
+        Ok(AckReply::started(&started))
     }
 
     /// The desk's state for the phone. There is no win rate: the phone shows
@@ -195,13 +196,13 @@ impl DeskControl for DeskBridge {
         let (open, exposure_pct) = exposure(&positions, live, wallet.unwrap_or(declared));
         let today_net_pct = day_quote.map_or(0.0, |q| day_net_pct(q, wallet, declared));
 
-        // Atlama notları sebebe göre toplanır: telefonda otuz ayrı satır değil,
-        // "3 kombo filtresi, 2 sermaye tavanı" gibi bir özet işe yarar.
-        let mut sayac: HashMap<String, u32> = HashMap::new();
+        // Skip notes are grouped by reason: on the phone a summary such as
+        // "3 combo filter, 2 capital cap" helps, thirty separate lines do not.
+        let mut by_reason: HashMap<String, u32> = HashMap::new();
         for s in &st.recent_skips {
-            *sayac.entry(s.reason.clone()).or_insert(0) += 1;
+            *by_reason.entry(s.reason.clone()).or_insert(0) += 1;
         }
-        let mut skips_today: Vec<SkipNote> = sayac
+        let mut skips_today: Vec<SkipNote> = by_reason
             .into_iter()
             .map(|(reason, count)| SkipNote { reason, count })
             .collect();
@@ -261,8 +262,8 @@ fn pct_of(value: f64, balance: f64) -> f64 {
     }
 }
 
-/// `BotManager::start`'ın kararlı hata kodunu telefon onayına çevirir.
-/// Bilinmeyen kod `start_failed` olur — hiçbir zaman sessiz bir başarı değil.
+/// Maps `BotManager::start`'s stable error code to a phone acknowledgement.
+/// An unknown code becomes `start_failed`, never a silent success.
 fn start_refusal(code: &str) -> AckReply {
     AckReply::new(match code {
         "botDailyLossTripped" => ack_code::KILL_SWITCH_TRIPPED,
@@ -271,16 +272,17 @@ fn start_refusal(code: &str) -> AckReply {
     })
 }
 
-/// Açık pozisyonların kaç BAĞIMSIZ bahis gibi davrandığı.
+/// How many INDEPENDENT bets the open positions behave like.
 ///
-/// Sentinel'in kendi defterinde ölçülen gün-içi korelasyon ρ≈0.18. Tasarım
-/// etkisi `DEFF = 1 + (n-1)ρ`, etkin sayı `n / DEFF`. 8 pozisyon **3,5**
-/// bağımsız bahis eder; 40 pozisyon **5,0** — ki bu, Sentinel'in bağımsız
-/// ölçümü olan "günde ~48 sinyal ≈ 5 bağımsız bahis" ile örtüşüyor.
+/// ρ ≈ 0.18 is the intraday correlation between Sentinel signals. The design
+/// effect is `DEFF = 1 + (n-1)ρ` and the effective count `n / DEFF`: 8
+/// positions make **3.5** independent bets and 40 make **5.0**, which agrees
+/// with Sentinel's separate estimate of "~48 signals a day ≈ 5 independent
+/// bets".
 ///
-/// Bu sayı telefonda winrate'in YERİNE durur. 2026-07-29'da 40 pozisyon aynı
-/// anda açıldı ve −45,7pp'ye mal oldu — kullanıcının ekranında görmesi gereken
-/// şey buydu, bir başarı oranı değil.
+/// On the phone this number stands IN PLACE of a win rate: forty positions
+/// opened together are about five bets, and that concentration is what the
+/// user needs to see.
 fn effective_bets(n: u32) -> f64 {
     const RHO: f64 = 0.18;
     if n == 0 {
@@ -295,27 +297,27 @@ fn effective_bets(n: u32) -> f64 {
 mod tests {
     use super::*;
 
-    /// Korelasyonlu bir defterde pozisyon sayisi ile bagimsiz bahis sayisi
-    /// AYNI SEY DEGILDIR; telefonda gosterilen sayi bu farki tasimali.
+    /// In a correlated book the position count and the independent-bet count
+    /// are NOT THE SAME; the number shown on the phone must carry the gap.
     #[test]
-    fn etkin_bahis_korelasyonu_yansitir() {
+    fn effective_bets_reflect_correlation() {
         assert_eq!(effective_bets(0), 0.0);
         assert_eq!(effective_bets(1), 1.0);
-        // 8 pozisyon, 8 bahis DEGIL: 8 / (1 + 7x0.18) = 3.5.
+        // 8 positions are NOT 8 bets: 8 / (1 + 7x0.18) = 3.5.
         assert_eq!(effective_bets(8), 3.5);
-        // 2026-07-29: 40 pozisyon acildi ve -45.7pp'ye mal oldu. Sentinel'in
-        // kendi olcumu "gunde ~48 sinyal ~ 5 bagimsiz bahis" diyor; formul
-        // bunu bagimsiz olarak yeniden uretiyor.
+        // Sentinel's separate estimate is "~48 signals a day ~ 5 independent
+        // bets"; the formula reproduces it independently.
         assert_eq!(effective_bets(40), 5.0);
     }
 
-    /// Pozisyon sayisi arttikca etkin sayi artmali ama ORANTILI degil.
+    /// The effective count grows with the position count, but NOT
+    /// proportionally.
     #[test]
-    fn etkin_bahis_artan_ama_dogrusal_degil() {
+    fn effective_bets_grow_but_not_linearly() {
         let a = effective_bets(4);
         let b = effective_bets(8);
-        assert!(b > a, "artmadi");
-        assert!(b < a * 2.0, "dogrusal artti: {a} -> {b}");
+        assert!(b > a, "did not grow");
+        assert!(b < a * 2.0, "grew linearly: {a} -> {b}");
     }
 
     fn pos(notional: f64, live: bool) -> OpenExposure {
@@ -356,47 +358,48 @@ mod tests {
         assert_eq!(day_net_pct(-10.0, None, 0.0), 0.0);
     }
 
-    /// Strateji botları (DCA/Grid) yalnızca "hepsi" komutuna uyar.
+    /// Strategy bots (DCA/Grid) answer only to "all".
     #[test]
-    fn strateji_yalnizca_hepsi_secicisinde() {
+    fn strategy_bots_answer_only_to_all() {
         assert!(DeskBridge::includes_strategy(BotSelector::All));
         assert!(!DeskBridge::includes_strategy(BotSelector::Futures));
         assert!(!DeskBridge::includes_strategy(BotSelector::Spot));
         assert!(!DeskBridge::includes_strategy(BotSelector::Pump));
     }
 
-    /// Başlatma reddi telefona KOD olarak gider; masanın dili değil.
+    /// A start refusal reaches the phone as a CODE, not in the desk's language.
     #[test]
-    fn baslatma_reddi_kararli_koda_cevrilir() {
+    fn start_refusal_maps_to_a_stable_code() {
         assert_eq!(start_refusal("botDailyLossTripped").code, ack_code::KILL_SWITCH_TRIPPED);
         assert_eq!(start_refusal("botNotConfigured").code, ack_code::NOTHING_TO_START);
         assert_eq!(start_refusal("somethingNew").code, ack_code::START_FAILED);
     }
 
-    /// Uzaktan komut yanıtlarında sabit Türkçe metin kalmamalı: telefon
-    /// kodu kendi dilinde çizer.
+    /// Remote command replies carry no fixed Turkish text: the phone renders
+    /// the code in its own language. The search words are Turkish on purpose;
+    /// they are the reply literals this test keeps out of the module body.
     #[test]
-    fn uzak_komut_yanitlari_metin_tasimaz() {
+    fn remote_command_replies_carry_no_fixed_text() {
         let src = include_str!("mod.rs");
-        let govde = &src[..src.find("#[cfg(test)]").unwrap()];
-        for kalinti in ["başlatıldı", "kapatıldı", "açılmıyor", "durdurucusu devrede"] {
+        let body = &src[..src.find("#[cfg(test)]").unwrap()];
+        for leftover in ["başlatıldı", "kapatıldı", "açılmıyor", "durdurucusu devrede"] {
             assert!(
-                !govde.contains(&format!("\"{kalinti}")) && !govde.contains(&format!("{kalinti}\"")),
-                "sabit metin kaldi: {kalinti}"
+                !body.contains(&format!("\"{leftover}")) && !body.contains(&format!("{leftover}\"")),
+                "fixed text remains: {leftover}"
             );
         }
     }
 
-    /// `started` onayı, gerçekten başlayan bot türlerini adlandırır.
+    /// The `started` acknowledgement names the bot kinds that really started.
     #[test]
-    fn baslayan_tur_secici_ile_gidip_gelir() {
+    fn started_kind_round_trips_through_the_selector() {
         for k in [BotKind::Futures, BotKind::Spot, BotKind::Pump] {
             assert_eq!(DeskBridge::kinds(DeskBridge::selector(k)), vec![k]);
         }
     }
 
     #[test]
-    fn bot_secici_dogru_esleniyor() {
+    fn bot_selector_maps_to_kinds() {
         assert_eq!(DeskBridge::kinds(BotSelector::All).len(), 3);
         assert_eq!(DeskBridge::kinds(BotSelector::Spot), vec![BotKind::Spot]);
         assert_eq!(

@@ -29,8 +29,8 @@ const EMPTY = {
   apiKey: "",
   apiSecret: "",
   passphrase: "",
-  // Withdraw-enabled keys are refused by the vault (owner decision
-  // 2026-10-03), so there is nothing to declare: every key is trade-only.
+  // Withdraw-enabled keys are refused by the vault, so there is nothing to
+  // declare: every key is trade-only.
   permission: "tradeOnly" as CredentialPermission,
 };
 

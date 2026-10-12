@@ -1,16 +1,6 @@
 /**
- * Endpoints and desk identity, owned by Rust.
- *
- * The UI deliberately carries NO host. Every value here used to be a string
- * literal in a component, which is survivable in a private tree and not in a
- * public one: a reader who clones the repo would be silently pointed at one
- * particular deployment, and moving it would mean editing source instead of
- * setting a variable.
- *
- * The desk id matters more than it looks. It was a literal `desk-1`, which
- * would have handed every user on earth the same desk identity — for a pairing
- * system that is not a cosmetic problem. Rust now generates one per
- * installation and persists it, so the phone finds the same desk tomorrow.
+ * Endpoints and desk identity, owned by Rust: the UI carries no host and no
+ * desk id. The rules live in `app::endpoints` (src-tauri/src/app/endpoints.rs).
  */
 
 import { inTauri, invoke } from "../bridge";

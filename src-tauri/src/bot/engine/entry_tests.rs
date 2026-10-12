@@ -25,8 +25,8 @@ fn gate_input<'a>(cfg: &'a BotConfig, sig: &'a Signal, regime: BtcRegime) -> Gat
     }
 }
 
-// Live geometry: 2.5×ATR stop, TP1 ≈0.6R. The old `rr < 1.0` floor refused
-// nearly every published signal; both directions must now pass.
+// Live geometry: 2.5×ATR stop, TP1 ≈0.6R. An `rr < 1.0` floor would refuse
+// nearly every published signal; both directions must pass.
 #[test]
 fn tp1_at_0_6r_is_accepted_long_and_short() {
     let long = signal("long", 100.0, 106.0, 90.0);
@@ -155,9 +155,8 @@ fn static_skip_stays_judged() {
     assert!(!ledger.is_judged(BotKind::Spot, &sig.id));
 }
 
-// The KAS case (testnet, 7-8 Oct): a short refused under direction=long
-// stayed refused after the user allowed both directions, until an unrelated
-// restart. A settings save now re-judges it; lifecycle verdicts stay.
+// A short refused under direction=long is judged again once the user allows
+// both directions; lifecycle verdicts stay.
 #[test]
 fn a_settings_change_lifts_a_settings_refusal_only() {
     let mut c = cfg();
@@ -206,10 +205,10 @@ fn held_market_and_caps_are_transient() {
     }
 }
 
-// A signal Sentinel vetoed (2026-09-18 — BTC's regime turned against it) must
-// never be entered, same as legacy invalidation, but with its own key so the
-// desk shows why. `invalidated` alone must not trip it (the two flags are
-// independent — see `signal::veto_tests`).
+// A signal Sentinel vetoed (BTC's regime turned against it) must never be
+// entered, same as legacy invalidation, but with its own key so the desk
+// shows why. `invalidated` alone must not trip it: the two flags are
+// independent (`GateInput::invalidated` vs `GateInput::regime_vetoed`).
 #[test]
 fn regime_veto_refuses_entry_finally() {
     let c = cfg();

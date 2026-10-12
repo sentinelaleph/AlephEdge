@@ -1,39 +1,50 @@
-//! QR ile eşleştirme.
+//! Pairing by QR.
 //!
-//! # Neden bu kadar dar
+//! # Why so narrow
 //!
-//! QR kodunun içinde eşleştirme anahtarı vardır. Yani ekranda duran bir QR,
-//! **duran bir kimlik bilgisidir**: onu gören herkes o masayı durdurabilir,
-//! açabilir, pozisyonlarını kapatabilir. Omuz üstünden bir fotoğraf yeter.
+//! The QR code contains the pairing key. A QR left on screen is therefore a
+//! **standing credential**: anyone who sees it can stop that desk, start it
+//! and close its positions. A photo over the shoulder is enough.
 //!
-//! Bu yüzden eşleştirme oturumu:
-//!   - **kısa ömürlüdür** (`PAIRING_TTL_MS`),
-//!   - **tek kullanımlıktır** — bir telefon eşleşince QR ölür,
-//!   - ve süresi dolduğunda **görünür biçimde** ölür; ekranda geçerliymiş gibi
-//!     durmaya devam etmez.
+//! So a pairing session:
+//!   - is **short-lived** (`PAIRING_TTL_MS`),
+//!   - is **single-use**: once a phone pairs, the QR dies,
+//!   - and dies **visibly** when it expires; it does not stay on screen
+//!     looking valid.
 //!
-//! Son madde, bu projenin tekrar tekrar yediği hata sınıfının aynısıdır:
-//! görünmez biçimde geçersizleşen bir şey, geçerli sanılmaya devam eder.
+//! The last point guards against a whole failure class: something that turns
+//! invalid without showing it goes on being trusted.
+//!
+//! # Relay contract
+//!
+//! Two limits this pairing relies on are enforced by the relay, not by the
+//! desk:
+//!   - the relay accepts a phone for a desk only while that desk is connected;
+//!   - it admits at most one phone per pairing, and only a phone that belongs
+//!     to the desk's owner.
+//!
+//! The desk's own single-use check (`PairingSession::complete`) does not stop
+//! a second phone that read the same QR within `PAIRING_TTL_MS`.
 
 use aleph_link::PairingKey;
 
-/// Bir QR'ın geçerli kaldığı süre (ms). İki dakika, telefonu çıkarıp
-/// okutmaya yeter; masanın başından kalkıp dönene kadar yaşamaz.
+/// How long a QR stays valid (ms). Two minutes is enough to take out the
+/// phone and scan; it does not outlive the user stepping away from the desk.
 pub const PAIRING_TTL_MS: u64 = 120_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PairingError {
-    /// QR'ın süresi dolmuş.
+    /// The QR has expired.
     Expired,
-    /// Bu QR zaten bir telefonla eşleşmiş.
+    /// This QR has already paired with a phone.
     AlreadyUsed,
-    /// Okunan metin bu masaya ait değil ya da bozuk.
+    /// The text read does not belong to this desk, or is corrupt.
     Invalid,
 }
 
-/// Kararlı hata kodu: masaüstü arayüzü bunu `errors.*` altında kullanıcının
-/// dilinde gösterir. Buraya Türkçe (ya da herhangi bir dilde) cümle yazmak,
-/// sekiz dilli bir arayüzde tek dilli bir hata göstermek demekti.
+/// A stable error code: the desktop UI shows it in the user's language under
+/// `errors.*`. A sentence here, in any language, would show a single-language
+/// error in an eight-language UI.
 impl std::fmt::Display for PairingError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -52,7 +63,7 @@ enum State {
     Used,
 }
 
-/// Masaüstünde açılan bir eşleştirme oturumu.
+/// A pairing session opened on the desktop.
 pub struct PairingSession {
     desk_id: String,
     relay_url: String,
@@ -72,13 +83,12 @@ impl PairingSession {
         }
     }
 
-    /// QR'a basılacak metin.
+    /// The text printed into the QR.
     ///
-    /// `alephedge://pair?relay=<url>&desk=<id>&k=<anahtar>`
+    /// `alephedge://pair?relay=<url>&desk=<id>&k=<key>`
     ///
-    /// Süresi dolmuş ya da kullanılmış bir oturum **metin üretmez**. Ekranda
-    /// ölü bir QR bırakmak, kullanıcıya çalışmayan bir şeyi çalışıyor gibi
-    /// göstermektir.
+    /// An expired or used session **produces no text**. Leaving a dead QR on
+    /// screen shows the user something that does not work as if it did.
     pub fn qr_payload(&self, now_ms: u64) -> Result<String, PairingError> {
         self.check(now_ms)?;
         Ok(format!(
@@ -99,40 +109,40 @@ impl PairingSession {
         Ok(())
     }
 
-    /// Kalan süre (ms). Arayüz bunu geri sayım olarak gösterir — kullanıcı
-    /// QR'ın ne zaman öleceğini görmeli.
+    /// Time left (ms). The UI shows it as a countdown: the user must see when
+    /// the QR dies.
     pub fn remaining_ms(&self, now_ms: u64) -> u64 {
         PAIRING_TTL_MS.saturating_sub(now_ms.saturating_sub(self.created_ms))
     }
 
-    /// Bir telefon eşleşti: oturumu kapatır ve kalıcı anahtarı verir.
+    /// A phone paired: closes the session and hands out the lasting key.
     ///
-    /// Masaüstü bunu, anahtarı ELİNDE TUTTUĞUNU kanıtlayan ilk doğrulanmış
-    /// zarfı aldığında çağırır. Kamerayı tutan o olmadığı için "telefon QR'ı
-    /// okudu" anını başka türlü bilemez.
+    /// The desktop calls this on the first verified envelope, which proves
+    /// the sender HOLDS the key. The desktop does not hold the camera, so it
+    /// has no other way to know when the phone read the QR.
     pub fn complete(&mut self, now_ms: u64) -> Result<PairingKey, PairingError> {
         self.check(now_ms)?;
         self.state = State::Used;
         Ok(self.key.clone())
     }
 
-    /// Masanın KENDİ röle oturumu için anahtar.
+    /// The key for the desk's OWN relay session.
     ///
-    /// `complete` ile karıştırılmamalı: bu, eşleştirmenin karşı tarafa
-    /// geçmesi değil, aynı masanın kendi bağlantısını kurması. Telefon röleye
-    /// ancak masa zaten bağlıysa eklenebildiği için (`relay/hub.go`) masa,
-    /// QR hâlâ ekrandayken bu anahtarla bağlanmak ZORUNDA — dolayısıyla burada
-    /// QR harcanmaz. QR'ı harcayan tek şey karşı taraftan gelen imzalı bir
-    /// zarftır.
+    /// Not to be confused with `complete`: this is not the pairing passing to
+    /// the other side but the same desk opening its own connection. The relay
+    /// accepts a phone only while the desk is connected (see "Relay contract"
+    /// above), so the desk MUST connect with this key while the QR is still on
+    /// screen, and the QR is not spent here. The only thing that spends the QR
+    /// is a signed envelope from the other side.
     pub fn desk_session_key(&self) -> PairingKey {
         self.key.clone()
     }
 }
 
-// `ScannedPairing` ve `parse_qr` ORTAK crate'e (aleph-link) taşındı: QR'ı hem
-// masaüstü üretiyor hem telefon okuyor. Burada bırakılsaydı telefon ya bu
-// masaüstü crate'ini çekmek ya da kendi kopyasını yazmak zorunda kalırdı — ki
-// ikinci bir uygulama, bu depoda üç kez yanmış hatanın tohumudur.
+// `ScannedPairing` and `parse_qr` live in the shared crate (aleph-link): the
+// desktop produces the QR and the phone reads it. Kept here, the phone would
+// have to pull in this desktop crate or write its own copy, and a second
+// implementation is what the shared crate exists to prevent.
 pub use aleph_link::{parse_qr, ScannedPairing};
 
 #[cfg(test)]
@@ -142,21 +152,21 @@ mod tests {
     const NOW: u64 = 1_786_700_000_000;
 
     #[test]
-    fn qr_metni_gidip_gelir() {
+    fn qr_text_round_trips() {
         let s = PairingSession::begin("desk-1", "wss://ribqa.com/link", NOW);
         let text = s.qr_payload(NOW).unwrap();
         let got = parse_qr(&text).unwrap();
         assert_eq!(got.desk_id, "desk-1");
         assert_eq!(got.relay_url, "wss://ribqa.com/link");
-        // Okunan anahtar, masanin urettigiyle ayni olmali.
+        // The key read back must be the one the desk generated.
         let k = PairingKey::from_pairing_string(&got.key_str).unwrap();
         assert_eq!(k.to_pairing_string(), s.key.to_pairing_string());
     }
 
-    /// Ekranda duran bir QR, duran bir kimlik bilgisidir. Suresi dolunca metin
-    /// URETILMEZ — olu bir QR ekranda calisiyor gibi durmaz.
+    /// A QR on screen is a standing credential. Once expired it produces NO
+    /// text, so a dead QR never looks live.
     #[test]
-    fn suresi_dolan_qr_metin_uretmez() {
+    fn expired_qr_produces_no_text() {
         let s = PairingSession::begin("desk-1", "wss://x", NOW);
         assert!(s.qr_payload(NOW + PAIRING_TTL_MS).is_ok());
         assert_eq!(
@@ -166,7 +176,7 @@ mod tests {
     }
 
     #[test]
-    fn suresi_dolan_qr_esleşemez() {
+    fn expired_qr_cannot_pair() {
         let mut s = PairingSession::begin("desk-1", "wss://x", NOW);
         assert_eq!(
             s.complete(NOW + PAIRING_TTL_MS + 1).unwrap_err(),
@@ -174,10 +184,10 @@ mod tests {
         );
     }
 
-    /// Tek kullanimlik: bir telefon eslesince QR olur. Ikinci bir telefonun
-    /// ayni QR ile girebilmesi, fotografini cekenin de girebilmesi demektir.
+    /// Single use: once a phone pairs, the QR dies. If a second phone could
+    /// get in with the same QR, so could whoever photographed it.
     #[test]
-    fn qr_tek_kullanimliktir() {
+    fn qr_is_single_use() {
         let mut s = PairingSession::begin("desk-1", "wss://x", NOW);
         s.complete(NOW).unwrap();
         assert_eq!(s.complete(NOW).unwrap_err(), PairingError::AlreadyUsed);
@@ -185,7 +195,7 @@ mod tests {
     }
 
     #[test]
-    fn geri_sayim_dogru() {
+    fn countdown_is_correct() {
         let s = PairingSession::begin("desk-1", "wss://x", NOW);
         assert_eq!(s.remaining_ms(NOW), PAIRING_TTL_MS);
         assert_eq!(s.remaining_ms(NOW + 30_000), PAIRING_TTL_MS - 30_000);
@@ -193,8 +203,8 @@ mod tests {
     }
 
     #[test]
-    fn bozuk_qr_reddedilir() {
-        for kotu in [
+    fn malformed_qr_is_rejected() {
+        for bad in [
             "",
             "https://example.com",
             "alephedge://pair?",
@@ -202,48 +212,48 @@ mod tests {
             "alephedge://pair?relay=x&desk=d",
             "alephedge://pair?relay=&desk=d&k=abc",
         ] {
-            assert!(parse_qr(kotu).is_err(), "kabul edildi: {kotu:?}");
+            assert!(parse_qr(bad).is_err(), "accepted: {bad:?}");
         }
     }
 
-    /// Cozulemeyen bir anahtar, ESLESME aninda yakalanmali. Yoksa telefon
-    /// "eslestim" der ve hata ilk komutta, yanlis yerde patlar.
+    /// A key that does not decode is caught at PAIRING time. Otherwise the
+    /// phone reports "paired" and the error surfaces at the first command, in
+    /// the wrong place.
     #[test]
-    fn cozulemeyen_anahtar_esleşme_aninda_yakalanir() {
-        let kotu = "alephedge://pair?relay=wss://x&desk=d1&k=bu-anahtar-degil";
+    fn undecodable_key_is_caught_at_pairing() {
+        let bad = "alephedge://pair?relay=wss://x&desk=d1&k=this-is-not-a-key";
         assert_eq!(
-            parse_qr(kotu).unwrap_err(),
+            parse_qr(bad).unwrap_err(),
             aleph_link::LinkError::BadPairingString
         );
     }
 
-    /// Bilinmeyen alan sessizce yutulmaz: ileride eklenen bir alani eski bir
-    /// telefonun gormezden gelmesi, yarisi uygulanmis bir protokoldur.
+    /// An unknown field is not silently swallowed (see `aleph_link::parse_qr`).
     #[test]
-    fn bilinmeyen_alan_sessizce_yutulmaz() {
+    fn unknown_field_is_not_silently_swallowed() {
         let s = PairingSession::begin("d1", "wss://x", NOW);
-        let text = format!("{}&yeni_alan=1", s.qr_payload(NOW).unwrap());
+        let text = format!("{}&new_field=1", s.qr_payload(NOW).unwrap());
         assert_eq!(
             parse_qr(&text).unwrap_err(),
             aleph_link::LinkError::BadPairingString
         );
     }
 
-    /// Her oturum FARKLI bir anahtar uretmeli.
+    /// Every session must generate a DIFFERENT key.
     #[test]
-    fn her_oturum_farkli_anahtar_uretir() {
+    fn every_session_generates_a_different_key() {
         let a = PairingSession::begin("d1", "wss://x", NOW);
         let b = PairingSession::begin("d1", "wss://x", NOW);
         assert_ne!(
             a.key.to_pairing_string(),
             b.key.to_pairing_string(),
-            "iki oturum ayni anahtari uretti"
+            "two sessions generated the same key"
         );
     }
 
     #[test]
-    fn hatalar_cevrilebilir_kararli_kodlardir() {
-        // Arayüz bunları `errors.*` altında yerelleştirir; cümle değil kod.
+    fn errors_are_translatable_stable_codes() {
+        // The UI localises these under `errors.*`: codes, not sentences.
         assert_eq!(PairingError::Expired.to_string(), "pairingExpired");
         assert_eq!(PairingError::AlreadyUsed.to_string(), "pairingUsed");
         assert_eq!(PairingError::Invalid.to_string(), "pairingInvalid");

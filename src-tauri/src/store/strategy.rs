@@ -495,9 +495,9 @@ fn cycle_row(r: &rusqlite::Row) -> rusqlite::Result<CycleRow> {
 }
 
 /// Net realized result of closed DCA / Grid cycles, archived bots included:
-/// the desk's money totals, next to the signal-bot trade stats (audit
-/// 2026-10-08, ux_global 1: Dashboard, History and alerts left every cycle
-/// out, and Delete removed a bot's realized loss from every total).
+/// the desk's money totals, next to the signal-bot trade stats. Dashboard,
+/// History and alerts count every cycle, and Delete never removes a bot's
+/// realized loss from a total.
 #[derive(Serialize, Clone, Debug, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct StrategyPnlTotals {
@@ -881,8 +881,8 @@ mod tests {
 
     #[test]
     fn pnl_totals_count_every_closed_cycle_net_including_deleted_bots() {
-        // Testnet 8 Oct: Delete closed a Grid and a DCA cycle at market and
-        // archived both bots; no on-screen total showed the -8.40 USDT.
+        // Delete closes a cycle at market and archives the bot; the loss
+        // still counts.
         let c = db();
         let day = 86_400_000 * 20_000;
         let mut grid = sample_bot();

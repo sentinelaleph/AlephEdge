@@ -46,8 +46,8 @@ pub fn migrate(conn: &Connection) -> Result<(), String> {
         CREATE INDEX IF NOT EXISTS idx_trades_closed_at ON trades (closed_at DESC);",
     )
     .map_err(|_| "storeMigrationFailed".to_string())?;
-    // Older DBs (F3 shipped the table before exchange_id existed) get the
-    // column added here. On a fresh DB the column already exists and this
+    // Databases created before the exchange_id column existed get it added
+    // here. On a fresh DB the column already exists and this
     // ALTER errors — that's expected and ignored.
     let _ = conn.execute(
         "ALTER TABLE trades ADD COLUMN exchange_id TEXT NOT NULL DEFAULT 'binance'",
@@ -75,10 +75,10 @@ pub fn migrate(conn: &Connection) -> Result<(), String> {
         "ALTER TABLE trades ADD COLUMN risk_capped INTEGER NOT NULL DEFAULT 0",
         [],
     );
-    // Veto columns (2026-09-18): NULL on every row but a "veto" exit.
+    // Veto columns: NULL on every row but a "veto" exit.
     let _ = conn.execute("ALTER TABLE trades ADD COLUMN veto_reason_code TEXT", []);
     let _ = conn.execute("ALTER TABLE trades ADD COLUMN veto_reason_text TEXT", []);
-    // Take-profit target (2026-09-22): NULL on older rows (all TP1).
+    // Take-profit target: NULL on rows written before it existed (all TP1).
     let _ = conn.execute("ALTER TABLE trades ADD COLUMN tp_target TEXT", []);
     let _ = conn.execute("ALTER TABLE trades ADD COLUMN tp_fallback_from TEXT", []);
     Ok(())
@@ -231,7 +231,7 @@ pub fn aggregate(rows: &[(f64, f64, String, u64)], utc_day_start_ms: u64) -> Pnl
         if *closed_at >= utc_day_start_ms {
             today += pnl_quote;
         }
-        // Qualified winrate counts only genuine TP/SL resolutions (PRD §5.6).
+        // Qualified winrate counts only genuine TP/SL resolutions.
         match (reason.as_str(), *pnl_quote >= 0.0) {
             ("tp", _) => wins += 1,
             ("sl", _) => losses += 1,
@@ -265,8 +265,8 @@ pub fn aggregate(rows: &[(f64, f64, String, u64)], utc_day_start_ms: u64) -> Pnl
 }
 
 /// One CSV text field (RFC 4180). Free text reaches this file — veto reasons
-/// come from Sentinel verbatim — and a bare comma in one shifted every column
-/// after it, so the export no longer lined up with its header. A field that
+/// come from Sentinel verbatim — and a bare comma in one would shift every
+/// column after it out from under its header. A field that
 /// opens with a formula character is prefixed with `'` so a spreadsheet shows
 /// it as text instead of evaluating it.
 pub(super) fn csv_field(raw: &str) -> String {
@@ -282,7 +282,7 @@ pub(super) fn csv_field(raw: &str) -> String {
     }
 }
 
-/// CSV of all trades (PRD §5.6 one-click export). Returns the CSV body.
+/// CSV of all trades (the one-click export). Returns the CSV body.
 pub fn export_csv(conn: &Connection) -> Result<String, String> {
     let trades = list(conn, u32::MAX)?;
     let mut out = String::from(

@@ -1,12 +1,12 @@
 //! Aleph Edge — Rust core: the composition root.
 //!
-//! F1 wired the local key **vault** + Sentinel **membership** gate. F2 added
-//! the **signal** client (real SSE) and the **exchange** adapter (Binance).
-//! F3 adds the **risk** manager, Sentinel **market** data (FR/LD/BTC macro),
-//! the SQLite **store**, and the **bot** orchestrator (prechecks, simulated
-//! fills — live orders stay behind a flag, OFF through F3). Each subsystem
-//! owns its own types, logic, and commands; this file only registers managed
-//! state and the command surface, then runs the app.
+//! Subsystems: the local key **vault**, the Sentinel **membership** gate, the
+//! **signal** client (SSE), the **exchange** adapters, the **risk** manager,
+//! Sentinel **market** data (FR/LD/BTC macro), the SQLite **store**, the
+//! **bot** orchestrator and the phone **link**. Real orders compile only with
+//! the `live` cargo feature. Each subsystem owns its own types, logic, and
+//! commands; this file only registers managed state and the command surface,
+//! then runs the app.
 
 mod app;
 mod bot;
@@ -115,8 +115,8 @@ pub fn run() {
             bot::engine::spawn_regime_poller(app.handle().clone());
             // Auto-lock the vault once it has been idle for its configured
             // budget. Started here, unconditionally and for the life of the
-            // process: an unattended desk used to hold decrypted exchange keys
-            // in memory from the single password entry until it was closed.
+            // process, so an unattended desk never holds decrypted exchange
+            // keys past that budget.
             vault::restore_idle_minutes(app.handle());
             spawn_idle_watchdog(app.handle().clone());
             // Signature-verified auto-update (desktop only).

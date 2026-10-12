@@ -1,5 +1,5 @@
 /**
- * Cockpit-probe IPC bridge (mirrors src-tauri/src/cockpit.rs). On-demand
+ * Cockpit-probe IPC bridge (mirrors src-tauri/src/app/cockpit.rs). On-demand
  * connectivity checks the two cockpit buttons trigger. `npm run dev` has no
  * backend to probe, so the dev-only preview reports the probe as unavailable
  * instead of inventing a healthy result.

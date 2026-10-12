@@ -1,7 +1,7 @@
-//! Exchange adapters. F4 covers the Tier-1 USDT-quoted set (Binance, OKX,
-//! Bybit, MEXC) — spot + USDT-M futures public market data — via the
-//! data-driven `providers` catalog. Each exchange's status is cached briefly
-//! so the health poll and bot precheck never hammer the public endpoints.
+//! Exchange adapters: spot + USDT-M futures public market data for every
+//! USDT-quoted exchange in the data-driven `providers::CATALOG`. Each
+//! exchange's status is cached briefly so the health poll and bot precheck
+//! never hammer the public endpoints.
 
 mod close;
 mod commands;

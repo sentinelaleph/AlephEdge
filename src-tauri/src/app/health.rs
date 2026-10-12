@@ -1,9 +1,9 @@
 //! Health snapshot types + the empty baseline the health command fills.
 //!
-//! `mock_snapshot` (name kept for its call site) is an honest "nothing known
-//! yet" snapshot: live providers (exchange status, Sentinel stream, BTC macro)
-//! overwrite it in `app::commands::get_health_snapshot`, and anything they do
-//! not overwrite reaches the UI as unknown/empty, never as an invented value.
+//! `HealthSnapshot::unknown` is an honest "nothing known yet" snapshot: live
+//! providers (exchange status, Sentinel stream, BTC macro) overwrite it in
+//! `app::commands::get_health_snapshot`, and anything they do not overwrite
+//! reaches the UI as unknown/empty, never as an invented value.
 
 use serde::{Deserialize, Serialize};
 
@@ -82,39 +82,36 @@ pub struct HealthSnapshot {
     pub generated_at: u64,
 }
 
-/// Baseline snapshot the health command overwrites with live providers
-/// (`app::commands::get_health_snapshot`).
-///
-/// Every field is an honest "not known yet": no exchanges, signal down, BTC
-/// pulse empty (price 0, no sparkline), membership/vault unknown/locked. It
-/// used to synthesize a BTC pulse (≈63 200, "Consolidation", −1.2 %, a sine
-/// sparkline) that stayed in the snapshot whenever Sentinel's macro feed did
-/// not answer, so a fabricated price reached the UI as if it were real; the UI
-/// had to fingerprint those exact values to hide them. `tick` is kept for the
-/// call site's signature and no longer shapes any value.
-pub fn mock_snapshot(_tick: u64) -> HealthSnapshot {
-    HealthSnapshot {
-        exchanges: Vec::new(),
-        signal: SignalHealth {
-            level: HealthLevel::Unknown,
-            connected: false,
-            last_signal_secs: None,
-            latency_ms: None,
-        },
-        btc: BtcPulse {
-            trend: "unknown".into(),
-            strength: 0.0,
-            phase: String::new(),
-            price: 0.0,
-            change_pct: 0.0,
-            sparkline: Vec::new(),
-        },
-        vault: VaultState::Locked,
-        membership: MembershipState::Unknown,
-        generated_at: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0),
+impl HealthSnapshot {
+    /// Baseline snapshot the health command overwrites with live providers
+    /// (`app::commands::get_health_snapshot`).
+    ///
+    /// Every field is an honest "not known yet": no exchanges, signal down, BTC
+    /// pulse empty (price 0, no sparkline), membership/vault unknown/locked.
+    pub fn unknown() -> Self {
+        HealthSnapshot {
+            exchanges: Vec::new(),
+            signal: SignalHealth {
+                level: HealthLevel::Unknown,
+                connected: false,
+                last_signal_secs: None,
+                latency_ms: None,
+            },
+            btc: BtcPulse {
+                trend: "unknown".into(),
+                strength: 0.0,
+                phase: String::new(),
+                price: 0.0,
+                change_pct: 0.0,
+                sparkline: Vec::new(),
+            },
+            vault: VaultState::Locked,
+            membership: MembershipState::Unknown,
+            generated_at: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or(0),
+        }
     }
 }
 
@@ -125,7 +122,7 @@ mod tests {
     #[test]
     fn the_baseline_invents_no_market_data() {
         // Whatever the live feeds fail to overwrite reaches the UI as-is.
-        let s = mock_snapshot(7);
+        let s = HealthSnapshot::unknown();
         assert_eq!(s.btc.price, 0.0, "a fabricated BTC price");
         assert!(s.btc.sparkline.is_empty(), "a fabricated sparkline");
         assert_eq!(s.btc.change_pct, 0.0);

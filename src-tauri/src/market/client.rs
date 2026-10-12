@@ -1,5 +1,5 @@
-//! HTTP client for Sentinel's market-data services (PRD §3.3: FR + liquidity
-//! depth come from the Sentinel API, not from each exchange directly).
+//! HTTP client for Sentinel's market-data services (FR + liquidity depth come
+//! from the Sentinel API, not from each exchange directly).
 //!
 //! The routes this client calls, as the public API Center documents them
 //! (https://ribqa.com/api-center):
@@ -13,7 +13,7 @@
 //! to 10 minutes if Binance fails) and ±1% depth for any perp on demand
 //! (cached 15s). The older `/api/v1/arbitrage/funding-rates` (18 symbols)
 //! and `/api/v1/liquidity/depth/{symbol}` (streamed books only) routes stay
-//! for the web; the bot no longer uses them. An unknown symbol is a 404,
+//! for the web; the bot does not use them. An unknown symbol is a 404,
 //! which lands on the same "unavailable" error as any other non-2xx.
 
 use reqwest::Client;

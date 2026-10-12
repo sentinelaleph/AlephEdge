@@ -13,9 +13,8 @@ const DEFAULT_CAPITAL: f64 = 100.0;
 
 /// Refuses a config whose capital per position is above the risk level's
 /// per-position cap (`balance × max_capital_pct`). The engine skips every
-/// signal of such a bot with `capitalCap`, so it must not start at all:
-/// before this check a fresh install (Cautious, 1000 USDT, cap 20) started a
-/// 100 USDT bot that could never open a position.
+/// signal of such a bot with `capitalCap`, so it must not start at all: it
+/// could never open a position.
 pub fn check_capital_cap(cfg: &BotConfig, max_capital_quote: f64) -> Result<(), String> {
     if max_capital_quote > 0.0 && cfg.capital > max_capital_quote {
         return Err(format!("botCapitalAboveCap|{}", cap_text(max_capital_quote)));
@@ -88,7 +87,7 @@ pub fn bot_configure(
     let kind = config.kind;
     bots.configure(config);
     // Saved settings apply to signals already refused under the old ones,
-    // not only to the next signal (until now only a restart did that).
+    // not only to the next signal.
     if changed {
         bots.clear_settings_verdicts(kind);
     }
@@ -238,7 +237,7 @@ pub fn bot_stop(app: AppHandle, bots: State<BotManager>, kind: BotKind) -> BotDe
 
 /// Polled by the desk. Before snapshotting, drains any fresh Sentinel vetoes
 /// into the visible skip feed — so a server-side invalidation shows up as a
-/// "skipped trade" (PRD §5.4: no silent skips) regardless of whether a bot loop
+/// "skipped trade" (no silent skips) regardless of whether a bot loop
 /// is currently ticking.
 /// The exit reason a user-initiated close is recorded with. The same string
 /// `strategy_close` uses, so `pnl.exit.manual` / `strategy.exit.manual` label it.
@@ -414,7 +413,7 @@ mod tests {
     }
 
     // A fresh install is Cautious with a 1000 USDT balance: 20 USDT per
-    // position. The default bot used to ask for 100 and skip every signal.
+    // position, so the default bot must not ask for more.
     #[test]
     fn the_default_bot_fits_the_default_risk_setting() {
         use crate::bot::engine::precheck::{judge_budget, Budget};

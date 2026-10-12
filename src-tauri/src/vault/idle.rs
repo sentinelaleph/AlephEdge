@@ -1,13 +1,9 @@
 //! The vault's idle budget: how long the decrypted keys are allowed to stay in
 //! memory after the last time the vault was actually USED.
 //!
-//! Why this file exists at all (2026-09-20 pre-publication review, S4). Every
-//! other property of the vault is strong — Argon2id at 64 MiB, AES-256-GCM, the
-//! salt in the OS keychain, an owner-only 0600 file, `zeroize` on the buffers we
-//! own. None of that matters for very long if one password entry leaves the keys
-//! decrypted until the process exits, and this application is designed to sit
-//! running unattended on a desk for days. `vault_lock` existed as a command from
-//! the beginning; nothing ever called it.
+//! Keys must not outlive the idle budget: the desk is designed to run
+//! unattended for days, and one password entry must not leave the keys
+//! decrypted until the process exits.
 //!
 //! Two decisions are worth defending here:
 //!

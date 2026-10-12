@@ -1,6 +1,7 @@
 //! Take-profit target tests: resolution at entry (TP1/TP2/TP3/custom,
 //! fallback, refusals), config precedence and migration, TP1 byte-identity
-//! with the pre-2026-09-22 book, and management against a farther target.
+//! with a book written before targets were selectable, and management against
+//! a farther target.
 
 use super::book::trade_record;
 use super::entry::new_position;
@@ -201,7 +202,7 @@ fn validate_refuses_out_of_bounds_custom_targets() {
     assert!(c.validate().is_err());
 }
 
-// Every bot saved before this feature deserialises as TP1, no overrides.
+// A bot saved without target fields deserialises as TP1, no overrides.
 #[test]
 fn saved_config_without_targets_migrates_to_tp1() {
     let legacy = r#"{"kind":"futures","exchangeId":"binance","maxPositions":3,

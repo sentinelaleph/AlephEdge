@@ -2,8 +2,8 @@
  * Client-side mirror of src-tauri/src/bot/engine/sizing.rs's `size_position`,
  * used ONLY to render a live worked example while configuring a bot — never
  * to compute a real size (that stays server-side, on the real signal's entry
- * and stop). Keep this in lockstep with the Rust function by hand; there is
- * no shared source of truth across the language boundary.
+ * and stop). sizing.test.ts checks the constants against the Rust source and
+ * replays the cases of sizing_tests.rs.
  */
 
 /** Round-trip taker fees the engine and Sentinel's ledger charge (0.10%). */

@@ -98,7 +98,7 @@ const venueLabel = (id: string) => (id === "okx" ? "OKX" : id.charAt(0).toUpperC
 type Seed = "none" | "defaults" | "config";
 
 /**
- * One signal bot's settings (PRD §5.2) in the DCA / Grid form language:
+ * One signal bot's settings in the DCA / Grid form language:
  * panels with a field grid. Every value maps onto Rust's BotConfig; Start
  * runs bot_configure then bot_start in one awaited chain. No number is
  * invented: a saved bot shows its config, a new one the server's defaults

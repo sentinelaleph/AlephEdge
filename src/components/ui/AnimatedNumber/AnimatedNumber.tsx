@@ -9,7 +9,7 @@ interface AnimatedNumberProps {
 }
 
 /**
- * Spring-eased count-up when the value changes (PRD §4.3 "PnL sayaç tıkırtısı").
+ * Spring-eased count-up when the value changes (the PnL counter tick).
  * Pair with `font-variant-numeric: tabular-nums` on the parent so digits don't
  * jitter. Snaps instantly under reduced-motion.
  */

@@ -1,4 +1,4 @@
-//! Risk levels and their hard limits — the literal PRD §5.3 table in code.
+//! Risk levels and their hard limits, as one table in code.
 //!
 //! The level is a GLOBAL setting: its limits bound every bot. Each level's
 //! word wears its own color in the UI (cautious ice-blue → greedy red); the
@@ -17,14 +17,13 @@ pub enum RiskLevel {
 }
 
 impl RiskLevel {
-    // The Pump bot is no longer unlocked by the level (audit 2026-10-08,
-    // owner decision pending): PRD §5.1 tied it to "Ambitious", and raising
-    // this GLOBAL level to try one untested paper-only bot also raised every
-    // other bot's leverage, position and loss limits, the real-money Futures
-    // bot and the DCA / Grid budget cap included. Pump now runs at any level,
+    // No level unlocks a bot kind: this level is GLOBAL, so tying one
+    // untested paper-only bot (Pump) to it would raise every other bot's
+    // leverage, position and loss limits along with it, the real-money Futures
+    // bot and the DCA / Grid budget cap included. Pump runs at any level,
     // under that level's limits, on paper only, labelled untested.
 
-    /// The PRD §5.3 limits row for this level.
+    /// The limits row for this level.
     pub fn limits(self) -> RiskLimits {
         match self {
             // level          lev  pos  cap%   daily%  FR%/interval  LD share%
@@ -38,8 +37,8 @@ impl RiskLevel {
 }
 
 /// Hard limits derived from the risk level. `fr_threshold_pct` and
-/// `max_depth_share_pct` concretize PRD §5.4's "katı/normal/gevşek" FR-LD
-/// strictness words into auditable numbers (documented in the README).
+/// `max_depth_share_pct` turn the "strict / normal / loose" FR-LD strictness
+/// of each level into explicit numbers.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RiskLimits {
@@ -91,7 +90,7 @@ pub struct RiskConfig {
     /// user declares the capital they're modelling.
     #[serde(default = "default_balance")]
     pub balance: f64,
-    /// Close open positions when the daily-loss stop trips (PRD §5.3 default).
+    /// Close open positions when the daily-loss stop trips (on by default).
     #[serde(default = "default_close_on_stop")]
     pub close_on_stop: bool,
     /// The user's own daily-loss tolerance, % of balance. `None` = use the
@@ -201,8 +200,7 @@ mod tests {
 
     #[test]
     fn no_override_uses_the_level_table() {
-        // Cautious is 2.0% (PRD §5.3) — exactly the spot-trader case the owner
-        // asked about on 2026-08-12.
+        // Cautious is 2.0%: the tightest level is the spot-trader case.
         assert_eq!(
             cfg(RiskLevel::Cautious, None).effective_daily_loss_pct(),
             2.0

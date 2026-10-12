@@ -1,4 +1,4 @@
-//! Pre-trade checks — the PRD §5.4 pipeline, in order, every check with a
+//! Pre-trade checks — the precheck pipeline, in order, every check with a
 //! visible reason when it fails. No silent skips, no "assume fine" paths.
 //!
 //! This file fetches (membership, Sentinel's funding and depth feeds); every
@@ -16,7 +16,7 @@ use super::super::model::{BotConfig, LIVE_TRADING_ENABLED};
 
 pub use super::precheck_rules::*;
 
-/// The PRD §5.4 pipeline. Returns the captured FR/LD context on pass.
+/// The precheck pipeline. Returns the captured FR/LD context on pass.
 #[allow(clippy::too_many_arguments)]
 pub async fn run(
     membership: &MembershipManager,

@@ -3,10 +3,9 @@
 //! `tests/fixtures/sentinel_pending_2026-09-16.json` is the verbatim body of
 //! `GET https://ribqa.com/api/public/signals/pending?limit=3` captured on
 //! 2026-09-16 — three live shorts on the current geometry (stop 2.5×ATR, TP1
-//! below 1R, management plan attached). Before the 2026-09-16 audit, every one
-//! of them would have been refused by the old R:R ≥ 1.0 floor. These tests pin
-//! that the desk now reads them, judges them tradable, and manages them the
-//! way Sentinel's ledger does.
+//! below 1R, management plan attached), so an R:R ≥ 1.0 floor would refuse
+//! every one. These tests pin that the desk reads them, judges them tradable,
+//! and manages them the way Sentinel's ledger does.
 
 use super::backfill::{parse_pending_body, Row};
 use super::model::{Direction, Signal};

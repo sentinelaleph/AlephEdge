@@ -36,9 +36,8 @@ fn sized_position(c: &BotConfig, dir: &str, sl: f64, leverage: u8) -> OpenPositi
     pos
 }
 
-// The reported case: fixed sizing at 20x with a 7% stop. Live refuses it
-// (liquidation ~2.5% away); the paper book used to record it and then book
-// −140% of capital at the stop.
+// Fixed sizing at 20x with a 7% stop: live refuses it (liquidation ~2.5%
+// away), so paper must refuse it too rather than book −140% at the stop.
 #[test]
 fn paper_refuses_the_entry_live_refuses() {
     for (dir, sl) in [("long", 93.0), ("short", 107.0)] {
@@ -169,7 +168,7 @@ fn spot_and_one_x_longs_have_no_liquidation() {
     assert!(liquidation_price(&short).unwrap() > 190.0, "1x short liquidates near 2x");
 }
 
-// 9 Oct 2026: a 100 USDT balance at Cautious caps a position at 2 USDT. Binance
+// A 100 USDT balance at Cautious caps a position at 2 USDT. Binance
 // refuses orders under ~5 USDT, so the app's paper book refuses them too
 // instead of filling trades the exchange never would. plan_entry itself keeps
 // planning them: the server-side paper runner shares it and its arms must not shift.

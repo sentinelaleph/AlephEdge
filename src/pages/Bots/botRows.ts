@@ -38,9 +38,9 @@ export interface BotRow {
 const KINDS: BotKind[] = ["futures", "spot", "pump"];
 
 /**
- * The signal bot rows. Pump is not unlocked by the risk level any more:
- * raising that GLOBAL level to try it also loosened every other bot's
- * limits (Rust risk/model.rs). It runs paper only and is marked untested.
+ * The signal bot rows. Pump is not gated by the risk level: raising that
+ * GLOBAL level for one bot would loosen every other bot's limits (Rust
+ * risk/model.rs). It runs paper only and is marked untested.
  * `maxCapitalQuote`: the risk level's cap per position (null = not loaded).
  */
 export function signalBotRows(s: BotDeskStatus, maxCapitalQuote: number | null = null): BotRow[] {

@@ -25,9 +25,9 @@ pub enum CredentialPermission {
 /// UI.
 ///
 /// Secret fields are wiped by this type's own `Drop` (below), not by the
-/// session that happens to hold it. The session used to do the wiping, which
-/// meant the copy handed out by `VaultManager::credential()` — one per live
-/// order, per close, per reconcile pass — was never wiped at all.
+/// session that happens to hold it, so the copy handed out by
+/// `VaultManager::credential()` — one per live order, per close, per
+/// reconcile pass — is wiped too.
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExchangeCredential {
@@ -75,10 +75,9 @@ impl ExchangeCredential {
 /// order path takes out of it.
 ///
 /// Having a `Drop` also makes moving a secret field *out* of a credential a
-/// compile error, which is deliberate: `exchange::commands` used to do exactly
-/// that (`Ok((cred.api_key, cred.api_secret))`), handing the caller two owned
-/// `String`s with no owner left to wipe them. The borrow checker now refuses
-/// that shape, so the fix cannot silently regress.
+/// compile error, which is deliberate: a shape like
+/// `Ok((cred.api_key, cred.api_secret))` would hand the caller two owned
+/// `String`s with no owner left to wipe them, and the borrow checker refuses it.
 ///
 /// What this does NOT reach, and what no `Drop` here could:
 ///   * `reqwest`'s `HeaderValue` copy of the API key for `X-MBX-APIKEY`, and
@@ -113,7 +112,7 @@ pub struct CredentialMeta {
 /// older params stays decryptable if defaults change later.
 ///
 /// The salt itself is deliberately NOT here — it lives only in the OS
-/// keychain (PRD §5.5: "OS keychain'e yalnızca salt referansı yazılır").
+/// keychain, and only the salt is written there.
 /// Keeping it out of `vault.edge` means the file alone, copied to another
 /// device or user account, is not decryptable even with the correct
 /// password — the keychain entry is a second required factor.
@@ -151,8 +150,8 @@ impl KdfParams {
     pub const M_COST_MIN: u32 = 8_192;
     /// 256 MiB — four times today's default, so the default can be raised
     /// twice (64 → 128 → 256) before this needs revisiting. A 256 MiB
-    /// allocation is survivable on any machine that can run this app; the
-    /// 4 GiB the review demonstrated is not.
+    /// allocation is survivable on any machine that can run this app; a
+    /// tampered 4 GiB header is not.
     pub const M_COST_MAX: u32 = 262_144;
 
     /// Argon2's own minimum. `t_cost` is a linear time multiplier and buys far

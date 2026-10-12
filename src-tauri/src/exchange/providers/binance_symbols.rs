@@ -1,7 +1,7 @@
 //! Binance's tradable USDT symbols, from the public exchangeInfo endpoints.
 //! Feeds the per-coin take-profit picker: the list a user can choose from is
 //! what the exchange actually trades, not only the coins that happen to have
-//! a Sentinel signal open right now (an empty book used to mean an empty list).
+//! a Sentinel signal open right now (an empty book must not mean an empty list).
 
 use reqwest::Client;
 use serde::Deserialize;

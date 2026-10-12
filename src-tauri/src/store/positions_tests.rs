@@ -201,7 +201,7 @@ fn unknown_direction_text_does_not_parse() {
     assert!(serde_json::from_value::<OpenPosition>(v).is_err(), "a row without a direction");
 }
 
-// ---- Close and restore consistency (audit 2026-10-08, persistence 3) ----
+// ---- Close and restore consistency ----
 
 fn db() -> Connection {
     let conn = Connection::open_in_memory().unwrap();

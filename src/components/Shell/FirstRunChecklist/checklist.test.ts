@@ -19,7 +19,7 @@ const keys = (s: ReturnType<typeof checklistState>) => s.steps.map((st) => st.ke
 
 describe("first-run checklist", () => {
   it("a DCA-only desk with a running bot is done and can be hidden", () => {
-    // Audit 2026-10-08: a user running DCA Long Classic saw "2 of 4" forever.
+    // A strategy bot alone completes the bot steps; no signal bot is required.
     const s = checklistState(NO_SIGNAL, [bot()], false);
     expect(s.allDone).toBe(true);
     expect(s.botConfigured).toBe(true);

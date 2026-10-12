@@ -1,7 +1,7 @@
 //! Sentinel signal client: connects to the real SSE stream once membership is
 //! active, keeps a rolling buffer of recent signals, and reports connection
 //! health. The order path is never touched here — this module only observes
-//! and records; F3 wires actual trade execution off these signals.
+//! and records; trades are placed by `bot::engine` off these signals.
 
 mod backfill;
 mod buffer;
@@ -141,8 +141,7 @@ impl SignalManager {
                 // A 401 means the access token expired mid-session — refresh it
                 // via the membership manager so a long-lived session's stream
                 // self-heals on the next retry without forcing a re-login.
-                // Decided on the error's TYPE: it used to match "401" in the
-                // English error text, which the stable codes replaced.
+                // Decided on the error's TYPE, never on its text.
                 if needs_token_refresh(&outcome) {
                     // Single-flight and rotation-aware (see membership): the
                     // UI poll may be refreshing at the same moment.
@@ -290,7 +289,7 @@ impl SignalManager {
     }
 
     /// Buffers a parsed signal, or records a visible note for a row that
-    /// failed to parse (it used to be dropped silently). Expired backfill rows
+    /// failed to parse (never dropped silently). Expired backfill rows
     /// are ignored; regeneration supersedes are surfaced as notes.
     fn ingest(&self, row: Row) {
         let sig = match row {
@@ -396,9 +395,8 @@ mod model_tests;
 mod want_tests {
     use super::{needs_token_refresh, SignalManager, StreamError};
 
-    /// The 401 refresh rode on `last_error().contains("401")`. With stable
-    /// codes the text is `signalTicketRefused|401` today and anything
-    /// tomorrow; the decision now reads the typed error.
+    /// The 401 refresh reads the typed error, not the error text (a stable
+    /// code like `signalTicketRefused|401` may change).
     #[test]
     fn a_401_from_ticket_or_stream_refreshes_the_token() {
         assert!(needs_token_refresh(&Err(StreamError::TicketStatus(401))));

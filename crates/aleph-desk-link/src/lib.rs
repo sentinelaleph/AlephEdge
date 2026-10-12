@@ -1,22 +1,22 @@
-//! Masaüstü tarafının bağlantı katmanı: gelen komutu doğrular, uygular, ve
-//! **her zaman** bir onay döner.
+//! The desktop side of the link layer: verifies an incoming command, applies
+//! it, and **always** returns an acknowledgement.
 //!
-//! # Neden ayrı bir crate
+//! # Why a separate crate
 //!
-//! Aleph Edge'in kendisi sürüm kontrolsüz bir ağaçta duruyor. Bu katmanı orada
-//! tasarlamak, tasarım hatasını geri alınamaz bir yere yazmak olurdu. Burada
-//! gerçek uygulamadan bağımsız, `DeskControl` arayüzü üzerinden tam test
-//! edilir; entegrasyon sonra bir kablolama işine iner.
+//! It is tested in full through the `DeskControl` trait, without a Tauri app
+//! or the real bot desk. The app only wires `DeskControl` to its desk
+//! (`src-tauri/src/link`).
 //!
-//! # Değişmezler
+//! # Invariants
 //!
-//! 1. **Her komut bir onay üretir.** Uygulanmadıysa `applied: false` ve sebebi.
-//!    Onaysız bir komut, telefonda yeşil tik gösterilemeyeceği anlamına gelir;
-//!    basıp durduğunu sanan ama durmamış bir kullanıcı, hiç kill switch
-//!    olmamasından daha kötü durumdadır.
-//! 2. **Durdur ile hepsini-kapat asla birleşmez.** Acil bir kontrolde
-//!    belirsizlik pahalıdır.
-//! 3. **Doğrulanmayan zarf hiçbir şey yapmaz** ve sayaç ilerletmez.
+//! 1. **Every command produces an acknowledgement.** If it was not applied,
+//!    the acknowledgement says `applied: false` and why. Without one the phone
+//!    cannot show a green tick; a user who pressed and believes the desk
+//!    stopped when it did not is worse off than one with no kill switch.
+//! 2. **Stop and close-all are never merged.** Ambiguity is costly in an
+//!    emergency control (see `aleph_link::Command::StopOpening`).
+//! 3. **An envelope that fails verification does nothing** and does not
+//!    advance the counter.
 
 pub mod pairing;
 pub mod session;
@@ -26,69 +26,68 @@ use aleph_link::{
     PairingKey, ReplayGuard,
 };
 
-/// Masanın gerçek kontrolü.
+/// The desk's real controls.
 ///
-/// Metotlar **async**, çünkü açık pozisyonları kapatmak borsaya gider ve
-/// zaman alır. Senkron olsalardı, gerçek uygulama işi arka plana atıp hemen
-/// dönmek zorunda kalırdı — yani onay, kapatma BİTMEDEN gönderilirdi. Erken
-/// bir onay, telefonda "6 pozisyon kapatıldı" yazarken pozisyonların hâlâ
-/// açık olması demektir; bu katmanın engellemek için var olduğu hatanın ta
-/// kendisi.
+/// The methods are **async** because closing open positions goes to the
+/// exchange and takes time. Were they synchronous, the app would have to push
+/// the work to the background and return at once, so the acknowledgement
+/// would go out BEFORE the closing FINISHED. An early acknowledgement means
+/// the phone reads "6 positions closed" while the positions are still open:
+/// exactly the failure this layer exists to prevent.
 ///
-/// Sonuçlar cümle değil `AckReply`: kararlı kod + sayılar. Telefon onu kendi
-/// dilinde çizer; masanın dili telefona dayatılmaz.
+/// Results are `AckReply` codes, not sentences (see `aleph_link::AckReply`).
 pub trait DeskControl {
-    /// Yeni pozisyon açmayı durdurur. Açık pozisyonlara DOKUNMAZ.
+    /// Stops opening new positions. Does NOT TOUCH open positions.
     fn stop_opening(
         &mut self,
         bot: BotSelector,
     ) -> impl std::future::Future<Output = Result<AckReply, AckReply>>;
-    /// Açık pozisyonları da kapatır. İş BİTTİKTEN sonra döner.
+    /// Closes the open positions as well. Returns once the work is DONE.
     fn close_all(
         &mut self,
         bot: BotSelector,
     ) -> impl std::future::Future<Output = Result<AckReply, AckReply>>;
-    /// Botu başlatır.
+    /// Starts the bot.
     fn start(
         &mut self,
         bot: BotSelector,
     ) -> impl std::future::Future<Output = Result<AckReply, AckReply>>;
-    /// Anlık durum.
+    /// Current state.
     fn status(&self) -> DeskStatus;
 }
 
-/// Kalp atışı aralığı (ms). Röle üç atış kaçırınca masayı susmuş sayar.
+/// Heartbeat interval (ms). The relay counts the desk as silent after three
+/// missed beats.
 pub const HEARTBEAT_EVERY_MS: u64 = 30_000;
 
 pub struct DeskLink<C: DeskControl> {
     desk_id: String,
     key: PairingKey,
     guard: ReplayGuard,
-    /// Bu oturumun damgası. `out_seq` her yeniden başlayışta sıfırdan başladığı
-    /// için sayaç tek başına yetmiyordu: telefon, yeniden başlayan masanın
-    /// atışlarını tekrar sanıp sonsuza kadar "masan sustu" gösteriyordu. Epoch
-    /// o ayrımı imzalı biçimde taşır — ayrıntı `aleph_link::ReplayGuard`.
+    /// This session's stamp. `out_seq` restarts from zero with every session,
+    /// so the epoch is what tells the phone a restarted desk from a replay
+    /// (see `aleph_link::ReplayGuard`).
     epoch: u64,
-    /// Giden mesajların sayacı. Telefon tarafı bunu kendi tekrar korumasında
-    /// kullanır.
+    /// Counter of outgoing messages. The phone uses it in its own replay
+    /// protection.
     out_seq: u64,
     control: C,
     last_beat_ms: u64,
-    /// Bir telefonun anahtarı ELİNDE TUTTUĞUNU bu ana kadar kanıtlaması
-    /// gerekir (QR'ın ölüm anı). Kanıtlamazsa anahtar ölür: QR ekrandan
-    /// kalktığı hâlde masanın o anahtarla imzalı komutu kabul etmeye devam
-    /// etmesi, QR'ın fotoğrafını çeken birine süresiz bir kapı bırakmaktı.
+    /// By this moment (the QR's expiry) a phone must prove it HOLDS the key.
+    /// If none does, the key dies: a desk that kept accepting commands signed
+    /// with it after the QR left the screen would leave anyone who
+    /// photographed the QR a door that never closes.
     claim_deadline_ms: Option<u64>,
-    /// Doğrulanmış bir telefon zarfı geldi mi.
+    /// Whether a verified phone envelope has arrived.
     claimed: bool,
-    /// Anahtar geçersiz kılındı (süre doldu ya da iptal). Geri dönüşü yok.
+    /// The key is revoked (expired or cancelled). There is no way back.
     revoked: bool,
 }
 
 impl<C: DeskControl> DeskLink<C> {
-    /// `session_epoch`, bu oturumun damgası: üretimde oturumun başladığı
-    /// duvar saati (ms). Yalnızca ileri gitmesi gerekir; geriye giden bir
-    /// epoch, telefonun bu masayı yeniden reddetmesi demektir.
+    /// `session_epoch` is this session's stamp: in production, the wall-clock
+    /// time (ms) at which the session started. It only has to move forward; an
+    /// epoch that goes backwards makes the phone reject this desk as a replay.
     pub fn new(
         desk_id: impl Into<String>,
         key: PairingKey,
@@ -109,21 +108,21 @@ impl<C: DeskControl> DeskLink<C> {
         }
     }
 
-    /// Anahtarın, hiçbir telefon onu kullanmazsa öleceği an (ms). Eşleştirme
-    /// QR'ı ile kurulan oturumlar bunu QR'ın son geçerlilik anına bağlar.
+    /// The moment (ms) at which the key dies if no phone has used it. Sessions
+    /// set up by a pairing QR tie this to the QR's expiry.
     pub fn with_claim_deadline(mut self, deadline_ms: u64) -> Self {
         self.claim_deadline_ms = Some(deadline_ms);
         self
     }
 
-    /// Anahtarı kalıcı olarak geçersiz kılar (eşleştirme iptal edildi).
-    /// Bundan sonra hiçbir zarf kabul edilmez, kalp atışı da gönderilmez.
+    /// Revokes the key for good (the pairing was cancelled). From then on no
+    /// envelope is accepted and no heartbeat is sent.
     pub fn revoke(&mut self) {
         self.revoked = true;
     }
 
-    /// Anahtar hâlâ geçerli mi. Süresi hiç kullanılmadan dolduysa burada
-    /// kalıcı olarak ölür — sonradan gelen bir zarf onu diriltemez.
+    /// Whether the key is still valid. If its deadline passed before any use,
+    /// it dies here for good; a later envelope cannot revive it.
     pub fn key_live(&mut self, now_ms: u64) -> bool {
         if !self.revoked && !self.claimed {
             if let Some(deadline) = self.claim_deadline_ms {
@@ -150,23 +149,24 @@ impl<C: DeskControl> DeskLink<C> {
             now_ms,
             msg,
         )
-        .expect("DeskMessage her zaman serileşir")
+        .expect("DeskMessage always serializes")
     }
 
-    /// Röleden gelen ham zarfı işler.
+    /// Handles a raw envelope from the relay.
     ///
-    /// Dönüş: telefona gönderilecek zarf(lar). Doğrulama başarısızsa **boş** —
-    /// yani doğrulanmayan bir zarf ne bir eylem ne de bir yanıt üretir.
-    /// Yanıt üretseydi, imzasız zarf gönderen biri masanın varlığını ve
-    /// durumunu yoklayabilirdi.
+    /// Returns the envelope(s) to send to the phone. When verification fails
+    /// it returns an error and **no** envelope: an envelope that fails
+    /// verification produces neither an action nor a reply. A reply would let
+    /// anyone sending unsigned envelopes probe for the desk and its state.
     pub async fn handle_raw(&mut self, now_ms: u64, raw: &str) -> Result<Vec<Envelope>, LinkError> {
         if !self.key_live(now_ms) {
             return Err(LinkError::KeyRevoked);
         }
         let env: Envelope =
             serde_json::from_str(raw).map_err(|e| LinkError::Malformed(e.to_string()))?;
-        // Başka bir masaya yazılmış zarf: imzası tutsa bile (aynı anahtar iki
-        // masada kullanılmışsa) bu masa onu uygulamaz. Sayaçtan ÖNCE bakılır.
+        // An envelope addressed to another desk is not applied here, even if
+        // its signature holds (the same key used on two desks). Checked BEFORE
+        // the counter.
         if env.desk_id != self.desk_id {
             return Err(LinkError::WrongDesk);
         }
@@ -175,19 +175,18 @@ impl<C: DeskControl> DeskLink<C> {
         Ok(vec![self.apply(now_ms, env.seq, cmd).await])
     }
 
-    /// Doğrulanmış bir komutu uygular ve onayı üretir.
+    /// Applies a verified command and produces the acknowledgement.
     async fn apply(&mut self, now_ms: u64, for_seq: u64, cmd: Command) -> Envelope {
         let (applied, reply) = match cmd {
             Command::Status => {
                 let st = self.control.status();
-                // Durum sorgusu ayrı bir mesaj tipiyle döner; yine de onaysız
-                // bırakılmaz, çünkü telefon "sordum, cevap gelmedi" ile
-                // "sordum, masa cevapladı" arasını ayırabilmeli.
+                // A status query is answered with its own message type. It is
+                // still never left unanswered: the phone must tell "I asked and
+                // got nothing" from "I asked and the desk answered".
                 return self.send(now_ms, &DeskMessage::Status(st));
             }
-            // `.await` burada kritik: onay, iş BİTTİKTEN sonra gönderilir.
-            // Erken bir onay, telefonda "6 pozisyon kapatıldı" yazarken
-            // pozisyonların hâlâ açık olması demektir.
+            // The `.await` is essential: the acknowledgement goes out once the
+            // work is DONE (see `DeskControl`).
             Command::StopOpening { bot } => match self.control.stop_opening(bot).await {
                 Ok(d) => (true, d),
                 Err(e) => (false, e),
@@ -207,21 +206,21 @@ impl<C: DeskControl> DeskLink<C> {
                 for_seq,
                 applied,
                 at_ms: now_ms,
-                // Kodu tanımayan eski telefonlar için İngilizce yedek.
+                // English fallback for older phones that do not know the code.
                 detail: reply.english(),
                 reply: Some(reply),
             },
         )
     }
 
-    /// Kalp atışı zamanı geldiyse bir zarf üretir.
+    /// Produces a heartbeat envelope when one is due.
     ///
-    /// Zamanı gelmediyse `None` döner — röle zaten taşınan HER mesajı canlılık
-    /// işareti sayar, bu yüzden yoğun bir hatta ayrıca atış göndermek gereksiz
-    /// trafiktir.
+    /// Returns `None` until `HEARTBEAT_EVERY_MS` has passed since the last
+    /// beat. Beats are not sent more often: the relay counts EVERY carried
+    /// message as a sign of life.
     pub fn heartbeat_due(&mut self, now_ms: u64) -> Option<Envelope> {
-        // Ölü bir anahtarla atış göndermek, telefona olmayan bir hattı canlı
-        // göstermek olurdu.
+        // A beat with a dead key would show the phone a line that no longer
+        // exists as live.
         if !self.key_live(now_ms) {
             return None;
         }
@@ -237,12 +236,11 @@ impl<C: DeskControl> DeskLink<C> {
     }
 }
 
-/// Bagimliliksiz bir `block_on`.
+/// A dependency-free `block_on`.
 ///
-/// `DeskControl` async'e cevrilince testlerin (ve senkron bir baglamdan
-/// cagiran kodun) bir calisma zamanina ihtiyaci oldu. Bu yardimci, gercek G/C
-/// yapmayan gelecekler icin yeterlidir; Aleph Edge kendi calisma zamanini
-/// (`tauri::async_runtime`) kullanir.
+/// Drives `DeskControl` futures from tests and other synchronous callers. It
+/// is enough for futures that do no real I/O; Aleph Edge uses its own runtime
+/// (`tauri::async_runtime`).
 pub fn block_on<F: std::future::Future>(fut: F) -> F::Output {
     use std::task::{Context, Poll, Waker};
 

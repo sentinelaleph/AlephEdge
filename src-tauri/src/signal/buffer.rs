@@ -2,8 +2,8 @@
 //! dedup, regeneration and expiry pruning are unit-testable.
 //!
 //! Keyed by signal id: the stream and the reconnect backfill deliver the same
-//! signals, and a 20-slot FIFO (the old buffer) truncated a 300-row backfill
-//! to its last 20 rows.
+//! signals, and a 300-row backfill must survive whole (a small FIFO would
+//! truncate it to its last rows).
 
 use std::collections::VecDeque;
 
@@ -97,12 +97,11 @@ impl SignalBuffer {
         self.superseded.push_back(id.to_string());
     }
 
-    /// Newest-first by publication time (`created_at`), the order the bots
-    /// walk (owner rule 2026-09-23: the freshest setup claims a scarce slot).
-    /// Insertion order alone was not that: the stream, the reconnect backfill
-    /// and the 5-minute sweep all add signals, and the pending list arrives
-    /// newest first. Ties keep the later arrival first; unparseable
-    /// timestamps sort last.
+    /// Newest-first by publication time (`created_at`), the order the bots walk
+    /// (the freshest setup claims a scarce slot). Insertion order alone is not
+    /// that: the stream, the reconnect backfill and the 5-minute sweep all add
+    /// signals, and the pending list arrives newest first. Ties keep the later
+    /// arrival first; unparseable timestamps sort last.
     pub fn recent(&self) -> Vec<Signal> {
         let mut out: Vec<Signal> = self.signals.iter().rev().cloned().collect();
         out.sort_by_key(|s| std::cmp::Reverse(created_ms(s)));

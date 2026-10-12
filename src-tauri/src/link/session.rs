@@ -1,12 +1,13 @@
-//! Röleye giden canlı oturum.
+//! The live session to the relay.
 //!
-//! Bu dosya `DeskBridge`'i çalıştıran parçadır: röleye **giden** bir bağlantı
-//! açar (ev bilgisayarı NAT arkasında olduğu için gelen bağlantı beklenemez),
-//! zarfları `DeskLink`'e verir, onayları geri yollar ve kalp atışı gönderir.
+//! This is what runs `DeskBridge`: it opens an **outgoing** connection to the
+//! relay (a home computer sits behind NAT, so it cannot wait for incoming
+//! ones), hands envelopes to `DeskLink`, sends the acknowledgements back and
+//! sends heartbeats.
 //!
-//! Karar mantığı burada değil: doğrulama, onay ve tekrar koruması
-//! `aleph-desk-link`'te ve orada test edilmiş. Burada yalnızca soket, zamanlama
-//! ve yeniden bağlanma var.
+//! The decision logic is not here: verification, acknowledgement and replay
+//! protection live in `aleph-desk-link` and are tested there. Only the socket,
+//! timing and reconnection are here.
 
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -21,10 +22,10 @@ use tokio_tungstenite::tungstenite::Message;
 use super::DeskBridge;
 use crate::membership::MembershipManager;
 
-/// Masa kimliğinin taşındığı başlık (`relay/server.go`: `DeskIDHeader`).
+/// The header the relay reads the desk id from.
 ///
-/// Sorgu dizesinde DEĞİL: kimlik, vekillerin ve erişim loglarının en kolay
-/// sızdırdığı yerde durmayı gerektirmeyen bir yönlendirme adresi.
+/// NOT the query string: the id is a routing address with no need to sit
+/// where proxies and access logs leak most easily.
 const DESK_ID_HEADER: &str = "Aleph-Desk";
 
 fn now_ms() -> u64 {
@@ -34,38 +35,38 @@ fn now_ms() -> u64 {
         .unwrap_or(0)
 }
 
-/// Oturumun dışarıdan görünen durumu — arayüz bunu gösterir.
+/// The session's externally visible state; the UI shows it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LinkState {
-    /// Eşleştirilmiş bir telefon yok.
+    /// No phone is paired.
     Unpaired,
     Connecting,
     Connected,
-    /// Bağlantı koptu, tekrar denenecek.
+    /// The connection dropped; it will be retried.
     Retrying {
         in_secs: u64,
     },
-    /// Denenmeyecek. Kullanıcıya BU mesaj gösterilir.
+    /// Not retried. The user is shown THIS message.
     Stopped {
         message: String,
     },
 }
 
-/// Masanın canlı bağlantı katmanı; `LinkRuntime` de bir kopyasını tutar ki
-/// iptalde anahtarı geçersiz kılabilsin.
+/// The desk's live link layer. `LinkRuntime` keeps a copy too, so that a
+/// cancel can revoke the key.
 pub type SharedLink = Arc<Mutex<DeskLink<DeskBridge>>>;
 
-/// Anahtarın hâlâ geçerli olup olmadığına bakma aralığı. QR'ın ölümüyle
-/// bağlantının kesilmesi arasındaki en uzun gecikme budur.
+/// How often to check that the key is still valid. This is the longest delay
+/// between the QR's death and the connection being cut.
 const KEY_CHECK_EVERY: Duration = Duration::from_secs(1);
 
-/// Röle oturumunu sonsuza kadar sürdürür.
+/// Keeps the relay session going indefinitely.
 ///
-/// `Stopped` durumuna düşmedikçe döngü bitmez — pes eden bir masa, sessizce
-/// ölmüş bir masadır ve kullanıcı bunu bilgisayarın başında göremez.
+/// The loop ends only on `Stopped`: a desk that gives up is a desk that died
+/// silently, and the user cannot see that from the computer.
 ///
-/// `link` çağıran tarafta kurulur (`LinkRuntime::restart`): oturum damgası ve
-/// anahtarın son kullanma anı orada bağlanır.
+/// `link` is built by the caller (`LinkRuntime::restart`), which attaches the
+/// session stamp and the key's deadline.
 pub async fn run(
     app: AppHandle,
     relay_url: String,
@@ -77,14 +78,14 @@ pub async fn run(
 
     // One refresh-and-retry per run of 401s. The relay checks the same
     // Sentinel access token every other route does, and that token lives two
-    // hours: the first reconnect after it expired used to land on
-    // `Unauthorized`, a PERMANENT stop ("sign in again") although a refresh
-    // would have cured it. Only a 401 that survives a refreshed token stops.
+    // hours, so the first reconnect after it expires gets a 401 that a refresh
+    // cures. Only a 401 that survives a refreshed token is the PERMANENT
+    // `Unauthorized` stop ("sign in again").
     let mut auth_retry_used = false;
 
     loop {
-        // Hiç kullanılmadan ölen bir QR anahtarıyla yeniden bağlanmak, ölü bir
-        // anahtarı röleye taşımaktır: dur ve sebebini söyle.
+        // Reconnecting with a QR key that died unused would carry a dead key
+        // to the relay: stop and say why.
         if !link.lock().await.key_live(now_ms()) {
             if let Next::Stop { message, .. } = backoff.on_disconnect(&Disconnect::PairingExpired) {
                 *state.lock().await = LinkState::Stopped { message };
@@ -118,7 +119,7 @@ pub async fn run(
 
         match result {
             Ok(()) => {
-                // Temiz kapanış da bir kopmadır; yeniden bağlanılır.
+                // A clean close is a disconnect too; reconnect.
                 backoff.connected();
             }
             Err(why) => match backoff.on_disconnect(&why) {
@@ -136,7 +137,7 @@ pub async fn run(
             },
         }
 
-        // Başarılı bir oturumdan sonra kısa bir soluk; sıkı döngü olmasın.
+        // A short pause after a successful session, so the loop never spins.
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
 }
@@ -167,10 +168,8 @@ async fn connect_once(
 ) -> Result<(), Disconnect> {
     use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 
-    // Token her denemede TAZE alınır (`run`: `fresh_access_token`), oturum
-    // boyunca taşınmaz. Taşınsaydı erişim token'ı süresi dolduktan sonraki
-    // ilk yeniden bağlanma "üyelik doğrulanamadı" diye kalıcı olarak durur,
-    // kullanıcı da masasını kapanmış sanmadan önce hiçbir şey görmezdi.
+    // `token` is fetched FRESH for every attempt (`run`: `fresh_access_token`)
+    // and never carried from one connection to the next.
 
     let url = format!("{relay_url}/link/desk");
     let mut req = url
@@ -190,8 +189,8 @@ async fn connect_once(
     let (ws, res) = tokio_tungstenite::connect_async(req)
         .await
         .map_err(classify)?;
-    // Röle 401 dönerse el sıkışma zaten başarısız olur; yine de açıkça
-    // kontrol etmek, sebebi doğru sınıflandırmayı garantiler.
+    // A relay 401 already fails the handshake; checking explicitly still
+    // guarantees the reason is classified correctly.
     if res.status() == 401 {
         return Err(Disconnect::Unauthorized);
     }
@@ -201,13 +200,13 @@ async fn connect_once(
 
     let mut beat = tokio::time::interval(Duration::from_millis(HEARTBEAT_EVERY_MS));
     let mut key_check = tokio::time::interval(KEY_CHECK_EVERY);
-    // İlk tick anında gelir; masanın bağlandığını röleye hemen bildirir.
+    // The first tick fires at once and tells the relay the desk is connected.
     loop {
         tokio::select! {
             _ = key_check.tick() => {
-                // QR hiç kullanılmadan öldüyse (ya da eşleştirme iptal
-                // edildiyse) bağlantı burada kesilir; röle oturumu ölü bir
-                // anahtarla açık kalmaz.
+                // If the QR died unused (or the pairing was cancelled) the
+                // connection is cut here; the relay session never stays open
+                // on a dead key.
                 if !link.lock().await.key_live(now_ms()) {
                     return Err(Disconnect::PairingExpired);
                 }
@@ -227,13 +226,13 @@ async fn connect_once(
                 let msg = msg.map_err(classify)?;
                 let Message::Text(raw) = msg else { continue };
 
-                // Doğrulama, uygulama ve onay üretimi burada DEĞİL — hepsi
-                // DeskLink'te ve test altında.
+                // Verification, applying and the acknowledgement are NOT
+                // here; they all live in DeskLink, under test.
                 let out = { link.lock().await.handle_raw(now_ms(), &raw).await };
                 match out {
                     Ok(envs) => {
-                        // Doğrulanmış bir zarf geldiyse bir telefon anahtarı
-                        // GERÇEKTEN ele geçirmiş demektir: QR harcanır.
+                        // A verified envelope means a phone REALLY holds the
+                        // key: the QR is spent.
                         spend_pairing(app);
                         for env in envs {
                             let raw = serde_json::to_string(&env)
@@ -255,23 +254,21 @@ async fn connect_once(
     }
 }
 
-/// Bir telefon anahtarı kullandı: QR harcanır.
+/// A phone used the key: the QR is spent.
 ///
-/// # Neden tek kullanımlık BURADA işaretlenir
+/// # Why single use is marked HERE
 ///
-/// Eşleştirme oturumu kendini "tek kullanımlık" diye tanımlıyordu ama masaüstü
-/// bir telefonun QR'ı okuduğunu GÖREMEZ — kamerayı o tutmuyor. İşaret, oturumu
-/// başlatan komutta atılıyordu; o komut hiç çağrılmadığı için pratikte hiç
-/// atılmıyordu, ve atılsaydı QR daha gösterilmeden ölürdü.
+/// The desktop cannot SEE a phone read the QR; it does not hold the camera.
+/// Marking the QR spent when the session starts would kill it before it was
+/// ever shown.
 ///
-/// Masanın bilebileceği tek an burası: doğrulanmış bir zarf, gönderenin
-/// anahtarı ELİNDE TUTTUĞUNU kanıtlar. O andan sonra QR ekranda ölür ve
-/// sebebini söyler.
+/// This is the only moment the desk can know: a verified envelope proves the
+/// sender HOLDS the key. From then on the QR dies on screen and says why.
 ///
-/// Bu, aynı QR'ı 120 saniye içinde okumuş ikinci bir telefonu tek başına
-/// engellemez — o yüzden asıl sınır rölede: bir eşleştirme başına bir telefon
-/// (`relay/hub.go`: `MaxPhonesPerDesk`) ve telefonun masanın SAHİBİ olma
-/// zorunluluğu.
+/// On its own this does not stop a second phone that read the same QR within
+/// `PAIRING_TTL_MS`. That limit (one phone per pairing, and only the desk
+/// owner's phone) is enforced by the relay, not by the desk; see
+/// `aleph_desk_link::pairing`, "Relay contract".
 fn spend_pairing(app: &AppHandle) {
     let state = app.state::<super::commands::PairingState>();
     let mut guard = match state.session.lock() {
@@ -279,17 +276,17 @@ fn spend_pairing(app: &AppHandle) {
         Err(_) => return,
     };
     if let Some(s) = guard.as_mut() {
-        // Zaten harcanmışsa dönen hata haber değil: her zarfta bir kez daha
-        // denenir ve ilk seferden sonra hiçbir şey değişmez.
+        // An "already used" error is not news: this runs on every envelope
+        // and changes nothing after the first time.
         let _ = s.complete(now_ms());
     }
 }
 
-/// Soket hatasını yeniden bağlanma politikasının anladığı sınıfa çevirir.
+/// Maps a socket error to the class the reconnect policy understands.
 ///
-/// Varsayılan **geçici**: bilinmeyen bir hatayı kalıcı saymak, masayı
-/// gereksiz yere kalıcı olarak kapatırdı. Yanlış yönde hata yapmak burada daha
-/// pahalı.
+/// The default is **transient**: treating an unknown error as permanent would
+/// shut the desk down for good for no reason. That is the costlier mistake
+/// here.
 fn classify(e: tokio_tungstenite::tungstenite::Error) -> Disconnect {
     use tokio_tungstenite::tungstenite::Error as E;
     match &e {
@@ -304,33 +301,31 @@ fn classify(e: tokio_tungstenite::tungstenite::Error) -> Disconnect {
 mod tests {
     use super::*;
 
-    /// Bilinmeyen bir hatayi KALICI saymak, masayi gereksiz yere kapatirdi.
-    /// Varsayilan gecici olmali.
+    /// See `classify`: the default is transient.
     #[test]
-    fn bilinmeyen_hata_gecici_sayilir() {
+    fn unknown_error_counts_as_transient() {
         let e = tokio_tungstenite::tungstenite::Error::ConnectionClosed;
         assert!(matches!(classify(e), Disconnect::Transient(_)));
     }
 
-    /// Erişim token'ı iki saatte ölür. Süresi dolduktan sonraki ilk 401,
-    /// tazelenmiş bir token ile BİR kez daha denenmeli; eskiden doğrudan
-    /// kalıcı "tekrar giriş yap" durağıydı.
+    /// The access token lives two hours. The first 401 after it expires is
+    /// retried ONCE with a refreshed token.
     #[test]
-    fn suresi_dolan_token_bir_kez_tazelenip_denenir() {
+    fn expired_token_is_refreshed_and_retried_once() {
         assert_eq!(unauthorized_next(false, true), AuthRetry::Retry);
-        // Tazelenemediyse ya da tazelenmiş token da reddedildiyse: dur.
+        // The refresh failed, or the refreshed token was rejected too: stop.
         assert_eq!(unauthorized_next(false, false), AuthRetry::Stop);
         assert_eq!(unauthorized_next(true, true), AuthRetry::Stop);
     }
 
     #[test]
-    fn durum_makinesi_kullaniciya_mesaj_tasiyor() {
+    fn stopped_state_carries_a_message_for_the_user() {
         let s = LinkState::Stopped {
             message: "linkUnauthorized".into(),
         };
         match s {
             LinkState::Stopped { message } => assert!(!message.is_empty()),
-            _ => panic!("Stopped bekleniyordu"),
+            _ => panic!("expected Stopped"),
         }
     }
 }

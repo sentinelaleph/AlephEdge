@@ -23,8 +23,8 @@ function groupSeparator(): string {
  * Accepts "." or "," as the decimal mark, and the UI language's own
  * thousands grouping ("1,000.5" in en, "1.000,5" in tr). One separator
  * followed by exactly three digits ("1,000" / "1.000") is read as grouping
- * when it is that language's grouping mark: replacing the first comma with a
- * dot used to read an English "1,000" budget as 1. Anything else that is not
+ * when it is that language's grouping mark, so an English "1,000" budget is
+ * 1000, not 1. Anything else that is not
  * a plain decimal (two marks of one kind, letters, hex) is not a number.
  * Empty text is NaN: callers decide what "empty" means, explicitly.
  */

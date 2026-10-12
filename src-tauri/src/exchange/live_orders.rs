@@ -386,8 +386,8 @@ impl ExchangeManager {
     }
 
     /// The account's fills on `symbol` since `start_ms`, fetched in 7-day
-    /// windows (Binance's limit): a position held longer used to settle on
-    /// the fallback, missing its exit fills.
+    /// windows (Binance's limit), so a position held longer still settles on
+    /// its real exit fills.
     pub(crate) async fn bn_user_trades(
         &self,
         key: &str,

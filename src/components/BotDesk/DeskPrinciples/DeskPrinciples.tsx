@@ -6,8 +6,8 @@ import "./DeskPrinciples.css";
  * "How this bot works" — the collapsible explainer under the bot desk.
  *
  * Every line here is a property the CODE actually has, not positioning copy:
- * the refusal feed exists (engine pushes a visible skip for every non-trade,
- * PRD §5.4), fills are simulated at the live venue price with taker fees
+ * the refusal feed exists (engine pushes a visible skip for every non-trade),
+ * fills are simulated at the live venue price with taker fees
  * (engine/mod.rs), an invalidated signal is simply never entered — an
  * already-open position is kept and left to its stop/breakeven/target,
  * because closing on invalidation was measured to lose money (engine/mod.rs),

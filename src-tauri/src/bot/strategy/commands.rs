@@ -118,7 +118,7 @@ pub fn default_config(kind: StrategyKind, exchange_id: String, symbol: String) -
     let (side, params) = match kind {
         // The ladder of dca_long_classic, a template that passed its checks
         // (8 orders, 59.6% coverage). The protections below (drawdown stop,
-        // BTC gate, breaker) are the manual defaults (owner decision), so
+        // BTC gate, breaker) are the manual form's defaults, so
         // this config is still not that template and carries no preset id.
         StrategyKind::Dca => (Side::Long, presets::dca_long_classic().config.params),
         StrategyKind::Grid => (
@@ -380,8 +380,8 @@ pub async fn strategy_start(app: AppHandle, mgr: State<'_, StrategyManager>, id:
     if bot.state == BotRunState::Dead {
         return Err("botDead".into());
     }
-    // The signal bots' daily stop does not hold strategy bots (owner
-    // decision 2026-10-01); the portfolio breaker holds the bots inside it.
+    // The signal bots' daily stop does not hold strategy bots; the portfolio
+    // breaker holds the bots inside it.
     if mgr.breaker_holds(&bot) {
         return Err("portfolioDdTripped".into());
     }
@@ -815,7 +815,7 @@ mod tests {
         assert_eq!(c.params, presets::dca_long_classic().config.params);
         let StrategyParams::Dca(p) = &c.params else { unreachable!() };
         assert!(*super::super::dca::deviations(p).last().unwrap() > 50.0);
-        // the manual protections stay (owner decision), so no preset id
+        // the manual form's protections stay, so no preset id
         assert_eq!(c.max_drawdown_pct, Some(DEFAULT_BOT_DD_STOP_PCT));
         assert!(c.pause_on_btc_break && c.portfolio_breaker);
         assert_eq!(c.preset_id, None);

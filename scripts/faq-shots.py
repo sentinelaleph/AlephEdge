@@ -3,7 +3,7 @@
 Run with the dev server on :1420 (npm run dev):  python scripts/faq-shots.py [tr|en] [shot ...]
 
 Headless Edge per language (separate profile so the language is not cached),
-PNG -> WebP into aleph-edge/src/faq/shots/<lang>/<name>.webp.
+PNG -> WebP into src/faq/shots/<lang>/<name>.webp (relative to the repo root).
 """
 import os, subprocess, sys, tempfile
 from PIL import Image

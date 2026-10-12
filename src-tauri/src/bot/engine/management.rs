@@ -7,8 +7,7 @@
 //!      in an EARLIER evaluation),
 //!   2. partial — only if its level is nearer than the position's TP;
 //!      otherwise it can never fire and the whole position exits at TP
-//!      (Sentinel fixed this exact ordering bug on 2026-09-16: checking the
-//!      partial first banked phantom 1R fills),
+//!      (checking the partial first would bank phantom 1R fills),
 //!   3. TP — the RESOLVED target (`pos.tp`: TP1 by default, or the user's
 //!      TP2/TP3/custom, see `take_profit.rs`),
 //!   4. breakeven arming (effective from the next evaluation, never this one),
@@ -16,15 +15,16 @@
 //!      price has not reached by then exits here, on time, not at the target,
 //!   6. the user's own max-loss cap.
 //!
-//! Server invalidation does NOT close: the BTC guard closing filled positions
-//! was measured at −163 pts and is OFF on the server. It only yields a note.
+//! Server invalidation does NOT close: closing filled positions on the BTC
+//! guard loses value, and the server keeps that close off too. It only yields
+//! a note.
 //!
 //! Exit prices (`Fill`): the desktop books a paper stop, target or partial at
 //! its level, as the resting exchange orders of a live position and
 //! Sentinel's ledger do. Booking the polled price (about every 8 s) charged
 //! every stop the move during the polling gap and credited every target its
-//! overshoot (HANA, 7 Oct: a breakeven booked −0.79% instead of −0.08%).
-//! The paper runner keeps the polled price for its pre-registered arms.
+//! overshoot. The paper runner keeps the polled price so its fixed test arms
+//! do not shift.
 
 use crate::signal::model::Direction;
 

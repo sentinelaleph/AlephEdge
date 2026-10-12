@@ -48,7 +48,7 @@ impl RiskManager {
         self.config.lock().expect("risk mutex").balance
     }
 
-    /// Whether the daily-loss stop should close open positions (PRD §5.3).
+    /// Whether the daily-loss stop should close open positions.
     pub fn close_on_stop(&self) -> bool {
         self.config.lock().expect("risk mutex").close_on_stop
     }

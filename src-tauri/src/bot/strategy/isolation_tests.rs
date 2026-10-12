@@ -96,7 +96,7 @@ fn backtest_candles_come_from_datahub_only() {
     assert!(client.contains("/api/v1/market/candles/history"));
 }
 
-/// Owner decision 2026-10-01: the signal bots' daily stop neither counts
+/// The signal bots' daily stop neither counts
 /// strategy P&L nor stops, closes or holds strategy bots. Their own budget
 /// cap and the portfolio breaker govern them.
 #[test]

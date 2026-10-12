@@ -2,14 +2,7 @@ import QRCode from "qrcode";
 import { useMemo } from "react";
 
 /**
- * The pairing QR, drawn as real SVG elements.
- *
- * This used to be `dangerouslySetInnerHTML` fed by `QRCode.toString()`. The
- * markup came from a local library and carried no remote input, so it was not
- * exploitable — but this file is about to be public, and the first thing a
- * reviewer greps for in a repo that holds exchange credentials is exactly that
- * attribute. A safety argument that has to be reconstructed from a comment is
- * weaker than one the code cannot violate.
+ * The pairing QR, drawn as real SVG elements, never `dangerouslySetInnerHTML`.
  *
  * `QRCode.create` hands back the module matrix synchronously, so the drawing
  * is ours: no HTML string is ever produced, and there is no async gap in which

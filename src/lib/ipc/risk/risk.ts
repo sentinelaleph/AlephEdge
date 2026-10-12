@@ -27,7 +27,7 @@ export interface RiskState {
   limits: RiskLimits;
   /** Simulated account equity (base for the % caps). */
   balance: number;
-  /** Close open positions when the daily-loss stop trips (PRD §5.3). */
+  /** Close open positions when the daily-loss stop trips. */
   closeOnStop: boolean;
   /** balance × maxCapitalPct / 100 — max capital per position. */
   maxCapitalQuote: number;
@@ -73,9 +73,10 @@ export function riskSetDailyLoss(pct: number | null): Promise<RiskState> {
 }
 
 /**
- * Mirror of the Rust limits table (PRD §5.3), kept by hand. It serves the
- * browser mock and the Greedy confirmation, which must state Greedy's limits
- * BEFORE the level is chosen (the server only reports the current level's).
+ * The Rust limits table (`RiskLevel::limits`; risk.test.ts checks parity). It
+ * serves the browser mock and the Greedy confirmation, which must state
+ * Greedy's limits BEFORE the level is chosen (the server only reports the
+ * current level's).
  */
 export const RISK_LIMITS_TABLE: Record<RiskLevel, Omit<RiskLimits, "level">> = {
   cautious: { maxLeverage: 2, maxConcurrentPositions: 3, maxCapitalPct: 2, dailyLossLimitPct: 2, frThresholdPct: 0.05, maxDepthSharePct: 5 },

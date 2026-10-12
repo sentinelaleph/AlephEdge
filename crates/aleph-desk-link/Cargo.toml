@@ -2,7 +2,7 @@
 name = "aleph-desk-link"
 version = "0.1.0"
 edition = "2021"
-description = "Aleph Edge masaüstünün röle bağlantısı: komut işleyici, onay ve kalp atışı"
+description = "Relay link for the Aleph Edge desktop: command handler, acknowledgements and heartbeat"
 
 [dependencies]
 aleph-link = { path = "../aleph-link" }

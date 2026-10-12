@@ -239,11 +239,9 @@ fn fallback_blends_exchange_partial_and_marks_trigger_exit() {
 }
 
 // A position's `live` flag is persisted as raw JSON, so anything that can
-// write the app's data directory can set it. Until 2026-09-20 every close,
-// manage and reconcile path read that flag on its own, so one edited line
-// reached real reduce-only orders while the compile-time master switch was
-// off — the "two deliberate flips" contract held for entries only. `is_live()`
-// is the single gate all of them read now.
+// write the app's data directory can set it. One edited line must not reach
+// real reduce-only orders while the compile-time master switch is off:
+// `is_live()` is the single gate every close, manage and reconcile path reads.
 // Default (non-live) builds only: in a `--features live` build a live flag
 // is honoured by design.
 #[cfg(not(feature = "live"))]
@@ -260,9 +258,9 @@ fn tampered_live_flag_cannot_reach_the_venue() {
     assert!(!p.is_live());
 }
 
-// A live position settled by reconcile used to be closed WITHOUT the close
-// claim, so a veto close running at the same moment (SSE handler, off the
-// tick) could settle it too: two trade records for one real round trip.
+// Reconcile settles a live position only under the close claim, so a veto
+// close running at the same moment (SSE handler, off the tick) cannot settle
+// it too and write two trade records for one real round trip.
 #[test]
 fn reconcile_settles_only_positions_it_could_claim() {
     let bots = crate::bot::BotManager::new();
@@ -284,8 +282,8 @@ fn reconcile_settles_only_positions_it_could_claim() {
 
 #[test]
 fn a_position_is_never_settled_from_another_venues_account() {
-    // A Binance live position; the bot now trades Bybit (an exchange change
-    // used to keep LIVE on). The Bybit account does not list the symbol.
+    // A Binance live position; the bot now trades Bybit. The Bybit account
+    // does not list the symbol.
     let mut on_binance = live_short();
     (on_binance.signal_id, on_binance.exchange_id) = ("bn".into(), "binance".into());
     let bybit_account = vec![("ETHUSDT".to_string(), 1.0)];
@@ -424,7 +422,7 @@ mod untracked {
 
     #[test]
     fn lost_entries_are_recognised_on_every_order_venue() {
-        // The audit's repro: a real signal id from the testnet DB.
+        // A real signal id from a testnet DB.
         let mut sig = signal("short", 150.0, 146.0, 160.0);
         sig.id = "5ded7193-2335-436c-ba17-9bd2b5f8e87e".into();
         for venue in ["binance", "bybit", "okx"] {

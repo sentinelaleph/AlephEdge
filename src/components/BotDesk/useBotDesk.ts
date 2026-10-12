@@ -106,7 +106,7 @@ export function useBotDesk(): BotDeskController {
 
   // Configure THEN start in one awaited chain — `bot_start` rejects with
   // "bot not configured" if it lands before the config is stored, so the two
-  // must never race (they used to be fired independently).
+  // must never race.
   const configureAndStart = useCallback(
     (config: BotConfig) =>
       run(async () => {

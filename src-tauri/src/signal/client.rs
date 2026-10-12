@@ -1,7 +1,8 @@
-//! Real Sentinel signal-stream transport: mint a single-use ticket, then open
-//! the SSE connection with it (mirrors `sentinel-alephv2/frontend/src/services/api/stream.ts`
-//! — browsers can't send an Authorization header to `EventSource`, so a
-//! short-lived ticket stands in for it).
+//! Real Sentinel signal-stream transport. Wire contract: `POST
+//! {base}/api/v1/stream/ticket` with the bearer token and an empty JSON body
+//! answers `{"ticket": "..."}`; `GET {base}/api/v1/stream?ticket=...` then
+//! opens the SSE stream. The ticket is single-use and short-lived: it stands in
+//! for the Authorization header a browser's `EventSource` cannot send.
 
 use futures_util::StreamExt;
 use reqwest::{Client, Url};
@@ -68,9 +69,9 @@ pub enum SseEvent {
     Heartbeat,
     /// A signal was voided server-side; payload carries the signal id.
     Invalidation(String),
-    /// NEW (2026-09-18): Sentinel vetoed a signal because BTC's regime turned
-    /// against it — unlike `Invalidation`, this one also closes an open
-    /// position. Payload is the full veto JSON (see `model::RegimeVetoEvent`).
+    /// Sentinel vetoed a signal because BTC's regime turned against it — unlike
+    /// `Invalidation`, this one also closes an open position. Payload is the
+    /// full veto JSON (see `model::RegimeVetoEvent`).
     Veto(String),
     Other,
 }
@@ -155,11 +156,8 @@ pub async fn run_stream(
 /// Incremental SSE decoder (WHATWG "event stream interpretation").
 ///
 /// Lines end in CRLF, a lone LF **or a lone CR**; a blank line dispatches the
-/// event. Framing used to look only for `\n\n`, so a server (or proxy) that
-/// writes CRLF never produced a frame boundary: no event ever dispatched and
-/// the buffer grew until the 1 MiB cap killed the stream. A CR that ends one
-/// chunk is resolved by the next byte (`skip_lf`), so a CRLF split across
-/// chunks is still one line end.
+/// event. A CR that ends one chunk is resolved by the next byte (`skip_lf`), so
+/// a CRLF split across chunks is still one line end.
 ///
 /// Raw BYTES are buffered (not a lossy String) so a multibyte UTF-8 char split
 /// across two chunks is not corrupted; a line is decoded only once complete,
@@ -252,11 +250,11 @@ fn classify_event(name: &str, data: String) -> SseEvent {
     match name {
         "signal" => SseEvent::Signal(data),
         "heartbeat" => SseEvent::Heartbeat,
-        // Server-side protection layer (PRD §1/§3.3): an invalidation frame
+        // Server-side protection layer: an invalidation frame
         // (`btc_trend_flip` etc.) voids a signal — the bot must not enter it.
-        // Open positions are NOT closed on it (measured −163 pts; OFF upstream).
+        // Open positions are NOT closed on it.
         "invalidation" | "signal_invalidated" => SseEvent::Invalidation(data),
-        // NEW (2026-09-18): the BTC-regime guard's own veto — closes an open
+        // The BTC-regime guard's own veto — closes an open
         // position immediately, on top of blocking entry. Sentinel sends the
         // legacy "invalidation" frame too, for the same signal; both are
         // handled (see `signal::veto::mark_regime_veto`).
@@ -322,8 +320,7 @@ mod tests {
     }
 
     /// CRLF, lone LF and lone CR all end a line; a blank line of any kind
-    /// dispatches. The old framer saw only `\n\n`, so CRLF streams never
-    /// dispatched a single event.
+    /// dispatches.
     #[test]
     fn mixed_line_endings_all_frame() {
         let stream = b"event: signal\r\ndata: a\r\n\r\n\

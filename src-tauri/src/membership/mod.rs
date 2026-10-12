@@ -1,8 +1,8 @@
 //! Sentinel membership: real ribqa.com auth + billing gate.
 //!
-//! The bot cannot place a single order unless `MembershipView.active` is true
-//! (PRD red line). Any doubt — signed out, network error, unfetched status —
-//! resolves to *not active* (fail-safe). The state mutex is never held across
+//! The bot cannot place a single order unless `MembershipView.active` is true.
+//! Any doubt — signed out, network error, unfetched status — resolves to *not
+//! active* (fail-safe). The state mutex is never held across
 //! an `.await`; tokens are cloned out, the request runs, then results are
 //! stored. The only lock held across a request is `refresh_gate`, an async
 //! mutex that makes token refresh single-flight.
@@ -27,10 +27,8 @@ use model::{
 };
 use session::{clear_persisted_session, load_persisted_session, persist_session};
 
-// The host lives in ONE place: `app::endpoints`. This module used to carry its
-// own copy of the default and its own env lookup, which is how a build ends up
-// authenticating against one deployment and streaming from another. Same rule
-// as the relay URL, and the same reason.
+// The host comes from `app::endpoints` (rule 1 there); this module keeps no
+// default or env lookup of its own.
 
 /// An access token this close to its expiry is refreshed before use, so a
 /// request never leaves with a token that dies in flight.
@@ -276,21 +274,21 @@ impl MembershipManager {
 
     /// Silently restores a session on app launch from the persisted refresh
     /// token, if any. Any failure (no persisted session, expired/revoked
-    /// token, network error) falls back to the anonymous view — the user
-    /// signs in fresh, same as before this existed.
+    /// token, network error) falls back to the anonymous view and the user
+    /// signs in fresh.
     ///
-    /// Only a refusal from the server deletes the saved session. An offline
-    /// launch used to delete it too, so one start without network silently
-    /// signed the user out for good.
+    /// Only a refusal from the server deletes the saved session; an offline
+    /// launch keeps it, so one start without network does not sign the user
+    /// out for good.
     fn has_session(&self) -> bool {
         self.state.lock().expect("membership mutex").session.is_some()
     }
 
     pub async fn restore(&self) -> MembershipView {
         // Everything below runs under the refresh gate. Launch can call this
-        // twice at once (two mounts); with the session check and the keychain
-        // read outside the gate, the second call refreshed with the token the
-        // first had just retired, got 401, and deleted the new session.
+        // twice at once (two mounts); outside the gate, the second call would
+        // refresh with the token the first had just retired, get 401, and
+        // delete the new session.
         let _gate = self.refresh_gate.lock().await;
         if self.has_session() {
             return self.view();

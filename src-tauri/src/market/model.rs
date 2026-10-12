@@ -1,7 +1,7 @@
 //! Sentinel market-data wire mirrors (snake_case on purpose — these match the
-//! real JSON the Sentinel services emit, same convention as `signal::model`).
-//! Sources: `sentinel-alephv2/frontend/src/services/api/{arbitrage,liquidity}.ts`
-//! and `app/dashboard/components/BTCPulse.tsx`.
+//! real JSON the Sentinel services emit, same convention as `signal::model`):
+//! the bodies of `/api/v1/market/funding-rates`, `/api/v1/market/depth/{symbol}`
+//! and `/api/v1/market/btc-macro` (routes in `market::client`).
 
 use serde::{Deserialize, Serialize};
 

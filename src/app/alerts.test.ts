@@ -45,7 +45,7 @@ function ctx(recent: ClosedCycleRow[], todayCycles: number, bots: Partial<Strate
 
 describe("DCA / Grid alerts", () => {
   it("cycles closed today raise a closed alert though no signal trade exists", () => {
-    // Testnet 8 Oct: two cycles closed, the alerts said nothing.
+    // Regression: closed cycles once raised no alert at all.
     const alerts = deriveAlerts(ctx([cycle({}), cycle({ botId: "sb_dca", seq: 1, kind: "dca" })], 2), t, null, NOW);
     const closed = alerts.find((a) => a.key === "cycleClosed");
     expect(closed?.category).toBe("dealClosed");

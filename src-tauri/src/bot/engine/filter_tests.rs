@@ -4,29 +4,15 @@
 //! trades ONLY its members, and every refusal is reported with a reason.
 
 use super::filters::passes_filters;
-use crate::bot::model::{BotConfig, BotKind};
+use crate::bot::model::BotConfig;
 use crate::signal::model::{ConfluenceItem, Direction, Signal};
 
+/// The shared fixture config (`test_fixtures::cfg`), at 2 positions and 2x.
 fn cfg() -> BotConfig {
     BotConfig {
-        kind: BotKind::Futures,
-        exchange_id: "binance".into(),
         max_positions: 2,
-        capital: 100.0,
         leverage: 2,
-        min_confidence: None,
-        direction: None,
-        symbols: vec![],
-        combos: vec![],
-        engines: vec![],
-        live: false,
-        max_loss_pct: None,
-        sizing: crate::bot::model::SizingMode::Fixed,
-        risk_per_trade_pct: 1.0,
-        take_profit: Default::default(),
-        take_profit_overrides: Default::default(),
-        // Fixtures carry fixed dates; the age gate has its own tests.
-        max_signal_age_min: 0,
+        ..super::test_fixtures::cfg()
     }
 }
 

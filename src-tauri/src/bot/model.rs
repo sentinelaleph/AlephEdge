@@ -1,5 +1,5 @@
-//! Bot types and configuration (PRD §5.1–5.2). Two kinds ship in F3
-//! (Futures, Spot); Pump arrives in F5 with its radar feed.
+//! Bot types and configuration: the three signal-bot kinds (Futures, Spot,
+//! Pump) and their per-bot settings.
 
 use std::collections::BTreeMap;
 
@@ -7,12 +7,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::signal::model::{Direction, ManagementPlan};
 
-/// PRD §8: live order sending stays behind a feature flag. It is the cargo
-/// feature `live` (off by default, so the public build is simulation-only);
-/// a live build is a deliberate `--features live`. While false, fills are
-/// simulated at the live market price — the full pipeline (prechecks, risk
-/// limits, management plan, persistence) is real. The paper runner compiles
-/// this file too and has no such feature: it is never live.
+/// Live order sending stays behind a feature flag: the cargo feature `live`
+/// (off by default, so the public build is simulation-only); a live build is a
+/// deliberate `--features live`. While false, fills are simulated at the live
+/// market price — the full pipeline (prechecks, risk limits, management plan,
+/// persistence) is real. The paper runner compiles this file too and has no
+/// such feature: it is never live.
 pub const LIVE_TRADING_ENABLED: bool = cfg!(feature = "live");
 
 /// Taker fees used for NET PnL simulation, per side, as a fraction of
@@ -37,10 +37,9 @@ pub enum BotKind {
     Spot,
     /// Trades USDT-M futures only on signals where Sentinel's pump engine
     /// contributes together with a structure break and an order block or FVG
-    /// (`precheck_rules::is_pump_signal`). Owner decision 2026-10-09: open at
-    /// every risk level for whoever wants it, paper only and marked untested
-    /// (no replay or forward test exists). It used to need Ambitious+, which
-    /// loosened every other bot's limits too.
+    /// (`precheck_rules::is_pump_signal`). Open at every risk level, paper
+    /// only and marked untested (no replay or forward test exists); the risk
+    /// level does not unlock it, so choosing it loosens no other bot's limits.
     Pump,
 }
 
@@ -70,9 +69,8 @@ impl BotKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SizingMode {
-    /// notional = capital × leverage — the pre-2026-09-17 behaviour. The
-    /// serde default, so a saved config without the field never changes size
-    /// silently.
+    /// notional = capital × leverage. The serde default, so a saved config
+    /// without the field never changes size silently.
     #[default]
     Fixed,
     /// notional sized so a stop loses `risk_per_trade_pct` of capital;
@@ -89,14 +87,14 @@ impl SizingMode {
     }
 }
 
-/// Which take-profit a bot exits at (owner request 2026-09-22). Sentinel
+/// Which take-profit a bot exits at. Sentinel
 /// publishes three targets; `Custom` is a percent distance from the actual
 /// fill in the trade's direction (40 = +40% long, −40% short). Resolved per
 /// position at entry by `engine::take_profit::resolve_tp`.
 ///
 /// Wire shape: `{"kind":"tp1"}` … `{"kind":"custom","pct":40.0}`. The serde
-/// default is `Tp1`, so every config saved before this existed keeps exiting
-/// at TP1 exactly as before.
+/// default is `Tp1`, so a config saved without the field keeps exiting at
+/// TP1.
 #[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum TakeProfitTarget {
@@ -127,10 +125,9 @@ impl TakeProfitTarget {
     }
 }
 
-/// A new entry only on a signal at most this many minutes old (owner rule,
-/// 2026-09-23: "en fazla 4 saatlik sinyallere işlem yapabilir"). Measured on
-/// the 13–24 Sep book: 15 of 23 entries came from signals older than 4h and
-/// earned −0.04 R each, against +0.30 R for the fresh ones. 0 = no limit.
+/// A new entry only on a signal at most this many minutes old (by default,
+/// trade only signals at most 4 hours old: older entries earned less than
+/// fresh ones). 0 = no limit.
 pub const DEFAULT_MAX_SIGNAL_AGE_MIN: u32 = 240;
 
 fn default_max_signal_age_min() -> u32 {
@@ -141,12 +138,12 @@ fn default_risk_pct() -> f64 {
     crate::bot::engine::sizing::DEFAULT_RISK_PCT
 }
 
-/// Per-bot settings (PRD §5.2). `capital` is per-position, quote currency.
+/// Per-bot settings. `capital` is per-position, quote currency.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BotConfig {
     pub kind: BotKind,
-    /// Exchange the bot trades on. F3: "binance" only (F4 widens).
+    /// Catalog id of the exchange the bot trades on (`exchange::providers`).
     pub exchange_id: String,
     /// Max positions THIS bot may hold at once (1–20; risk level caps the
     /// total across all bots).
@@ -155,7 +152,7 @@ pub struct BotConfig {
     pub capital: f64,
     /// Futures only; clamped to the risk level's max. Spot is always 1.
     pub leverage: u8,
-    /// Optional signal filters (PRD §5.2-5).
+    /// Optional signal filters.
     #[serde(default)]
     pub min_confidence: Option<f64>,
     #[serde(default)]
@@ -182,8 +179,8 @@ pub struct BotConfig {
     /// NET loss reaches −2% of capital: a 0.57% price move at fixed 3x; in
     /// risk sizing a value at or above the risk % never fires, the stop is
     /// checked first), exit reason "max_loss".
-    /// Independent of the BTC regime: tying it to a BTC-break trigger
-    /// recreated the guard close measured at −163 pts. None = feature off.
+    /// Independent of the BTC regime: a BTC-break trigger here would repeat
+    /// the regime guard's close, which loses. None = feature off.
     #[serde(default)]
     pub max_loss_pct: Option<f64>,
     /// Absent in configs saved before sizing existed ⇒ `fixed`.
@@ -343,8 +340,8 @@ pub struct OpenPosition {
     /// True when this position is backed by a real exchange order. Serde
     /// defaults keep previously-persisted (all simulated) positions valid.
     /// Read it through `is_live()`, never directly: this field arrives from a
-    /// JSON file on disk, and on its own it used to be enough to reach the
-    /// real-order paths while the master switch was off (2026-09-20 review).
+    /// JSON file on disk, and on its own it must never reach the real-order
+    /// paths while the master switch is off.
     #[serde(default)]
     pub live: bool,
     /// Executed quantity from the real fill (0 for simulated positions).
@@ -415,14 +412,14 @@ fn default_tp_target() -> String {
 impl OpenPosition {
     /// Whether this position may touch the real venue. BOTH the compile-time
     /// master switch and the per-position flag have to say yes: the flag alone
-    /// is a line in a file any local process can edit, and every close,
-    /// manage and reconcile path used to trust it by itself.
+    /// is a line in a file any local process can edit, so no close, manage or
+    /// reconcile path may trust it by itself.
     pub fn is_live(&self) -> bool {
         LIVE_TRADING_ENABLED && self.live
     }
 }
 
-/// One visible "why the bot did NOT trade" note (PRD §5.4: no silent skips).
+/// One visible "why the bot did NOT trade" note (no silent skips).
 /// `reason` is an i18n key suffix; `detail` is a preformatted value like
 /// "-0.12%" that the UI interpolates.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -453,8 +450,8 @@ pub struct BotDeskStatus {
     pub open_positions: Vec<OpenPosition>,
     pub recent_skips: Vec<SkipNote>,
     /// Set when the daily loss kill-switch tripped today (UTC); bots cannot
-    /// start again until the next UTC day (PRD §5.3 — losses are not hidden,
-    /// they are slept on).
+    /// start again until the next UTC day (losses are not hidden, they are
+    /// slept on).
     pub kill_switch_tripped: bool,
     /// Sentinel's BTC regime as the engine last read it: "normal" | "break" |
     /// "unknown". "break" means new LONG entries are refused (shorts still
@@ -511,7 +508,7 @@ pub struct PositionMark {
     pub pnl_usdt: f64,
 }
 
-/// Pilot (owner 2026-10-05): the first real entries after LIVE is switched
+/// Pilot: the first real entries after LIVE is switched
 /// on are capped, so a mistake in setup costs little.
 pub const PILOT_TRADES: u32 = 3;
 /// Largest real entry while the pilot runs (raised to just above Binance's

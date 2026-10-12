@@ -1,16 +1,15 @@
 //! The one transport for the live-order path: sign a query built by
 //! `binance_requests`, send it to the futures base, hand back the body.
 //!
-//! Every live call used to repeat sign → URL → send → status mapping inline,
-//! which is how the stop kept pointing at `/fapi/v1/order` after Binance moved
-//! conditional orders to the Algo service (2025-12-09, error -4120): each copy
-//! had to be found and fixed separately. Builders stay pure and tested; this
-//! file is the only place that touches the network for them.
+//! Sign → URL → send → status mapping happens only here, so an endpoint move
+//! (such as Binance moving conditional orders to the Algo service) is fixed in
+//! one place. Builders stay pure and tested; this file is the only place that
+//! touches the network for them.
 //!
-//! What the transport owns (2026-09-28, before the first real-money run):
+//! What the transport owns:
 //! - **Server time.** Requests are stamped with Binance's clock (offset from
-//!   `/fapi/v1/time`), not the PC's. A Windows clock a second ahead used to
-//!   fail every close, stop move and stop placement with -1021.
+//!   `/fapi/v1/time`), not the PC's: a PC clock a second ahead would fail
+//!   every signed call with -1021.
 //! - **recvWindow** is explicit, and a -1021 resyncs the clock and resends
 //!   once. A -1021 is a rejection, so resending cannot double an order.
 //! - **Rate limits.** 429/418 put every signed call on hold for a while

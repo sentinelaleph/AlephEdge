@@ -1,10 +1,10 @@
-//! The exchange catalog: every Tier-1 (USDT-quoted) exchange as an
+//! The exchange catalog: every USDT-quoted exchange as an
 //! `ExchangeSpec`. URLs and price paths here were verified against the live
 //! public ticker APIs, not guessed.
 //!
-//! Exclusions (PRD Tier 2/3) follow one honesty rule — an exchange is only
-//! listed if it has a REAL USDT-quoted market matching Sentinel's USDT signal
-//! geometry. BTCTurk + Paribu are TRY-quoted (user decision, F4). Mercado
+//! Exclusions follow one honesty rule — an exchange is only listed if it has a
+//! REAL USDT-quoted market matching Sentinel's USDT signal geometry. BTCTurk +
+//! Paribu are TRY-quoted, so they are out. Mercado
 //! Bitcoin has a BTC-USDT pair but it's a ghost market (near-zero volume; real
 //! liquidity is BRL), so a fill there is fiction. Ripio has no real USDT pair
 //! (BRL/ARS only). CoinDCX (India) and Bitso (Mexico/LatAm) DO have live USDT

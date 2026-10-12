@@ -29,7 +29,7 @@ type SignalStatus = Pick<BotDeskStatus, "futures" | "spot" | "pump" | "futuresRu
 /**
  * The checklist from real state, shared by the checklist and the Dashboard's
  * hide rule so the two cannot disagree. Every bot type counts: a user who
- * runs only DCA Long Classic is done (audit 2026-10-08, ux_global 2). The
+ * runs only DCA Long Classic is done. The
  * Sentinel stream feeds signal bots only, so its step appears once a signal
  * bot is configured.
  */

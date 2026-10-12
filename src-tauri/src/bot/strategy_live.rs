@@ -1,5 +1,5 @@
-//! Real-money mirror for DCA / Grid bots (owner decision 2026-10-04: "the user
-//! chooses paper or real"). Binance USDT-M futures only, `--features live`
+//! Real-money mirror for DCA / Grid bots: the user chooses paper or real.
+//! Binance USDT-M futures only, `--features live`
 //! builds only, per bot behind the typed LIVE word and a verified trade-only
 //! key.
 //!
@@ -115,7 +115,7 @@ impl LiveState {
     }
 }
 
-/// Pilot (owner 2026-10-05): the first real cycles after LIVE is switched on
+/// Pilot: the first real cycles after LIVE is switched on
 /// mirror a fraction of the simulated position, so a setup mistake costs
 /// little. Prices, stops and decisions are the simulation's own.
 pub const PILOT_CYCLES: u32 = 3;
@@ -296,11 +296,11 @@ fn read_stored(app: &AppHandle) -> (StoredLive, Option<String>) {
 /// keeps them (a later live build resumes) but stops those bots from starting
 /// new cycles: it cannot reach the exchange to mirror them.
 ///
-/// A state that cannot be read fails closed. It used to read as "no live
-/// bots": a real DCA bot resumed on paper and the mirror forgot the real
-/// position it holds. Now the raw value is copied to its own meta key before
-/// anything can overwrite it, every bot it may concern stays stopped
-/// (`stored_live_ids`), and the feed says so.
+/// A state that cannot be read fails closed, never as "no live bots" (a real
+/// DCA bot would resume on paper and the mirror forget the real position it
+/// holds). The raw value is copied to its own meta key before anything can
+/// overwrite it, every bot it may concern stays stopped (`stored_live_ids`),
+/// and the feed says so.
 pub fn restore(app: &AppHandle) {
     let Some(d) = dir(app) else { return };
     let (stored, raw) = read_stored(app);
@@ -1469,8 +1469,7 @@ mod tests {
 
     const LOT: LotStep = LotStep { step: 0.001, min_qty: 0.001 };
 
-    // A real-money state that cannot be read must keep its bots stopped. It
-    // used to read as "no live bots", and a live DCA bot resumed on paper.
+    // A real-money state that cannot be read must keep its bots stopped.
     #[test]
     fn an_unreadable_live_state_fails_closed() {
         let on = serde_json::to_value(LiveState { enabled: true, ..Default::default() }).unwrap();
@@ -1587,7 +1586,7 @@ mod tests {
                 "{venue}"
             );
         }
-        // Bitget has no order path (removed 2026-10-09), sandbox or not.
+        // Bitget has no order path, sandbox or not.
         for sandbox in [false, true] {
             assert_eq!(enable_refusal(true, &cfg, "bitget", "LIVE", sandbox), Some("liveFuturesBinanceOnly".into()));
         }

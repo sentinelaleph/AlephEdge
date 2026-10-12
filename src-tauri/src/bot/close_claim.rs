@@ -1,4 +1,4 @@
-//! Advisory close claim (2026-09-18): makes the tick loop's own close and an
+//! Advisory close claim: makes the tick loop's own close and an
 //! event-triggered veto close mutually exclusive on one position, so the two
 //! can never both record a close for it — Sentinel's "veto" event closes a
 //! position the instant it arrives, off the tick's own 4s schedule, and the

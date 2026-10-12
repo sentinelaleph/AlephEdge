@@ -18,9 +18,8 @@
 //!   4. An unlocked vault holding a Trade-capable key for the bot's exchange.
 //!   5. One-way position mode, and no existing exposure on the symbol.
 //!
-//! Both directions. The old LONG-only rule dated from Sentinel publishing
-//! longs only; 39 of the 42 signals pending on 2026-09-16 were SHORT, so it
-//! kept nearly the whole live book simulated without saying so.
+//! Both directions: Sentinel publishes shorts as well as longs, and a
+//! direction the live path skipped would stay simulated without saying so.
 //!
 //! FAILURE HONESTY: a fill that never happened is never recorded (entry price
 //! and quantity come from Binance's response), and a live position that fails
@@ -41,7 +40,7 @@ use super::super::model::{BotConfig, BotKind, TakeProfitTarget, LIVE_TRADING_ENA
 use super::super::BotManager;
 use super::take_profit::{resolve_tp, TpResolution};
 
-// ---- i18n keys (PRD §5.4: no silent skips) ----
+// ---- i18n keys (no silent skips) ----
 // Entry skips.
 pub const SKIP_VAULT_LOCKED: &str = "liveVaultLocked";
 pub const SKIP_QTY_BELOW_MIN: &str = "liveQtyBelowMinimum";
@@ -211,8 +210,8 @@ pub async fn open_live(
     // Isolated margin at the leverage the sizing assumed: on CROSS (Binance's
     // default) the whole wallet backs the position, and a symbol left at 20x
     // from an earlier manual trade could liquidate inside the stop.
-    // A permanent rejection here is judged once (`setup_failure_skip`);
-    // it used to retry every tick until the signal expired.
+    // A permanent rejection here is judged once (`setup_failure_skip`),
+    // not retried every tick until the signal expires.
     exchange
         .set_isolated(&cred, symbol)
         .await
@@ -471,26 +470,14 @@ pub async fn flatten_confirmed(
 mod tests {
     use super::*;
 
+    /// The shared fixture config (`test_fixtures::cfg`) on `exchange`.
     fn cfg(live: bool, exchange: &str) -> BotConfig {
         BotConfig {
-            kind: BotKind::Futures,
             exchange_id: exchange.into(),
             max_positions: 3,
-            capital: 100.0,
             leverage: 3,
-            min_confidence: None,
-            direction: None,
-            symbols: vec![],
-            combos: vec![],
-            engines: vec![],
             live,
-            max_loss_pct: None,
-            sizing: crate::bot::model::SizingMode::Fixed,
-            risk_per_trade_pct: 1.0,
-            take_profit: Default::default(),
-            take_profit_overrides: Default::default(),
-            // Fixtures carry fixed dates; the age gate has its own tests.
-            max_signal_age_min: 0,
+            ..crate::bot::engine::test_fixtures::cfg()
         }
     }
 
@@ -605,7 +592,7 @@ mod tests {
             // ...except against the venues' test networks, for the dry run.
             assert_eq!(live_trading_allowed_in(&cfg(true, venue), BotKind::Futures, true), LIVE_TRADING_ENABLED, "{venue}");
         }
-        // No order path at all (Bitget since 2026-10-09): never, sandbox or not.
+        // No order path at all (Bitget): never, sandbox or not.
         for sandbox in [false, true] {
             assert!(!live_trading_allowed_in(&cfg(true, "bitget"), BotKind::Futures, sandbox));
         }

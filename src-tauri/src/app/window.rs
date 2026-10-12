@@ -1,5 +1,5 @@
 //! First-open window size. The config opens the main window at 1618 x 874
-//! (inner, logical): the owner's laptop layout, where the sidebar, the filter
+//! (inner, logical): a laptop layout where the sidebar, the filter
 //! panel, the center and the right panel all fit (narrower and the right
 //! panel folds away). On a screen too small for that, the window opens
 //! maximized instead of spilling past the work area.

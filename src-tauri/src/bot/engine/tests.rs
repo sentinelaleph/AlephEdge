@@ -13,22 +13,21 @@ fn close(a: f64, b: f64) -> bool {
     (a - b).abs() < 1e-9
 }
 
-// Server invalidation used to close first ("the emergency brake"). The
-// server's BTC guard closing filled positions was measured at −163 pts and is
-// OFF upstream, so a mid-range invalidated position now stays open and only
-// raises a note.
+// Server invalidation does not close: closing filled positions on the BTC
+// guard loses value (the server keeps it off too). A mid-range invalidated
+// position stays open and only raises a note.
 #[test]
-fn invalidation_closes_immediately() {
+fn invalidation_only_notes_and_never_closes() {
     let mut p = position(&signal("long", 100.0, 110.0, 95.0), None);
     let step = close_step(&mut p, 102.0, NOW, true, None);
-    assert_eq!(step.exit, None, "invalidation must no longer close");
+    assert_eq!(step.exit, None, "invalidation must not close");
     assert!(step.note_invalidation);
 }
 
-// Invalidation no longer outranks the ledger exits: at SL it is "sl", at TP
-// it is "tp" — never "invalidated" (−163 pts measurement, see above).
+// Invalidation never outranks the ledger exits: at SL it is "sl", at TP it is
+// "tp" — never "invalidated".
 #[test]
-fn invalidation_beats_tp_and_sl() {
+fn ledger_exits_outrank_invalidation() {
     let mut p = position(&signal("long", 100.0, 110.0, 95.0), None);
     assert_eq!(
         close_step(&mut p, 94.0, NOW, true, None)
@@ -323,9 +322,9 @@ use super::management::{close_step_with, Fill};
 const WATCHED: Fill = Fill::Levels { watched: true };
 const UNWATCHED: Fill = Fill::Levels { watched: false };
 
-// HANA, testnet trade 6 (7 Oct): a short with breakeven armed at 0.01272 was
-// booked at the polled 0.01281 (−0.79% unlevered). Price crossed the stop
-// while the position was being watched, so a resting stop fills at it.
+// A short with breakeven armed at 0.01272 must not book at a polled 0.01281:
+// price crossed the stop while the position was watched, so a resting stop
+// fills at it.
 #[test]
 fn a_watched_paper_stop_books_at_its_level() {
     let mut p = position(&signal("short", 0.01272, 0.0120, 0.0135), None);
@@ -394,7 +393,7 @@ fn horizon_and_max_loss_keep_the_polled_price_on_paper() {
     assert_eq!((exit.reason, exit.price), ("max_loss", 99.0));
 }
 
-// `Fill::Polled` is the old behaviour exactly (live positions, paper runner).
+// `Fill::Polled` books the polled price (live positions, paper runner).
 #[test]
 fn polled_fill_is_unchanged() {
     let mut p = position(&signal("long", 100.0, 110.0, 95.0), None);

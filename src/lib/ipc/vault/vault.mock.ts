@@ -1,13 +1,6 @@
 /**
- * Dev-only in-memory vault, kept OUT of the production bundle.
- *
- * It answers `unlock` with success whatever password it is handed, which is
- * exactly right for `npm run dev` in a plain browser and exactly wrong to ship:
- * a reader auditing this repository would find a vault that opens for anyone
- * sitting in the released JavaScript, even though `inTauri()` makes it
- * unreachable there. It now lives behind a dynamic import that only the dev
- * build ever reaches, so the released bundle does not contain it at all
- * (2026-09-20 pre-publication review, S6).
+ * Dev-only in-memory vault that unlocks for any password; reached only
+ * through `devMock` in ../bridge, which keeps it out of the release bundle.
  */
 
 import type { AddCredentialInput, CredentialMeta, VaultStatus } from "./vault";

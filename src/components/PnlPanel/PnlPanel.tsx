@@ -59,7 +59,7 @@ interface PnlPanelProps {
 }
 
 /**
- * Stats and closed trades (PRD §5.6): net PnL (fees in), qualified winrate,
+ * Stats and closed trades: net PnL (fees in), qualified winrate,
  * profit factor, max drawdown, and the trade list with the FR/LD context
  * captured at open. The page header carries Export CSV; the page title names
  * the section, so there is no heading here.

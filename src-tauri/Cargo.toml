@@ -6,7 +6,7 @@ authors = ["Sentinel Aleph"]
 edition = "2021"
 rust-version = "1.77"
 
-# The library the desktop binary and (future) integration tests share.
+# The library the desktop binary (src/main.rs) is a thin wrapper around.
 [lib]
 name = "aleph_edge_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
@@ -19,7 +19,7 @@ aleph-link = { path = "../crates/aleph-link" }
 aleph-desk-link = { path = "../crates/aleph-desk-link" }
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
-# Signature-verified auto-update (PRD §7.5). Desktop-only.
+# Signature-verified auto-update. Desktop-only.
 tauri-plugin-updater = "2"
 # One desk per app identifier: a second launch focuses the running window
 # instead of starting a second engine on the same edge.db. Held below 2.5,
@@ -58,7 +58,7 @@ ccxt = { version = "=4.5.85", default-features = false, features = ["bybit", "ok
 futures-util = "0.3"
 tokio = { version = "1", features = ["time", "sync", "macros"] }
 
-# Local trade history + metrics cache (PRD §3.1: SQLite, never holds keys).
+# Local trade history + metrics cache (SQLite; never holds keys).
 rusqlite = { version = "0.32", features = ["bundled"] }
 tokio-tungstenite = { version = "0.29.0", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
 uuid = { version = "1.20.0", features = ["v4"] }
@@ -68,8 +68,8 @@ uuid = { version = "1.20.0", features = ["v4"] }
 libc = "0.2"
 
 [features]
-# This feature is used for production builds where `devPath` points to the
-# filesystem instead of a dev server.
+# Serves the bundled frontend (`build.frontendDist` in tauri.conf.json) instead
+# of the dev server at `build.devUrl`; the Tauri CLI enables it for release builds.
 custom-protocol = ["tauri/custom-protocol"]
 # Real-money order sending (`LIVE_TRADING_ENABLED`). OFF in every default
 # build, including the public one; a live build is made on purpose with

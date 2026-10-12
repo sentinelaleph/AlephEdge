@@ -1,4 +1,4 @@
-//! The fresh-signal gate (owner rule 2026-09-23): a bot enters only signals at
+//! The fresh-signal gate: a bot enters only signals at
 //! most `max_signal_age_min` minutes old; 0 turns the gate off.
 
 use super::btc_break::BtcRegime;

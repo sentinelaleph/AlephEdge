@@ -3,9 +3,8 @@
 //! with the cost model and fill rule stated alongside it.
 //!
 //! `dca_long_classic` is the original research preset. The other eleven are
-//! beginner templates (owner request 2026-10-03), fixed before any run and
-//! judged once by the same four checks (a pre-registration kept with the
-//! internal research harness). Every template
+//! beginner templates, fixed before any run and judged once by the same four
+//! checks (`Preset::fail_reasons` lists them). Every template
 //! ships with its verdict: "presetReady", or "failed" plus the checks it
 //! failed; the app asks before a failed one is used.
 
@@ -60,16 +59,16 @@ pub struct HistoricalSimulation {
     pub open_deals_at_data_end: u32,
     pub liquidations: u32,
     pub stopped_deals: u32,
-    /// A later re-run that did not confirm every check (owner decision
-    /// 2026-10-09, option b): the template stays, without the "fully proven"
-    /// claim, until the dated re-read.
+    /// A later re-run that did not confirm every check: the template stays,
+    /// without the "fully proven" claim, and shows when the checks are read
+    /// again (`Recheck::next_read`).
     pub recheck: Option<Recheck>,
 }
 
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Recheck {
-    /// Date of the re-run (9 Oct 2026, pre-registered).
+    /// Date of the re-run.
     pub run_on: &'static str,
     /// Last day of the test window the split figures come from.
     pub test_window_end: &'static str,
@@ -83,9 +82,9 @@ pub struct Recheck {
     pub next_read: &'static str,
 }
 
-/// The 2026-10-09 re-run: October (8.5 days, majors down 1-15%) was negative
-/// with every deal still open, so "every test month positive" failed; the
-/// original window still passes. One record per affected template.
+/// The October re-run: the partial month (8.5 days, majors down 1-15%) was
+/// negative with every deal still open, so "every test month positive" failed;
+/// the original window still passes. One record per affected template.
 fn october_recheck(partial_month_mean_pct: f64) -> Option<Recheck> {
     Some(Recheck {
         run_on: "2026-10-09",
@@ -116,7 +115,7 @@ pub struct Preset {
     pub id: &'static str,
     /// "presetReady" or "failed".
     pub verdict: &'static str,
-    /// Checks a failed template did not pass, in pre-registration order:
+    /// Checks a failed template did not pass, in this fixed order:
     /// negativeSplit, ciIncludesZero, monthsNotAllPositive, liquidations.
     pub fail_reasons: Vec<&'static str>,
     /// i18n key under strategy.preset.situation: the market it is meant for.
@@ -131,8 +130,8 @@ pub struct Preset {
 }
 
 /// The lab ran every template as a NEW 1000 USDT bot per (pair, month);
-/// a cycle still open at month end ran on until it closed (pre-registration
-/// "one bot per (symbol, month), budget 1000"). The per-bot-month means are
+/// a cycle still open at month end ran on until it closed ("one bot per
+/// (symbol, month), budget 1000"). The per-bot-month means are
 /// that, not one bot kept running: its figures are the `one_bot_*` fields
 /// (dca_long_classic only).
 pub const CAPITAL_MODEL: &str = "botPerSymbolMonth";
@@ -190,10 +189,9 @@ pub fn dca_long_classic() -> Preset {
             max_drawdown_pct: None,
             // The simulation had no BTC gate; parity keeps it off.
             pause_on_btc_break: false,
-            // Off by default (owner decision 2026-10-01): an engine run of
-            // this preset over 2024-10..2026-09 (5 bots, DataHub 1h) gave
-            // +41.5% without the breaker and +29.8% with it; one trip closed
-            // no-stop DCA cycles at the bottom. The user can switch it on.
+            // Off by default: on this preset a breaker trip closes no-stop
+            // DCA cycles at the bottom, and the simulation ran without one.
+            // The user can switch it on.
             portfolio_breaker: false,
             params: StrategyParams::Dca(DcaParams {
                 base_order: None,
@@ -277,7 +275,7 @@ pub fn dca_long_classic() -> Preset {
 }
 
 
-// ---- beginner templates (generated from the lab verdicts, 2026-10-03) ----
+// ---- beginner templates (generated from the lab verdicts) ----
 
 fn template_config(name: &str, id: &str, side: Side, params: StrategyParams) -> StrategyConfig {
     StrategyConfig {
@@ -320,7 +318,7 @@ fn template_universe(rule: &'static str, rank_from: u32, top_n: u32) -> Universe
     }
 }
 
-/// T02 of the template pre-registration (uncertainMajors).
+/// Template T02 (uncertainMajors).
 pub fn dca_long_safe() -> Preset {
     Preset {
         id: "dca_long_safe",
@@ -402,7 +400,7 @@ pub fn dca_long_safe() -> Preset {
     }
 }
 
-/// T03 of the template pre-registration (quickMajors).
+/// Template T03 (quickMajors).
 pub fn dca_long_quick() -> Preset {
     Preset {
         id: "dca_long_quick",
@@ -484,7 +482,7 @@ pub fn dca_long_quick() -> Preset {
     }
 }
 
-/// T04 of the template pre-registration (btcOnly).
+/// Template T04 (btcOnly).
 pub fn dca_long_btc() -> Preset {
     Preset {
         id: "dca_long_btc",
@@ -566,7 +564,7 @@ pub fn dca_long_btc() -> Preset {
     }
 }
 
-/// T05 of the template pre-registration (volatileAlts).
+/// Template T05 (volatileAlts).
 pub fn dca_long_alts() -> Preset {
     Preset {
         id: "dca_long_alts",
@@ -648,7 +646,7 @@ pub fn dca_long_alts() -> Preset {
     }
 }
 
-/// T06 of the template pre-registration (limitedLoss).
+/// Template T06 (limitedLoss).
 pub fn dca_long_stop() -> Preset {
     Preset {
         id: "dca_long_stop",
@@ -730,7 +728,7 @@ pub fn dca_long_stop() -> Preset {
     }
 }
 
-/// T07 of the template pre-registration (bearMajors).
+/// Template T07 (bearMajors).
 pub fn dca_short_classic() -> Preset {
     Preset {
         id: "dca_short_classic",
@@ -812,7 +810,7 @@ pub fn dca_short_classic() -> Preset {
     }
 }
 
-/// T08 of the template pre-registration (bearMajorsSafe).
+/// Template T08 (bearMajorsSafe).
 pub fn dca_short_safe() -> Preset {
     Preset {
         id: "dca_short_safe",
@@ -894,7 +892,7 @@ pub fn dca_short_safe() -> Preset {
     }
 }
 
-/// T09 of the template pre-registration (rangeWide).
+/// Template T09 (rangeWide).
 pub fn grid_neutral() -> Preset {
     Preset {
         id: "grid_neutral",
@@ -972,7 +970,7 @@ pub fn grid_neutral() -> Preset {
     }
 }
 
-/// T10 of the template pre-registration (rangeTight).
+/// Template T10 (rangeTight).
 pub fn grid_neutral_tight() -> Preset {
     Preset {
         id: "grid_neutral_tight",
@@ -1050,7 +1048,7 @@ pub fn grid_neutral_tight() -> Preset {
     }
 }
 
-/// T11 of the template pre-registration (slowUptrend).
+/// Template T11 (slowUptrend).
 pub fn grid_long_trail() -> Preset {
     Preset {
         id: "grid_long_trail",
@@ -1128,7 +1126,7 @@ pub fn grid_long_trail() -> Preset {
     }
 }
 
-/// T12 of the template pre-registration (slowDowntrend).
+/// Template T12 (slowDowntrend).
 pub fn grid_short() -> Preset {
     Preset {
         id: "grid_short",
@@ -1242,8 +1240,8 @@ mod tests {
         }
     }
 
-    /// Pre-registration 2026-10-03: a template ships with its verdict, a
-    /// failed one with at least one reason, and the passed ones come first.
+    /// A template ships with its verdict, a failed one with at least one
+    /// reason, and the passed ones come first.
     #[test]
     fn every_template_carries_an_honest_verdict() {
         let all = all();
@@ -1273,8 +1271,8 @@ mod tests {
 
     #[test]
     fn the_october_recheck_is_carried_by_classic_and_safe_only() {
-        // Owner decision 2026-10-09 (option b): the two templates stay, marked
-        // under review with October-to-date, until the 1 Nov re-read.
+        // The two templates that passed stay, marked under review with the
+        // partial month's result; no other template carries a recheck.
         for p in all() {
             match p.id {
                 "dca_long_classic" | "dca_long_safe" => {
@@ -1293,7 +1291,7 @@ mod tests {
     #[test]
     fn dca_long_classic_is_outside_the_portfolio_breaker() {
         let p = dca_long_classic();
-        assert!(!p.config.portfolio_breaker, "simulated without a breaker (decision 2026-10-01)");
+        assert!(!p.config.portfolio_breaker, "simulated without a breaker");
         let mut cfg = p.config.clone();
         cfg.symbol = "ETHUSDT".into();
         assert_eq!(validate(&cfg, 1), Ok(()));
@@ -1319,8 +1317,8 @@ mod tests {
         assert!(cfg.portfolio_breaker, "old rows keep today's behaviour");
     }
 
-    /// Audit 8 Oct: the headline numbers are per bot-month (a new bot each
-    /// month), never one persistent bot.
+    /// The headline numbers are per bot-month (a new bot each month), never
+    /// one persistent bot.
     #[test]
     fn every_template_states_the_bot_month_capital_model() {
         for p in all() {

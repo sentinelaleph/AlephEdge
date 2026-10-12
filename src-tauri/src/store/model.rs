@@ -1,4 +1,4 @@
-//! Trade-history types. PRD §5.6: every position row carries the FR and LD
+//! Trade-history types. Every position row carries the FR and LD
 //! values captured at open — the honesty contract is that skipped context is
 //! never hidden. All PnL figures are NET (fees included).
 
@@ -84,7 +84,7 @@ pub struct TradeRecord {
     #[serde(default)]
     pub pnl_pct_of_capital: f64,
     /// Sentinel's veto reason code, populated only when `exit_reason ==
-    /// "veto"` (2026-09-18: BTC's regime turned against this signal). None
+    /// "veto"` (BTC's regime turned against this signal). None
     /// for every other exit.
     #[serde(default)]
     pub veto_reason_code: Option<String>,
@@ -117,7 +117,7 @@ fn fixed_mode() -> String {
     "fixed".to_string()
 }
 
-/// Aggregate performance metrics (PRD §5.6), computed over closed trades.
+/// Aggregate performance metrics, computed over closed trades.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PnlStats {

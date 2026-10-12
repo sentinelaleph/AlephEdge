@@ -20,11 +20,9 @@ pub fn has_order_path(exchange_id: &str) -> bool {
 
 /// Venues whose order path ran end to end on the exchange's own test network
 /// (`testnet_tests.rs`: entry, stop, move, add, reduce, close, clean symbol).
-/// Real money can be switched ON only here. Binance passed on 2026-10-05.
-/// Bybit and OKX have not run, and the 2026-10-08 audit found their position
-/// mode read, cancel sweep, contract sizing and breakeven move broken or
-/// missing. Adding a venue is a release decision taken after its dry run
-/// passes, never a setting. Closing a position is never gated by this list.
+/// Real money can be switched ON only here. Binance has passed; Bybit and OKX
+/// have not run yet. Adding a venue is a release decision taken after its dry
+/// run passes, never a setting. Closing a position is never gated by this list.
 pub const DRY_RUN_PASSED: [&str; 1] = ["binance"];
 
 /// The refusal for switching real money on where no dry run passed
@@ -270,8 +268,8 @@ mod tests {
         for venue in ["binance", "bybit", "okx"] {
             assert!(live_venue_allowed_in(venue, true), "{venue}");
         }
-        // No order path at all stays refused, sandbox or not. Bitget's was
-        // removed on 2026-10-09 (no key verifier, no dry run).
+        // No order path at all stays refused, sandbox or not (Bitget has no
+        // key verifier and no dry run).
         for venue in ["bitget", "mexc", "coindcx", ""] {
             assert!(!live_venue_allowed_in(venue, true), "{venue}");
             assert!(!live_venue_allowed_in(venue, false), "{venue}");

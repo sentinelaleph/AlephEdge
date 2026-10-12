@@ -1,5 +1,5 @@
 //! Closed-trade records, pure: the NET record a close persists and the
-//! veto-stamped variant. Split out of `book.rs` (2026-09-22) so the headless
+//! veto-stamped variant. Kept apart from `book.rs` so the headless
 //! paper runner writes byte-for-byte the same `trades` rows as the desktop.
 
 use crate::signal::model::RegimeVetoEvent;

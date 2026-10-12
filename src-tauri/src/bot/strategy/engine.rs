@@ -903,8 +903,8 @@ mod tests {
         assert!(!opened && b2.fills.is_empty() && b2.equity.is_empty());
     }
 
-    /// Audit 8 Oct: a 5x bot resumed after the level was lowered to 2x.
-    /// Resume runs the Start checks; a refused bot stays Stopped, noted.
+    /// A 5x bot must not resume after the level was lowered to 2x: resume
+    /// runs the Start checks; a refused bot stays Stopped, noted.
     #[test]
     fn resume_runs_the_start_checks_oldest_first() {
         use crate::bot::strategy::commands::fits_reservation;

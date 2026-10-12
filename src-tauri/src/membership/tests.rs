@@ -131,9 +131,8 @@ fn rotating_server(refresh_calls: Arc<AtomicUsize>) -> String {
 #[test]
 fn two_callers_hitting_401_together_spend_the_refresh_token_once() {
     // The UI's membership poll and the signal stream's 401 handler both call
-    // refresh_status. With rotation, the second refresh used to present a
-    // retired token and fail ("token refresh failed") — and with a sign-out
-    // on rejection it would have logged the user out.
+    // refresh_status; with rotation, a second refresh must not present the
+    // retired token (a rejection would sign the user out).
     let calls = Arc::new(AtomicUsize::new(0));
     let base = rotating_server(calls.clone());
     let m = signed_in(base, "old-access", "old-refresh", None);
@@ -150,9 +149,9 @@ fn two_callers_hitting_401_together_spend_the_refresh_token_once() {
 
 #[test]
 fn a_refused_refresh_ends_the_session_instead_of_keeping_it_active() {
-    // Revoked session: billing says 401, refresh says 401. The old code
-    // returned an error but kept the session AND the cached "active" billing
-    // status, so the trade gate stayed open on a dead session.
+    // Revoked session: billing says 401, refresh says 401. The session and
+    // its cached "active" billing status must go, or the trade gate would stay
+    // open on a dead session.
     let base = serve(Arc::new(|_m, path, _b, _body| {
         if path.starts_with("/api/v1/auth/refresh") {
             (401, r#"{"error":"Invalid or expired refresh token"}"#.into())
@@ -186,7 +185,7 @@ fn a_refresh_that_cannot_reach_the_server_keeps_the_session() {
     assert!(tauri::async_runtime::block_on(m.refresh_status()).is_err());
     assert!(m.view().authenticated, "signed out over a 503");
     assert_eq!(m.access_token().as_deref(), Some("old-access"));
-    // But the gate no longer trusts a billing answer the 401 contradicted.
+    // But the gate does not trust a billing answer the 401 contradicted.
     assert!(!m.view().active);
 }
 

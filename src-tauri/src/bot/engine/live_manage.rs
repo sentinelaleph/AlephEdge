@@ -2,10 +2,10 @@
 //! positions: breakeven moves the exchange stop, a partial reduces the
 //! exchange quantity.
 //!
-//! Before this, both happened only in the book. With the app closed after
-//! breakeven armed, the exchange stop still sat at the original SL — the user
-//! was exposed to a full stop the book believed was gone. The planners are
-//! pure so the ORDER of real orders is tested, not hoped for.
+//! Both must reach the exchange, not only the book: with the app closed after
+//! breakeven armed, the original SL would still sit on the exchange and the
+//! user would be exposed to a full stop the book believes is gone. The
+//! planners are pure so the ORDER of real orders is tested, not hoped for.
 
 use tauri::{AppHandle, Manager};
 

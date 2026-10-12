@@ -8,9 +8,7 @@ import type { PreviewDto, StrategyConfig } from "@/lib/ipc/strategy/strategy";
  * A reachable liquidation with no stop in front of it: past the last safety
  * order (DCA, stop loss off) or outside the range (grid, stop-out off)
  * nothing closes the position before the exchange liquidates it, and the
- * cycle's whole margin is gone. Owner's backtest 3 Oct: 5x, no stop, one
- * cycle at -100% of budget; the two 1x short DCA templates were liquidated
- * 6 times in their test. Such a config is allowed, but only after the user
+ * cycle's whole margin is gone. Such a config is allowed, but only after the user
  * has read the liquidation price and confirmed it.
  *
  * The Rust preview says whether a liquidation price exists (a 1x short has

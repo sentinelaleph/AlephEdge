@@ -41,8 +41,7 @@ let openCount = 0;
 /**
  * Hover/focus tooltip, portalled to <body> so clipped containers (the status
  * bar, a scrolling table) never cut it. Opens after 300 ms; while one is open
- * or just closed, the next opens at once (emil-design-eng: skip the delay on
- * subsequent tooltips). Esc closes. Scales from the trigger side.
+ * or just closed, the next opens at once. Esc closes. Scales from the trigger side.
  *
  * Usage:
  *   <Tooltip content={t("nav.summaryPanel")}><button aria-label=…>…</button></Tooltip>

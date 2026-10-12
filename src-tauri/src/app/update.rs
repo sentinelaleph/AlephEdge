@@ -1,11 +1,9 @@
 //! Signed self-update (desktop): check the feed pinned in tauri.conf.json and,
 //! on the user's word, download, verify and install the new version.
 //!
-//! The updater plugin was registered from the first release but nothing ever
-//! called it, so an installed 0.1.0 never learned that a newer build existed.
-//! These two commands are the only path to it; the webview gets no updater
-//! permission of its own. The plugin verifies every download against the
-//! public key in tauri.conf.json before installing it.
+//! These two commands are the only path to the updater plugin; the webview
+//! gets no updater permission of its own. The plugin verifies every download
+//! against the public key in tauri.conf.json before installing it.
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
@@ -22,8 +20,8 @@ pub struct UpdateCheck {
 }
 
 /// The public feed ships the normal build under the normal identity.
-/// Offered to the TESTNET build, its installer replaced the normal app and
-/// closed the testnet one (10 Oct 2026), so that build never reads the feed.
+/// Offered to the TESTNET build, its installer would replace the normal app
+/// and close the testnet one, so that build never reads the feed.
 pub fn updates_off(identifier: &str) -> bool {
     identifier.ends_with(".testnet")
 }
@@ -67,8 +65,7 @@ pub async fn app_install_update(app: AppHandle, confirmation: String) -> Result<
     }
     // The public feed ships the default (paper) build. Installing it over a
     // live build with real money in play would leave real positions with no
-    // engine managing them (audit 2026-10-04, H1). Close them and switch live
-    // off first.
+    // engine managing them. Close them and switch live off first.
     {
         if crate::bot::strategy_live::live_exposure(&app) {
             return Err("updateBlockedLive".to_string());

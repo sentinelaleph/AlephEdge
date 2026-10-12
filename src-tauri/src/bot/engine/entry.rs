@@ -73,9 +73,9 @@ pub async fn prepare_entry(
     holds_market: bool,
     now: u64,
 ) -> Result<Option<Prepared>, Skip> {
-    // Owner decision 2026-10-05: a bot takes only signals published for
-    // its own market. A spot signal's levels and its graded outcome come
-    // from spot candles; traded on a perp it is a different instrument.
+    // A bot takes only signals published for its own market. A spot signal's
+    // levels and its graded outcome come from spot candles; traded on a perp it
+    // is a different instrument.
     if let Some(skip) = market_mismatch(cfg.kind, sig) {
         return Err(skip);
     }
@@ -116,8 +116,8 @@ pub async fn prepare_entry(
     Ok(Some(Prepared { plan, ctx }))
 }
 
-/// The risk level's position limit applies per signal bot (owner, 10 Oct
-/// 2026): Spot, Futures and Pump are separate categories, so Spot holding 5
+/// The risk level's position limit applies per signal bot: Spot, Futures and
+/// Pump are separate categories, so Spot holding 5
 /// must not stop Futures. judge_budget's "global" ceiling therefore counts
 /// this bot only here; the paper runner (one bot per arm) is unchanged.
 pub(crate) fn signal_bot_budget(bots: &BotManager, kind: BotKind, balance: f64, notional: f64) -> precheck::Budget {
@@ -133,7 +133,7 @@ pub async fn open_phase(app: &AppHandle, regime: BtcRegime) {
     let signals = app.state::<SignalManager>();
     let limits = app.state::<RiskManager>().limits();
 
-    // Newest first (owner rule, 2026-09-23): when slots are scarce the
+    // Newest first: when slots are scarce the
     // freshest setup claims them; a regenerated signal replaces its stale
     // predecessor rather than queueing behind it. The age gate
     // (`max_signal_age_min`) drops anything older than the bot allows.

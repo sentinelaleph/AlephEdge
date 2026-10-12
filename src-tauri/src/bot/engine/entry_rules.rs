@@ -2,7 +2,7 @@
 //! the planning steps between the live price and the network prechecks
 //! (take-profit resolution, leverage, sizing), plus the position builder.
 //!
-//! Split out of `entry.rs` (2026-09-22) so the headless paper runner
+//! Kept apart from `entry.rs` so the headless paper runner
 //! (`crates/aleph-paper-runner`) compiles THIS file — the exact code the
 //! desktop runs — without Tauri. Nothing here may import Tauri, a manager, or
 //! do I/O; `entry.rs` keeps the orchestration and re-exports these items.
@@ -25,7 +25,7 @@ pub struct GateInput<'a> {
     pub regime: BtcRegime,
     pub now_ms: u64,
     pub invalidated: bool,
-    /// Vetoed by the NEW "veto" event (2026-09-18): BTC's regime turned
+    /// Vetoed by the "veto" event: BTC's regime turned
     /// against it. Distinct from `invalidated` — see `GateInput` callers.
     pub regime_vetoed: bool,
     pub pump_allowed: bool,
@@ -237,7 +237,7 @@ pub fn manual_fill(
 /// Below the exchange's minimum order the trade cannot exist, on paper either
 /// (see EXCHANGE_MIN_ORDER_USDT). Called by the app's entry loop only, not by
 /// `plan_entry`: the server-side paper runner compiles this file and its
-/// pre-registered arms must keep their sizing rules.
+/// fixed test arms must keep their sizing rules.
 pub fn exchange_minimum_gate(plan: &PlannedEntry) -> Result<(), Skip> {
     if plan.size.notional < crate::bot::model::EXCHANGE_MIN_ORDER_USDT {
         return Err(Skip::with("belowExchangeMinimum", format!("{:.2}", plan.size.notional)));

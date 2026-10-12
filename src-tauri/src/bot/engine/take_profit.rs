@@ -1,8 +1,8 @@
 //! Resolves the user's take-profit target to one price at entry, pure.
 //!
-//! Sentinel publishes TP1..TP3; the bot used to exit at TP1 only. The user
-//! may now pick TP2, TP3 or a custom percent from the fill (bot-wide or per
-//! symbol). The SIGNAL is still judged on TP1 — geometry and the fill-drift
+//! Sentinel publishes TP1..TP3; the user picks TP1 (the default), TP2, TP3 or
+//! a custom percent from the fill (bot-wide or per symbol). The SIGNAL is
+//! always judged on TP1 — geometry and the fill-drift
 //! check in `geometry.rs` are unchanged — only the exit level moves.
 
 use crate::bot::model::TakeProfitTarget;
@@ -29,7 +29,7 @@ pub struct TpResolution {
 }
 
 impl TpResolution {
-    /// The pre-2026-09-22 behaviour, unchecked: the signal's TP1 (0 when the
+    /// The default target, unchecked: the signal's TP1 (0 when the
     /// signal has none — geometry refuses such a signal before any fill).
     pub fn signal_tp1(sig: &Signal) -> Self {
         Self {

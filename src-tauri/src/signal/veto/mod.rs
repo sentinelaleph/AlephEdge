@@ -1,5 +1,5 @@
 //! Server-side invalidation (veto) handling: the protection layer that voids a
-//! signal after publication (PRD §1/§3.3 — btc_trend_flip etc.). Split from the
+//! signal after publication (btc_trend_flip etc.). Split from the
 //! manager so the stream/lifecycle file stays within size limits; these methods
 //! share `SignalManager`'s private state by design.
 
@@ -92,8 +92,8 @@ impl SignalManager {
     }
 
     /// True when the server has voided this signal: never ENTER it. An open
-    /// position is no longer closed on it — the server-side guard close was
-    /// measured to destroy value (−163 pts) and is OFF upstream.
+    /// position is not closed on it: closing on the server-side guard loses
+    /// value, and Sentinel keeps that close off as well.
     pub fn is_invalidated(&self, signal_id: &str) -> bool {
         self.invalidated
             .lock()
@@ -102,7 +102,7 @@ impl SignalManager {
             .any(|id| id == signal_id)
     }
 
-    /// Records a NEW-contract "veto" frame (owner decision, 2026-09-18):
+    /// Records a "veto" frame:
     /// unlike `mark_invalidated`'s legacy frame, this one ALSO closes any open
     /// position on the signal immediately — so beyond bookkeeping (which
     /// blocks entry, see `is_regime_vetoed`) it spawns the close right here,
@@ -147,7 +147,7 @@ impl SignalManager {
         }
     }
 
-    /// True when Sentinel's NEW veto event (2026-09-18) voided this signal:
+    /// True when Sentinel's veto event voided this signal:
     /// never ENTER it. Distinct from `is_invalidated` — a veto also closes any
     /// open position (handled at receipt, see `mark_regime_veto`), while the
     /// legacy invalidation only blocks entry.

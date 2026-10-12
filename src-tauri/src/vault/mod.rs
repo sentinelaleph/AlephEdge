@@ -1,13 +1,12 @@
 //! Local key vault: device-only, password-sealed exchange credentials.
 //!
-//! Absolute rule (PRD): vault contents never reach telemetry, logs, crash
+//! Absolute rule: vault contents never reach telemetry, logs, crash
 //! reports, or ribqa.com. Only secret-free metadata (`CredentialMeta`,
 //! `VaultStatus`) ever crosses the IPC boundary. Secrets live in the sealed
 //! `vault.edge` file and, while unlocked, in a memory session. There is
 //! deliberately no password recovery.
 //!
-//! Three storage properties, each of which was missing before publication and
-//! each documented where it is implemented:
+//! Three storage properties, each documented where it is implemented:
 //!   * `vault.edge` is written owner-only and atomically (`secure_file`), so a
 //!     crash cannot destroy the keys and a local account cannot read the file.
 //!   * the KDF parameters in the header are bounded before Argon2 sees them
@@ -16,10 +15,10 @@
 //!   * every credential wipes itself on drop (`model::ExchangeCredential`), not
 //!     just the session's copy — the order path clones them constantly.
 //!
-//! And one lifetime property, added last and for the same reason (S4): the
-//! unlocked session expires. An idle vault locks itself (`idle`, `watchdog`),
-//! because a desk that runs unattended for days would otherwise hold decrypted
-//! exchange keys in memory from the one password entry until the process died.
+//! And one lifetime property: the unlocked session expires. An idle vault
+//! locks itself (`idle`, `watchdog`), because a desk that runs unattended for
+//! days must not hold decrypted exchange keys in memory from the one password
+//! entry until the process dies.
 
 mod commands;
 pub(crate) use commands::vault_path;
@@ -50,12 +49,12 @@ use model::{CredentialMeta, ExchangeCredential, KdfParams, VaultFile, VaultState
 
 /// The in-memory unlocked session.
 ///
-/// Nothing wipes secrets here any more: the key is `Zeroizing`, and each
+/// Nothing wipes secrets here: the key is `Zeroizing`, and each
 /// `ExchangeCredential` zeroizes in its own `Drop`, so dropping the `Vec` wipes
 /// every element. A `Drop` on this struct that also walked `creds` would be
 /// dead code — and worse, it would suggest the session is the only place a
-/// credential gets wiped, which was exactly the gap: the copies handed out by
-/// `credential()` never passed through here.
+/// credential gets wiped, when the copies handed out by `credential()` never
+/// pass through here.
 struct Session {
     key: Zeroizing<[u8; 32]>,
     params: KdfParams,
@@ -118,8 +117,8 @@ impl VaultManager {
             return false;
         };
         // A vault that holds no key has nothing in memory to protect. Locking
-        // it only took the desk, and any half-filled form, away from a paper
-        // user in the middle of their work (audit 2026-10-08, ux_global 3).
+        // it would only take the desk, and any half-filled form, away from a
+        // paper user in the middle of their work.
         // The budget applies again from the first key: adding it is a use.
         if session.creds.is_empty() || !self.idle.expired() {
             return false;
@@ -142,8 +141,8 @@ impl VaultManager {
 
     /// Records user activity in the window (`vault_touch`): "idle" means the
     /// user left, as the watchdog promises, not only that no credential was
-    /// read. Before this, a desk that read no key locked one budget after the
-    /// unlock however busy the user was.
+    /// read: a desk that reads no key must not lock one budget after the
+    /// unlock however busy the user is.
     ///
     /// Not `use_session`: activity must not wake a vault whose budget is
     /// already spent. The expiry rule runs first, so coming back after the
@@ -280,7 +279,7 @@ impl VaultManager {
 
     /// Destroys the vault entirely: locks the session, deletes `vault.edge`,
     /// and removes the keychain salt. The ONLY recovery path when the password
-    /// is lost or the keychain salt is missing (PRD §5.5: no password
+    /// is lost or the keychain salt is missing (there is no password
     /// recovery). After this the user creates a fresh vault and re-enters keys.
     /// Removes the temp file too: a save interrupted before its rename leaves
     /// `vault.edge.tmp` holding the same ciphertext, and a reset that deletes
@@ -527,7 +526,7 @@ fn open_vault(file: VaultFile, password: &str, salt: &[u8]) -> Result<Session, S
 /// A short fingerprint of the salt, stored in `vault.edge`: the first 8 bytes
 /// of SHA-256 over a domain tag and the salt. It identifies which salt sealed
 /// the file without revealing it (the salt is 128 random bits; 64 bits of a
-/// hash give no way back), so the keychain binding (PRD §5.5) is unchanged.
+/// hash give no way back), so the keychain binding is unchanged.
 fn salt_check(salt: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     let mut h = Sha256::new();
@@ -538,7 +537,7 @@ fn salt_check(salt: &[u8]) -> String {
 
 /// The vault's salt lives in OS-native secure storage (Windows Credential
 /// Manager / macOS Keychain / Linux Secret Service), deliberately never in
-/// `vault.edge` itself (PRD §5.5). This binds a vault to the device + OS user
+/// `vault.edge` itself. This binds a vault to the device + OS user
 /// account it was created on: the file alone, copied elsewhere, is not
 /// decryptable even with the correct password. One entry per app identifier
 /// (`app::keychain`).
@@ -623,9 +622,8 @@ mod tests {
 
     #[test]
     fn an_idle_vault_locks_itself_once_the_budget_is_spent() {
-        // The gap S4 reported: before this, the keys stayed decrypted in memory
-        // for the whole process lifetime after one password entry, on a desk
-        // designed to run unattended for days.
+        // Keys must not outlive the idle budget: the desk runs unattended for
+        // days.
         let (m, clock) = manager(1_000);
         unlocked(&m, &["main"]);
         assert!(m.list().is_ok(), "unlocked to begin with");
@@ -757,9 +755,9 @@ mod tests {
 
     #[test]
     fn an_interrupted_save_leaves_the_previous_vault_unlockable() {
-        // The old in-place `fs::write` truncated the target before it had the
-        // new bytes: a crash mid-write took every key with it, and there is no
-        // recovery path for a half-written vault — no password opens it.
+        // A save must never truncate the target before it has the new bytes:
+        // a crash mid-write would take every key with it, and no password
+        // opens a half-written vault.
         let dir = std::env::temp_dir().join(format!("aleph-vault-{}", uuid::Uuid::new_v4()));
         let path = dir.join("vault.edge");
         let key = [7u8; 32];
@@ -877,7 +875,7 @@ mod tests {
         assert_eq!(m.status(Path::new("no-such.edge")).idle_timeout_minutes, 5);
     }
 
-    // ---- keychain entries per build (audit 2026-10-08, persistence 2) ----
+    // ---- keychain entries per build ----
 
     use crate::app::keychain::memory::MemoryKeychain;
     use crate::app::keychain::LEGACY_SERVICE;
@@ -956,9 +954,8 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    // ---- salt fingerprint (9 Oct: the release vault on the owner's machine
-    // was sealed under a salt TESTNET later overwrote, and said only "Wrong
-    // password") ----
+    // ---- salt fingerprint: a vault sealed under a salt another build later
+    // overwrote reports the mismatch, not "Wrong password" ----
 
     fn file_check(path: &Path) -> Option<String> {
         let raw = std::fs::read(path).unwrap();
@@ -1049,7 +1046,7 @@ mod tests {
         assert_eq!(find_salt(&store, LEGACY_SERVICE).err().as_deref(), Some("keychainSaltMissing"));
     }
 
-    // ---- auto-lock follows the user, not credential reads (ux_global 3) ----
+    // ---- auto-lock follows the user, not credential reads ----
 
     #[test]
     fn a_vault_with_no_key_does_not_lock_itself() {

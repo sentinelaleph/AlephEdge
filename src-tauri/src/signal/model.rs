@@ -1,13 +1,13 @@
 //! Signal types.
 //!
-//! `Signal` mirrors the real Sentinel wire format 1:1 (see
-//! `sentinel-alephv2/frontend/src/types/signal.ts`) — field names stay
-//! snake_case on purpose, matching the actual JSON the backend emits, rather
-//! than our usual camelCase convention for types we design ourselves.
+//! `Signal` mirrors the Sentinel wire format 1:1: the JSON of an SSE `signal`
+//! event and of each `/api/public/signals/pending` row. Field names stay
+//! snake_case on purpose, matching that JSON, rather than our usual camelCase
+//! convention for types we design ourselves.
 //!
-//! Parsing is deliberately tolerant: a strict enum for `mode` or a non-null
-//! `tp`/`confluence` used to make one unexpected value drop the whole signal
-//! silently (the stream ignored parse errors).
+//! Parsing is deliberately tolerant (`mode` is an open string, `tp` and
+//! `confluence` may be null): one unexpected value must not drop the whole
+//! signal.
 
 use serde::{Deserialize, Deserializer, Serialize};
 
@@ -142,9 +142,9 @@ pub enum StreamNoteKind {
     Superseded,
     /// A frame that could not be parsed as a Signal.
     ParseError,
-    /// The NEW "veto" event (2026-09-18 owner decision): Sentinel vetoed a
-    /// published signal because BTC's regime turned against it. Blocks entry
-    /// AND closes any open position immediately — see `crate::bot::engine::book`.
+    /// The "veto" event: Sentinel vetoed a published signal because BTC's
+    /// regime turned against it. Blocks entry AND closes any open position
+    /// immediately — see `crate::bot::engine::book`.
     RegimeVeto,
     /// Dropped because Sentinel already recorded its outcome (target or stop
     /// reached) — see `signal::resolved`.
@@ -161,7 +161,7 @@ pub enum OpenStatus {
     Unknown,
 }
 
-/// Sentinel's NEW "veto" SSE event (2026-09-18), mirroring the wire payload
+/// Sentinel's "veto" SSE event, mirroring the wire payload
 /// 1:1 like `Signal` does. `reason_code` stays a plain string rather than a
 /// strict enum — an unmapped code upstream must still parse, not vanish.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -189,7 +189,7 @@ pub struct RegimeVetoEvent {
 }
 
 /// A server-side event surfaced to the desk feed: a veto, a regeneration
-/// supersede, or a parse failure (PRD §5.4 — nothing is silent).
+/// supersede, or a parse failure (nothing is silent).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VetoEvent {
@@ -216,10 +216,8 @@ impl std::fmt::Debug for StreamTicketResponse {
 
 /// Where the stream connection is, independent of any error text.
 ///
-/// `last_error` used to double as a progress line ("connecting to stream…"),
-/// so the UI could not tell a normal connect from an outage and raised a red
-/// "stream down" alert on every start. The phase carries the progress; the
-/// error carries only real failures.
+/// The phase carries the progress; `last_error` carries only real failures,
+/// so the UI can tell a normal connect from an outage.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum StreamPhase {

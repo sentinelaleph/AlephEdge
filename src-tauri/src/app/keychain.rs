@@ -1,13 +1,13 @@
 //! OS keychain entries, one set per app identifier.
 //!
-//! The vault salt and the sign-in session used one fixed service name, so the
-//! release, TESTNET and e2e builds shared both entries. Creating or resetting a
-//! vault in one build replaced or deleted the salt every other build's vault
-//! needs, and that vault then answered its correct password with "Wrong
-//! password". Signing in or out in one build did the same to the others'
-//! session (audit 2026-10-08, persistence 2). Each build now keeps its entries
-//! under its own identifier. The release identifier IS the old service name,
-//! so release users read exactly the entries they always had.
+//! Builds before 0.2.1 kept the vault salt and the sign-in session under one
+//! fixed service name, so the release, TESTNET and e2e builds shared both
+//! entries: creating or resetting a vault in one build replaced or deleted the
+//! salt every other build's vault needs (that vault then answered its correct
+//! password with "Wrong password"), and signing in or out did the same to the
+//! others' session. Each build keeps its entries under its own identifier. The
+//! release identifier IS the old service name, so release users read exactly
+//! the entries they always had.
 
 use std::sync::OnceLock;
 

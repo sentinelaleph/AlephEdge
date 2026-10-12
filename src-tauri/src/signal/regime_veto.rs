@@ -1,5 +1,5 @@
-//! Bounded store of signals Sentinel vetoed via the NEW "veto" event
-//! (2026-09-18 — BTC's regime turned against them). Split out of
+//! Bounded store of signals Sentinel vetoed via the "veto" event (BTC's
+//! regime turned against them). Split out of
 //! `SignalManager` (mirrors `bot::close_claim`'s `CloseClaims`) so the dedup
 //! and FIFO-bounding logic is pure and unit-testable without a live manager.
 

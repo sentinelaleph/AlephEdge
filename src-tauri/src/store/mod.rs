@@ -1,4 +1,4 @@
-//! Local SQLite store (PRD §3.1): trade history + metrics cache only — this
+//! Local SQLite store: trade history + metrics cache only — this
 //! database NEVER holds keys, secrets, or anything vault-adjacent.
 
 pub(crate) mod backtest;

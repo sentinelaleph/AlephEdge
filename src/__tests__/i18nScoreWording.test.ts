@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 /**
- * Audit 2026-10-08, ml_claims 1: Sentinel's signal score was shown as
- * "Evidence" ("Evidence-first signals", "Min evidence score") although the
- * project measured it as not separating winners from losers (AUC 0.496).
- * It is labelled as a plain score now, and the honest result is stated where
- * the score is used. This test keeps the old wording from coming back in any
- * language.
+ * Sentinel's signal score does not separate winners from losers, so it is
+ * labelled as a plain score, never as "evidence" ("Evidence-first signals",
+ * "Min evidence score"), and the measured result is stated where the score is
+ * used. This test keeps evidence wording out of every locale.
  */
 const LOCALES = import.meta.glob("/src/i18n/locales/*/*.json", { import: "default", eager: true }) as Record<
   string,

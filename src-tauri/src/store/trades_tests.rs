@@ -123,7 +123,7 @@ fn direction_column_keeps_the_text_and_refuses_unknown_text() {
     }
 }
 
-// Veto columns (2026-09-18): NULL on every ordinary exit, round-trip intact
+// Veto columns: NULL on every ordinary exit, round-trip intact
 // on a "veto" exit, and present in the CSV export.
 #[test]
 fn veto_reason_round_trips_and_defaults_to_null() {
@@ -186,7 +186,7 @@ fn table_from_before_live_columns_migrates() {
     );
 }
 
-// Take-profit target columns (2026-09-22): round-trip and CSV.
+// Take-profit target columns: round-trip and CSV.
 #[test]
 fn tp_target_round_trips_and_exports() {
     let conn = Connection::open_in_memory().unwrap();
@@ -242,8 +242,8 @@ fn recent_keys_lists_traded_signals_since_a_time() {
     assert!(trades::recent_keys(&conn, 10).unwrap().is_empty(), "opened_at 1 < 10");
 }
 
-/// Sentinel's veto text reaches the CSV verbatim. A comma in it used to shift
-/// every later column, so the row no longer matched its header.
+/// Sentinel's veto text reaches the CSV verbatim; a comma in it must not shift
+/// the later columns.
 #[test]
 fn free_text_with_commas_and_quotes_keeps_the_csv_aligned() {
     let conn = Connection::open_in_memory().unwrap();

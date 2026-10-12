@@ -2,8 +2,9 @@
 //! paper runner mounts that file). Pure; the risk level enters as its table
 //! values so this file never imports the risk module.
 
-/// Real money for DCA/Grid is not built. Any future live adapter must also
-/// pass this constant, which only an explicit owner decision may flip.
+/// No venue inside this subtree trades real money (the real-money mirror is
+/// `bot::strategy_live`). Any live venue adapter here must also pass this
+/// constant; flipping it is a release decision, never a setting.
 pub const STRATEGY_LIVE_ALLOWED: bool = false;
 
 /// Strategy bots per install (paper).
@@ -26,7 +27,7 @@ pub const MIN_ORDER_NOTIONAL: f64 = 5.0;
 pub const PRICE_STALE_MS: u64 = 3 * 60_000;
 
 /// Level index 0..=4 (Cautious..Greedy) -> share of the declared balance
-/// all strategy budgets together may reserve, %. Owner-tunable proposal.
+/// all strategy budgets together may reserve, %.
 pub const STRATEGY_BUDGET_CAP_PCT: [f64; 5] = [20.0, 30.0, 40.0, 60.0, 80.0];
 
 /// Budget cap for a level index (out of range -> the strictest).

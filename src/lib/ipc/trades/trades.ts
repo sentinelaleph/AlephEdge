@@ -52,7 +52,7 @@ export interface TradeRecord {
   pnlUsdt: number;
   /** NET PnL as % of the bot's capital (account-scale — same value as `pnlPct`). */
   pnlPctOfCapital: number;
-  /** Sentinel's veto reason code, set only when `exitReason === "veto"` (2026-09-18). */
+  /** Sentinel's veto reason code, set only when `exitReason === "veto"`. */
   vetoReasonCode: string | null;
   /** Sentinel's human-readable veto reason — shown verbatim in the trade row tooltip. */
   vetoReasonText: string | null;

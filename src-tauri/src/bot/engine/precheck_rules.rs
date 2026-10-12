@@ -1,7 +1,7 @@
-//! The PRD §5.4 precheck decisions, pure: skip type, the signal-validity,
+//! The precheck decisions, pure: skip type, the signal-validity,
 //! funding, depth and risk-budget verdicts, and the final/transient split.
 //!
-//! Split out of `precheck.rs` (2026-09-22) so the headless paper runner
+//! Kept apart from `precheck.rs` so the headless paper runner
 //! compiles THIS file — the exact rules the desktop applies — without Tauri or
 //! any manager. `precheck.rs` keeps the fetching (`run`) and re-exports all of
 //! it; code in either program reaches these items as `super::precheck::…`.
@@ -53,7 +53,7 @@ pub struct Budget {
 }
 
 /// Step 2: the signal is still valid — not invalidated server-side, not
-/// vetoed by the BTC-regime guard (2026-09-18 — the veto ALSO closes any open
+/// vetoed by the BTC-regime guard (the veto ALSO closes any open
 /// position, see `engine::book::close_on_veto`; this only blocks a
 /// not-yet-filled entry), not expired.
 pub fn signal_still_valid(
@@ -76,8 +76,8 @@ pub fn signal_still_valid(
 
 /// Step 2b (desktop): Sentinel has not already recorded the signal's outcome.
 /// A resolved signal is never entered; one whose status cannot be confirmed
-/// is refused when `strict` (always for a live bot). The paper runner's arms
-/// keep their pre-registered rules and do not call this.
+/// is refused when `strict` (always for a live bot). The paper runner's fixed
+/// test arms keep their own rules and do not call this.
 pub fn judge_still_open(status: OpenStatus, strict: bool) -> Result<(), Skip> {
     match status {
         OpenStatus::Open => Ok(()),

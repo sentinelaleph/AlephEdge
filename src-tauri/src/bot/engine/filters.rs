@@ -1,10 +1,8 @@
-//! Bot-level signal filters (PRD §5.2-5) — cheap, run before any network call.
-//!
-//! Extracted from `precheck.rs` when the evidence filters were added: the
-//! combined block would have pushed that file past the 300-line rule.
+//! Bot-level signal filters — cheap, run before any network call. Kept apart
+//! from `precheck.rs` to keep that file within the 300-line rule.
 //!
 //! Every refusal returns a `Skip` with a key the UI renders, never a silent
-//! drop (PRD §5.4). The combo/engine filters exist because Sentinel's own
+//! drop. The combo/engine filters exist because Sentinel's own
 //! published ledger separates its engines by a wide margin — a desk that can
 //! see "this combo wins, that engine bleeds" but cannot act on it is only
 //! half a product.

@@ -3,13 +3,11 @@
 //! command module; this file holds only the app-level surface so `lib.rs`
 //! stays a thin composition root.
 
-use std::sync::atomic::{AtomicU64, Ordering};
-
 use tauri::{AppHandle, Manager, State};
 
 use crate::app::health::{
-    mock_snapshot, ExchangeHealth, HealthLevel, HealthSnapshot, MembershipState,
-    SignalHealth as HealthSignal, VaultState as HealthVaultState,
+    ExchangeHealth, HealthLevel, HealthSnapshot, MembershipState, SignalHealth as HealthSignal,
+    VaultState as HealthVaultState,
 };
 use crate::exchange::model::{ExchangeInfo, ExchangeStatus};
 use crate::exchange::ExchangeManager;
@@ -21,12 +19,8 @@ use crate::signal::SignalManager;
 use crate::vault::model::VaultState;
 use crate::vault::VaultManager;
 
-/// Monotonic tick handed to the baseline snapshot (no longer shapes values).
-static TICK: AtomicU64 = AtomicU64::new(0);
-
-/// Returns a health snapshot. Vault, membership, Binance, the signal feed,
-/// and the BTC pulse are real; the other three exchange rows stay mocked
-/// until F4 widens the exchange set.
+/// Returns a health snapshot: vault, membership, every catalog exchange, the
+/// signal feed and the BTC pulse, each read live.
 #[tauri::command]
 pub async fn get_health_snapshot(
     app: AppHandle,
@@ -36,15 +30,14 @@ pub async fn get_health_snapshot(
     signal: State<'_, SignalManager>,
     market: State<'_, MarketManager>,
 ) -> Result<HealthSnapshot, String> {
-    let tick = TICK.fetch_add(1, Ordering::Relaxed);
-    let mut snapshot = mock_snapshot(tick);
+    let mut snapshot = HealthSnapshot::unknown();
 
     if let Ok(dir) = app.path().app_data_dir() {
         snapshot.vault = map_vault(vault.status(&dir.join("vault.edge")).state);
     }
     snapshot.membership = map_membership(membership.health_state());
 
-    // Every catalog exchange, live and concurrent (replaces the mock rows).
+    // Every catalog exchange, live and concurrent.
     snapshot.exchanges = exchange
         .all_status("BTCUSDT")
         .await
@@ -53,8 +46,8 @@ pub async fn get_health_snapshot(
         .collect();
     snapshot.signal = map_signal(signal.health());
 
-    // Real BTC macro pulse (Sentinel). On feed error the baseline's honest
-    // empty pulse (price 0, no sparkline) stays; nothing is synthesized.
+    // BTC macro pulse (Sentinel). On a feed error the BTC pulse stays empty;
+    // nothing is synthesized.
     if let Ok(btc) = market.btc(&membership.base_url()).await {
         snapshot.btc.trend = btc.trend;
         snapshot.btc.strength = btc.trend_strength;
@@ -115,12 +108,8 @@ fn map_signal(info: SignalHealthInfo) -> HealthSignal {
     }
 }
 
-/// The endpoints and identity this desk uses.
-///
-/// Exists so the UI carries no host at all. Every value it needs used to be a
-/// string literal in a component; in a public repo that means a reader who
-/// clones the tree is silently pointed at one particular deployment, and
-/// changing it means editing source instead of setting a variable.
+/// The endpoints and identity this desk uses, so the UI carries no host of
+/// its own (rules in `app::endpoints`).
 #[tauri::command]
 pub fn get_endpoints(app: tauri::AppHandle) -> crate::app::endpoints::Endpoints {
     use tauri::Manager;

@@ -1,8 +1,8 @@
 /**
- * Signal IPC bridge (mirrors src-tauri/src/signal). `Signal` fields stay
- * snake_case on purpose — they mirror the real Sentinel wire format exactly
- * (see sentinel-alephv2/frontend/src/types/signal.ts), unlike our own
- * camelCase-designed types.
+ * Signal IPC bridge (mirrors src-tauri/src/signal). `Signal` is the JSON
+ * object of one event on Sentinel's signal stream, field for field: the names
+ * stay snake_case because Rust passes the backend's JSON through unrenamed,
+ * unlike our own camelCase-designed types.
  *
  * `npm run dev` gets a dev-only feed through `devMock`; the released bundle
  * has none.

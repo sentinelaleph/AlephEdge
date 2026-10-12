@@ -8,8 +8,8 @@ import "./LanguageSelect.css";
 /**
  * Language picker. Lists each language by its endonym (its own name in its own
  * script) so a user finds their language without reading English. The popover
- * scales in from the trigger's top-right (origin-aware, ease-out, <300ms) —
- * not from center (emil-design-eng).
+ * scales in from the trigger's top-right (origin-aware, ease-out, <300ms),
+ * not from center.
  */
 export function LanguageSelect() {
   const { i18n, t } = useTranslation();

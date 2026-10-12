@@ -1,25 +1,19 @@
-//! Eşleştirme ve canlı röle oturumu için Tauri komutları.
+//! Tauri commands for pairing and the live relay session.
 //!
-//! Masaüstü bir QR gösterir, telefon okur. Anahtar QR'ın içindedir, yani
-//! **ekranda duran bir QR duran bir kimlik bilgisidir** — bu yüzden oturum
-//! kısa ömürlüdür ve süresi dolduğunda arayüz bunu göstermek zorundadır.
+//! The desktop shows a QR and the phone reads it. The QR carries the key, so
+//! it is a standing credential (see `aleph_desk_link::pairing`): the session
+//! is short-lived and the UI must show when it expires.
 //!
-//! # Ana makine ve kimlik buradan çözülür, arayüzden GELMEZ
+//! # Host and identity are resolved here, never taken from the UI
 //!
-//! `app::endpoints` şu kuralı koyuyor: "arayüz hiçbir ana makine taşımaz."
-//! Bu dosya bir süre o kuralın dışında kaldı — `desk_id` ve `relay_url`
-//! parametre olarak geliyordu ve doğru çalışması, arayüzün onları Rust'tan
-//! sorma nezaketine bağlıydı. Yani güvenlik sınırı webview'in içindeydi.
-//! Artık ikisi de burada çözülür; parametre olarak verilemez.
+//! `desk_id` and `relay_url` come from `app::endpoints`, not from command
+//! parameters, so the security boundary stays out of the webview.
 //!
-//! # Neden oturum QR ile birlikte başlar
+//! # Why the session starts with the QR
 //!
-//! Telefon röleye bağlanabilsin diye masanın röleye ÖNCEDEN bağlanmış olması
-//! gerekir (`relay/hub.go`: masa bağlı değilse telefon eklenemez). Bu yüzden
-//! `link_begin_pairing` hem QR'ı üretir hem oturumu başlatır. Önceden oturumu
-//! başlatan komut arayüzden hiç çağrılmıyordu ve sağlayamayacağı bir üyelik
-//! token'ı istiyordu: QR ekranda geri sayıyor, karşılığında hiçbir oturum
-//! açılmıyordu.
+//! The relay accepts a phone only while the desk is already connected (see
+//! `aleph_desk_link::pairing`, "Relay contract"). So `link_begin_pairing`
+//! both produces the QR and starts the relay session.
 
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -43,7 +37,7 @@ fn now_ms() -> u64 {
         .unwrap_or(0)
 }
 
-/// Açık eşleştirme oturumu (aynı anda en fazla bir tane).
+/// The open pairing session (at most one at a time).
 #[derive(Default)]
 pub struct PairingState {
     pub(crate) session: Mutex<Option<PairingSession>>,
@@ -55,20 +49,20 @@ impl PairingState {
     }
 }
 
-/// Arayüzün gördüğü her şey.
+/// Everything the UI sees.
 ///
-/// Masa kimliği burada **yok**: arayüz onu ne kullanıyor ne de göndermesi
-/// gerekiyor, ve bir yönlendirme adresini gereksiz yere webview'e taşımak
-/// (oradan da log ve hata raporlarına) bedava değil.
+/// The desk id is **not** here: the UI neither uses it nor needs to send it,
+/// and carrying a routing address into the webview for nothing (and from there
+/// into logs and error reports) is not free.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PairingView {
-    /// QR'a basılacak metin. Süresi dolduysa `None`.
+    /// The text printed into the QR. `None` once it has expired.
     pub qr: Option<String>,
-    /// Geri sayım — kullanıcı QR'ın ne zaman öleceğini görmeli.
+    /// Countdown: the user must see when the QR dies.
     pub remaining_ms: u64,
     pub ttl_ms: u64,
-    /// Süresi dolmuş ya da kullanılmışsa sebebi.
+    /// Why, if it expired or was used.
     pub expired_reason: Option<String>,
 }
 
@@ -89,27 +83,27 @@ fn view(s: &PairingSession, now: u64) -> PairingView {
     }
 }
 
-/// Yeni bir eşleştirme oturumu açar, röle oturumunu başlatır ve QR metnini
-/// döner.
+/// Opens a new pairing session, starts the relay session and returns the QR
+/// text.
 ///
-/// Var olan oturumun üzerine yazar: ekranda iki geçerli QR bulunması,
-/// hangisinin canlı olduğunu bilinemez kılardı. Çalışan röle oturumu da yeni
-/// anahtarla **yeniden** başlatılır — eski anahtarla bağlı kalmak, yeni QR'ı
-/// okuyan telefonun hiçbir zaman cevap alamaması demekti.
+/// It replaces any existing session: with two valid QRs on screen nobody
+/// could tell which one is live. The running relay session is **restarted**
+/// with the new key too; staying connected with the old key would leave the
+/// phone that reads the new QR without an answer.
 #[tauri::command]
 pub fn link_begin_pairing(
     app: AppHandle,
     state: State<PairingState>,
     runtime: State<LinkRuntime>,
 ) -> Result<PairingView, String> {
-    // Röle her iki ucu da Sentinel üyeliğiyle doğrular. Giriş yapılmamışken QR
-    // üretmek, hiçbir zaman bağlanamayacak bir kod göstermek olurdu — bu
-    // paneldeki dürüstlük kuralının aynısı, bir adım öncesinde.
+    // The relay authenticates both ends with Sentinel membership. A QR made
+    // while signed out would be a code that can never connect: the panel's
+    // honesty rule, applied one step earlier.
     if app.state::<MembershipManager>().access_token().is_none() {
         return Err("linkSignInFirst".into());
     }
 
-    // Ana makine ve kimlik: tek yerden, arayüzden değil.
+    // Host and identity: from one place, not from the UI.
     let dir = app
         .path()
         .app_data_dir()
@@ -124,8 +118,8 @@ pub fn link_begin_pairing(
     let key = s.desk_session_key();
     *state.session.lock().map_err(|_| "pairing mutex")? = Some(s);
 
-    // QR'ın öleceği an anahtarın da son kullanma anıdır: o ana kadar hiçbir
-    // telefon anahtarı kullanmazsa masa onunla imzalı zarfı artık kabul etmez.
+    // The QR's death is the key's deadline too: if no phone has used the key
+    // by then, the desk stops accepting envelopes signed with it.
     runtime.restart(&app, relay_url, desk_id, key, now + PAIRING_TTL_MS)?;
 
     Ok(PairingView {
@@ -136,11 +130,10 @@ pub fn link_begin_pairing(
     })
 }
 
-/// Açık oturumun anlık hâli.
+/// The open session's current state.
 ///
-/// Süresi dolan bir QR **metin döndürmez** ve sebebini söyler. Ölü bir QR'ı
-/// ekranda çalışıyormuş gibi bırakmak, kullanıcıya olmayan bir şeyi
-/// göstermektir.
+/// An expired QR **returns no text** and says why (see
+/// `PairingSession::qr_payload`).
 #[tauri::command]
 pub fn link_pairing_status(state: State<PairingState>) -> Result<Option<PairingView>, String> {
     let guard = state.session.lock().map_err(|_| "pairing mutex")?;
@@ -150,12 +143,12 @@ pub fn link_pairing_status(state: State<PairingState>) -> Result<Option<PairingV
     Ok(Some(view(s, now_ms())))
 }
 
-/// Açık oturumu iptal eder **ve röle oturumunu durdurur**.
+/// Cancels the open session **and stops the relay session**.
 ///
-/// İkincisi olmadan "iptal" bir yalandı: QR ekrandan kalkıyor, masa röleye
-/// bağlı kalmaya devam ediyordu. Bu düğme yalnızca QR canlıyken görünür, yani
-/// henüz hiçbir telefon o anahtarla konuşmamıştır (bkz. `session::spend_pairing`)
-/// — çalışan bir bağlantıyı kesmez.
+/// Without the second part, "cancel" would take the QR off the screen while
+/// the desk stayed connected to the relay. The button is shown only while the
+/// QR is live, so no phone has talked with that key yet (see
+/// `session::spend_pairing`): it never cuts a working connection.
 #[tauri::command]
 pub async fn link_cancel_pairing(
     state: State<'_, PairingState>,
@@ -169,19 +162,19 @@ pub async fn link_cancel_pairing(
 }
 
 // ---------------------------------------------------------------------------
-// Canlı oturum
+// Live session
 // ---------------------------------------------------------------------------
 
-/// Çalışan röle oturumunun paylaşılan durumu.
+/// Shared state of the running relay session.
 pub struct LinkRuntime {
     state: Arc<AsyncMutex<LinkState>>,
-    /// Çalışan oturumun tutamağı. Tutulmasının sebebi yeniden eşleştirme:
-    /// yeni bir QR yeni bir anahtar demek, ve eski anahtarla bağlı kalan bir
-    /// oturum yeni telefona asla cevap veremez.
+    /// Handle of the running session, kept for re-pairing: a new QR means a
+    /// new key, and a session still connected with the old key can never
+    /// answer the new phone.
     task: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
-    /// Çalışan oturumun bağlantı katmanı. İptal, görevi durdurmakla yetinmez:
-    /// anahtarı da geçersiz kılar, ki durdurma gecikse bile o anahtarla
-    /// imzalı hiçbir zarf uygulanmasın.
+    /// The running session's link layer. Cancelling does not stop at aborting
+    /// the task: it also revokes the key, so that no envelope signed with it
+    /// is applied even if the abort lands late.
     link: Mutex<Option<SharedLink>>,
 }
 
@@ -200,8 +193,9 @@ impl LinkRuntime {
         }
     }
 
-    /// Oturumu (varsa öncekini durdurarak) başlatır. `claim_deadline_ms`:
-    /// bir telefonun anahtarı kullanması gereken son an (QR'ın ölümü).
+    /// Starts the session, stopping the previous one if any.
+    /// `claim_deadline_ms`: the last moment a phone may first use the key (the
+    /// QR's death).
     fn restart(
         &self,
         app: &AppHandle,
@@ -218,11 +212,8 @@ impl LinkRuntime {
         if let Some(old) = slot.take() {
             revoke_later(old);
         }
-        // Oturum damgası: bu oturumun başladığı an. Giden sayaç her başlayışta
-        // sıfırdan başlar, bu yüzden telefonun tekrar koruması yeniden
-        // başlamayı saldırı sanıyordu ve masa sonsuza kadar "susmuş"
-        // görünüyordu. Damga o ayrımı imzalı biçimde taşır — ayrıntı
-        // `aleph_link::ReplayGuard`.
+        // Session stamp: the moment this session started (see
+        // `aleph_link::ReplayGuard`).
         let link: SharedLink = Arc::new(AsyncMutex::new(
             DeskLink::new(desk_id.clone(), key, DeskBridge::new(app.clone()), now_ms())
                 .with_claim_deadline(claim_deadline_ms),
@@ -245,22 +236,22 @@ impl LinkRuntime {
                 h.abort();
             }
         }
-        // Görev iptali bir sonraki bekleme noktasında gerçekleşir; anahtar
-        // ondan bağımsız olarak burada ölür.
+        // The task abort takes effect at its next await point; the key dies
+        // here regardless.
         let old = self.link.lock().map_err(|_| "link mutex")?.take();
         if let Some(old) = old {
             old.lock().await.revoke();
         }
-        // Durum, iptalden SONRA yazılır: aksi hâlde kopan oturumun son
-        // "Retrying" yazısı ekranda kalabilirdi.
+        // The state is written AFTER the abort; otherwise the dropped
+        // session's last "Retrying" could stay on screen.
         *self.state.lock().await = LinkState::Unpaired;
         Ok(())
     }
 }
 
-/// Eski bir oturumun anahtarını, kilidi boşaldığında geçersiz kılar. Senkron
-/// `restart` kilidi bekleyemez; iptal edilen görev kilidi bıraktığı anda
-/// anahtar ölür.
+/// Revokes an old session's key once its lock is free. The synchronous
+/// `restart` cannot wait for the lock; the key dies the moment the aborted
+/// task releases it.
 fn revoke_later(link: SharedLink) {
     tauri::async_runtime::spawn(async move {
         link.lock().await.revoke();
@@ -289,7 +280,7 @@ impl From<LinkState> for LinkStateView {
     }
 }
 
-/// Oturumun anlık durumu — arayüz bunu gösterir.
+/// The session's current state; the UI shows it.
 #[tauri::command]
 pub async fn link_state(runtime: State<'_, LinkRuntime>) -> Result<LinkStateView, String> {
     Ok(runtime.state.lock().await.clone().into())
@@ -297,42 +288,43 @@ pub async fn link_state(runtime: State<'_, LinkRuntime>) -> Result<LinkStateView
 
 #[cfg(test)]
 mod tests {
-    /// S10: masa kimligi ve role adresi RUST'ta cozulur. Arayuzden parametre
-    /// olarak alinsaydi, "hangi masayi baglariz" karari webview'in icinde olurdu
-    /// — ve o kararin dogru olmasi, arayuzun degerleri Rust'tan sorma
-    /// nezaketine kalirdi.
+    /// The desk id and the relay address are resolved in RUST. Taken as UI
+    /// parameters, the choice of which desk to connect would live inside the
+    /// webview, and it would be right only as long as the UI asked Rust for
+    /// the values.
     ///
-    /// Test, komutun IMZASINI okur: arayuzden gelen hicbir dize parametresi
-    /// olmamali. Bir gun biri `desk_id` ya da `relay_url` parametresini geri
-    /// koyarsa bu test kirilir.
+    /// The test reads the command's SIGNATURE: it must take no string
+    /// parameter from the UI. Adding a `desk_id` or `relay_url` parameter
+    /// breaks it.
     #[test]
-    fn esleştirme_komutu_arayuzden_ana_makine_almaz() {
+    fn pairing_command_takes_no_host_from_the_ui() {
         let src = include_str!("commands.rs");
-        let govde = &src[src
+        let body = &src[src
             .find("pub fn link_begin_pairing")
-            .expect("komut bulunamadi")..];
-        let imza = &govde[..govde.find(')').expect("imza kapanmiyor")];
+            .expect("command not found")..];
+        let signature = &body[..body.find(')').expect("signature does not close")];
         assert!(
-            !imza.contains("String"),
-            "komut arayuzden dize parametresi aliyor: {imza}"
+            !signature.contains("String"),
+            "the command takes a string parameter from the UI: {signature}"
         );
-        // Ve degerler gercekten tek kaynaktan cozulmeli.
+        // And the values really are resolved from the single source.
         assert!(src.contains("endpoints::desk_id(&dir)"));
         assert!(src.contains("endpoints::relay_url()"));
     }
 
-    /// Masa kimligi arayuze de TASINMAZ: kullanilmadigi hâlde webview'e (ve
-    /// oradan log/hata raporlarina) gecirmenin bir faydasi yok.
+    /// The desk id does not travel TO the UI either: the UI does not use it,
+    /// so passing it to the webview (and from there to logs and error
+    /// reports) gains nothing.
     #[test]
-    fn gorunumde_masa_kimligi_yok() {
+    fn pairing_view_carries_no_desk_id() {
         let src = include_str!("commands.rs");
-        let baslangic = src
+        let start = src
             .find("pub struct PairingView {")
-            .expect("PairingView bulunamadi");
-        let govde = &src[baslangic..baslangic + src[baslangic..].find('}').unwrap()];
+            .expect("PairingView not found");
+        let body = &src[start..start + src[start..].find('}').unwrap()];
         assert!(
-            !govde.contains("desk_id"),
-            "PairingView masa kimligi tasiyor: {govde}"
+            !body.contains("desk_id"),
+            "PairingView carries the desk id: {body}"
         );
     }
 }

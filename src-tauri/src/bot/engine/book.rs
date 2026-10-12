@@ -22,7 +22,7 @@ use super::{close_price, live_close, live_manage, live_price, management, now_ms
 pub use super::record::{trade_record, veto_trade_record};
 
 /// Runs the management plan for every open position at the live price.
-/// Invalidation never closes (measured −163 pts); it is noted once.
+/// Invalidation never closes (see `management`); it is noted once.
 pub async fn close_phase(app: &AppHandle) {
     let bots = app.state::<BotManager>();
     let exchange = app.state::<ExchangeManager>();
@@ -183,14 +183,14 @@ pub(crate) async fn force_close_kinds(app: &AppHandle, reason: &str, kinds: &[Bo
 }
 
 /// Closes every open position (any bot kind) held on `veto.signal_id`, right
-/// now, at the live price, exit reason "veto" — the owner's 2026-09-18
-/// decision: once Sentinel vetoes a signal because BTC's regime turned
-/// against it, a bot holding that position must protect itself immediately
-/// rather than wait out the management plan. Shares the close claim with
-/// `close_phase`/`force_close_kinds` so this can never race the tick loop into
-/// a double close; an already-claimed (or already-closed) position is simply
-/// skipped — a duplicate SSE delivery is therefore a safe no-op. Pushes one
-/// desk notice naming how many positions it actually closed.
+/// now, at the live price, exit reason "veto": once Sentinel vetoes a signal
+/// because BTC's regime turned against it, a bot holding that position must
+/// protect itself immediately rather than wait out the management plan. Shares
+/// the close claim with `close_phase`/`force_close_kinds` so this can never
+/// race the tick loop into a double close; an already-claimed (or
+/// already-closed) position is simply skipped — a duplicate SSE delivery is
+/// therefore a safe no-op. Pushes one desk notice naming how many positions it
+/// actually closed.
 pub async fn close_on_veto(app: &AppHandle, veto: &RegimeVetoEvent) {
     let bots = app.state::<BotManager>();
     let exchange = app.state::<ExchangeManager>();
@@ -366,12 +366,12 @@ pub fn load_positions(app: &AppHandle) -> RestoredBook {
                 continue;
             }
         };
-        // A build without the `live` feature never manages a real position.
-        // It used to load the row with `live` cleared, which made the paper
-        // engine "close" a real position on paper and forget it while it stayed
-        // open on Binance (audit 2026-10-04, H1). The row is now left out of
-        // the book and left in the store untouched, so a live build picks it
-        // up again; the Exchange tab still shows the real position.
+        // A build without the `live` feature never manages a real position:
+        // loading the row with `live` cleared would make the paper engine
+        // "close" a real position on paper and forget it while it stays open
+        // on Binance. The row is left out of the book and left in the store
+        // untouched, so a live build picks it up again; the Exchange tab still
+        // shows the real position.
         if pos.live && !LIVE_TRADING_ENABLED {
             eprintln!(
                 "real position {} {} kept out of the book: this build cannot trade live",

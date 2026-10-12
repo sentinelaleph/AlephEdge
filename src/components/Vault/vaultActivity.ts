@@ -19,7 +19,7 @@ export function createActivityThrottle(intervalMs: number = TOUCH_INTERVAL_MS): 
 
 /**
  * Reports pointer and key input to the vault, so auto-lock means the user
- * left, not that no exchange key was read (audit 2026-10-08, ux_global 3).
+ * left, not that no exchange key was read.
  * Mounted with the desk; a locked vault ignores the touch.
  */
 export function useVaultActivity(): void {

@@ -24,7 +24,7 @@ const SKIPS_SHOWN = 8;
 
 /**
  * Live activity: open positions and, just as visible, every trade the bot
- * REFUSED with its reason (PRD §5.4: skipped trades are never silent).
+ * REFUSED with its reason: skipped trades are never silent.
  * LIVE marks a real-money row; paper is the header's mode.
  */
 export function DeskFeed({ positions, skips }: DeskFeedProps) {

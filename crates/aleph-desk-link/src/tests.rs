@@ -1,40 +1,36 @@
-//! `DeskLink` birim testleri.
-//!
-//! Ayrı dosyada, çünkü `DeskControl` async'e çevrildikten sonra testlerin de
-//! bir çalışma zamanına ihtiyacı oldu ve o yardımcıyı üretim kodunun içine
-//! gömmek yerine burada tutmak daha okunur.
+//! `DeskLink` unit tests.
 
 use super::*;
 use aleph_link::{ack_code, SkipNote};
 
 #[derive(Default)]
-struct SahteMasa {
-    durduruldu: Vec<BotSelector>,
-    kapatildi: Vec<BotSelector>,
-    baslatildi: Vec<BotSelector>,
-    hata: Option<AckReply>,
+struct FakeDesk {
+    stopped: Vec<BotSelector>,
+    closed: Vec<BotSelector>,
+    started: Vec<BotSelector>,
+    error: Option<AckReply>,
 }
 
-impl DeskControl for SahteMasa {
+impl DeskControl for FakeDesk {
     async fn stop_opening(&mut self, bot: BotSelector) -> Result<AckReply, AckReply> {
-        if let Some(e) = &self.hata {
+        if let Some(e) = &self.error {
             return Err(e.clone());
         }
-        self.durduruldu.push(bot);
+        self.stopped.push(bot);
         Ok(AckReply::stopped(8))
     }
     async fn close_all(&mut self, bot: BotSelector) -> Result<AckReply, AckReply> {
-        if let Some(e) = &self.hata {
+        if let Some(e) = &self.error {
             return Err(e.clone());
         }
-        self.kapatildi.push(bot);
+        self.closed.push(bot);
         Ok(AckReply::closed(6, 0))
     }
     async fn start(&mut self, bot: BotSelector) -> Result<AckReply, AckReply> {
-        if let Some(e) = &self.hata {
+        if let Some(e) = &self.error {
             return Err(e.clone());
         }
-        self.baslatildi.push(bot);
+        self.started.push(bot);
         Ok(AckReply::started(&[bot]))
     }
     fn status(&self) -> DeskStatus {
@@ -57,37 +53,37 @@ fn key() -> PairingKey {
     PairingKey::from_bytes([3u8; 32])
 }
 const NOW: u64 = 1_786_700_000_000;
-/// Telefonun oturum damgasi.
-const TELEFON_EPOCH: u64 = 1_786_699_000_000;
-/// Masanin oturum damgasi.
-const MASA_EPOCH: u64 = 1_786_699_500_000;
+/// The phone's session stamp.
+const PHONE_EPOCH: u64 = 1_786_699_000_000;
+/// The desk's session stamp.
+const DESK_EPOCH: u64 = 1_786_699_500_000;
 
-fn telefon_zarfi(seq: u64, cmd: &Command) -> String {
-    telefon_zarfi_epoch(TELEFON_EPOCH, seq, cmd)
+fn phone_envelope(seq: u64, cmd: &Command) -> String {
+    phone_envelope_at_epoch(PHONE_EPOCH, seq, cmd)
 }
 
-fn telefon_zarfi_epoch(epoch: u64, seq: u64, cmd: &Command) -> String {
+fn phone_envelope_at_epoch(epoch: u64, seq: u64, cmd: &Command) -> String {
     serde_json::to_string(&seal(&key(), "desk-1", epoch, seq, NOW, cmd).unwrap()).unwrap()
 }
 
-fn masa(control: SahteMasa) -> DeskLink<SahteMasa> {
-    DeskLink::new("desk-1", key(), control, MASA_EPOCH)
+fn desk(control: FakeDesk) -> DeskLink<FakeDesk> {
+    DeskLink::new("desk-1", key(), control, DESK_EPOCH)
 }
 
-fn coz(env: &Envelope) -> DeskMessage {
+fn decode(env: &Envelope) -> DeskMessage {
     serde_json::from_str(&env.payload).unwrap()
 }
 
-fn isle(link: &mut DeskLink<SahteMasa>, raw: &str) -> Result<Vec<Envelope>, LinkError> {
+fn handle(link: &mut DeskLink<FakeDesk>, raw: &str) -> Result<Vec<Envelope>, LinkError> {
     block_on(link.handle_raw(NOW, raw))
 }
 
 #[test]
-fn her_komut_bir_onay_uretir() {
-    let mut link = masa(SahteMasa::default());
-    let out = isle(
+fn every_command_produces_an_ack() {
+    let mut link = desk(FakeDesk::default());
+    let out = handle(
         &mut link,
-        &telefon_zarfi(
+        &phone_envelope(
             1,
             &Command::StopOpening {
                 bot: BotSelector::All,
@@ -95,7 +91,7 @@ fn her_komut_bir_onay_uretir() {
         ),
     )
     .unwrap();
-    match coz(&out[0]) {
+    match decode(&out[0]) {
         DeskMessage::Ack {
             for_seq,
             applied,
@@ -105,26 +101,27 @@ fn her_komut_bir_onay_uretir() {
         } => {
             assert_eq!(for_seq, 1);
             assert!(applied);
-            // Kararli kod + sayi; eski telefonlar icin Ingilizce yedek metin.
+            // Stable code + number; English fallback text for older phones.
             assert_eq!(reply, Some(AckReply::stopped(8)));
             assert_eq!(detail, AckReply::stopped(8).english());
         }
-        other => panic!("onay bekleniyordu: {other:?}"),
+        other => panic!("expected an ack: {other:?}"),
     }
 }
 
-/// Uygulanamayan komut da onay dondurur — SESSIZ kalmaz. Telefon "denedim ve
-/// olmadi" ile "hic cevap gelmedi"yi ayirt edebilmeli.
+/// A command that could not be applied still returns an acknowledgement; it
+/// does not stay SILENT. The phone must tell "tried and failed" from "no
+/// answer at all".
 #[test]
-fn uygulanamayan_komut_da_onay_dondurur() {
-    let sahte_masa = SahteMasa {
-        hata: Some(AckReply::new(ack_code::START_FAILED)),
+fn unapplied_command_still_returns_an_ack() {
+    let fake_desk = FakeDesk {
+        error: Some(AckReply::new(ack_code::START_FAILED)),
         ..Default::default()
     };
-    let mut link = masa(sahte_masa);
-    let out = isle(
+    let mut link = desk(fake_desk);
+    let out = handle(
         &mut link,
-        &telefon_zarfi(
+        &phone_envelope(
             1,
             &Command::CloseAll {
                 bot: BotSelector::All,
@@ -132,25 +129,25 @@ fn uygulanamayan_komut_da_onay_dondurur() {
         ),
     )
     .unwrap();
-    match coz(&out[0]) {
+    match decode(&out[0]) {
         DeskMessage::Ack {
             applied, reply, ..
         } => {
-            assert!(!applied, "basarisiz komut applied=true dondu");
+            assert!(!applied, "a failed command returned applied=true");
             assert_eq!(reply.map(|r| r.code).as_deref(), Some(ack_code::START_FAILED));
         }
-        other => panic!("onay bekleniyordu: {other:?}"),
+        other => panic!("expected an ack: {other:?}"),
     }
 }
 
-/// Acil bir kontrolde belirsizlik tehlikelidir: "durdur" acik pozisyonlara
-/// DOKUNMAZ.
+/// Ambiguity is dangerous in an emergency control: "stop" does NOT TOUCH
+/// open positions.
 #[test]
-fn durdur_acik_pozisyonlara_dokunmaz() {
-    let mut link = masa(SahteMasa::default());
-    isle(
+fn stop_does_not_touch_open_positions() {
+    let mut link = desk(FakeDesk::default());
+    handle(
         &mut link,
-        &telefon_zarfi(
+        &phone_envelope(
             1,
             &Command::StopOpening {
                 bot: BotSelector::Futures,
@@ -158,19 +155,19 @@ fn durdur_acik_pozisyonlara_dokunmaz() {
         ),
     )
     .unwrap();
-    assert_eq!(link.control().durduruldu, vec![BotSelector::Futures]);
+    assert_eq!(link.control().stopped, vec![BotSelector::Futures]);
     assert!(
-        link.control().kapatildi.is_empty(),
-        "durdur komutu pozisyon kapatti"
+        link.control().closed.is_empty(),
+        "the stop command closed positions"
     );
 }
 
 #[test]
-fn hepsini_kapat_gercekten_kapatir() {
-    let mut link = masa(SahteMasa::default());
-    isle(
+fn close_all_really_closes() {
+    let mut link = desk(FakeDesk::default());
+    handle(
         &mut link,
-        &telefon_zarfi(
+        &phone_envelope(
             1,
             &Command::CloseAll {
                 bot: BotSelector::All,
@@ -178,19 +175,19 @@ fn hepsini_kapat_gercekten_kapatir() {
         ),
     )
     .unwrap();
-    assert_eq!(link.control().kapatildi, vec![BotSelector::All]);
+    assert_eq!(link.control().closed, vec![BotSelector::All]);
 }
 
-/// Dogrulanmayan zarf ne bir eylem ne de bir YANIT uretir. Yanit uretseydi,
-/// imzasiz zarf gonderen biri masanin varligini yoklayabilirdi.
+/// An envelope that fails verification produces neither an action nor a
+/// REPLY (see `DeskLink::handle_raw`).
 #[test]
-fn imzasi_tutmayan_zarf_ne_is_yapar_ne_cevap_verir() {
-    let mut link = masa(SahteMasa::default());
-    let baska = PairingKey::from_bytes([9u8; 32]);
+fn envelope_with_bad_signature_neither_acts_nor_replies() {
+    let mut link = desk(FakeDesk::default());
+    let other_key = PairingKey::from_bytes([9u8; 32]);
     let env = seal(
-        &baska,
+        &other_key,
         "desk-1",
-        TELEFON_EPOCH,
+        PHONE_EPOCH,
         1,
         NOW,
         &Command::CloseAll {
@@ -199,113 +196,113 @@ fn imzasi_tutmayan_zarf_ne_is_yapar_ne_cevap_verir() {
     )
     .unwrap();
     let raw = serde_json::to_string(&env).unwrap();
-    assert_eq!(isle(&mut link, &raw).unwrap_err(), LinkError::BadSignature);
+    assert_eq!(handle(&mut link, &raw).unwrap_err(), LinkError::BadSignature);
     assert!(
-        link.control().kapatildi.is_empty(),
-        "imzasiz komut UYGULANDI"
+        link.control().closed.is_empty(),
+        "an unsigned command was APPLIED"
     );
 }
 
 #[test]
-fn tekrar_oynatilan_komut_ikinci_kez_uygulanmaz() {
-    let mut link = masa(SahteMasa::default());
-    let raw = telefon_zarfi(
+fn replayed_command_is_not_applied_twice() {
+    let mut link = desk(FakeDesk::default());
+    let raw = phone_envelope(
         4,
         &Command::CloseAll {
             bot: BotSelector::All,
         },
     );
-    isle(&mut link, &raw).unwrap();
+    handle(&mut link, &raw).unwrap();
     assert!(matches!(
-        isle(&mut link, &raw).unwrap_err(),
+        handle(&mut link, &raw).unwrap_err(),
         LinkError::Replay { .. }
     ));
     assert_eq!(
-        link.control().kapatildi.len(),
+        link.control().closed.len(),
         1,
-        "ayni komut iki kez uygulandi"
+        "the same command was applied twice"
     );
 }
 
-/// S8: TELEFON yeniden baslarsa sayaci sifirdan baslar. Epoch olmadan masa
-/// "hepsini kapat" dahil her komutu tekrar sanip dusururdu — yani kill switch,
-/// tam olarak kullanilmasi gereken anda calismazdi.
+/// A restarted PHONE starts its counter from zero. Without the epoch the desk
+/// would drop every command as a replay, "close all" included: the kill switch
+/// would fail exactly when it is needed.
 #[test]
-fn yeniden_baslayan_telefonun_komutu_dusurulmez() {
-    let mut link = masa(SahteMasa::default());
+fn restarted_phone_command_is_not_dropped() {
+    let mut link = desk(FakeDesk::default());
 
-    // Ilk oturum: iki komut.
-    isle(&mut link, &telefon_zarfi(1, &Command::Status)).unwrap();
-    isle(&mut link, &telefon_zarfi(2, &Command::Status)).unwrap();
+    // First session: two commands.
+    handle(&mut link, &phone_envelope(1, &Command::Status)).unwrap();
+    handle(&mut link, &phone_envelope(2, &Command::Status)).unwrap();
 
-    // Telefon yeniden basladi: yeni epoch, sayac yeniden 1.
-    let yeni = telefon_zarfi_epoch(
-        TELEFON_EPOCH + 1,
+    // The phone restarted: new epoch, counter back at 1.
+    let restarted = phone_envelope_at_epoch(
+        PHONE_EPOCH + 1,
         1,
         &Command::CloseAll {
             bot: BotSelector::All,
         },
     );
-    isle(&mut link, &yeni).expect("yeniden baslayan telefonun komutu dusuruldu");
-    assert_eq!(link.control().kapatildi, vec![BotSelector::All]);
+    handle(&mut link, &restarted).expect("the restarted phone's command was dropped");
+    assert_eq!(link.control().closed, vec![BotSelector::All]);
 
-    // Ama gercek bir tekrar hala reddedilir: ayni zarf ikinci kez uygulanmaz.
+    // A real replay is still rejected: the same envelope is not applied twice.
     assert!(matches!(
-        isle(&mut link, &yeni).unwrap_err(),
+        handle(&mut link, &restarted).unwrap_err(),
         LinkError::Replay { .. }
     ));
     assert_eq!(
-        link.control().kapatildi.len(),
+        link.control().closed.len(),
         1,
-        "ayni komut iki kez uygulandi"
+        "the same command was applied twice"
     );
 
-    // Ve ESKI oturumdan kaydedilmis bir zarf gecmez.
-    let eski = telefon_zarfi_epoch(
-        TELEFON_EPOCH,
+    // And an envelope recorded in the OLD session does not pass.
+    let old = phone_envelope_at_epoch(
+        PHONE_EPOCH,
         99,
         &Command::CloseAll {
             bot: BotSelector::All,
         },
     );
     assert!(matches!(
-        isle(&mut link, &eski).unwrap_err(),
+        handle(&mut link, &old).unwrap_err(),
         LinkError::Replay { .. }
     ));
-    assert_eq!(link.control().kapatildi.len(), 1);
+    assert_eq!(link.control().closed.len(), 1);
 }
 
 #[test]
-fn durum_sorgusu_durum_mesaji_dondurur() {
-    let mut link = masa(SahteMasa::default());
-    let out = isle(&mut link, &telefon_zarfi(1, &Command::Status)).unwrap();
-    match coz(&out[0]) {
+fn status_query_returns_a_status_message() {
+    let mut link = desk(FakeDesk::default());
+    let out = handle(&mut link, &phone_envelope(1, &Command::Status)).unwrap();
+    match decode(&out[0]) {
         DeskMessage::Status(st) => {
             assert_eq!(st.open_positions, 8);
             assert_eq!(st.effective_bets, 2.0);
         }
-        other => panic!("durum bekleniyordu: {other:?}"),
+        other => panic!("expected a status: {other:?}"),
     }
 }
 
 #[test]
-fn kalp_atisi_erken_gonderilmez_zamaninda_gonderilir() {
-    let mut link = masa(SahteMasa::default());
-    assert!(link.heartbeat_due(NOW).is_some(), "ilk atis gonderilmeli");
+fn heartbeat_is_not_sent_early_but_on_time() {
+    let mut link = desk(FakeDesk::default());
+    assert!(link.heartbeat_due(NOW).is_some(), "the first beat must be sent");
     assert!(
         link.heartbeat_due(NOW + 1_000).is_none(),
-        "1sn sonra tekrar atis gonderildi"
+        "a beat was sent again after 1 s"
     );
     assert!(link.heartbeat_due(NOW + HEARTBEAT_EVERY_MS).is_some());
 }
 
-/// Giden sayac her mesajda ilerlemeli, yoksa TELEFONUN tekrar korumasi
-/// mesajlari dusururdu.
+/// The outgoing counter must advance with every message, or the PHONE's
+/// replay protection would drop messages.
 #[test]
-fn giden_sayac_her_mesajda_ilerler() {
-    let mut link = masa(SahteMasa::default());
+fn outgoing_counter_advances_on_every_message() {
+    let mut link = desk(FakeDesk::default());
     let a = link.heartbeat_due(NOW).unwrap();
-    let b = isle(&mut link, &telefon_zarfi(1, &Command::Status))
+    let b = handle(&mut link, &phone_envelope(1, &Command::Status))
         .unwrap()
         .remove(0);
     let c = link.heartbeat_due(NOW + HEARTBEAT_EVERY_MS).unwrap();
@@ -313,21 +310,21 @@ fn giden_sayac_her_mesajda_ilerler() {
 }
 
 #[test]
-fn masanin_yaniti_telefon_tarafinda_dogrulanir() {
-    let mut link = masa(SahteMasa::default());
-    let out = isle(&mut link, &telefon_zarfi(1, &Command::Status)).unwrap();
-    let mut telefon_guard = ReplayGuard::new();
-    let msg: DeskMessage = open(&key(), &mut telefon_guard, NOW, &out[0]).unwrap();
+fn desk_reply_verifies_on_the_phone_side() {
+    let mut link = desk(FakeDesk::default());
+    let out = handle(&mut link, &phone_envelope(1, &Command::Status)).unwrap();
+    let mut phone_guard = ReplayGuard::new();
+    let msg: DeskMessage = open(&key(), &mut phone_guard, NOW, &out[0]).unwrap();
     assert!(matches!(msg, DeskMessage::Status(_)));
 }
 
-/// Bir masanin baslatilmasi da onay uretmeli.
+/// Starting a bot must produce an acknowledgement too.
 #[test]
-fn baslatma_onay_uretir() {
-    let mut link = masa(SahteMasa::default());
-    let out = isle(
+fn start_produces_an_ack() {
+    let mut link = desk(FakeDesk::default());
+    let out = handle(
         &mut link,
-        &telefon_zarfi(
+        &phone_envelope(
             1,
             &Command::Start {
                 bot: BotSelector::Spot,
@@ -336,46 +333,45 @@ fn baslatma_onay_uretir() {
     )
     .unwrap();
     assert!(matches!(
-        coz(&out[0]),
+        decode(&out[0]),
         DeskMessage::Ack { applied: true, .. }
     ));
-    assert_eq!(link.control().baslatildi, vec![BotSelector::Spot]);
+    assert_eq!(link.control().started, vec![BotSelector::Spot]);
 }
 
-/// Role, masanin kendi imzali kalp atisini masaya geri yansitabilir (iki uc
-/// ayni anahtari kullanir). Masa epoch'u telefonunkinden buyuk oldugu icin,
-/// yansima sayaci ilerletseydi telefonun sonraki "hepsini kapat" komutu tekrar
-/// diye duserdi: imza uretemeyen role kill switch'i susturmus olurdu.
+/// The relay can reflect the desk's own signed heartbeat back to it (both
+/// ends use the same key). That must not make the phone's next "close all"
+/// drop as a replay (see `aleph_link::open`).
 #[test]
-fn yansitilan_kalp_atisi_kill_switchi_susturamaz() {
-    let mut link = masa(SahteMasa::default());
-    let beat = link.heartbeat_due(NOW).expect("ilk atis");
-    let yansima = serde_json::to_string(&beat).unwrap();
-    assert!(isle(&mut link, &yansima).is_err(), "yansima kabul edildi");
+fn reflected_heartbeat_cannot_silence_the_kill_switch() {
+    let mut link = desk(FakeDesk::default());
+    let beat = link.heartbeat_due(NOW).expect("first beat");
+    let reflection = serde_json::to_string(&beat).unwrap();
+    assert!(handle(&mut link, &reflection).is_err(), "the reflection was accepted");
 
-    let out = isle(
+    let out = handle(
         &mut link,
-        &telefon_zarfi(
+        &phone_envelope(
             1,
             &Command::CloseAll {
                 bot: BotSelector::All,
             },
         ),
     )
-    .expect("telefonun komutu reddedildi");
+    .expect("the phone's command was rejected");
     assert_eq!(out.len(), 1);
-    assert_eq!(link.control().kapatildi, vec![BotSelector::All]);
+    assert_eq!(link.control().closed, vec![BotSelector::All]);
 }
 
-/// Zarf baska bir masaya yazilmissa (ayni anahtar iki masada kullanilmis
-/// olsa bile) bu masa onu UYGULAMAZ ve sayaci ilerletmez.
+/// An envelope addressed to another desk (even with the same key on both
+/// desks) is NOT applied here and does not advance the counter.
 #[test]
-fn baska_masanin_zarfi_reddedilir() {
-    let mut link = masa(SahteMasa::default());
+fn other_desks_envelope_is_rejected() {
+    let mut link = desk(FakeDesk::default());
     let env = seal(
         &key(),
         "desk-2",
-        TELEFON_EPOCH,
+        PHONE_EPOCH,
         1,
         NOW,
         &Command::CloseAll {
@@ -384,38 +380,38 @@ fn baska_masanin_zarfi_reddedilir() {
     )
     .unwrap();
     let raw = serde_json::to_string(&env).unwrap();
-    assert_eq!(isle(&mut link, &raw).unwrap_err(), LinkError::WrongDesk);
-    assert!(link.control().kapatildi.is_empty(), "baska masanin komutu uygulandi");
+    assert_eq!(handle(&mut link, &raw).unwrap_err(), LinkError::WrongDesk);
+    assert!(link.control().closed.is_empty(), "another desk's command was applied");
 
-    // Sayac ilerlemedi: ayni seq ile dogru masaya yazilmis komut gecer.
-    isle(
+    // The counter did not advance: the same seq addressed to the right desk passes.
+    handle(
         &mut link,
-        &telefon_zarfi(
+        &phone_envelope(
             1,
             &Command::CloseAll {
                 bot: BotSelector::All,
             },
         ),
     )
-    .expect("dogru masanin komutu reddedildi");
-    assert_eq!(link.control().kapatildi, vec![BotSelector::All]);
+    .expect("the right desk's command was rejected");
+    assert_eq!(link.control().closed, vec![BotSelector::All]);
 }
 
-/// Hic kullanilmadan suresi dolan QR anahtari OLUR: QR ekrandan kalktiktan
-/// sonra fotografini ceken biri o anahtarla masayi yonetememeli.
+/// A QR key that expires unused DIES: once the QR has left the screen,
+/// someone who photographed it must not be able to run the desk with it.
 #[test]
-fn kullanilmadan_suresi_dolan_anahtar_olur() {
-    let son = NOW + 120_000;
-    let mut link = masa(SahteMasa::default()).with_claim_deadline(son);
-    assert!(link.key_live(son));
+fn key_unused_by_its_deadline_dies() {
+    let deadline = NOW + 120_000;
+    let mut link = desk(FakeDesk::default()).with_claim_deadline(deadline);
+    assert!(link.key_live(deadline));
 
-    let komut = |seq| {
+    let command = |seq| {
         let env = seal(
             &key(),
             "desk-1",
-            TELEFON_EPOCH,
+            PHONE_EPOCH,
             seq,
-            son + 1,
+            deadline + 1,
             &Command::CloseAll {
                 bot: BotSelector::All,
             },
@@ -424,38 +420,38 @@ fn kullanilmadan_suresi_dolan_anahtar_olur() {
         serde_json::to_string(&env).unwrap()
     };
     assert_eq!(
-        block_on(link.handle_raw(son + 1, &komut(1))).unwrap_err(),
+        block_on(link.handle_raw(deadline + 1, &command(1))).unwrap_err(),
         LinkError::KeyRevoked
     );
-    assert!(link.control().kapatildi.is_empty(), "olu anahtarla komut uygulandi");
-    // Olu anahtar kalp atisi da gondermez.
-    assert!(link.heartbeat_due(son + 1).is_none());
-    assert!(!link.key_live(son + 1));
+    assert!(link.control().closed.is_empty(), "a command was applied with a dead key");
+    // A dead key sends no heartbeat either.
+    assert!(link.heartbeat_due(deadline + 1).is_none());
+    assert!(!link.key_live(deadline + 1));
 }
 
-/// Suresi icinde kullanilan anahtar, QR'in olumunden sonra da yasar: bu,
-/// eslesmis telefonun kalici hattidir.
+/// A key used in time lives on after the QR dies: it is the paired phone's
+/// lasting line.
 #[test]
-fn suresinde_kullanilan_anahtar_yasamaya_devam_eder() {
-    let son = NOW + 120_000;
-    let mut link = masa(SahteMasa::default()).with_claim_deadline(son);
-    isle(&mut link, &telefon_zarfi(1, &Command::Status)).unwrap();
+fn key_used_in_time_stays_alive() {
+    let deadline = NOW + 120_000;
+    let mut link = desk(FakeDesk::default()).with_claim_deadline(deadline);
+    handle(&mut link, &phone_envelope(1, &Command::Status)).unwrap();
 
-    let sonra = son + 3_600_000;
-    let env = seal(&key(), "desk-1", TELEFON_EPOCH, 2, sonra, &Command::Status).unwrap();
-    let out = block_on(link.handle_raw(sonra, &serde_json::to_string(&env).unwrap()))
-        .expect("eslesmis telefonun komutu reddedildi");
+    let later = deadline + 3_600_000;
+    let env = seal(&key(), "desk-1", PHONE_EPOCH, 2, later, &Command::Status).unwrap();
+    let out = block_on(link.handle_raw(later, &serde_json::to_string(&env).unwrap()))
+        .expect("the paired phone's command was rejected");
     assert_eq!(out.len(), 1);
-    assert!(link.heartbeat_due(sonra).is_some());
+    assert!(link.heartbeat_due(later).is_some());
 }
 
-/// Iptal: anahtar aninda olur, eslesme olmus olsa bile.
+/// Cancelling kills the key at once, even after a phone has paired.
 #[test]
-fn iptal_edilen_anahtar_hicbir_zarfi_kabul_etmez() {
-    let mut link = masa(SahteMasa::default());
+fn revoked_key_accepts_no_envelope() {
+    let mut link = desk(FakeDesk::default());
     link.revoke();
     assert_eq!(
-        isle(&mut link, &telefon_zarfi(1, &Command::Status)).unwrap_err(),
+        handle(&mut link, &phone_envelope(1, &Command::Status)).unwrap_err(),
         LinkError::KeyRevoked
     );
     assert!(link.heartbeat_due(NOW).is_none());

@@ -1,5 +1,5 @@
 /**
- * Health snapshot types (mirror src-tauri/src/health.rs) + a client that reads
+ * Health snapshot types (mirror src-tauri/src/app/health.rs) + a client that reads
  * them from the Rust core. In a plain browser (`npm run dev`) a dev-only
  * preview answers "unknown" for every reading; the released bundle has none.
  */

@@ -39,9 +39,8 @@ const cfg = (capital: number): BotConfig => ({ kind: "futures", exchangeId: "bin
 const capStatus = (capital: number, running: boolean): BotDeskStatus =>
   status({ futures: cfg(capital), futuresRunning: running });
 
-// Audit 2026-10-08, signal_bots 1: a bot above the per-position cap skipped
-// every signal while its row said "Start" and "Running". Rust now refuses
-// the start; the row says why before anyone presses it.
+// Rust refuses to start a bot whose capital is above the per-position cap;
+// the row says why before anyone presses Start.
 describe("signal bot rows and the per-position cap", () => {
   it("a stopped bot above the cap cannot be started from its row", () => {
     const row = signalBotRows(capStatus(100, false), 20).find((r) => r.kind === "futures")!;

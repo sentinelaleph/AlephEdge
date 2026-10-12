@@ -17,15 +17,11 @@ export function inTauri(): boolean {
 /**
  * Runs a browser-preview fallback, in the dev build only.
  *
- * Two of these previews are fail-open by design: the vault opens for any
- * password and membership answers "active, aleph". That is right for
- * `npm run dev` in a plain browser and wrong to ship — `inTauri()` makes them
- * unreachable in the desktop app, but a reader auditing this repository would
- * still find a vault that opens for anyone and a paywall that says yes sitting
- * in the released JavaScript. `import.meta.env.DEV` is substituted at build
- * time, so the released bundle keeps the rejection and drops both the dynamic
- * import and the module behind it: the previews are not merely unreachable
- * there, they are absent (2026-09-20 pre-publication review, S6).
+ * Some previews are fail-open by design (the vault opens for any password,
+ * membership answers "active, aleph"), so dev mocks must not be in the release
+ * bundle. `import.meta.env.DEV` is substituted at build time: the released
+ * bundle keeps the rejection and drops both the dynamic import and the module
+ * behind it, so the mocks are absent there, not merely unreachable.
  */
 export async function devMock<M, T>(load: () => Promise<M>, run: (mock: M) => Promise<T>): Promise<T> {
   if (!import.meta.env.DEV) {

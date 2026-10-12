@@ -40,8 +40,8 @@ const SKIP_CAP: usize = 30;
 const TRIP_KEY: &str = "tripped_day";
 /// Signal bots running when the app last changed one, comma-separated kinds.
 /// A restart resumes them (in paper: `live` is never restored), as DCA/Grid
-/// bots already resume; before this a restart left every signal bot stopped
-/// with nothing on screen saying why no position opened.
+/// bots resume, so no signal bot sits stopped after a restart with nothing on
+/// screen saying why no position opened.
 const RUNNING_KEY: &str = "running_kinds";
 
 /// `meta` key holding one bot's saved config.
@@ -120,8 +120,8 @@ impl BotManager {
             .insert(cfg.kind, cfg);
     }
 
-    /// Starts a bot. Refused while today's kill-switch is tripped (PRD §5.3:
-    /// manual restart only after the next UTC day begins).
+    /// Starts a bot. Refused while today's kill-switch is tripped (manual
+    /// restart only after the next UTC day begins).
     pub fn start(&self, app: AppHandle, kind: BotKind) -> Result<(), String> {
         if self.kill_switch_tripped() {
             return Err("botDailyLossTripped".to_string());
@@ -194,8 +194,7 @@ impl BotManager {
     }
 
     /// Reloads open positions persisted by a previous run and, if any exist,
-    /// starts the loop so they keep being managed even before a bot starts
-    /// (positions used to live only in memory and vanished on restart).
+    /// starts the loop so they keep being managed even before a bot starts.
     pub fn restore(&self, app: AppHandle) {
         self.seed_judged(&app);
         self.restore_trip(&app);
@@ -607,8 +606,8 @@ impl BotManager {
     pub fn status(&self) -> BotDeskStatus {
         // Read the positions (and their marks) BEFORE the struct literal: a
         // guard taken inside it lives until the whole expression ends, so
-        // locking `positions` again there deadlocked this (main-thread)
-        // command and froze the window (10 Oct 2026).
+        // locking `positions` again there would deadlock this (main-thread)
+        // command and freeze the window.
         let open_positions = self.positions.lock().expect("bot mutex").clone();
         let marks = self.marks_of(&open_positions);
         let at_stop = open_positions

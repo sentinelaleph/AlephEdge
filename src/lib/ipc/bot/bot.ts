@@ -1,7 +1,7 @@
 /**
- * Bot-desk IPC bridge (mirrors src-tauri/src/bot). Live trading stays behind
- * a Rust-side feature flag (OFF through F3) — `liveTradingEnabled` in the
- * status is the honest indicator the UI shows. `npm run dev` gets an idle,
+ * Bot-desk IPC bridge (mirrors src-tauri/src/bot). Live trading is compiled in
+ * only with the Rust `live` feature; `liveTradingEnabled` in the status is the
+ * honest indicator the UI shows. `npm run dev` gets an idle,
  * dev-only desk through `devMock`; the released bundle has none.
  */
 
@@ -196,8 +196,8 @@ export interface SkipNote {
   /**
    * For most reasons: a preformatted value the UI interpolates as-is (e.g.
    * "+0.120%"). For "vetoClosed" only (a veto closing one or more open
-   * positions, 2026-09-18): `"<count>|<reason_text>"` — see
-   * `vetoClosedParams` in DeskFeed.tsx, which splits it back apart.
+   * positions): `"<count>|<reason_text>"`, split back apart by `skipParams`
+   * in lib/skipNotes.ts.
    */
   detail?: string;
 }

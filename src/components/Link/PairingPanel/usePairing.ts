@@ -83,9 +83,9 @@ export function usePairing() {
     setBusy(true);
     setError(null);
     try {
-      // No host and no desk id pass through here. Rust resolves both and starts
-      // the relay session itself; this used to fetch them and hand them back
-      // over IPC, which made a security boundary depend on a UI convention.
+      // No host and no desk id pass through here: Rust resolves both and starts
+      // the relay session itself, so the security boundary does not depend on
+      // the UI.
       setPairing(await beginPairing());
     } catch (e) {
       setError(errorMessage(e, t("link.error")));

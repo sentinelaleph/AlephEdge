@@ -3,7 +3,7 @@
 //! Two processes on one edge.db each run the engine. Paper bots resume on
 //! launch, so both trade the same bots: every fill and trade is written twice,
 //! the daily stop counts each loss twice, and a Stop or Delete in one window is
-//! undone by the other's next save (audit 2026-10-08, persistence 1).
+//! undone by the other's next save.
 //!
 //! `tauri-plugin-single-instance`, registered first in `run`, hands a second
 //! launch to the running window and exits. It keys on the app identifier, so

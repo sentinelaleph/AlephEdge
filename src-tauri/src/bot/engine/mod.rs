@@ -10,7 +10,7 @@
 //! (breakeven/partial on the exchange), `live_close` (real-fill settlement),
 //! `reconcile` (exits the exchange made while the app was away).
 //!
-//! Tauri-free core (2026-09-22): `entry_rules`, `precheck_rules` and `record`
+//! Tauri-free core: `entry_rules`, `precheck_rules` and `record`
 //! hold the open phase's decisions, the precheck verdicts and the trade
 //! records; together with `geometry`, `management`, `pnl`, `sizing`,
 //! `take_profit`, `filters` and `btc_break` they import no Tauri and do no
@@ -66,9 +66,8 @@ pub async fn tick(app: &AppHandle) {
 /// Keeps the BTC regime read from launch on, every `REGIME_POLL`.
 ///
 /// The engine tick reads it too, but that loop only starts once a bot or an
-/// open position exists: with nothing running the regime stayed at its
-/// initial Unknown, and the risk page, status bar and sidebar said
-/// "Unknown" while Sentinel's feed was answering fine (owner, 3 Oct).
+/// open position exists, and with nothing running the risk page, status bar
+/// and sidebar must still show the regime, not its initial Unknown.
 pub fn spawn_regime_poller(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         loop {
@@ -130,14 +129,14 @@ pub(crate) async fn close_price(exchange: &ExchangeManager, pos: &crate::bot::mo
 }
 
 /// Trips the daily loss kill-switch when today's realized net PnL breaches the
-/// level's limit (as % of the simulated balance). All bots stop; per PRD §5.3
-/// the default is to CLOSE open positions (user preference `close_on_stop`).
+/// level's limit (as % of the simulated balance). All bots stop; by default
+/// open positions are CLOSED (user preference `close_on_stop`).
 /// Restart unlocks next UTC day.
 async fn kill_switch_phase(app: &AppHandle) {
     let bots = app.state::<BotManager>();
     // Restored positions are managed before any bot starts; the daily stop
-    // guards them too. Strategy (DCA/Grid) bots are outside it (owner
-    // decision 2026-10-01): their own budget cap and portfolio breaker apply.
+    // guards them too. Strategy (DCA/Grid) bots are outside it: their own
+    // budget cap and portfolio breaker apply.
     let idle = !bots.any_running() && bots.open_count() == 0;
     if idle {
         return;

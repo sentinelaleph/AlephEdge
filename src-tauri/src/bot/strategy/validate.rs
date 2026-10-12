@@ -746,8 +746,8 @@ mod tests {
         c
     }
 
-    // Owner's backtest 2 Oct: TP 1.5% with a 5% trail turned 17 target hits
-    // into trail exits, 9 of them losses (-7.9% over 180 days).
+    // A trail at or beyond the take-profit turns target hits into trail
+    // exits, many of them losses.
     #[test]
     fn a_trail_at_or_beyond_the_take_profit_is_refused() {
         let tp = |c: &StrategyConfig| match &c.params {
@@ -952,8 +952,8 @@ mod tests {
         assert_eq!(code(&ok, 5), None);
     }
 
-    /// Audit 8 Oct: 5x, no SO, SL 30% was accepted; the liquidation near
-    /// -19.6% came first, the stop never fired and the bot ended at -1002.50.
+    /// 5x, no SO, SL 30%: the liquidation near -19.6% comes first and the
+    /// stop never fires, so the config is refused.
     #[test]
     fn a_stop_loss_past_the_liquidation_price_is_refused() {
         let mk = |sl: f64| {
@@ -966,7 +966,7 @@ mod tests {
         };
         assert_eq!(validate(&mk(30.0), 5), Err(StrategyError::new("slBeyondLiquidation", "slPct")));
         assert_eq!(code(&mk(15.0), 5), None);
-        // The preview no longer calls the stop the worst case: liquidation
+        // The preview does not call the stop the worst case: liquidation
         // comes first and takes the whole margin.
         let pv = preview(&mk(30.0), 100.0, 5);
         let d = pv.dca.unwrap();

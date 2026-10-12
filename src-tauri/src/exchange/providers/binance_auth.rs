@@ -1,6 +1,6 @@
 //! The one authenticated call in the exchange layer: verifying a just-added
 //! Binance key's REAL permissions via the signed `apiRestrictions` endpoint
-//! (PRD §5.5 — detect a withdraw-enabled key, don't trust a dropdown). Only
+//! (detect a withdraw-enabled key, don't trust a dropdown). Only
 //! Binance exposes this today; other exchanges keep self-declared permission.
 
 use hmac::{Hmac, Mac};

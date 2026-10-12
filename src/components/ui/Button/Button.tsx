@@ -19,9 +19,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 /**
  * The base pressable. Feedback is CSS-driven: transform: scale(0.97) on
- * :active with a fast ease-out transition, so every press feels heard
- * (emil-design-eng: buttons must feel responsive). No JS animation — presses
- * happen constantly and must be instant.
+ * :active with a fast ease-out transition, so every press feels heard. No JS
+ * animation: presses happen constantly and must be instant.
  *
  * Hierarchy (one rule for every view):
  *   primary    the ONE main action of the view (header: New bot, Run backtest,

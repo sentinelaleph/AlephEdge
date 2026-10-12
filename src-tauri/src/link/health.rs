@@ -1,17 +1,15 @@
 //! Is the phone relay actually there?
 //!
-//! Audit 2026-09-16: the pairing panel drew a live, counting-down QR although
-//! `{api_base}/link/health` answered 404 — the relay had been built and tested
-//! (aleph-edge-mobile/relay) but never deployed, and the phone app had not been
-//! released. A QR that no phone can ever use is a control the user believes in
-//! and cannot operate. The panel now asks this command first and only offers
-//! pairing when the relay answers.
+//! A QR that no phone can ever use is a control the user believes in and
+//! cannot operate. The pairing panel asks this command first and offers
+//! pairing only when the relay answers its health path.
 
 use std::time::Duration;
 
 use crate::app::endpoints::api_base;
 
-/// Health path served by the relay (`relay/server.go`: `GET /link/health`).
+/// The relay's health path: `GET {api_base}/link/health` answers 2xx while the
+/// relay is up.
 pub const RELAY_HEALTH_PATH: &str = "/link/health";
 
 /// Builds the health URL from the API base. Pure, so the one derivation can be

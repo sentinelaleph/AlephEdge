@@ -365,7 +365,7 @@ mod tests {
             assert_eq!(get(&c, "venue").verdict, Verdict::Warn, "{venue}");
             assert_eq!(worst(&c), Verdict::Warn, "{venue}");
         }
-        // No order path (Bitget since 2026-10-09): the sandbox does not help.
+        // No order path (Bitget): the sandbox does not help.
         let mut i = ready();
         (i.venue, i.sandbox, i.production) = ("bitget".into(), true, false);
         assert_eq!(get(&evaluate(&i), "venue").verdict, Verdict::Fail);

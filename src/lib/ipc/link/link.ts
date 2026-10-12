@@ -6,10 +6,8 @@
  * standing credential — the Rust side keeps the session short-lived and
  * single-use, and this module never invents a QR of its own.
  *
- * The desk id and the relay URL are NOT arguments here. Rust resolves both
- * (`src-tauri/src/link/commands.rs`, from `app::endpoints`), because a UI that
- * can pass a host is a UI that can pass the wrong one — and the pairing session
- * it starts is the one thing in this app that hands out a credential.
+ * The desk id and the relay URL are not arguments here: hosts come from
+ * `app::endpoints` (src-tauri/src/app/endpoints.rs).
  *
  * `npm run dev` gets a dev-only in-memory session through `devMock`; the
  * released bundle has none.

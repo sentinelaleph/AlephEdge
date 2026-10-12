@@ -3,8 +3,7 @@
 //!
 //! The buffer keeps a signal until it expires, but Sentinel records the
 //! outcome as soon as price reaches the target or the stop. Without this
-//! check a bot entered such a signal hours later (the paper runner's FIGHTUSDT
-//! short on 28 Sep 2026: target hit 07:30 UTC, entered 18:34, stopped out).
+//! check a bot could enter such a signal hours after its target was hit.
 //! Sentinel's public pending list is exactly the published signals with no
 //! outcome yet; a buffered signal it covers but no longer lists is resolved.
 

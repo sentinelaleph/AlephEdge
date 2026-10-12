@@ -4,7 +4,7 @@
 //! the state-machine file.
 //!
 //! One entry per app identifier (`app::keychain`): signing in or out in the
-//! TESTNET build no longer replaces or clears the release build's session.
+//! TESTNET build never replaces or clears the release build's session.
 //! There is deliberately no copy from the pre-0.2.1 shared entry. Refresh
 //! tokens rotate on every refresh, so two builds holding one token would sign
 //! each other out; a non-release build signs in once instead. The release
@@ -16,8 +16,8 @@ use super::model::PersistedSession;
 const KEYCHAIN_SESSION_USER: &str = "membership-session";
 
 /// Persists the refresh token + user identity to the OS keychain. Best-effort:
-/// a write failure here just means the next launch asks for a password again
-/// (same as before this existed), so it never blocks the caller's own result.
+/// a write failure here just means the next launch asks for a password again,
+/// so it never blocks the caller's own result.
 pub(super) fn persist_session(session: &PersistedSession) {
     let Ok(json) = serde_json::to_string(session) else {
         return;

@@ -13,10 +13,10 @@ import {
   SPOT_FEE_RATE,
 } from "./sizing";
 import { customPctValid, MAX_CUSTOM_TP_PCT, MIN_CUSTOM_TP_PCT, signalTpDistances, targetLabel } from "./takeProfit";
-import { capitalAboveCap, DEFAULT_CAPITAL, defaultCapitalWithin, MAX_BOT_POSITIONS } from "./botLimits";
+import { capitalAboveCap, DEFAULT_CAPITAL, defaultCapitalWithin, EXCHANGE_MIN_ORDER_USDT, MAX_BOT_POSITIONS } from "./botLimits";
 import type { Signal } from "@/lib/ipc/signal/signal";
 
-/** Rust sources the TS constants are kept in lockstep with by hand. */
+/** Rust sources the TS constants must match. */
 const RUST = import.meta.glob(["/src-tauri/src/bot/engine/sizing.rs", "/src-tauri/src/bot/model.rs", "/src-tauri/src/bot/commands.rs"], {
   query: "?raw",
   import: "default",
@@ -54,6 +54,7 @@ describe("constants match the Rust side", () => {
     expect(MIN_CUSTOM_TP_PCT).toBe(rustConst(MODEL_RS, "MIN_CUSTOM_TP_PCT"));
     expect(MAX_CUSTOM_TP_PCT).toBe(rustConst(MODEL_RS, "MAX_CUSTOM_TP_PCT"));
     expect(MAX_BOT_POSITIONS).toBe(rustConst(MODEL_RS, "MAX_BOT_POSITIONS"));
+    expect(EXCHANGE_MIN_ORDER_USDT).toBe(rustConst(MODEL_RS, "EXCHANGE_MIN_ORDER_USDT"));
     // 0.05% taker per side = the 0.10% round trip the example charges.
     expect(ROUND_TRIP_FEE_FRAC).toBeCloseTo(2 * rustConst(MODEL_RS, "FUTURES_FEE_RATE"), 12);
     expect(FUTURES_FEE_RATE).toBe(rustConst(MODEL_RS, "FUTURES_FEE_RATE"));
@@ -145,8 +146,8 @@ describe("takeProfit helpers", () => {
   });
 });
 
-// Mirrors pnl.rs `breaches_cap` (audit 2026-10-08, signal_bots 4): one number
-// whose meaning depends on the sizing mode, now stated under the field.
+// Mirrors pnl.rs `breaches_cap`: one number whose meaning depends on the
+// sizing mode, stated under the field.
 describe("maxLossEffect", () => {
   const futures = { feeRate: FUTURES_FEE_RATE, riskPct: 1 };
   it("fixed sizing: the price move that reaches the cap", () => {
@@ -170,8 +171,8 @@ describe("maxLossEffect", () => {
   });
 });
 
-// Mirrors bot/commands.rs `check_capital_cap` / `default_capital` (audit
-// 2026-10-08, signal_bots 1): the fresh-install default must fit its cap.
+// Mirrors bot/commands.rs `check_capital_cap` / `default_capital`: the
+// fresh-install default must fit its cap.
 describe("capital per position against the risk level's cap", () => {
   it("Cautious with a 1000 USDT balance caps a position at 20 USDT", () => {
     expect(defaultCapitalWithin(20)).toBe(20);

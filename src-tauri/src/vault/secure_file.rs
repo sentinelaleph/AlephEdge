@@ -6,7 +6,7 @@
 //! the user traded, or an identity the phone pairs against, and none of the
 //! three should land at whatever the umask happens to be.
 //!
-//! Two properties, both of which the old `fs::write` call lacked:
+//! Two properties a plain `fs::write` lacks:
 //!
 //!   * **Owner-only.** A vault file at the umask default (0644 on most Unix
 //!     systems) is world-readable. The ciphertext is still AES-256-GCM and the
@@ -250,9 +250,8 @@ mod tests {
         let path = dir.join("vault.edge");
         write_private_atomic(&path, b"first version").expect("first write");
 
-        // Block the temp path with a directory: the write now fails before it
-        // can touch the target. The old in-place `fs::write` truncated first
-        // and asked questions later, which is the bug this proves gone.
+        // Block the temp path with a directory: the write fails before it can
+        // touch the target (an in-place `fs::write` would truncate it first).
         std::fs::create_dir(temp_sibling(&path)).expect("blocking dir");
         let err = write_private_atomic(&path, b"second version");
         assert!(err.is_err(), "the write was supposed to fail");

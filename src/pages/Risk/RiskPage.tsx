@@ -99,8 +99,8 @@ export function RiskPage() {
     { id: "dailyLoss", header: t("safety.limits.dailyLoss"), numeric: true, cell: (l) => `-${RISK_LIMITS_TABLE[l].dailyLossLimitPct}%` },
     { id: "fr", header: t("safety.limits.fr"), numeric: true, priority: 3, cell: (l) => `${RISK_LIMITS_TABLE[l].frThresholdPct}%` },
     { id: "depth", header: t("safety.limits.depth"), numeric: true, priority: 3, cell: (l) => `${RISK_LIMITS_TABLE[l].maxDepthSharePct}%` },
-    // No Pump column: the level no longer unlocks Pump (raising it to try
-    // Pump loosened every other bot's limits; Rust risk/model.rs).
+    // No Pump column: the level does not gate Pump, because raising the global
+    // level for one bot would loosen every other bot's limits (risk/model.rs).
   ];
 
   const turnOff = async (kind: BotKind) => {

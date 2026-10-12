@@ -2,7 +2,7 @@
 name = "aleph-link"
 version = "0.1.0"
 edition = "2021"
-description = "Aleph Edge masaüstü ile telefon arasındaki imzalı mesaj protokolü"
+description = "Signed message protocol between the Aleph Edge desktop and the phone"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

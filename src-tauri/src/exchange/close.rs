@@ -5,9 +5,9 @@
 //! whatever position exists on a keyed order venue can always be closed.
 //!
 //! A close is done only when the ACCOUNT reads flat. A venue can fill less
-//! than it was asked to (OKX contract rounding sent one lot short before
-//! 2026-10-08), and a close that left a remainder used to cancel the stop and
-//! report success, leaving an unprotected position nobody tracked.
+//! than it was asked to (contract rounding can send one lot short), and a
+//! close that leaves a remainder must not cancel the stop and report success:
+//! that would leave an unprotected position nobody tracks.
 
 use std::future::Future;
 
@@ -213,8 +213,7 @@ mod tests {
         let report = tauri::async_runtime::block_on(close_each(&positions, |p| {
             tried.push(p.symbol.clone());
             let out = match p.symbol.as_str() {
-                // The first one fails outright (OKX: cancel sweep unsupported
-                // used to fail the close and stop the loop here).
+                // The first one fails outright; the loop must go on.
                 "BTCUSDT" => Err(E::Rejected { code: 0, msg: "refused".into() }),
                 "ETHUSDT" => Ok(false),
                 _ => Ok(true),

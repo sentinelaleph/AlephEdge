@@ -38,7 +38,6 @@ const RUST_CODES = [
   "linkSignInFirst",
   "positionNotFound",
   "closeNotConfirmed",
-  // Audit fixes, 2026-10-08.
   "liveVenueNotDryRun",
   "botHasLivePositions",
   "liveExchangeLocked",

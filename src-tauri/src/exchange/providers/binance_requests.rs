@@ -1,15 +1,13 @@
 //! Pure builders for every signed live-order query. No network, no clock:
 //! the timestamp is a parameter, so each string is tested byte for byte.
 //!
-//! Direction-generic on purpose. 39 of the 42 Sentinel signals pending on
-//! 2026-09-16 were SHORT; the old LONG-only path (side=BUY entry, side=SELL
-//! stop hardcoded) silently kept every one of them simulated.
+//! Direction-generic on purpose: most Sentinel signals can be SHORT, so no
+//! side is ever hardcoded.
 //!
 //! Conditional orders (stop, take-profit) go to `/fapi/v1/algoOrder` with
-//! `algoType=CONDITIONAL` and `triggerPrice`. Binance migrated them off
-//! `/fapi/v1/order` on 2025-12-09; the old endpoint now rejects STOP_MARKET /
-//! TAKE_PROFIT_MARKET with -4120, which would have made every live entry fail
-//! its stop and flatten immediately.
+//! `algoType=CONDITIONAL` and `triggerPrice`. `/fapi/v1/order` rejects
+//! STOP_MARKET / TAKE_PROFIT_MARKET with -4120, which would make every live
+//! entry fail its stop and flatten immediately.
 
 pub const ORDER_PATH: &str = "/fapi/v1/order";
 pub const ALGO_ORDER_PATH: &str = "/fapi/v1/algoOrder";

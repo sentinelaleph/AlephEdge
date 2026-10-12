@@ -1,16 +1,15 @@
 //! Position size, pure — for paper and live alike.
 //!
 //! Why risk-based: the stop is 2.5×ATR, so the loss on a stop varies per
-//! signal from ~3% to 7%+ of notional (avg 4.1% over 147 ledger stops). Wide
-//! stops are not worse signals — the 4.5–6% stop bucket was the best one (168
-//! trades, +173 pts) — so filtering them out would cut the edge. The damage is
+//! signal from ~3% to 7%+ of notional. Wide stops are not worse signals, so
+//! filtering them out would cut the edge. The damage is
 //! FIXED sizing: capital × x5 turns a 7% stop into −35% of capital. Sizing from
 //! the stop distance makes every stop cost the same pre-declared share of the
 //! capital instead.
 //!
-//! `fixed` keeps the previous behaviour exactly (notional = capital ×
-//! leverage) and is what a saved config without the field deserializes to, so
-//! no existing bot changes size silently.
+//! `fixed` is plain notional = capital × leverage, and is what a saved config
+//! without the field deserializes to, so no existing bot changes size
+//! silently.
 
 use crate::signal::model::Direction;
 
@@ -94,7 +93,7 @@ pub fn size_position(
 // ---- Isolated-margin liquidation, shared by paper and live ----
 //
 // The live path refuses an entry whose stop sits beyond the liquidation
-// price; the paper book used to accept the same entry and then book losses no
+// price, and the paper book must refuse it too: it would book losses no
 // isolated position can make (fixed sizing, 20x, a 7% stop: −140% of capital).
 // One rule for both, here, because the headless paper runner mounts this file.
 

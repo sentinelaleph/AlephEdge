@@ -107,7 +107,7 @@ const DIRECT: Partial<Record<RouteId, NavItemId>> = {
   faq: "faq",
   positions: "positions",
   history: "history",
-  // The vault moved into Settings (2026-10-03); the old address lands there.
+  // The vault lives in Settings; the old address lands there.
   accounts: "settings",
   risk: "risk",
   settings: "settings",

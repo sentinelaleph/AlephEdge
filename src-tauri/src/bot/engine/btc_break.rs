@@ -5,15 +5,14 @@
 //! pipeline uses to stop publishing alt longs) and the `pulse_alert` impulse
 //! detector. While either reads a break, new LONG entries are refused (skip
 //! `btcBreakGuard`). Shorts are NOT refused: the flag is a veto on alt longs
-//! during BTC weakness, which is exactly when Sentinel publishes shorts
-//! (≈96% of the book the week of 2026-09-16).
+//! during BTC weakness, which is exactly when Sentinel publishes shorts.
 //!
 //! While the feed is unreachable the regime is Unknown and both directions
 //! are refused (never enter blind). Both refusals are transient: the signal
 //! retries on later ticks until it expires.
 //!
-//! The guard never closes positions. A regime-triggered close recreated the
-//! server guard's close arm, measured at −163 pts and OFF on the server.
+//! The guard never closes positions: a regime-triggered close would repeat
+//! the server guard's close, which loses value and is off on the server.
 
 use crate::market::model::BtcMacro;
 use crate::signal::model::Direction;

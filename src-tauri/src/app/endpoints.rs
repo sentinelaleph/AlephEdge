@@ -1,9 +1,6 @@
-//! Where this desk talks to, and who it is.
-//!
-//! Every value here used to be a string literal somewhere in the UI. That is
-//! survivable in a private tree and not survivable in a public one: a reader
-//! who clones the repo would be pointed at one particular deployment, and
-//! changing it would mean editing source rather than setting a variable.
+//! Where this desk talks to, and who it is. Every host and identity the app
+//! uses is read here, so pointing a build at another deployment means setting
+//! a variable, not editing source.
 //!
 //! Three rules:
 //!
@@ -44,10 +41,8 @@ pub const DEFAULT_BINANCE_FUTURES_BASE: &str = "https://fapi.binance.com";
 /// dropped from memory (`vault::idle`).
 ///
 /// Overridable with `ALEPH_EDGE_VAULT_IDLE_MINUTES`. Thirty minutes is the
-/// default because this desk is designed to sit running unattended for days:
-/// before auto-lock existed, one password entry left the keys decrypted in
-/// process memory until the process died, which for an unattended machine is
-/// "forever".
+/// default because this desk is designed to sit running unattended for days,
+/// and one password entry must not leave the keys decrypted for that long.
 pub const DEFAULT_VAULT_IDLE_MINUTES: u64 = 30;
 
 /// One minute. Not zero: a zero budget would expire the session between the
@@ -84,9 +79,9 @@ pub fn api_base() -> String {
 }
 
 /// The API base carries the account password (sign-in), every access and
-/// refresh token, and the stream ticket. An override like
-/// `http://staging.example.com` used to be taken as-is and sent all of that in
-/// clear text. Only an encrypted scheme (`https`/`wss`) is accepted, plus
+/// refresh token, and the stream ticket, so an override like
+/// `http://staging.example.com` must not be taken as-is: it would send all of
+/// that in clear text. Only an encrypted scheme (`https`/`wss`) is accepted, plus
 /// plain `http`/`ws` to this machine itself for local development; anything
 /// else falls back to the default, which is the safe end.
 fn secure_or_default(base: String, default: &str) -> String {
@@ -195,7 +190,7 @@ pub fn relay_url() -> String {
 /// The derivation itself, pure so it can be tested without touching the
 /// environment — and so there is exactly ONE implementation of it. A test that
 /// re-implements the rule it is checking passes while the shipped rule is
-/// broken; this repo has paid for that lesson three times.
+/// broken.
 fn ws_origin(base: &str) -> String {
     if let Some(rest) = base.strip_prefix("https://") {
         format!("wss://{rest}")

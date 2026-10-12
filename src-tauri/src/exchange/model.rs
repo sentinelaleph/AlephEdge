@@ -1,7 +1,7 @@
 //! Exchange adapter types. Our own design (camelCase), not a wire mirror.
 //!
-//! The 6 near-identical public-ticker adapters (PRD §3.4 Tier 1) are expressed
-//! as DATA — `ExchangeSpec` rows in `providers::catalog` — rather than one
+//! The near-identical public-ticker adapters are expressed as DATA —
+//! `ExchangeSpec` rows in `providers::CATALOG` — rather than one
 //! copy-pasted file each: a single generic fetcher (`providers::rest`) reads
 //! any of them. Only Binance's signed permission check needs bespoke code.
 
@@ -87,8 +87,8 @@ impl ExchangeSpec {
 }
 
 /// Real, API-verified permissions for a just-added key — never the user's
-/// self-declared guess (PRD §5.5: "withdraw izinli anahtar tespit edilirse
-/// uyarı").
+/// self-declared guess: a key with withdrawal permission must be detected,
+/// and is refused.
 #[derive(Debug, Clone, Copy)]
 pub struct BinancePermissions {
     pub withdraw_enabled: bool,

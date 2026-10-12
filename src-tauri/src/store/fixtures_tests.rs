@@ -1,13 +1,13 @@
-//! Data written by release 0.2.0 must still load (audit 2026-10-08,
-//! persistence 4). The updater delivers every later version onto these rows,
-//! and restore skips a row it cannot read, so a struct change that breaks
-//! them would surface as bots that vanish or resume over lost state.
+//! Data written by release 0.2.0 must still load. The updater delivers every
+//! later version onto these rows, and restore skips a row it cannot read, so a
+//! struct change that breaks them would surface as bots that vanish or resume
+//! over lost state.
 //!
 //! The fixtures under `fixtures/v0_2_0/` are real rows of a TESTNET paper
-//! desk (read-only export, 8 Oct 2026). Their serialized shape is the 0.2.0
-//! one: `git diff 85cd8ae` (Release 0.2.0) adds no field to OpenPosition,
-//! BotConfig, StrategyConfig or CycleState. A failing test here means a
-//! change no longer reads what users already have on disk.
+//! desk (read-only export), in the serialized shape of OpenPosition,
+//! BotConfig, StrategyConfig and CycleState as release 0.2.0 wrote them. A
+//! failing test here means a change cannot read what users already have on
+//! disk.
 
 use rusqlite::{params, Connection};
 
@@ -98,8 +98,8 @@ fn a_0_2_0_database_restores_everything() {
     assert!(restore_check::unreadable_rows(&c).unwrap().is_empty());
 }
 
-// What restore used to skip in silence is now reported: a config that no
-// longer parses, an open cycle whose state is corrupt or missing. Archived
+// Rows restore cannot use are reported, never skipped in silence: a config
+// that no longer parses, an open cycle whose state is corrupt or missing. Archived
 // bots are not restored, so they are not reported either.
 #[test]
 fn rows_restore_cannot_use_are_reported() {

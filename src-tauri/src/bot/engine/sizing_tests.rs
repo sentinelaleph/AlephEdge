@@ -81,7 +81,7 @@ fn invalid_stop_is_a_skip() {
     assert!(super::precheck::is_final(SKIP_INVALID_STOP));
 }
 
-// Fixed mode must reproduce the old arithmetic bit for bit: notional =
+// Fixed mode is exactly this arithmetic, bit for bit: notional =
 // capital × leverage and PnL = move × leverage − 2 × fee × leverage.
 #[test]
 fn fixed_mode_is_identical_to_before() {

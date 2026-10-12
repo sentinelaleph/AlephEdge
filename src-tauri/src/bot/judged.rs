@@ -1,19 +1,16 @@
 //! Which signals each bot has decided, and which transient skips it has
 //! already reported.
 //!
-//! A signal used to be marked "seen" before any check ran, so a momentary
-//! condition (macro feed down, price unavailable, position cap full) refused
-//! it forever. Now only a FINAL outcome judges a signal (opened, refused by a
-//! static property, expired, superseded); transient skips retry every tick
-//! until expiry and are reported once per (bot, signal, reason) so the feed
-//! is not spammed.
+//! Only a FINAL outcome judges a signal (opened, refused by a static
+//! property, expired, superseded). Transient skips (macro feed down, price
+//! unavailable, position cap full) retry every tick until expiry and are
+//! reported once per (bot, signal, reason) so the feed is not spammed.
 //!
 //! A verdict keeps the reason that produced it. A refusal that came from the
 //! bot's own settings (a filter, the age limit, the take-profit target, the
 //! sizing) is dropped when those settings change, so the new settings judge
-//! the still-pending signal again. Before that, only an app restart (which
-//! empties this memory-only ledger) re-checked them: the same signal opened
-//! or not depending on when the app last restarted.
+//! the still-pending signal again, rather than waiting for an app restart to
+//! empty this memory-only ledger.
 
 use std::collections::{HashMap, VecDeque};
 

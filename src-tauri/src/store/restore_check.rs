@@ -1,7 +1,7 @@
 //! Stored rows that restore cannot use. `strategy::load_bots` and
-//! `strategy::load_open_cycles` skip a row that no longer parses, which made
-//! a bot vanish, or let it resume and open a new cycle over the open one it
-//! lost, without a word. Restore asks this module for those rows, names
+//! `strategy::load_open_cycles` skip a row that no longer parses, which on its
+//! own would make a bot vanish, or let it resume and open a new cycle over the
+//! open one it lost, without a word. Restore asks this module for those rows, names
 //! them on screen and keeps the affected bots stopped (fail closed: the rows
 //! stay on disk untouched for a build that can read them).
 

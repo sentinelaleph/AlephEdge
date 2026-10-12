@@ -1,8 +1,8 @@
 //! Signal geometry and the fill model, pure.
 //!
 //! There is deliberately NO absolute R:R floor. Live geometry is a 2.5×ATR
-//! stop with TP1 at a median ≈0.6R (98.5% of winners have TP1 below 1R), so
-//! the old `rr < 1.0` check refused nearly every published signal. Only
+//! stop with TP1 at a median ≈0.6R (nearly all winners have TP1 below 1R), so
+//! an `rr < 1.0` check would refuse nearly every published signal. Only
 //! incoherent geometry is refused.
 //!
 //! Fill semantics mirror Sentinel's evaluator so the paper book is comparable:

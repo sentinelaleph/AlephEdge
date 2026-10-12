@@ -18,7 +18,7 @@ interface RiskSelectorProps {
 }
 
 /**
- * The global risk level selector (PRD §5.3): each level carries its own
+ * The global risk level selector: each level carries its own
  * colour as a small dot next to full-contrast text, and the selected level's
  * hard limits are spelled out underneath — numbers, not vibes. Below it: the
  * simulated balance the % caps apply to, and the daily-stop close preference.
@@ -54,8 +54,8 @@ export function RiskSelector({ risk }: RiskSelectorProps) {
   }
 
   // Removing the override is its own button (clearDailyLoss), never an empty
-  // field: clearing the text used to drop the user's limit silently. An empty
-  // field now just reverts to the stored value. Non-positive or unreadable
+  // field: an empty field reverts to the stored value, so clearing the text
+  // never drops the user's limit. Non-positive or unreadable
   // input stays in the field, marked invalid, and is not stored: 0% would mean
   // "stop after losing nothing", which halts the desk instead of protecting it.
   function commitDailyLoss() {

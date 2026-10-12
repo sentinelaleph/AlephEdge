@@ -1,23 +1,18 @@
-//! Aleph Edge — masaüstü ile telefon arasındaki imzalı mesaj protokolü.
+//! Aleph Edge: the signed message protocol between the desktop and the phone.
 //!
-//! # Neden tek bir crate
+//! # Why a single crate
 //!
-//! Telefon, kullanıcının kendi bilgisayarında çalışan Aleph Edge'e bağlanır ve
-//! ona komut gönderir: durumu göster, botu durdur, hepsini kapat. Aradaki yol
-//! bizim işlettiğimiz bir röleden geçer, çünkü ev bilgisayarı NAT arkasındadır.
+//! The phone connects to the Aleph Edge running on the user's own computer and
+//! sends it commands: show status, stop the bot, close everything. The path
+//! runs through a relay we operate, because a home computer sits behind NAT.
 //!
-//! **Röle mesajı taşır, üretemez.** Bunu sağlayan şey burasıdır: her komut,
-//! eşleştirme sırasında kurulan ortak anahtarla imzalanır ve rölenin o anahtarı
-//! yoktur.
+//! **The relay carries messages; it cannot forge them.** This crate is what
+//! guarantees that: every command is signed with the shared key set up during
+//! pairing, and the relay does not have that key.
 //!
-//! Bu mantığın İKİ uygulaması olsaydı — masaüstünde Rust, telefonda TypeScript —
-//! ikisi zamanla ayrışırdı. Bu depoda aynı hata üç kez yandı: tokenize-hisse
-//! izleyicisi kendi eski liste kopyasını taşıdı ve günlerce `leak=0` dedi; short
-//! kill rule kendi allowlist kopyasını taşıdı, DGBUSDT'de yanlış alarm verdi ve
-//! mandalını kilitledi; ve koruyucu-çıkış sayacı, kesen sorgunun ikinci bir
-//! kopyası olacakken tek bir SQL sabitine bağlandı. Aynı hatayı bir de güvenlik
-//! sınırında yapmamak için protokol tek yerde durur ve iki uç da onu linkler.
-//! Tauri'yi seçmemizin asıl gerekçesi budur.
+//! Two implementations of this logic (Rust on the desktop, TypeScript on the
+//! phone) would drift apart over time, and here the drift would sit on a
+//! security boundary. So the protocol lives in one place and both ends link it.
 
 use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
@@ -26,24 +21,26 @@ use subtle::ConstantTimeEq;
 
 type HmacSha256 = Hmac<Sha256>;
 
-/// Protokol sürümü. Uyuşmayan sürüm reddedilir — sessizce yorumlanmaz.
+/// Protocol version. A mismatched version is rejected, never silently
+/// interpreted.
 ///
-/// 1 → 2: zarfa `epoch` eklendi (bkz. `ReplayGuard`). Alan eklemek eski bir
-/// eşin zarfını çözülemez yaptığı için sürüm de artırıldı; eksik alanı sessizce
-/// sıfır saymak, iki ucun farklı protokolleri aynı sanması olurdu.
+/// 1 -> 2: the envelope gained `epoch` (see `ReplayGuard`). Adding a field
+/// makes an older peer's envelope undecodable, so the version was bumped as
+/// well; silently reading the missing field as zero would let the two ends
+/// believe they speak the same protocol when they do not.
 pub const PROTOCOL_VERSION: u8 = 2;
 
-/// Bir zarfın kabul edileceği azami saat sapması (ms).
+/// Maximum clock skew (ms) at which an envelope is still accepted.
 ///
-/// Telefon ile bilgisayarın saatleri birbirini tutmaz; 90 saniye, makul bir
-/// sapmaya izin verirken kaydedilmiş bir zarfın günler sonra oynatılmasını
-/// engeller. Tek başına yeterli değildir — asıl tekrar koruması `seq`.
+/// Phone and desktop clocks disagree; 90 seconds allows a reasonable skew
+/// while stopping a recorded envelope from being replayed days later. It is
+/// not enough on its own: the real replay protection is `seq`.
 pub const MAX_CLOCK_SKEW_MS: u64 = 90_000;
 
-/// Eşleştirme anahtarı: telefon ile masaüstünün paylaştığı sır.
+/// Pairing key: the secret the phone and the desktop share.
 ///
-/// QR ile aktarılır: masaüstü ekranda gösterir, telefon kamerayla okur. Rölenin
-/// bu anahtara erişimi yoktur ve olmamalıdır.
+/// It travels by QR: the desktop shows it on screen, the phone reads it with
+/// the camera. The relay has no access to this key and must never have it.
 #[derive(Clone)]
 pub struct PairingKey([u8; 32]);
 
@@ -52,7 +49,7 @@ impl PairingKey {
         Self(b)
     }
 
-    /// Yeni bir anahtar üretir (masaüstü, eşleştirme başlarken çağırır).
+    /// Generates a new key (the desktop calls this when pairing begins).
     pub fn generate() -> Self {
         use rand_core::RngCore;
         let mut b = [0u8; 32];
@@ -60,7 +57,7 @@ impl PairingKey {
         Self(b)
     }
 
-    /// QR'a basılacak metin.
+    /// The text printed into the QR.
     pub fn to_pairing_string(&self) -> String {
         use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
         URL_SAFE_NO_PAD.encode(self.0)
@@ -76,29 +73,30 @@ impl PairingKey {
     }
 }
 
-// Anahtar hiçbir log satırına, hiçbir hata mesajına düşmemeli.
+// The key must never reach a log line or an error message.
 impl std::fmt::Debug for PairingKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("PairingKey(<gizli>)")
+        f.write_str("PairingKey(<redacted>)")
     }
 }
 
-/// Telefondan masaüstüne giden komutlar.
+/// Commands from the phone to the desktop.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
 pub enum Command {
-    /// Masanın anlık durumunu iste.
+    /// Ask for the desk's current state.
     Status,
-    /// Yeni pozisyon açmayı durdur. Açık pozisyonlar çalışmaya devam eder.
+    /// Stop opening new positions. Open positions keep running.
     ///
-    /// `CloseAll`'dan AYRI tutulur ve asla onunla birleştirilmez. Acil bir
-    /// kontrolde "kill" kelimesi fazla belirsizdir: kullanıcı "durdur"a basıp
-    /// açık pozisyonlarının da kapandığını sanırsa, ya da tersini sanırsa,
-    /// ikisi de pahalıdır. Masaüstünde bu ayrım zaten var (`close_on_stop`).
+    /// Kept SEPARATE from `CloseAll` and never merged with it. In an emergency
+    /// control the word "kill" is too ambiguous: a user who presses "stop" and
+    /// believes the open positions closed too, or believes the reverse, pays
+    /// for it either way. The desktop draws the same line (the risk setting
+    /// `close_on_stop`).
     StopOpening { bot: BotSelector },
-    /// Açık pozisyonları da kapat.
+    /// Close the open positions as well.
     CloseAll { bot: BotSelector },
-    /// Botu tekrar başlat.
+    /// Start the bot again.
     Start { bot: BotSelector },
 }
 
@@ -111,52 +109,51 @@ pub enum BotSelector {
     Pump,
 }
 
-/// Masaüstünden telefona giden mesajlar.
+/// Messages from the desktop to the phone.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "msg", rename_all = "snake_case")]
 pub enum DeskMessage {
-    /// Düzenli kalp atışı. Telefon bunun KESİLMESİNİ izler.
+    /// Regular heartbeat. The phone watches for it to STOP.
     ///
-    /// Uygulamanın en değerli bildirimi "yeni sinyal" değil, "masan durdu"
-    /// olduğu için bu mesaj protokolün en önemli parçasıdır. Bilgisayar uyursa,
-    /// kapak kapanırsa ya da Windows güncelleme için yeniden başlarsa masa
-    /// durur ve kullanıcı çalıştığını sanmaya devam eder.
+    /// The app's most valuable notification is not "new signal" but "your desk
+    /// stopped", which makes this the most important message in the protocol.
+    /// If the computer sleeps, the lid closes or Windows restarts for an
+    /// update, the desk stops while the user goes on believing it runs.
     Heartbeat { at_ms: u64 },
-    /// Durum yanıtı.
+    /// Status reply.
     Status(DeskStatus),
-    /// Bir komutun UYGULANDIĞINA dair onay.
+    /// Acknowledgement that a command was APPLIED.
     ///
-    /// Komut, bu onay gelmeden başarılı sayılmaz. Basıp yeşil tik gören ama
-    /// aslında durmamış bir kullanıcı, hiç kill switch olmamasından daha kötü
-    /// durumdadır.
+    /// A command does not count as successful until this arrives. The desk
+    /// sends one for every command (`aleph_desk_link`, invariant 1).
     Ack {
-        /// Onaylanan komutun `seq`'i.
+        /// `seq` of the acknowledged command.
         for_seq: u64,
         applied: bool,
         at_ms: u64,
-        /// İngilizce yedek metin: `reply` alanını tanımayan eski telefonlar
-        /// bunu gösterir. Yeni telefonlar `reply`'ı kendi dilinde çizer.
+        /// English fallback text: older phones that do not know the `reply`
+        /// field show this. Newer phones render `reply` in their own language.
         detail: String,
-        /// Sonucun yerelleştirilebilir biçimi: kararlı kod + sayısal
-        /// parametreler. Eski bir masa göndermez (`None`); eski bir telefon
-        /// alanı yok sayar — bu yüzden sürüm artırılmadı.
+        /// The localisable form of the result: a stable code plus numeric
+        /// parameters. An older desk does not send it (`None`); an older phone
+        /// ignores the field, which is why the version was not bumped.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         reply: Option<AckReply>,
     },
 }
 
-/// Bir onayın kararlı kodu ve sayısal parametreleri.
+/// The stable code and numeric parameters of an acknowledgement.
 ///
-/// # Neden metin değil
+/// # Why not text
 ///
-/// Masa onayı eskiden Türkçe bir cümle olarak yolluyordu ("başlatıldı: spot").
-/// Telefon o cümleyi ne çevirebilir ne de içindeki sayıyı okuyabilirdi; masanın
-/// dili telefonun diline dayatılıyordu. Kod + sayı, her ucun kendi dilinde
-/// çizmesini sağlar.
+/// A sentence imposes the desk's language on the phone, and the phone can
+/// neither translate it nor read the number inside it. A code plus numbers
+/// lets each end render the result in its own language.
 ///
-/// Kablo biçimi düzdür: `{"code":"stopped","open":3}`. Kod bir `String`,
-/// enum DEĞİL: yeni bir kod ekleyen masa, onu tanımayan bir telefonda onayın
-/// tamamını çözülemez yapmamalı — telefon bilinmeyen kodda `detail`'e düşer.
+/// The wire form is flat: `{"code":"stopped","open":3}`. The code is a
+/// `String`, NOT an enum: a desk that adds a new code must not make the whole
+/// acknowledgement undecodable on a phone that does not know it. On an
+/// unknown code the phone falls back to `detail`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AckReply {
     pub code: String,
@@ -164,23 +161,24 @@ pub struct AckReply {
     pub params: std::collections::BTreeMap<String, i64>,
 }
 
-/// Onay kodları. Masa ve telefon aynı sabitleri kullanır.
+/// Acknowledgement codes. The desk and the phone use the same constants.
 pub mod ack_code {
-    /// Yeni pozisyon açılmıyor; `open` açık pozisyon yönetilmeye devam ediyor.
+    /// No new positions are opened; `open` open positions are still managed.
     pub const STOPPED: &str = "stopped";
-    /// `closed` pozisyon kapatıldı.
+    /// `closed` positions were closed.
     pub const CLOSED: &str = "closed";
-    /// `closed` kapatıldı, `pending` tanesi fiyatlanamadı; sonraki turda.
+    /// `closed` were closed and `pending` could not be priced; those close in
+    /// the next round.
     pub const CLOSED_PARTIAL: &str = "closed_partial";
-    /// Başlatıldı; `futures` / `spot` / `pump` = 1 başlayan botları işaretler.
+    /// Started; `futures` / `spot` / `pump` = 1 marks the bots that started.
     pub const STARTED: &str = "started";
-    /// Günlük zarar durdurucusu devrede; ertesi UTC gününe kadar başlamaz.
+    /// The daily loss stop is active; nothing starts until the next UTC day.
     pub const KILL_SWITCH_TRIPPED: &str = "kill_switch_tripped";
-    /// Başlatılacak yapılandırılmış bot yok.
+    /// There is no configured bot to start.
     pub const NOTHING_TO_START: &str = "nothing_to_start";
-    /// Pump botu yalnızca "ambitious" seviyesinde çalışır.
+    /// The pump bot runs only on the "ambitious" level.
     pub const PUMP_NEEDS_AMBITIOUS: &str = "pump_needs_ambitious";
-    /// Başlatma başka bir sebeple olmadı.
+    /// The start did not happen for some other reason.
     pub const START_FAILED: &str = "start_failed";
 }
 
@@ -205,8 +203,9 @@ impl AckReply {
         Self::new(ack_code::STOPPED).with("open", open as i64)
     }
 
-    /// `pending == 0` ise düz "kapatıldı"; değilse kalanı SÖYLER — "hepsi
-    /// kapandı" demek, fiyatlanamayan pozisyonu kullanıcıdan saklamak olurdu.
+    /// With `pending == 0` this is a plain "closed"; otherwise it STATES what
+    /// remains. Saying "all closed" would hide the unpriced position from the
+    /// user.
     pub fn closed(closed: u64, pending: u64) -> Self {
         if pending == 0 {
             Self::new(ack_code::CLOSED).with("closed", closed as i64)
@@ -227,9 +226,9 @@ impl AckReply {
         r
     }
 
-    /// İngilizce metin: eski telefonlar için `detail` alanı ve henüz dili
-    /// olmayan telefon arayüzü bunu kullanır. Bilinmeyen kod, kodun kendisi
-    /// olarak döner — hiçbir zaman boş değil.
+    /// English text: the `detail` field for older phones, and the phone UI
+    /// where it has no translation yet, use this. An unknown code comes back
+    /// as the code itself, never as an empty string.
     pub fn english(&self) -> String {
         let plural = |n: i64| if n == 1 { "" } else { "s" };
         match self.code.as_str() {
@@ -270,7 +269,8 @@ impl AckReply {
 }
 
 impl BotSelector {
-    /// `started` onayındaki parametre adı (`All` tek bir bot değildir).
+    /// Parameter name in the `started` acknowledgement (`All` is not a single
+    /// bot).
     fn started_param(self) -> Option<&'static str> {
         match self {
             BotSelector::Futures => Some("futures"),
@@ -286,11 +286,11 @@ pub struct DeskStatus {
     pub bots_running: Vec<String>,
     pub open_positions: u32,
     pub today_net_pct: f64,
-    /// Bugün girilmeyen kurulumlar ve sebepleri — masaüstündeki atlama notları.
+    /// Setups not entered today and their reasons: the desktop's skip notes.
     pub skips_today: Vec<SkipNote>,
-    /// Açık pozisyonların hesaba oranı (%). Winrate DEĞİL.
+    /// Open positions as a share of the account (%). NOT a win rate.
     pub exposure_pct: f64,
-    /// Bu pozisyonlar kaç bağımsız bahis gibi davranıyor.
+    /// How many independent bets these positions behave like.
     pub effective_bets: f64,
     pub kill_switch_tripped: bool,
 }
@@ -301,20 +301,20 @@ pub struct SkipNote {
     pub count: u32,
 }
 
-/// Kablodan geçen imzalı zarf. Röle bunu OPAK olarak taşır.
+/// The signed envelope on the wire. The relay carries it as an OPAQUE value.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Envelope {
     pub v: u8,
     pub desk_id: String,
-    /// Gönderenin OTURUM damgası — yeniden başlamayı tekrar saldırısından
-    /// ayırır. Ayrıntı: `ReplayGuard`.
+    /// The sender's SESSION stamp; tells a restart apart from a replay attack.
+    /// Details: `ReplayGuard`.
     pub epoch: u64,
-    /// Gönderen başına, oturum içinde monoton artan sayaç.
+    /// Per-sender counter, monotonically increasing within a session.
     pub seq: u64,
     pub at_ms: u64,
-    /// Serileştirilmiş yük (Command ya da DeskMessage).
+    /// Serialised payload (Command or DeskMessage).
     pub payload: String,
-    /// Kanonik baytlar üzerinden HMAC-SHA256, base64.
+    /// HMAC-SHA256 over the canonical bytes, base64.
     pub sig: String,
 }
 
@@ -326,13 +326,13 @@ pub enum LinkError {
         want: u8,
     },
     BadSignature,
-    /// Zarf, kabul edilen saat penceresinin dışında.
+    /// The envelope is outside the accepted clock window.
     Stale {
         at_ms: u64,
         now_ms: u64,
     },
-    /// Zarf, bu göndericiden görülen son (epoch, seq) çiftinin gerisinde ya da
-    /// aynısında — tekrar denemesi.
+    /// The envelope is behind, or equal to, the last (epoch, seq) pair seen
+    /// from this sender: a replay attempt.
     Replay {
         epoch: u64,
         seq: u64,
@@ -340,23 +340,24 @@ pub enum LinkError {
         last_seq: u64,
     },
     Malformed(String),
-    /// Zarf başka bir masaya yazılmış (`desk_id` bu masanınki değil).
+    /// The envelope is addressed to another desk (`desk_id` is not this
+    /// desk's).
     WrongDesk,
-    /// Eşleştirme anahtarı hiç kullanılmadan süresi doldu ya da eşleştirme
-    /// iptal edildi: bu anahtarla imzalanmış hiçbir zarf artık kabul edilmez.
+    /// The pairing key expired before it was ever used, or the pairing was
+    /// cancelled: no envelope signed with this key is accepted any more.
     KeyRevoked,
 }
 
 impl std::fmt::Display for LinkError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::BadPairingString => write!(f, "eşleştirme dizesi geçersiz"),
+            Self::BadPairingString => write!(f, "invalid pairing string"),
             Self::VersionMismatch { got, want } => {
-                write!(f, "protokol sürümü uyuşmuyor: {got}, beklenen {want}")
+                write!(f, "protocol version mismatch: got {got}, expected {want}")
             }
-            Self::BadSignature => write!(f, "imza doğrulanamadı"),
+            Self::BadSignature => write!(f, "signature did not verify"),
             Self::Stale { at_ms, now_ms } => {
-                write!(f, "zarf penceresi dışında (zarf {at_ms}, şimdi {now_ms})")
+                write!(f, "envelope outside the time window (envelope {at_ms}, now {now_ms})")
             }
             Self::Replay {
                 epoch,
@@ -365,22 +366,23 @@ impl std::fmt::Display for LinkError {
                 last_seq,
             } => write!(
                 f,
-                "tekrar denemesi: gelen ({epoch}, {seq}), son görülen ({last_epoch}, {last_seq})"
+                "replay: received ({epoch}, {seq}), last seen ({last_epoch}, {last_seq})"
             ),
             Self::Malformed(m) => write!(f, "bozuk zarf: {m}"),
-            Self::WrongDesk => write!(f, "zarf başka bir masaya ait"),
-            Self::KeyRevoked => write!(f, "eşleştirme anahtarı geçersiz kılındı"),
+            Self::WrongDesk => write!(f, "envelope is for another desk"),
+            Self::KeyRevoked => write!(f, "pairing key revoked"),
         }
     }
 }
 
 impl std::error::Error for LinkError {}
 
-/// İmzalanan kanonik baytlar.
+/// The canonical bytes that are signed.
 ///
-/// Alanlar sabit sırayla ve ayraçla birleştirilir. JSON serileştirmesine
-/// GÜVENİLMEZ: alan sırası ya da boşluk değişirse imza sessizce bozulurdu ve
-/// hata "imza tutmadı" diye görünüp asıl sebebi saklardı.
+/// Fields are joined in a fixed order with a separator. JSON serialisation is
+/// NOT trusted: a change in field order or whitespace would silently break the
+/// signature, and the error would read "signature mismatch" and hide the real
+/// cause.
 fn canonical_bytes(
     v: u8,
     desk_id: &str,
@@ -394,8 +396,8 @@ fn canonical_bytes(
     b.push(0x1f);
     b.extend_from_slice(desk_id.as_bytes());
     b.push(0x1f);
-    // Epoch de imzanın içindedir: dışında kalsaydı araya giren biri epoch'u
-    // büyütüp kaydettiği bir zarfı "yeni oturum" gibi geçirebilirdi.
+    // The epoch is inside the signature too. Outside it, someone in the middle
+    // could raise the epoch and pass a recorded envelope off as a "new session".
     b.extend_from_slice(&epoch.to_be_bytes());
     b.push(0x1f);
     b.extend_from_slice(&seq.to_be_bytes());
@@ -408,16 +410,16 @@ fn canonical_bytes(
 
 fn sign(key: &PairingKey, bytes: &[u8]) -> String {
     use base64::{engine::general_purpose::STANDARD, Engine};
-    let mut mac = HmacSha256::new_from_slice(&key.0).expect("HMAC her anahtar boyunu kabul eder");
+    let mut mac = HmacSha256::new_from_slice(&key.0).expect("HMAC accepts any key length");
     mac.update(bytes);
     STANDARD.encode(mac.finalize().into_bytes())
 }
 
-/// Bir yükü imzalı zarfa koyar.
+/// Puts a payload into a signed envelope.
 ///
-/// `epoch`, gönderenin BU oturumunun damgası; `seq` o oturum içindeki sayaç.
-/// İkisinin birlikte taşınması, yeniden başlayan bir ucun tekrar saldırganı
-/// sanılmaması içindir (bkz. `ReplayGuard`).
+/// `epoch` is the stamp of the sender's CURRENT session; `seq` is the counter
+/// within that session. Carrying both keeps a restarted end from being taken
+/// for a replay attacker (see `ReplayGuard`).
 pub fn seal<T: Serialize>(
     key: &PairingKey,
     desk_id: &str,
@@ -443,35 +445,35 @@ pub fn seal<T: Serialize>(
     })
 }
 
-/// Alıcı tarafın tekrar (replay) durumu. Gönderen başına tutulur.
+/// Receiver-side replay state. Kept per sender.
 ///
-/// # Neden sayaç tek başına yetmedi
+/// # Why a counter alone is not enough
 ///
-/// İki uç da sayacı sıfırdan başlatıyor ve hiçbiri onu diske yazmıyordu. Masa
-/// yeniden başlayınca (Windows güncellemesi, kapak, çökme) gönderdiği her kalp
-/// atışı `seq <= last` olduğu için TEKRAR sayılıyor, telefon da sonsuza kadar
-/// "masan sustu" gösteriyordu: protokol, kalp atışının yakalamak için var
-/// olduğu arızayı kendi üretiyordu. Telefon yeniden başlarsa daha kötüsü
-/// oluyordu — masa "hepsini kapat" dahil her komutu düşürüyordu.
+/// Neither end persists its counter; both start it from zero. Judged by `seq`
+/// alone, every heartbeat a restarted desk sends (Windows update, lid, crash)
+/// has `seq <= last` and counts as a REPLAY, and the phone shows "your desk
+/// went silent" forever: the protocol would produce the very failure the
+/// heartbeat exists to catch. A restarted phone is worse: the desk would drop
+/// every command, "close all" included.
 ///
-/// # Neden sayacı diske yazmak değil, epoch
+/// # Why an epoch rather than a counter on disk
 ///
-/// Alıcı, yeniden başlayan bir eşi tekrar saldırganından **ayırt edemez**. O
-/// hâlde ayrımı alıcının tahminine bırakmak yerine göndericinin imzalı olarak
-/// BEYAN etmesi gerekir: `epoch` kanonik baytların içindedir, yani anahtarı
-/// olmayan biri yeni bir epoch üretemez. Diske yazılan bir sayaç ise aynı
-/// arızayı geri getirmeye açıktı — dosya silinir ya da bozulursa (taşınan
-/// profil, yeniden kurulum, telefonun uygulama verisini temizlemesi) sayaç
-/// sıfırlanır ve hat bu kez kurtulma yolu olmadan kilitlenirdi; ayrıca iki saf
-/// protokol crate'ine dosya G/Ç'si sokmak gerekirdi.
+/// The receiver **cannot tell** a restarted peer from a replay attacker. So
+/// the distinction is not left to the receiver's guess: the sender DECLARES
+/// it, signed. `epoch` is part of the canonical bytes, so nobody without the
+/// key can produce a new epoch. A counter written to disk would bring the same
+/// failure back: if the file is deleted or corrupted (a moved profile, a
+/// reinstall, the phone clearing app data) the counter resets and the line
+/// locks up, this time with no way to recover. It would also put file I/O into
+/// two pure protocol crates.
 ///
-/// Kural: epoch yalnızca İLERİ gider. Kaydedilmiş bir zarfın epoch'u daima
-/// geçmişte kaldığı için eski bir oturumu yeniden oynatmak hâlâ imkânsız.
-/// Epoch, gönderenin oturum başlangıç zamanıdır; yani buradaki saat varsayımı,
-/// `MAX_CLOCK_SKEW_MS`'in zaten yaptığı varsayımdan fazlası değil.
+/// Rule: the epoch only moves FORWARD. A recorded envelope's epoch always lies
+/// in the past, so replaying an old session stays impossible. The epoch is the
+/// sender's session start time, so the clock assumption here is no stronger
+/// than the one `MAX_CLOCK_SKEW_MS` already makes.
 #[derive(Debug, Default, Clone)]
 pub struct ReplayGuard {
-    /// Kabul edilen son (epoch, seq).
+    /// The last accepted (epoch, seq).
     last: Option<(u64, u64)>,
 }
 
@@ -480,14 +482,14 @@ impl ReplayGuard {
         Self::default()
     }
 
-    /// Yalnızca kabul edilen zarflarda ilerletilir.
+    /// Advanced only by accepted envelopes.
     fn accept(&mut self, epoch: u64, seq: u64) -> Result<(), LinkError> {
         if let Some((last_epoch, last_seq)) = self.last {
-            // Yeni bir oturum (epoch büyük) sayacı sıfırdan başlatabilir; aynı
-            // oturum içinde sayaç ilerlemek ZORUNDA; eski bir oturum hiçbir
-            // koşulda kabul edilmez.
-            let ileri = epoch > last_epoch || (epoch == last_epoch && seq > last_seq);
-            if !ileri {
+            // A new session (larger epoch) may restart the counter from zero;
+            // within one session the counter MUST advance; an older session is
+            // never accepted.
+            let newer = epoch > last_epoch || (epoch == last_epoch && seq > last_seq);
+            if !newer {
                 return Err(LinkError::Replay {
                     epoch,
                     seq,
@@ -509,9 +511,10 @@ impl ReplayGuard {
     }
 }
 
-/// Zarfı açar: sürümü, imzayı, saat penceresini ve tekrar sayacını doğrular.
+/// Opens an envelope: checks the version, the signature, the clock window and
+/// the replay counter.
 ///
-/// Sıra önemlidir — imza doğrulanmadan hiçbir alana güvenilmez.
+/// Order matters: no field is trusted before the signature is verified.
 pub fn open<T: for<'de> Deserialize<'de>>(
     key: &PairingKey,
     guard: &mut ReplayGuard,
@@ -536,8 +539,8 @@ pub fn open<T: for<'de> Deserialize<'de>>(
             &env.payload,
         ),
     );
-    // Sabit zamanlı karşılaştırma: `==` imzanın ne kadarının tuttuğunu zamanla
-    // sızdırır.
+    // Constant-time comparison: `==` leaks through timing how much of the
+    // signature matched.
     if expected.as_bytes().ct_eq(env.sig.as_bytes()).unwrap_u8() != 1 {
         return Err(LinkError::BadSignature);
     }
@@ -550,14 +553,15 @@ pub fn open<T: for<'de> Deserialize<'de>>(
         });
     }
 
-    // Yük, sayaç ilerletilmeden ÖNCE çözülür. İki uç aynı anahtarla imzaladığı
-    // için masanın kendi kalp atışı da geçerli bir imza taşır; röle onu masaya
-    // geri yansıtırsa imza tutar, ama yük bir `Command` değildir. Sayaç önce
-    // ilerletilseydi, yansıtılan zarfın (masa epoch'u) sayacı telefonun
-    // epoch'unun ötesine taşıması mümkündü ve telefonun sonraki HER komutu —
-    // "hepsini kapat" dahil — tekrar diye düşerdi. Yani röle, imza üretemeden
-    // kill switch'i susturabilirdi. Yanlış yöndeki bir zarf artık `Malformed`
-    // ile reddedilir ve sayaca dokunmaz.
+    // The payload is decoded BEFORE the counter advances. Both ends sign with
+    // the same key, so the desk's own heartbeat also carries a valid signature;
+    // if the relay reflects it back to the desk the signature holds, but the
+    // payload is not a `Command`. Were the counter advanced first, the
+    // reflected envelope (desk epoch) could push the counter past the phone's
+    // epoch, and EVERY later phone command, "close all" included, would be
+    // dropped as a replay: the relay could silence the kill switch without
+    // forging a signature. An envelope going the wrong way is rejected as
+    // `Malformed` and leaves the counter untouched.
     let payload: T =
         serde_json::from_str(&env.payload).map_err(|e| LinkError::Malformed(e.to_string()))?;
 
@@ -566,7 +570,7 @@ pub fn open<T: for<'de> Deserialize<'de>>(
     Ok(payload)
 }
 
-/// Telefonun okuduğu QR metnini çözer.
+/// The decoded QR text the phone reads.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ScannedPairing {
     pub relay_url: String,
@@ -585,9 +589,8 @@ pub fn parse_qr(text: &str) -> Result<ScannedPairing, LinkError> {
             "relay" => relay = Some(value.to_string()),
             "desk" => desk = Some(value.to_string()),
             "k" => k = Some(value.to_string()),
-            // Bilinmeyen alan sessizce YUTULMAZ: ileride eklenen bir alanı
-            // eski bir telefonun görmezden gelmesi, yarısı uygulanmış bir
-            // protokol demektir.
+            // An unknown field is NOT silently swallowed: an older phone that
+            // ignores a field added later is running half of the protocol.
             _ => return Err(LinkError::BadPairingString),
         }
     }
@@ -595,9 +598,9 @@ pub fn parse_qr(text: &str) -> Result<ScannedPairing, LinkError> {
         (Some(relay_url), Some(desk_id), Some(key_str))
             if !relay_url.is_empty() && !desk_id.is_empty() && !key_str.is_empty() =>
         {
-            // Anahtarın gerçekten çözülebildiğini BURADA doğrula; bozuk bir
-            // anahtarla "eşleştim" deyip ilk komutta patlamak, hatayı yanlış
-            // yere taşır.
+            // Check HERE that the key really decodes. Reporting "paired" with
+            // a broken key and failing on the first command moves the error to
+            // the wrong place.
             PairingKey::from_pairing_string(&key_str).map_err(|_| LinkError::BadPairingString)?;
             Ok(ScannedPairing {
                 relay_url,
@@ -618,11 +621,11 @@ mod tests {
     }
 
     const NOW: u64 = 1_786_700_000_000;
-    /// Gönderenin oturum damgası. Üretimde oturumun başladığı ms.
+    /// The sender's session stamp. In production, the ms the session started.
     const EPOCH: u64 = 1_786_699_000_000;
 
     #[test]
-    fn gidip_gelen_komut_aynen_cozulur() {
+    fn command_round_trips_unchanged() {
         let k = key();
         let cmd = Command::CloseAll {
             bot: BotSelector::Futures,
@@ -633,14 +636,14 @@ mod tests {
         assert_eq!(got, cmd);
     }
 
-    /// Rölenin var oluş sebebine karşı test: röle mesajı TAŞIR, ÜRETEMEZ.
+    /// The relay's reason to exist: it CARRIES messages and cannot FORGE them.
     #[test]
-    fn role_komut_uyduramaz() {
+    fn relay_cannot_forge_a_command() {
         let desk_key = key();
-        let role_key = PairingKey::from_bytes([9u8; 32]); // rölenin bildiği hiçbir şey
+        let relay_key = PairingKey::from_bytes([9u8; 32]); // any key the relay could hold
 
-        let sahte = seal(
-            &role_key,
+        let forged = seal(
+            &relay_key,
             "desk-1",
             EPOCH,
             1,
@@ -652,18 +655,18 @@ mod tests {
         .unwrap();
 
         let mut g = ReplayGuard::new();
-        let r: Result<Command, _> = open(&desk_key, &mut g, NOW, &sahte);
+        let r: Result<Command, _> = open(&desk_key, &mut g, NOW, &forged);
         assert_eq!(r.unwrap_err(), LinkError::BadSignature);
-        // Reddedilen zarf sayacı İLERLETMEMELİ, yoksa saldırgan sayaç yakarak
-        // meşru komutları düşürebilirdi.
+        // A rejected envelope must NOT advance the counter, or an attacker
+        // could burn counter values and make legitimate commands drop.
         assert_eq!(g.last_seq(), None);
     }
 
     #[test]
-    fn yukun_tek_biti_degisse_imza_tutmaz() {
+    fn one_changed_payload_bit_fails_the_signature() {
         let k = key();
         let mut env = seal(&k, "desk-1", EPOCH, 1, NOW, &Command::Status).unwrap();
-        // "Durumu göster"i "hepsini kapat"a çevirme denemesi.
+        // An attempt to turn "show status" into "close all".
         env.payload = serde_json::to_string(&Command::CloseAll {
             bot: BotSelector::All,
         })
@@ -674,10 +677,10 @@ mod tests {
     }
 
     #[test]
-    fn desk_id_degistirilirse_imza_tutmaz() {
+    fn changed_desk_id_fails_the_signature() {
         let k = key();
         let mut env = seal(&k, "desk-1", EPOCH, 1, NOW, &Command::Status).unwrap();
-        // Komutu BASKA birinin masasına yönlendirme denemesi.
+        // An attempt to redirect the command to SOMEONE ELSE's desk.
         env.desk_id = "desk-2".into();
         let mut g = ReplayGuard::new();
         let r: Result<Command, _> = open(&k, &mut g, NOW, &env);
@@ -685,7 +688,7 @@ mod tests {
     }
 
     #[test]
-    fn kaydedilmis_zarf_tekrar_oynatilamaz() {
+    fn recorded_envelope_cannot_be_replayed() {
         let k = key();
         let env = seal(
             &k,
@@ -701,7 +704,7 @@ mod tests {
         let mut g = ReplayGuard::new();
         let _: Command = open(&k, &mut g, NOW, &env).unwrap();
 
-        // Ayni zarf ikinci kez: gecerli imza, gecerli saat, ama eski sayac.
+        // The same envelope again: valid signature, valid clock, old counter.
         let r: Result<Command, _> = open(&k, &mut g, NOW, &env);
         assert_eq!(
             r.unwrap_err(),
@@ -715,27 +718,27 @@ mod tests {
     }
 
     #[test]
-    fn eski_bir_zarf_gunler_sonra_oynatilamaz() {
+    fn old_envelope_cannot_be_replayed_days_later() {
         let k = key();
         let env = seal(&k, "desk-1", EPOCH, 1, NOW, &Command::Status).unwrap();
         let mut g = ReplayGuard::new();
-        let sonra = NOW + 48 * 3600 * 1000;
-        let r: Result<Command, _> = open(&k, &mut g, sonra, &env);
+        let later = NOW + 48 * 3600 * 1000;
+        let r: Result<Command, _> = open(&k, &mut g, later, &env);
         assert!(matches!(r.unwrap_err(), LinkError::Stale { .. }));
     }
 
     #[test]
-    fn makul_saat_sapmasi_kabul_edilir() {
+    fn reasonable_clock_skew_is_accepted() {
         let k = key();
         let env = seal(&k, "desk-1", EPOCH, 1, NOW, &Command::Status).unwrap();
         let mut g = ReplayGuard::new();
-        // Telefonun saati 60 sn ileri.
+        // The phone's clock is 60 s ahead.
         let r: Result<Command, _> = open(&k, &mut g, NOW - 60_000, &env);
-        assert!(r.is_ok(), "makul sapma reddedilmemeli: {r:?}");
+        assert!(r.is_ok(), "a reasonable skew must not be rejected: {r:?}");
     }
 
     #[test]
-    fn surum_uyusmazligi_sessizce_yorumlanmaz() {
+    fn version_mismatch_is_never_silently_interpreted() {
         let k = key();
         let mut env = seal(&k, "desk-1", EPOCH, 1, NOW, &Command::Status).unwrap();
         env.v = PROTOCOL_VERSION + 1;
@@ -750,10 +753,10 @@ mod tests {
         );
     }
 
-    /// Acil bir kontrolde belirsizlik tehlikelidir. "Durdur" ile "hepsini kapat"
-    /// AYRI komutlardır ve biri digerine seri hale gelemez.
+    /// "Stop" and "close all" are SEPARATE commands and neither serialises as
+    /// the other (see `Command::StopOpening`).
     #[test]
-    fn durdur_ve_hepsini_kapat_ayri_komutlardir() {
+    fn stop_and_close_all_are_separate_commands() {
         let stop = serde_json::to_string(&Command::StopOpening {
             bot: BotSelector::All,
         })
@@ -768,67 +771,65 @@ mod tests {
     }
 
     #[test]
-    fn esleştirme_anahtari_gidip_gelir() {
+    fn pairing_key_round_trips() {
         let k = PairingKey::generate();
         let s = k.to_pairing_string();
         let k2 = PairingKey::from_pairing_string(&s).unwrap();
         assert_eq!(k.0, k2.0);
-        // QR'a basilabilecek kadar kisa olmali.
-        assert!(s.len() < 64, "eşleştirme dizesi {} karakter", s.len());
+        // Short enough to print into a QR.
+        assert!(s.len() < 64, "pairing string is {} characters", s.len());
     }
 
     #[test]
-    fn anahtar_log_satirina_dusmez() {
+    fn key_never_reaches_a_log_line() {
         let k = PairingKey::from_bytes([42u8; 32]);
         let s = format!("{k:?}");
-        assert!(!s.contains("42"), "anahtar Debug ciktisina sizdi: {s}");
-        assert!(s.contains("gizli"));
+        assert!(!s.contains("42"), "key leaked into Debug output: {s}");
+        // The Debug form prints `<redacted>` in place of the bytes.
+        assert!(s.contains("<redacted>"));
     }
 
-    /// S8: masa yeniden baslarsa sayaci sifirdan baslar. Epoch olmadan bu, her
-    /// kalp atisinin "tekrar" diye reddedilmesi ve telefonun sonsuza kadar
-    /// "masan sustu" gostermesi demekti — protokol, kalp atisinin yakalamak
-    /// icin var oldugu arizayi kendi uretiyordu.
+    /// A restarted peer starts its counter from zero. Without the epoch every
+    /// heartbeat would be rejected as a replay (see `ReplayGuard`).
     ///
-    /// Yeniden baslayan es KABUL edilir; ama gercek bir tekrar hala reddedilir.
+    /// The restarted peer is ACCEPTED; a real replay is still rejected.
     #[test]
-    fn yeniden_baslayan_es_kabul_edilir_gercek_tekrar_reddedilir() {
+    fn restarted_peer_is_accepted_real_replay_is_rejected() {
         let k = key();
         let mut g = ReplayGuard::new();
 
-        // Ilk oturum: iki atis.
+        // First session: two beats.
         let a = seal(&k, "desk-1", EPOCH, 1, NOW, &Command::Status).unwrap();
         let b = seal(&k, "desk-1", EPOCH, 2, NOW, &Command::Status).unwrap();
         let _: Command = open(&k, &mut g, NOW, &a).unwrap();
         let _: Command = open(&k, &mut g, NOW, &b).unwrap();
 
-        // Masa yeniden basladi: yeni epoch, sayac yeniden 1.
-        let yeni_epoch = EPOCH + 1;
-        let c = seal(&k, "desk-1", yeni_epoch, 1, NOW, &Command::Status).unwrap();
+        // The desk restarted: new epoch, counter back at 1.
+        let new_epoch = EPOCH + 1;
+        let c = seal(&k, "desk-1", new_epoch, 1, NOW, &Command::Status).unwrap();
         let r: Result<Command, _> = open(&k, &mut g, NOW, &c);
-        assert!(r.is_ok(), "yeniden baslayan es reddedildi: {r:?}");
+        assert!(r.is_ok(), "restarted peer was rejected: {r:?}");
 
-        // Ayni zarf ikinci kez: hala tekrar.
+        // The same envelope again: still a replay.
         assert!(matches!(
             open::<Command>(&k, &mut g, NOW, &c).unwrap_err(),
             LinkError::Replay { .. }
         ));
 
-        // Ve ONCEKI oturumdan kaydedilmis bir zarf: epoch geride, reddedilir.
-        let eski = seal(&k, "desk-1", EPOCH, 99, NOW, &Command::Status).unwrap();
+        // And an envelope recorded in the PREVIOUS session: older epoch, rejected.
+        let old = seal(&k, "desk-1", EPOCH, 99, NOW, &Command::Status).unwrap();
         assert!(
             matches!(
-                open::<Command>(&k, &mut g, NOW, &eski).unwrap_err(),
+                open::<Command>(&k, &mut g, NOW, &old).unwrap_err(),
                 LinkError::Replay { .. }
             ),
-            "eski oturumun zarfi kabul edildi"
+            "an old session's envelope was accepted"
         );
     }
 
-    /// Epoch imzanin ICINDE: disinda kalsaydi araya giren biri epoch'u buyutup
-    /// kaydettigi bir zarfi "yeni oturum" gibi gecirebilirdi.
+    /// The epoch is INSIDE the signature (see `canonical_bytes`).
     #[test]
-    fn epoch_kurcalanirsa_imza_tutmaz() {
+    fn tampered_epoch_fails_the_signature() {
         let k = key();
         let mut env = seal(&k, "desk-1", EPOCH, 1, NOW, &Command::Status).unwrap();
         env.epoch = EPOCH + 5_000;
@@ -837,15 +838,13 @@ mod tests {
         assert_eq!(r.unwrap_err(), LinkError::BadSignature);
     }
 
-    /// Iki uc ayni anahtarla imzalar. Role, masanin kendi kalp atisini masaya
-    /// geri yansitirsa imza tutar; yansitilan zarf sayaci ILERLETMEMELI, yoksa
-    /// masa epoch'u telefonunkinden buyukse telefonun sonraki her komutu
-    /// (hepsini kapat dahil) "tekrar" diye duserdi.
+    /// A desk heartbeat the relay reflects back to the desk carries a valid
+    /// signature but must not advance the counter (see `open`).
     #[test]
-    fn yansitilan_masa_zarfi_sayaci_ilerletmez() {
+    fn reflected_desk_envelope_does_not_advance_the_counter() {
         let k = key();
         let mut desk_guard = ReplayGuard::new();
-        // Masa telefondan SONRA basladi: masa epoch'u buyuk.
+        // The desk started AFTER the phone: the desk's epoch is larger.
         let desk_epoch = EPOCH + 10_000;
         let beat = seal(
             &k,
@@ -858,9 +857,9 @@ mod tests {
         .unwrap();
         let r: Result<Command, _> = open(&k, &mut desk_guard, NOW, &beat);
         assert!(matches!(r.unwrap_err(), LinkError::Malformed(_)));
-        assert_eq!(desk_guard.last_epoch(), None, "yansima sayaci ilerletti");
+        assert_eq!(desk_guard.last_epoch(), None, "the reflection advanced the counter");
 
-        // Telefonun gercek komutu hala gecmeli.
+        // The phone's real command must still pass.
         let close = seal(
             &k,
             "desk-1",
@@ -882,7 +881,7 @@ mod tests {
     }
 
     #[test]
-    fn kalp_atisi_ve_onay_gidip_gelir() {
+    fn ack_round_trips() {
         let k = key();
         let msg = DeskMessage::Ack {
             for_seq: 5,
@@ -897,21 +896,23 @@ mod tests {
         assert_eq!(got, msg);
     }
 
-    /// Kablo biçimi düz ve sayısal: telefon kodu ve sayıyı okur, cümleyi değil.
+    /// The wire form is flat and numeric: the phone reads the code and the
+    /// number, not a sentence.
     #[test]
-    fn onay_kodu_duz_ve_sayisal_serilesir() {
+    fn ack_code_serialises_flat_and_numeric() {
         let v = serde_json::to_value(AckReply::stopped(3)).unwrap();
         assert_eq!(v, serde_json::json!({"code": "stopped", "open": 3}));
         let back: AckReply = serde_json::from_value(v).unwrap();
         assert_eq!(back, AckReply::stopped(3));
     }
 
-    /// Eski bir masa `reply` göndermez; yeni telefon yine çözer (None).
-    /// Eski bir telefon `reply`'ı tanımaz; alan yok sayılır, `detail` kalır.
+    /// An older desk sends no `reply`; a newer phone still decodes (None).
+    /// An older phone does not know `reply`; the field is ignored, `detail`
+    /// remains.
     #[test]
-    fn onay_kodu_eski_uclarla_uyumlu() {
-        let eski = r#"{"msg":"ack","for_seq":1,"applied":true,"at_ms":5,"detail":"x"}"#;
-        match serde_json::from_str::<DeskMessage>(eski).unwrap() {
+    fn ack_code_is_compatible_with_older_ends() {
+        let old_json = r#"{"msg":"ack","for_seq":1,"applied":true,"at_ms":5,"detail":"x"}"#;
+        match serde_json::from_str::<DeskMessage>(old_json).unwrap() {
             DeskMessage::Ack { reply, detail, .. } => {
                 assert_eq!(reply, None);
                 assert_eq!(detail, "x");
@@ -922,10 +923,10 @@ mod tests {
         #[derive(Deserialize)]
         #[serde(tag = "msg", rename_all = "snake_case")]
         #[allow(dead_code)]
-        enum EskiMesaj {
+        enum OldMessage {
             Ack { for_seq: u64, applied: bool, at_ms: u64, detail: String },
         }
-        let yeni = serde_json::to_string(&DeskMessage::Ack {
+        let new_json = serde_json::to_string(&DeskMessage::Ack {
             for_seq: 1,
             applied: true,
             at_ms: 5,
@@ -933,12 +934,12 @@ mod tests {
             reply: Some(AckReply::stopped(2)),
         })
         .unwrap();
-        let EskiMesaj::Ack { detail, .. } = serde_json::from_str(&yeni).unwrap();
+        let OldMessage::Ack { detail, .. } = serde_json::from_str(&new_json).unwrap();
         assert!(detail.contains('2'), "{detail}");
     }
 
     #[test]
-    fn onay_ingilizce_metni() {
+    fn ack_english_text() {
         assert_eq!(
             AckReply::stopped(1).english(),
             "not opening new positions; 1 open position still managed"
@@ -953,13 +954,14 @@ mod tests {
             AckReply::started(&[BotSelector::Futures, BotSelector::Pump]).english(),
             "started: futures, pump"
         );
-        // Bilinmeyen kod boş metin üretmez.
+        // An unknown code never produces empty text.
         assert_eq!(AckReply::new("future_code").english(), "future_code");
     }
 
-    /// Onay kodu imzalı yükün İÇİNDE: kurcalanırsa imza tutmaz.
+    /// The ack code is INSIDE the signed payload: tampering breaks the
+    /// signature.
     #[test]
-    fn onay_kodu_imzanin_icinde() {
+    fn ack_code_is_inside_the_signature() {
         let k = key();
         let msg = DeskMessage::Ack {
             for_seq: 1,

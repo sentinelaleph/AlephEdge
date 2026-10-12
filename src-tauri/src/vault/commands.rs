@@ -97,8 +97,8 @@ pub fn vault_unlock(
 /// While real money is in play the engine needs the key for every stop move,
 /// partial, exit and emergency flatten, and it reads "the first Binance key".
 /// Locking, resetting, renewing or removing a key then would leave a real
-/// position unmanaged, or point the engine at another account that looks flat
-/// (audit 2026-10-04, M1/M2). Close the positions and switch live off first.
+/// position unmanaged, or point the engine at another account that looks
+/// flat. Close the positions and switch live off first.
 fn refuse_while_live(app: &AppHandle) -> Result<(), String> {
     if crate::bot::strategy_live::live_exposure(app) {
         return Err("vaultBusyLive".to_string());
@@ -144,7 +144,7 @@ pub fn vault_reset(app: AppHandle, vault: State<VaultManager>, confirmation: Str
 }
 
 /// Adds a credential. Its REAL permissions are read from Binance's signed
-/// `apiRestrictions` endpoint first (PRD §5.5): only a verified trade-only key
+/// `apiRestrictions` endpoint first: only a verified trade-only key
 /// is stored. Exchanges without a verifier, keys that can withdraw, and keys
 /// Binance could not be asked about are refused.
 #[tauri::command]
@@ -227,8 +227,8 @@ pub fn vault_change_password(
 }
 
 /// Auto-lock choices offered in Settings: minutes, then 4/8/12/24 hours,
-/// a week and a month (30 days). Owner request 2026-10-05: a desk left
-/// running for days should not ask for the password every half hour.
+/// a week and a month (30 days): a desk left running for days should not ask
+/// for the password every half hour.
 pub const IDLE_MINUTE_CHOICES: [u64; 10] = [5, 15, 30, 60, 240, 480, 720, 1_440, 10_080, 43_200];
 
 /// Meta key holding the user's auto-lock choice (overrides the env default).
@@ -301,8 +301,7 @@ async fn detect_permission(
         }
         // Binance unreachable: the permissions are unknown, and an unknown
         // key could be a withdraw key. Refuse with a retryable reason rather
-        // than store it (the old "Unknown" let withdraw keys in on a network
-        // hiccup).
+        // than store it, so a network hiccup never lets a withdraw key in.
         Err(_) => Err("keyCheckUnavailable".to_string()),
     }
 }
@@ -341,8 +340,8 @@ async fn detect_venue_permission(exchange: &ExchangeManager, input: &AddCredenti
     }
 }
 
-/// Owner decision 2026-10-03: a key that can withdraw funds never enters the
-/// vault. Aleph Edge only trades; a leaked withdraw key empties the account.
+/// A key that can withdraw funds never enters the vault. Aleph Edge only
+/// trades; a leaked withdraw key empties the account.
 fn refuse_withdraw(p: CredentialPermission) -> Result<CredentialPermission, String> {
     if p == CredentialPermission::WithdrawEnabled {
         Err("keyWithdrawEnabled".to_string())

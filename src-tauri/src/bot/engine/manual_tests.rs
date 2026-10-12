@@ -386,10 +386,8 @@ fn open_positions_carry_their_last_price_and_pnl_if_closed_now() {
     assert!(m.status().marks.is_empty());
 }
 
-// Regression (10 Oct 2026): status() locked `positions` inside its struct
-// literal and then again for the marks; the main-thread command deadlocked
-// and froze the window. It must return, with the marks, while positions are
-// open and priced.
+// Regression: status() must not lock `positions` twice (a main-thread
+// deadlock). It returns, with the marks, while positions are open and priced.
 #[test]
 fn status_returns_with_marks_while_positions_are_open() {
     let m = std::sync::Arc::new(BotManager::new());

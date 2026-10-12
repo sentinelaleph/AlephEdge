@@ -1,4 +1,5 @@
-//! DCA and Grid strategy bots — PAPER ONLY in v1.
+//! DCA and Grid strategy bots — the paper simulation. Real money is only ever
+//! mirrored from it by `bot::strategy_live`, outside this subtree.
 //!
 //! Not `BotKind` variants: `BotKind` is mounted by the paper runner and is
 //! part of the signed phone protocol. Strategy bots are multi-instance

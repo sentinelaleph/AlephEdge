@@ -1,65 +1,65 @@
-//! Röle bağlantısının yeniden kurulma politikası.
+//! Reconnection policy for the relay connection.
 //!
-//! # Neden bu bir politika, bir `sleep` değil
+//! # Why this is a policy and not a `sleep`
 //!
-//! Masa, röleye giden bağlantıyı kaybettiğinde kullanıcı bunu **göremez** —
-//! telefonunda "masan kapalı" yazar ama bilgisayarın başında böyle bir işaret
-//! yoktur. Yani yeniden bağlanma davranışı, kullanıcının farkına varmadığı bir
-//! yerde çalışır ve tam bu yüzden yazılı bir kural olmalıdır.
+//! When the desk loses its connection to the relay the user **cannot see**
+//! it: the phone says "your desk is off", but there is no such sign at the
+//! computer. Reconnecting happens where the user does not notice it, which is
+//! exactly why it must be a written rule.
 //!
-//! İki hata sınıfı vardır ve **ikisine aynı şekilde davranmak** bu projenin
-//! tekrar tekrar yediği hatadır:
+//! There are two failure classes, and **treating them the same** is the
+//! mistake to avoid:
 //!
-//! - **Geçici** (ağ yok, röle yeniden başlıyor): sonsuza kadar denenir. Pes
-//!   eden bir masa, sessizce ölmüş bir masadır.
-//! - **Kalıcı** (üyelik geçersiz, masa kimliği çakışıyor, protokol sürümü
-//!   uyuşmuyor): denemek işe yaramaz. Sonsuza kadar denemek yalnızca röleyi
-//!   yakar ve gerçek sorunu gizler — kullanıcı "bağlanıyor" görüntüsüne bakıp
-//!   sorunun kendiliğinden geçmesini bekler.
+//! - **Transient** (no network, relay restarting): retried forever. A desk
+//!   that gives up is a desk that died silently.
+//! - **Permanent** (membership invalid, desk id conflict, protocol version
+//!   mismatch): retrying is useless. Retrying forever only burns the relay and
+//!   hides the real problem: the user looks at "connecting" and waits for the
+//!   problem to clear by itself.
 
 use std::time::Duration;
 
-/// İlk yeniden deneme gecikmesi.
+/// First retry delay.
 pub const BACKOFF_START: Duration = Duration::from_secs(1);
-/// Üst sınır. Bunun ötesinde beklemek, ağ geri geldiğinde masayı gereksiz
-/// uzun süre kapalı tutar.
+/// Upper bound. Waiting longer would keep the desk off needlessly long once
+/// the network returns.
 pub const BACKOFF_MAX: Duration = Duration::from_secs(60);
 
-/// Bağlantının neden koptuğu.
+/// Why the connection dropped.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Disconnect {
-    /// Ağ yok, DNS çözülmedi, röle kapalı, soket düştü.
+    /// No network, DNS did not resolve, relay down, socket dropped.
     Transient(String),
-    /// Üyelik doğrulanmadı.
+    /// Membership could not be verified.
     Unauthorized,
-    /// Bu masa kimliği zaten bağlı (başka bir makine ya da eski bir süreç).
+    /// This desk id is already connected (another machine or an old process).
     DeskConflict,
-    /// Röle bizim konuşmadığımız bir sürümü konuşuyor.
+    /// The relay speaks a protocol version we do not.
     VersionMismatch,
-    /// Eşleştirme QR'ı hiçbir telefon onu kullanmadan öldü: anahtar geçersiz
-    /// (`DeskLink::key_live`). Yeniden bağlanmak işe yaramaz; yeni bir QR gerekir.
+    /// The pairing QR died before any phone used it: the key is invalid
+    /// (`DeskLink::key_live`). Reconnecting is useless; a new QR is needed.
     PairingExpired,
 }
 
 impl Disconnect {
-    /// Tekrar denemek anlamlı mı.
+    /// Whether retrying makes sense.
     fn retryable(&self) -> bool {
         matches!(self, Disconnect::Transient(_))
     }
 }
 
-/// Politikanın bir kopmadan sonra ne yapılacağına dair kararı.
+/// The policy's decision on what to do after a disconnect.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Next {
-    /// Şu kadar bekleyip tekrar dene.
+    /// Wait this long, then retry.
     RetryIn(Duration),
-    /// Denemeyi bırak ve kullanıcıya BU mesajı göster.
+    /// Stop trying and show the user THIS message.
     ///
-    /// Mesaj arayüzde görünür; "bağlanıyor…" diye dönen bir çark değil.
+    /// The message is shown in the UI, not a spinner saying "connecting…".
     Stop { reason: Disconnect, message: String },
 }
 
-/// Yeniden bağlanma durumu.
+/// Reconnection state.
 #[derive(Debug, Default)]
 pub struct Reconnect {
     attempt: u32,
@@ -70,21 +70,21 @@ impl Reconnect {
         Self::default()
     }
 
-    /// Bağlantı kurulduğunda çağrılır: sayaç sıfırlanır.
+    /// Called once a connection is established: resets the counter.
     ///
-    /// Sıfırlamayı unutmak, uzun süre çalışan bir masanın bir kez kopunca
-    /// doğrudan 60 saniye beklemesine yol açardı.
+    /// Without the reset, a long-running desk that dropped once would wait
+    /// the full 60 seconds straight away.
     pub fn connected(&mut self) {
         self.attempt = 0;
     }
 
-    /// Kopma sonrası kararı verir.
+    /// Decides what to do after a disconnect.
     pub fn on_disconnect(&mut self, why: &Disconnect) -> Next {
         if !why.retryable() {
             return Next::Stop {
                 reason: why.clone(),
-                // Kararlı kod; arayüz `errors.*` altında, kullanıcının
-                // dilinde ve ne yapacağını söyleyerek gösterir.
+                // A stable code; the UI shows it under `errors.*`, in the
+                // user's language, saying what to do.
                 message: match why {
                     Disconnect::Unauthorized => "linkUnauthorized".into(),
                     Disconnect::DeskConflict => "linkDeskConflict".into(),
@@ -95,9 +95,9 @@ impl Reconnect {
             };
         }
 
-        // Üstel geri çekilme, üst sınırda sabitlenir. Rastgelelik YOK: tek bir
-        // masa için sürü etkisi diye bir şey olmadığı gibi, deterministik
-        // olması davranışı test edilebilir kılıyor.
+        // Exponential backoff, held at the cap. NO jitter: a single desk has
+        // no thundering herd, and being deterministic keeps the behaviour
+        // testable.
         let secs = BACKOFF_START
             .as_secs()
             .saturating_mul(1u64 << self.attempt.min(6));
@@ -114,54 +114,53 @@ impl Reconnect {
 mod tests {
     use super::*;
 
-    fn gecici() -> Disconnect {
-        Disconnect::Transient("ag yok".into())
+    fn transient() -> Disconnect {
+        Disconnect::Transient("no network".into())
     }
 
-    /// Pes eden bir masa, sessizce olmus bir masadir: gecici hata sonsuza
-    /// kadar denenir.
+    /// A desk that gives up is a desk that died silently: a transient error
+    /// is retried forever.
     #[test]
-    fn gecici_hata_sonsuza_kadar_denenir() {
+    fn transient_error_is_retried_forever() {
         let mut r = Reconnect::new();
         for _ in 0..200 {
-            match r.on_disconnect(&gecici()) {
+            match r.on_disconnect(&transient()) {
                 Next::RetryIn(_) => {}
-                Next::Stop { .. } => panic!("gecici hatada pes etti"),
+                Next::Stop { .. } => panic!("gave up on a transient error"),
             }
         }
     }
 
     #[test]
-    fn geri_cekilme_ustel_ve_sinirli() {
+    fn backoff_is_exponential_and_capped() {
         let mut r = Reconnect::new();
-        let mut gorulen = Vec::new();
+        let mut seen = Vec::new();
         for _ in 0..10 {
-            if let Next::RetryIn(d) = r.on_disconnect(&gecici()) {
-                gorulen.push(d.as_secs());
+            if let Next::RetryIn(d) = r.on_disconnect(&transient()) {
+                seen.push(d.as_secs());
             }
         }
-        assert_eq!(&gorulen[..7], &[1, 2, 4, 8, 16, 32, 60]);
-        // Ust sinirda sabitlenir, sonsuza kadar buyumez.
-        assert!(gorulen.iter().all(|&s| s <= BACKOFF_MAX.as_secs()));
+        assert_eq!(&seen[..7], &[1, 2, 4, 8, 16, 32, 60]);
+        // Held at the cap; it never grows past it.
+        assert!(seen.iter().all(|&s| s <= BACKOFF_MAX.as_secs()));
     }
 
-    /// Sifirlamayi unutmak, uzun sure calisan bir masanin bir kez kopunca
-    /// dogrudan 60 saniye beklemesine yol acardi.
+    /// See `Reconnect::connected`.
     #[test]
-    fn baglanti_kurulunca_sayac_sifirlanir() {
+    fn counter_resets_once_connected() {
         let mut r = Reconnect::new();
         for _ in 0..5 {
-            r.on_disconnect(&gecici());
+            r.on_disconnect(&transient());
         }
         r.connected();
         assert_eq!(r.attempt(), 0);
-        assert_eq!(r.on_disconnect(&gecici()), Next::RetryIn(BACKOFF_START));
+        assert_eq!(r.on_disconnect(&transient()), Next::RetryIn(BACKOFF_START));
     }
 
-    /// Kalici hatada sonsuza kadar denemek roleyi yakar ve GERCEK sorunu
-    /// gizler: kullanici "baglaniyor" carkina bakip beklemeye devam eder.
+    /// Retrying a permanent error forever hides the REAL problem behind a
+    /// "connecting" spinner (see the module doc).
     #[test]
-    fn kalici_hatalar_denenmez_ve_sebebini_soyler() {
+    fn permanent_errors_are_not_retried_and_say_why() {
         for why in [
             Disconnect::Unauthorized,
             Disconnect::DeskConflict,
@@ -172,26 +171,26 @@ mod tests {
             match r.on_disconnect(&why) {
                 Next::Stop { reason, message } => {
                     assert_eq!(reason, why);
-                    assert!(!message.is_empty(), "sebep bos mesajla dondu: {why:?}");
-                    // Her sebebin kendi kararlı kodu var; ne yapılacağını
-                    // söyleyen metin arayüzün çevirisinde (errors.link*).
-                    let beklenen = match why {
+                    assert!(!message.is_empty(), "reason came back with an empty message: {why:?}");
+                    // Every reason has its own stable code; the text saying
+                    // what to do lives in the UI translations (errors.link*).
+                    let expected = match why {
                         Disconnect::Unauthorized => "linkUnauthorized",
                         Disconnect::DeskConflict => "linkDeskConflict",
                         Disconnect::PairingExpired => "pairingExpired",
                         _ => "linkVersionMismatch",
                     };
-                    assert_eq!(message, beklenen);
+                    assert_eq!(message, expected);
                 }
-                Next::RetryIn(_) => panic!("kalici hata tekrar denendi: {why:?}"),
+                Next::RetryIn(_) => panic!("permanent error was retried: {why:?}"),
             }
         }
     }
 
-    /// Masa cakismasi OZELLIKLE tekrar denenmemeli: iki surec sirayla
-    /// baglanmaya calisirsa ikisi de calismaz ve kullanici hicbirini gormez.
+    /// A desk conflict in particular must not be retried: if two processes
+    /// take turns connecting, neither works and the user sees neither.
     #[test]
-    fn masa_cakismasi_tekrar_denenmez() {
+    fn desk_conflict_is_not_retried() {
         let mut r = Reconnect::new();
         assert!(matches!(
             r.on_disconnect(&Disconnect::DeskConflict),

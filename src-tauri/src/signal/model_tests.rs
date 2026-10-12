@@ -158,7 +158,7 @@ fn pending_page_carries_the_total_and_the_buffer_drops_by_id() {
     assert!(buf.recent().is_empty());
 }
 
-// The NEW "veto" event (2026-09-18): wire-contract parsing. Bookkeeping
+// The "veto" event: wire-contract parsing. Bookkeeping
 // (dedup/bounding) is tested separately in regime_veto.rs; the actual close
 // is exercised via `bot::engine::book`'s own pure tests.
 const VETO: &str = r#"{
@@ -200,9 +200,8 @@ fn veto_event_tolerates_an_unknown_reason_code() {
     assert_eq!(event.reason_code, "some_future_reason_v2");
 }
 
-/// Sentinel serves the pending list NEWEST first. Pushed in that order, the
-/// newest signal was read back as the OLDEST, so bots walked a backfill from
-/// the stalest setup up instead of freshest first (owner rule 2026-09-23).
+/// Sentinel serves the pending list NEWEST first; pushed in that order, the
+/// newest signal must still read back first (bots walk freshest first).
 #[test]
 fn recent_is_newest_first_whatever_the_arrival_order() {
     let mut buf = SignalBuffer::default();
