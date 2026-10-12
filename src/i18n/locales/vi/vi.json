@@ -2317,6 +2317,7 @@
     "keychainSaltMissing": "Keychain của máy này không có salt của kho lưu trữ. Kho lưu trữ này thuộc về thiết bị hoặc tài khoản người dùng khác.",
     "keyNoFutures": "Khóa này không có quyền Futures. Bật Futures trên sàn rồi thêm lại.",
     "keyRejected": "Sàn từ chối API key và secret này. Hãy kiểm tra lỗi gõ.",
+    "keyRsaUnsupported": "Không hỗ trợ khóa RSA. Hãy tạo khóa API do hệ thống tạo (HMAC) trên sàn rồi thêm lại.",
     "sentinelUnreachable": "Không thể kết nối Sentinel. Hãy kiểm tra kết nối của bạn.",
     "unexpectedResponse": "Sentinel gửi phản hồi không mong đợi.",
     "serverRejected": "Sentinel đã từ chối yêu cầu: {{detail}}",

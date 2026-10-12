@@ -353,10 +353,9 @@ pub fn load_positions(app: &AppHandle) -> RestoredBook {
         }
     };
     for (signal_id, kind, body) in rows {
-        let pos = match serde_json::from_str::<OpenPosition>(&body) {
+        let pos = match read_row(&body) {
             Ok(pos) => pos,
-            Err(_) => {
-                let live = row_may_be_live(&body);
+            Err(live) => {
                 let key = if live { "restoreLiveBlocked" } else { "restoreRowUnreadable" };
                 bots.push_skip("—", key, Some(format!("{kind} {signal_id}")));
                 if live && LIVE_TRADING_ENABLED {
@@ -398,6 +397,13 @@ pub fn load_positions(app: &AppHandle) -> RestoredBook {
     out
 }
 
+/// A stored position row, or `Err(may_be_live)` when it no longer parses.
+/// A direction other than "long" | "short" is such a row: no text stands in
+/// for a side.
+fn read_row(body: &str) -> Result<OpenPosition, bool> {
+    serde_json::from_str::<OpenPosition>(body).map_err(|_| row_may_be_live(body))
+}
+
 /// Whether an unreadable position row may hold real money: its `live` flag
 /// when the JSON still parses, otherwise yes (fail closed).
 fn row_may_be_live(body: &str) -> bool {
@@ -407,7 +413,26 @@ fn row_may_be_live(body: &str) -> bool {
 
 #[cfg(test)]
 mod restore_tests {
-    use super::row_may_be_live;
+    use super::{read_row, row_may_be_live};
+    use crate::bot::engine::test_fixtures::{position, signal};
+    use crate::signal::model::Direction;
+
+    fn stored_row(direction: &str, live: bool) -> String {
+        let mut v = serde_json::to_value(position(&signal("long", 100.0, 110.0, 95.0), None)).unwrap();
+        v["direction"] = direction.into();
+        v["live"] = live.into();
+        v.to_string()
+    }
+
+    #[test]
+    fn a_row_with_an_unknown_direction_is_reported_not_loaded() {
+        assert_eq!(read_row(&stored_row("long", false)).unwrap().direction, Direction::Long);
+        assert_eq!(read_row(&stored_row("short", true)).unwrap().direction, Direction::Short);
+        for bad in ["Long", "LONG", "Short", ""] {
+            assert_eq!(read_row(&stored_row(bad, false)).err(), Some(false), "{bad:?} paper");
+            assert_eq!(read_row(&stored_row(bad, true)).err(), Some(true), "{bad:?} live");
+        }
+    }
 
     #[test]
     fn an_unreadable_row_counts_as_live_unless_it_says_paper() {

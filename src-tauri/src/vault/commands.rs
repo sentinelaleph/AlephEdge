@@ -312,6 +312,9 @@ async fn detect_permission(
 /// refused: its permissions could only be taken on the user's word, and the
 /// vault holds verified trade-only keys.
 async fn detect_venue_permission(exchange: &ExchangeManager, input: &AddCredentialInput) -> Result<CredentialPermission, String> {
+    if crate::exchange::venue::ccxt::is_rsa_secret(&input.api_secret) {
+        return Err("keyRsaUnsupported".to_string());
+    }
     let probe = ExchangeCredential {
         exchange_id: input.exchange_id.clone(),
         label: String::new(),

@@ -5,6 +5,8 @@
 //! realised = partial_fraction·leg1 + (1 − partial_fraction)·leg2.
 //! Fees are linear in notional, so blending per-leg NET figures is exact.
 
+use crate::signal::model::Direction;
+
 use super::super::model::{OpenPosition, FUTURES_FEE_RATE, SPOT_FEE_RATE};
 
 /// Sentinel ledger costs, in % of the UNLEVERED move.
@@ -12,7 +14,7 @@ pub const LEDGER_ROUND_TRIP_PCT: f64 = 0.10;
 pub const LEDGER_FUNDING_PCT: f64 = 0.02;
 
 fn is_long(pos: &OpenPosition) -> bool {
-    pos.direction == "long"
+    pos.direction == Direction::Long
 }
 
 /// Unlevered price move in % from the fill entry, favourable positive.

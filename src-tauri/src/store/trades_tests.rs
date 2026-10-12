@@ -6,6 +6,7 @@ use rusqlite::Connection;
 
 use super::model::TradeRecord;
 use super::trades;
+use crate::signal::model::Direction;
 
 fn record(live: bool) -> TradeRecord {
     TradeRecord {
@@ -14,7 +15,7 @@ fn record(live: bool) -> TradeRecord {
         bot_kind: "futures".into(),
         exchange_id: "binance".into(),
         symbol: "SOLUSDT".into(),
-        direction: "short".into(),
+        direction: Direction::Short,
         entry: 150.2,
         exit: 147.0,
         leverage: 3,
@@ -88,6 +89,38 @@ fn live_fields_round_trip_and_paper_rows_stay_null() {
         "live,fill_entry,fill_exit,commission_usdt,sizing_mode,risk_pct,notional_usdt,effective_leverage,risk_capped,veto_reason_code,veto_reason_text,tp_target,tp_fallback_from"
     ));
     assert!(csv.contains(",true,150.2,147,1.1888,risk,1,1502,3.004,true,,"));
+}
+
+// The direction column holds the text "long" | "short" and reads back as the
+// typed side; a row holding any other text is malformed, never a side.
+#[test]
+fn direction_column_keeps_the_text_and_refuses_unknown_text() {
+    let conn = Connection::open_in_memory().unwrap();
+    trades::migrate(&conn).unwrap();
+    let mut long = record(false);
+    (long.signal_id, long.direction) = ("long".into(), Direction::Long);
+    trades::insert(&conn, &long).unwrap();
+    trades::insert(&conn, &record(true)).unwrap(); // short
+
+    let stored: Vec<String> = conn
+        .prepare("SELECT direction FROM trades ORDER BY signal_id")
+        .unwrap()
+        .query_map([], |r| r.get(0))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert_eq!(stored, ["short", "long"]);
+    let rows = trades::list(&conn, 10).unwrap();
+    let side = |id: &str| rows.iter().find(|t| t.signal_id == id).unwrap().direction;
+    assert_eq!((side("long"), side("live")), (Direction::Long, Direction::Short));
+    let csv = trades::export_csv(&conn).unwrap();
+    assert!(csv.contains(",SOLUSDT,long,") && csv.contains(",SOLUSDT,short,"), "{csv}");
+
+    for bad in ["Long", "LONG", ""] {
+        conn.execute("UPDATE trades SET direction = ?1 WHERE signal_id = 'long'", [bad])
+            .unwrap();
+        assert_eq!(trades::list(&conn, 10).unwrap_err(), "storeRowMalformed", "{bad:?}");
+    }
 }
 
 // Veto columns (2026-09-18): NULL on every ordinary exit, round-trip intact

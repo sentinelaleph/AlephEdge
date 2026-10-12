@@ -1,0 +1,33 @@
+name: Security audit
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # Weekly, so a new advisory against an unchanged lockfile still shows up.
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-audit:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: [src-tauri, crates/aleph-link, crates/aleph-desk-link]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked --version 0.22.2
+      - name: cargo audit
+        working-directory: ${{ matrix.dir }}
+        run: cargo audit
+
+  npm-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: npm audit (production dependencies)
+        run: npm audit --package-lock-only --omit=dev

@@ -11,6 +11,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::exchange::providers::binance_fills::{summarize_fills, FillSummary};
 use crate::exchange::ExchangeManager;
+use crate::signal::model::Direction;
 use crate::store::model::TradeRecord;
 use crate::vault::VaultManager;
 
@@ -80,7 +81,7 @@ pub fn live_trade_record(
     reason: &str,
     closed_at: u64,
 ) -> TradeRecord {
-    let long = pos.direction == "long";
+    let long = pos.direction == Direction::Long;
     let sign = if long { 1.0 } else { -1.0 };
     let notional = s.entry * s.qty;
     let move_pct = if s.entry > 0.0 {
@@ -107,7 +108,7 @@ pub fn live_trade_record(
         bot_kind: pos.bot_kind.as_str().to_string(),
         exchange_id: pos.exchange_id.clone(),
         symbol: pos.symbol.clone(),
-        direction: pos.direction.clone(),
+        direction: pos.direction,
         entry: s.entry,
         exit: s.exit,
         leverage: pos.leverage,
@@ -173,7 +174,7 @@ pub async fn close_live(
         .iter()
         .find(|p| p.symbol == pos.symbol)
         .map(|p| p.position_amt);
-    let long = pos.direction == "long";
+    let long = pos.direction == Direction::Long;
     match exchange_state(long, amt) {
         ExchangeSide::Mismatch => Err(NOTE_DIRECTION_MISMATCH),
         ExchangeSide::Flat => Ok(settle_closed(app, &cred, pos, book_price).await),
@@ -242,7 +243,7 @@ async fn settle(
         .user_trades(cred, &pos.symbol, start)
         .await
         .ok()
-        .and_then(|trades| summarize_fills(&trades, pos.direction == "long", pos.entry_order_id));
+        .and_then(|trades| summarize_fills(&trades, pos.direction == Direction::Long, pos.entry_order_id));
     let settlement = match summary {
         Some(s) => {
             if s.commission_usdt.is_none() {

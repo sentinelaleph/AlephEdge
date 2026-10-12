@@ -2317,6 +2317,7 @@
     "keychainSaltMissing": "O salt do cofre não está no chaveiro deste computador. Este cofre pertence a outro dispositivo ou conta de usuário.",
     "keyNoFutures": "Esta chave não tem permissão de Futuros. Ative Futuros na corretora e adicione-a de novo.",
     "keyRejected": "A corretora recusou esta chave de API e o segredo. Verifique se há erros de digitação.",
+    "keyRsaUnsupported": "Chaves RSA não são suportadas. Crie na corretora uma chave de API gerada pelo sistema (HMAC) e adicione-a de novo.",
     "sentinelUnreachable": "Não foi possível acessar o Sentinel. Verifique sua conexão.",
     "unexpectedResponse": "O Sentinel enviou uma resposta inesperada.",
     "serverRejected": "O Sentinel recusou a solicitação: {{detail}}",

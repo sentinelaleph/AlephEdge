@@ -279,10 +279,7 @@ pub fn new_position(
         exchange_id: cfg.exchange_id.clone(),
         symbol: sig.symbol.clone(),
         timeframe: sig.timeframe.clone(),
-        direction: match sig.direction {
-            Direction::Long => "long".into(),
-            Direction::Short => "short".into(),
-        },
+        direction: sig.direction,
         entry,
         tp: tp.tp,
         sl: sig.sl,

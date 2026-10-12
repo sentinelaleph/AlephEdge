@@ -6,6 +6,7 @@
 
 import { devMock, inTauri, invoke } from "../bridge";
 import type { SizingMode } from "../bot/bot";
+import type { SignalDirection } from "../signal/signal";
 
 export interface TradeRecord {
   id: number;
@@ -13,7 +14,7 @@ export interface TradeRecord {
   botKind: string;
   exchangeId: string;
   symbol: string;
-  direction: string;
+  direction: SignalDirection;
   entry: number;
   exit: number;
   leverage: number;

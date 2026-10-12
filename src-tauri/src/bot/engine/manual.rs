@@ -12,7 +12,7 @@
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
-use crate::signal::model::Signal;
+use crate::signal::model::{Direction, Signal};
 use crate::signal::SignalManager;
 
 use super::super::model::{BotConfig, BotKind, OpenPosition, FUTURES_FEE_RATE, SPOT_FEE_RATE};
@@ -37,7 +37,7 @@ pub struct TakePreview {
     pub bot_kind: BotKind,
     pub signal_id: String,
     pub symbol: String,
-    pub direction: String,
+    pub direction: Direction,
     /// Paper fill: the live price (a manual entry fills at market inside
     /// the stop–target band, also after the signal's entry has passed).
     pub entry: f64,
@@ -129,7 +129,7 @@ pub fn preview_of(pos: &OpenPosition, published_target: f64) -> TakePreview {
         bot_kind: pos.bot_kind,
         signal_id: pos.signal_id.clone(),
         symbol: pos.symbol.clone(),
-        direction: pos.direction.clone(),
+        direction: pos.direction,
         entry: pos.entry,
         published_entry: pos.signal_entry,
         stop: pos.sl,

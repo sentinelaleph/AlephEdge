@@ -2317,6 +2317,7 @@
     "keychainSaltMissing": "Salt brankas tidak ada di keychain komputer ini. Brankas ini milik perangkat atau akun pengguna lain.",
     "keyNoFutures": "Kunci ini tidak punya izin Futures. Aktifkan Futures di bursa, lalu tambahkan lagi.",
     "keyRejected": "Bursa menolak API key dan secret ini. Periksa salah ketik.",
+    "keyRsaUnsupported": "Kunci RSA tidak didukung. Buat kunci API buatan sistem (HMAC) di bursa, lalu tambahkan lagi.",
     "sentinelUnreachable": "Tidak bisa menjangkau Sentinel. Periksa koneksi Anda.",
     "unexpectedResponse": "Sentinel mengirim respons yang tidak terduga.",
     "serverRejected": "Sentinel menolak permintaan: {{detail}}",

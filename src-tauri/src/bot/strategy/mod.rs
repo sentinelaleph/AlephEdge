@@ -257,6 +257,26 @@ impl StrategyManager {
         self.lock().cycles.len()
     }
 
+    /// Notional (quote, at average entry) of every open simulated cycle.
+    pub fn open_cycle_notionals(&self) -> Vec<f64> {
+        self.lock().cycles.values().map(|c| c.notional()).collect()
+    }
+
+    /// Kinds of the strategy bots running now (armed, in a cycle or paused),
+    /// each once.
+    pub fn running_kinds(&self) -> Vec<StrategyKind> {
+        let g = self.lock();
+        let mut kinds: Vec<StrategyKind> = g
+            .bots
+            .values()
+            .filter(|b| driver::is_running(b.state))
+            .map(|b| b.cfg.params.kind())
+            .collect();
+        kinds.sort_by_key(|k| k.as_str());
+        kinds.dedup();
+        kinds
+    }
+
     pub fn bot(&self, id: &str) -> Option<StrategyBot> {
         self.lock().bots.get(id).cloned()
     }

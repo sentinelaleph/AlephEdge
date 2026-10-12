@@ -4,6 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::signal::model::Direction;
+
 /// One closed trade, as persisted to SQLite and shown in the trade flow.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -14,8 +16,7 @@ pub struct TradeRecord {
     pub bot_kind: String,
     pub exchange_id: String,
     pub symbol: String,
-    /// "long" | "short".
-    pub direction: String,
+    pub direction: Direction,
     pub entry: f64,
     pub exit: f64,
     pub leverage: u8,

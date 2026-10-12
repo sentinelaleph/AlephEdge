@@ -1,9 +1,26 @@
 //! Trade-table SQL: insert, list, aggregate stats, CSV export. Pure functions
 //! over a `rusqlite::Connection` — the connection lifecycle lives in `mod.rs`.
 
+use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use rusqlite::{params, Connection};
 
 use super::model::{PnlStats, TradeRecord};
+use crate::signal::model::Direction;
+
+/// The `direction` column holds the serde text, "long" | "short".
+impl ToSql for Direction {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(self.as_str().into())
+    }
+}
+
+/// Any other text is a malformed row, never a default side.
+impl FromSql for Direction {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        let text = value.as_str()?;
+        Direction::parse(text).ok_or_else(|| FromSqlError::Other(format!("direction {text:?}").into()))
+    }
+}
 
 pub fn migrate(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(
@@ -281,7 +298,7 @@ pub fn export_csv(conn: &Connection) -> Result<String, String> {
             csv_field(&t.bot_kind),
             csv_field(&t.exchange_id),
             csv_field(&t.symbol),
-            csv_field(&t.direction),
+            t.direction.as_str(),
             t.entry,
             t.exit,
             t.leverage,

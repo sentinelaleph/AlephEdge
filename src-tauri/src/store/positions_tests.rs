@@ -5,7 +5,7 @@ use rusqlite::Connection;
 
 use super::positions;
 use crate::bot::model::{BotKind, OpenPosition};
-use crate::signal::model::ManagementPlan;
+use crate::signal::model::{Direction, ManagementPlan};
 
 fn position(id: &str) -> OpenPosition {
     OpenPosition {
@@ -14,7 +14,7 @@ fn position(id: &str) -> OpenPosition {
         exchange_id: "binance".into(),
         symbol: "ETHUSDT".into(),
         timeframe: Some("4h".into()),
-        direction: "short".into(),
+        direction: Direction::Short,
         entry: 2500.0,
         tp: 2450.0,
         sl: 2600.0,
@@ -162,6 +162,43 @@ fn legacy_position_body_loads_with_defaults() {
         (p.tp, p.tp_target.as_str(), p.tp_fallback_from),
         (110.0, "tp1", None)
     );
+}
+
+fn body_with_direction(dir: &str) -> String {
+    format!(
+        r#"{{"signalId":"old","botKind":"futures","exchangeId":"binance","symbol":"BTCUSDT",
+        "direction":{dir},"entry":100.0,"tp":110.0,"sl":95.0,"leverage":1,"capital":50.0,
+        "frAtOpen":null,"ldAtOpen":null,"openedAt":5}}"#
+    )
+}
+
+// The stored text is the serde form: "long" and "short" read back as the
+// typed side and are written back byte for byte.
+#[test]
+fn stored_direction_text_round_trips_unchanged() {
+    let conn = Connection::open_in_memory().unwrap();
+    positions::migrate(&conn).unwrap();
+    for (text, dir) in [("long", Direction::Long), ("short", Direction::Short)] {
+        let p: OpenPosition = serde_json::from_str(&body_with_direction(&format!("\"{text}\""))).unwrap();
+        assert_eq!(p.direction, dir);
+        save(&conn, &p, 1);
+        let body = positions::load_all(&conn).unwrap().pop().unwrap();
+        assert!(body.contains(&format!("\"direction\":\"{text}\"")), "{body}");
+        assert_eq!(load(&conn).pop().unwrap().direction, dir);
+    }
+}
+
+// Any other text is not a side: the row fails to parse (restore reports it)
+// instead of being managed as a short.
+#[test]
+fn unknown_direction_text_does_not_parse() {
+    for bad in [r#""Long""#, r#""LONG""#, r#""Short""#, r#""""#, r#""buy""#, "null", "1"] {
+        let body = body_with_direction(bad);
+        assert!(serde_json::from_str::<OpenPosition>(&body).is_err(), "{bad}");
+    }
+    let mut v: serde_json::Value = serde_json::from_str(&body_with_direction(r#""long""#)).unwrap();
+    v.as_object_mut().unwrap().remove("direction");
+    assert!(serde_json::from_value::<OpenPosition>(v).is_err(), "a row without a direction");
 }
 
 // ---- Close and restore consistency (audit 2026-10-08, persistence 3) ----

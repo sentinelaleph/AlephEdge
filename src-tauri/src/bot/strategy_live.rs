@@ -395,6 +395,60 @@ fn fill_summary(app: &AppHandle, bot_id: &str) -> (f64, f64, u32) {
         .unwrap_or((0.0, 0.0, 0))
 }
 
+/// Notional (USDT, at the last read entry price) of every real position a
+/// live strategy bot holds, as of the last mirror pass.
+pub fn real_notionals(app: &AppHandle) -> Vec<f64> {
+    app.state::<StrategyLiveManager>()
+        .snapshot()
+        .values()
+        .filter(|s| s.last_real_qty != 0.0)
+        .map(|s| s.last_real_qty.abs() * s.last_entry_price)
+        .collect()
+}
+
+/// Today's realised result (USDT) of the live strategy bots, from the
+/// recorded fills; see `summarize_day`.
+pub fn day_realized_quote(app: &AppHandle, day_start_ms: u64) -> f64 {
+    let Some(d) = dir(app) else { return 0.0 };
+    app.state::<StoreManager>()
+        .strategy(&d, |c| {
+            ensure_table(c)?;
+            let mut stmt = c
+                .prepare("SELECT bot_id, seq, signed_qty, price, ts FROM strategy_live_fills ORDER BY id")
+                .map_err(|e| e.to_string())?;
+            let rows: Vec<(String, u32, f64, f64, u64)> = stmt
+                .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get::<_, i64>(4)?.max(0) as u64)))
+                .map_err(|e| e.to_string())?
+                .filter_map(Result::ok)
+                .collect();
+            Ok(summarize_day(&rows, day_start_ms))
+        })
+        .unwrap_or(0.0)
+}
+
+/// Pure: today's realised result from fills `(bot, seq, signed qty, price,
+/// ts ms)`: the cash flow of every cycle whose fills net to zero and whose
+/// last fill is today, less the taker-fee estimate on today's fills.
+pub fn summarize_day(rows: &[(String, u32, f64, f64, u64)], day_start_ms: u64) -> f64 {
+    let mut per: HashMap<(&str, u32), (f64, f64, u64)> = HashMap::new();
+    let mut fees = 0.0;
+    for (bot, seq, q, p, ts) in rows {
+        let e = per.entry((bot.as_str(), *seq)).or_default();
+        e.0 += q;
+        e.1 -= q * p;
+        e.2 = e.2.max(*ts);
+        if *ts >= day_start_ms {
+            fees += (q * p).abs() * 0.0005;
+        }
+    }
+    let realized: f64 = per
+        .values()
+        .filter(|(q, _, last)| q.abs() < 1e-9 && *last >= day_start_ms)
+        .map(|(_, cash, _)| cash)
+        .sum();
+    realized - fees
+}
+
 /// Pure: cash flow of every cycle whose fills net to zero (closed), the
 /// taker-fee estimate over all fills, and the count.
 pub fn summarize(rows: &[(u32, f64, f64)]) -> (f64, f64, u32) {
@@ -1564,5 +1618,23 @@ mod tests {
         assert!((realized - 10.0).abs() < 1e-9);
         assert_eq!(n, 3);
         assert!((fees - (1000.0 + 1010.0 + 2000.0) * 0.0005).abs() < 1e-9);
+    }
+
+    #[test]
+    fn day_result_counts_cycles_closed_today_and_todays_fees() {
+        const DAY: u64 = 1_000_000;
+        let a = |seq, q, p, ts| ("a".to_string(), seq, q, p, ts);
+        let rows = vec![
+            a(1, 0.01, 100_000.0, DAY - 10), // opened yesterday
+            a(1, -0.01, 101_000.0, DAY + 5), // closed today: +10
+            a(2, 0.01, 100_000.0, DAY - 9),  // closed yesterday: not today
+            a(2, -0.01, 99_000.0, DAY - 1),
+            a(3, 0.02, 100_000.0, DAY + 6),  // still open: no result yet
+            ("b".to_string(), 1, -0.01, 100_000.0, DAY + 7), // same seq, other bot
+            ("b".to_string(), 1, 0.01, 99_500.0, DAY + 8),   // short closed today: +5
+        ];
+        let fees_today = (1010.0 + 2000.0 + 1000.0 + 995.0) * 0.0005;
+        assert!((summarize_day(&rows, DAY) - (10.0 + 5.0 - fees_today)).abs() < 1e-9);
+        assert_eq!(summarize_day(&[], DAY), 0.0);
     }
 }

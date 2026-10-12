@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::signal::model::ManagementPlan;
+use crate::signal::model::{Direction, ManagementPlan};
 
 /// PRD §8: live order sending stays behind a feature flag. It is the cargo
 /// feature `live` (off by default, so the public build is simulation-only);
@@ -305,8 +305,7 @@ pub struct OpenPosition {
     /// Signal timeframe; one position per symbol+timeframe per bot.
     #[serde(default)]
     pub timeframe: Option<String>,
-    /// "long" | "short".
-    pub direction: String,
+    pub direction: Direction,
     /// Fill price (what the book actually paid).
     pub entry: f64,
     /// The RESOLVED take-profit (see `tp_target`): TP1 of the signal on

@@ -2317,6 +2317,7 @@
     "keychainSaltMissing": "Kasa tuzu bu bilgisayarın anahtarlığında yok. Bu kasa başka bir cihaza ya da kullanıcı hesabına ait.",
     "keyNoFutures": "Bu anahtarın Futures izni yok. Borsada Futures'ı aç, sonra tekrar ekle.",
     "keyRejected": "Borsa bu API anahtarı ve gizli anahtar çiftini reddetti. Yazım hatası olup olmadığını kontrol et.",
+    "keyRsaUnsupported": "RSA anahtarları desteklenmiyor. Borsada sistemin oluşturduğu (HMAC) bir API anahtarı oluştur, sonra tekrar ekle.",
     "sentinelUnreachable": "Sentinel'e ulaşılamadı. Bağlantını kontrol et.",
     "unexpectedResponse": "Sentinel beklenmeyen bir yanıt gönderdi.",
     "serverRejected": "Sentinel isteği reddetti: {{detail}}",

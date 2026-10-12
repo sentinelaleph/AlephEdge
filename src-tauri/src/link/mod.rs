@@ -100,7 +100,9 @@ impl DeskControl for DeskBridge {
         // Yalnızca seçilen botların pozisyonları: "spot'u kapat" komutu
         // futures pozisyonlarına dokunmamalı.
         engine::force_close_kinds(&self.app, "remoteKill", &kinds).await;
-        // "Hepsini kapat": DCA / Grid kağıt döngüleri de (gerçek emir yok).
+        // "Close all" includes the DCA / Grid cycles. A live bot's real
+        // position follows its simulated close on the next mirror pass
+        // (`strategy_live::sync_all`).
         let (strateji_kapanan, strateji_kalan) = if Self::includes_strategy(bot) {
             strategy_engine::force_close_all(&self.app, "remoteKill").await
         } else {
@@ -135,14 +137,19 @@ impl DeskControl for DeskBridge {
         Ok(AckReply::started(&basladi))
     }
 
-    /// Telefonda gösterilecek durum.
+    /// The desk's state for the phone. There is no win rate: the phone shows
+    /// exposure and how many independent bets the open positions make.
     ///
-    /// **Toplu winrate YOK.** Bir araç enstrüman satar, sicil satmaz. Yerine
-    /// hayatta kalmayı belirleyen sayılar var: maruziyet ve bu pozisyonların
-    /// kaç bağımsız bahis gibi davrandığı.
+    /// Every figure has one scope. While real money is in play (a live signal
+    /// position or bot, or a live DCA / Grid bot) the open count, exposure and
+    /// today's result cover real positions and real trades only, against the
+    /// wallet. Otherwise they cover the simulation, against the declared
+    /// balance. The two are never added together (the daily stop's rule).
     fn status(&self) -> DeskStatus {
         let bots = self.app.state::<BotManager>();
         let st = bots.status();
+        let strategy = self.app.state::<StrategyManager>();
+        let live = crate::bot::model::LIVE_TRADING_ENABLED && crate::bot::strategy_live::live_exposure(&self.app);
 
         let mut bots_running = Vec::new();
         if st.futures_running {
@@ -154,40 +161,39 @@ impl DeskControl for DeskBridge {
         if st.pump_running {
             bots_running.push("pump".to_string());
         }
+        bots_running.extend(strategy.running_kinds().into_iter().map(|k| k.as_str().to_string()));
 
-        // Bugünün net sonucu, masaüstünün kendi defterinden. Gerçek para
-        // varsa yalnızca gerçek işlemler, gerçek cüzdana oranla; yoksa
-        // yalnızca simülasyon, beyan edilen bakiyeye oranla. İkisi asla
-        // tek toplamda karışmaz (günlük durdurucuyla aynı kural).
-        let bots = self.app.state::<BotManager>();
-        let canli = crate::bot::model::LIVE_TRADING_ENABLED
-            && bots.positions_snapshot().iter().any(|p| p.is_live());
-        // DCA / Grid her zaman kağıt: günlük sonuçları (gerçekleşmiş ve
-        // gerçekleşmemiş) yalnızca simülasyon toplamına eklenir.
-        let strateji = self.app.state::<StrategyManager>();
-        let strateji_gun = if canli {
-            0.0
-        } else {
-            strateji.day_pnl_quote(crate::store::utc_day_start_ms())
-        };
-        let today_net_pct = self
+        let mut positions: Vec<OpenExposure> = st
+            .open_positions
+            .iter()
+            .map(|p| OpenExposure { notional: position_notional(p), live: p.is_live() })
+            .collect();
+        positions.extend(strategy.open_cycle_notionals().into_iter().map(|notional| OpenExposure { notional, live: false }));
+        positions.extend(
+            crate::bot::strategy_live::real_notionals(&self.app)
+                .into_iter()
+                .map(|notional| OpenExposure { notional, live: true }),
+        );
+
+        let day_start = crate::store::utc_day_start_ms();
+        let day_quote = self
             .app
             .path()
             .app_data_dir()
             .ok()
-            .and_then(|dir| self.app.state::<StoreManager>().stats_for(&dir, canli).ok())
+            .and_then(|dir| self.app.state::<StoreManager>().stats_for(&dir, live).ok())
             .map(|s| {
-                let balance = match bots.cached_equity() {
-                    Some((cuzdan, _)) if canli => cuzdan - s.today_pnl_quote,
-                    _ => self.app.state::<RiskManager>().balance(),
-                };
-                if balance > 0.0 {
-                    (s.today_pnl_quote + strateji_gun) / balance * 100.0
+                let strategy_today = if live {
+                    crate::bot::strategy_live::day_realized_quote(&self.app, day_start)
                 } else {
-                    0.0
-                }
-            })
-            .unwrap_or(0.0);
+                    strategy.day_pnl_quote(day_start)
+                };
+                s.today_pnl_quote + strategy_today
+            });
+        let declared = self.app.state::<RiskManager>().balance();
+        let wallet = if live { bots.cached_equity().map(|(w, _)| w) } else { None };
+        let (open, exposure_pct) = exposure(&positions, live, wallet.unwrap_or(declared));
+        let today_net_pct = day_quote.map_or(0.0, |q| day_net_pct(q, wallet, declared));
 
         // Atlama notları sebebe göre toplanır: telefonda otuz ayrı satır değil,
         // "3 kombo filtresi, 2 sermaye tavanı" gibi bir özet işe yarar.
@@ -201,23 +207,6 @@ impl DeskControl for DeskBridge {
             .collect();
         skips_today.sort_by(|a, b| b.count.cmp(&a.count).then(a.reason.cmp(&b.reason)));
 
-        let open = (st.open_positions.len() + strateji.open_cycle_count()) as u32;
-        let risk = self.app.state::<RiskManager>();
-        let balance = risk.balance();
-        // Maruziyet pozisyon büyüklüğüdür (notional), teminat değil: teminat
-        // kaldıraç kadar küçük gösterir. Eski satırlarda notional yoksa
-        // teminat × kaldıraç.
-        let notional: f64 = st
-            .open_positions
-            .iter()
-            .map(|p| if p.notional_usdt > 0.0 { p.notional_usdt } else { p.capital * f64::from(p.leverage) })
-            .sum();
-        let exposure_pct = if balance > 0.0 {
-            notional / balance * 100.0
-        } else {
-            0.0
-        };
-
         DeskStatus {
             bots_running,
             open_positions: open,
@@ -227,6 +216,48 @@ impl DeskControl for DeskBridge {
             effective_bets: effective_bets(open),
             kill_switch_tripped: st.kill_switch_tripped,
         }
+    }
+}
+
+/// One open position as the phone counts it.
+#[derive(Clone, Copy, Debug)]
+struct OpenExposure {
+    notional: f64,
+    live: bool,
+}
+
+/// Exposure is position size (notional), not margin: margin understates it by
+/// the leverage. A row without a notional falls back to margin x leverage.
+fn position_notional(p: &crate::bot::model::OpenPosition) -> f64 {
+    if p.notional_usdt > 0.0 {
+        p.notional_usdt
+    } else {
+        p.capital * f64::from(p.leverage)
+    }
+}
+
+/// Open count and exposure (% of `balance`) over one set of positions: the
+/// real ones while real money is in play, the simulated ones otherwise.
+fn exposure(positions: &[OpenExposure], live: bool, balance: f64) -> (u32, f64) {
+    let (count, notional) = positions
+        .iter()
+        .filter(|p| p.live == live)
+        .fold((0u32, 0.0), |(n, sum), p| (n + 1, sum + p.notional));
+    (count, pct_of(notional, balance))
+}
+
+/// Today's result as % of the start-of-day balance: the wallet less today's
+/// realised result when real money is in play, the declared balance otherwise.
+fn day_net_pct(day_quote: f64, wallet: Option<f64>, declared: f64) -> f64 {
+    let start = wallet.map_or(declared, |w| w - day_quote);
+    pct_of(day_quote, start)
+}
+
+fn pct_of(value: f64, balance: f64) -> f64 {
+    if balance > 0.0 {
+        value / balance * 100.0
+    } else {
+        0.0
     }
 }
 
@@ -285,6 +316,44 @@ mod tests {
         let b = effective_bets(8);
         assert!(b > a, "artmadi");
         assert!(b < a * 2.0, "dogrusal artti: {a} -> {b}");
+    }
+
+    fn pos(notional: f64, live: bool) -> OpenExposure {
+        OpenExposure { notional, live }
+    }
+
+    /// A live DCA cycle with no signal positions is real exposure.
+    #[test]
+    fn live_strategy_only_counts_its_real_position() {
+        let p = [pos(500.0, true), pos(500.0, false)]; // real mirror + its simulated cycle
+        assert_eq!(exposure(&p, true, 1000.0), (1, 50.0));
+    }
+
+    /// A live signal position: the paper DCA cycle beside it is left out.
+    #[test]
+    fn live_signal_only_leaves_paper_out() {
+        let p = [pos(300.0, true), pos(200.0, false)];
+        assert_eq!(exposure(&p, true, 1000.0), (1, 30.0));
+    }
+
+    /// Mixed book: the open count and the exposure cover the same positions,
+    /// real ones in live mode and simulated ones on paper.
+    #[test]
+    fn mixed_book_never_adds_real_and_paper() {
+        let p = [pos(300.0, true), pos(200.0, true), pos(100.0, false), pos(400.0, false)];
+        assert_eq!(exposure(&p, true, 1000.0), (2, 50.0));
+        assert_eq!(exposure(&p, false, 1000.0), (2, 50.0));
+        assert_eq!(exposure(&p, true, 0.0), (2, 0.0));
+    }
+
+    /// Live: today's result against the start-of-day wallet. Paper: against
+    /// the declared balance.
+    #[test]
+    fn day_result_uses_the_scope_balance() {
+        // Wallet 990 after a -10 day started at 1000.
+        assert!((day_net_pct(-10.0, Some(990.0), 5000.0) - -1.0).abs() < 1e-9);
+        assert!((day_net_pct(-10.0, None, 500.0) - -2.0).abs() < 1e-9);
+        assert_eq!(day_net_pct(-10.0, None, 0.0), 0.0);
     }
 
     /// Strateji botları (DCA/Grid) yalnızca "hepsi" komutuna uyar.

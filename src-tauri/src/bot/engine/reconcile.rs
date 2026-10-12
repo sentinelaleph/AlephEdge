@@ -117,7 +117,7 @@ pub fn plan_reconcile(book: &[OpenPosition], exchange: &[(String, f64)]) -> Reco
             .iter()
             .find(|(s, _)| *s == pos.symbol)
             .map(|(_, a)| *a);
-        match exchange_state(pos.direction == "long", amt) {
+        match exchange_state(pos.direction == Direction::Long, amt) {
             ExchangeSide::Open => {}
             ExchangeSide::Flat => plan.closed.push(pos.signal_id.clone()),
             ExchangeSide::Mismatch => plan.mismatched.push(pos.symbol.clone()),

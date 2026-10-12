@@ -357,7 +357,7 @@ impl BotManager {
                 bot_kind: kind.as_str().to_string(),
                 signal_id: sig.id.clone(),
                 symbol: sig.symbol.clone(),
-                direction: if sig.direction == crate::signal::model::Direction::Long { "long" } else { "short" }.to_string(),
+                direction: sig.direction.as_str().to_string(),
                 market: sig.market_type.clone().unwrap_or_default(),
                 combo: sig.combo.clone().unwrap_or_default(),
                 reason: skip.key.to_string(),

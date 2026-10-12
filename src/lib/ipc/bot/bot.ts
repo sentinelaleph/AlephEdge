@@ -6,6 +6,7 @@
  */
 
 import { devMock, inTauri, invoke } from "../bridge";
+import type { SignalDirection } from "../signal/signal";
 
 type Mock = typeof import("./bot.mock");
 const mock = <T>(run: (m: Mock) => Promise<T>) => devMock(() => import("./bot.mock"), run);
@@ -97,7 +98,7 @@ export interface OpenPosition {
   botKind: BotKind;
   exchangeId: string;
   symbol: string;
-  direction: string;
+  direction: SignalDirection;
   entry: number;
   tp: number;
   sl: number;
@@ -164,7 +165,7 @@ export interface TakePreview {
   botKind: BotKind;
   signalId: string;
   symbol: string;
-  direction: string;
+  direction: SignalDirection;
   /** Paper fill at the live price (at market inside the stop–target band). */
   entry: number;
   /** The signal's published entry. */

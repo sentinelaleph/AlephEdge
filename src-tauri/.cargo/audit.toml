@@ -1,0 +1,10 @@
+# cargo audit (run from src-tauri/). Unmaintained, unsound and yanked crates
+# are reported as warnings; a vulnerability fails the run unless listed here.
+[advisories]
+ignore = [
+  # rsa: Marvin timing side channel, no fixed release. Pulled in by ccxt-base
+  # (Bybit/OKX). ccxt signs with RSA only when the secret is an RSA private
+  # key, and Aleph Edge refuses such keys (exchange::venue::ccxt::is_rsa_secret),
+  # so every venue request is signed with HMAC.
+  "RUSTSEC-2023-0071",
+]

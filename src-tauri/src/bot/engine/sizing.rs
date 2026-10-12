@@ -12,6 +12,8 @@
 //! leverage) and is what a saved config without the field deserializes to, so
 //! no existing bot changes size silently.
 
+use crate::signal::model::Direction;
+
 use super::super::model::{BotConfig, OpenPosition, SizingMode};
 
 /// Round-trip cost added to the stop distance, as a fraction of notional:
@@ -180,7 +182,7 @@ pub fn liquidation_price(pos: &OpenPosition) -> Option<f64> {
         return None;
     }
     let inv = 1.0 / f64::from(isolated_leverage(pos));
-    let liq = if pos.direction == "long" {
+    let liq = if pos.direction == Direction::Long {
         pos.entry * (1.0 - inv) / (1.0 - MAINT_MARGIN_FRAC)
     } else {
         pos.entry * (1.0 + inv) / (1.0 + MAINT_MARGIN_FRAC)

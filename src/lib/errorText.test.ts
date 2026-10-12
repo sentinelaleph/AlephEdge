@@ -20,6 +20,7 @@ const RUST_CODES = [
   "credentialNotFound",
   "keyNoFutures",
   "keyRejected",
+  "keyRsaUnsupported",
   "sentinelUnreachable",
   "serverRejected",
   "sessionExpired",

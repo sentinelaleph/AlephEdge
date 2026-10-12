@@ -2317,6 +2317,7 @@
     "keychainSaltMissing": "The vault salt is missing from this computer's keychain. This vault belongs to another device or user account.",
     "keyNoFutures": "This key has no Futures permission. Enable Futures on the exchange, then add it again.",
     "keyRejected": "The exchange rejected this API key and secret. Check for typos.",
+    "keyRsaUnsupported": "RSA keys are not supported. Create a system-generated (HMAC) API key on the exchange, then add it again.",
     "sentinelUnreachable": "Could not reach Sentinel. Check your connection.",
     "unexpectedResponse": "Sentinel sent an unexpected response.",
     "serverRejected": "Sentinel refused the request: {{detail}}",

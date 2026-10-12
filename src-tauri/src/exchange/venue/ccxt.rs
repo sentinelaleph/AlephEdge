@@ -57,6 +57,14 @@ pub fn is_ccxt_venue(exchange_id: &str) -> bool {
     CCXT_VENUES.contains(&exchange_id)
 }
 
+/// An RSA private key pasted as the secret. ccxt switches Bybit from HMAC to
+/// RSA signing on exactly this test (`secret` contains "PRIVATE KEY"), and its
+/// `rsa` crate has an unfixed timing side channel (RUSTSEC-2023-0071). Such a
+/// secret is refused, so ccxt only ever signs with HMAC here.
+pub fn is_rsa_secret(secret: &str) -> bool {
+    secret.contains("PRIVATE KEY")
+}
+
 /// Testnet / demo endpoints for every ccxt venue (the TESTNET build sets it).
 pub(crate) fn sandbox_from_env() -> bool {
     std::env::var("ALEPH_EDGE_VENUE_SANDBOX").is_ok_and(|v| v.trim() == "1")
@@ -95,6 +103,9 @@ fn venue_id(id: &str) -> Option<&'static str> {
 }
 
 fn new_core(id: &str, cred: &ExchangeCredential) -> Option<Core> {
+    if is_rsa_secret(&cred.api_secret) {
+        return None;
+    }
     let mut cfg = Config::new().api_key(&cred.api_key).secret(&cred.api_secret);
     if let Some(p) = cred.passphrase.as_deref() {
         cfg = cfg.password(p);
@@ -970,6 +981,30 @@ impl CcxtVenues {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn cred(id: &str, secret: &str) -> ExchangeCredential {
+        ExchangeCredential {
+            exchange_id: id.into(),
+            label: "t".into(),
+            api_key: "k".into(),
+            api_secret: secret.into(),
+            passphrase: Some("p".into()),
+            permission: crate::vault::model::CredentialPermission::TradeOnly,
+            added_at: 0,
+            updated_at: None,
+        }
+    }
+
+    #[test]
+    fn an_rsa_secret_never_builds_a_client() {
+        let pem = "-----BEGIN RSA PRIVATE KEY-----\nMIIB\n-----END RSA PRIVATE KEY-----";
+        assert!(is_rsa_secret(pem));
+        assert!(is_rsa_secret("-----BEGIN PRIVATE KEY-----"));
+        assert!(!is_rsa_secret("hmacSecret123"));
+        assert!(new_core("bybit", &cred("bybit", pem)).is_none());
+        assert!(new_core("okx", &cred("okx", pem)).is_none());
+        assert!(new_core("bybit", &cred("bybit", "hmacSecret123")).is_some());
+    }
 
     #[test]
     fn symbols_round_trip() {

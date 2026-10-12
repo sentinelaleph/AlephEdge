@@ -12,6 +12,7 @@ use tauri::{AppHandle, Manager};
 use crate::exchange::providers::binance_requests::Protective;
 use crate::exchange::providers::binance_rules::{quantize_price, quantize_qty, LotStep};
 use crate::exchange::{BreakevenMove, ExchangeManager};
+use crate::signal::model::Direction;
 use crate::vault::VaultManager;
 
 use super::super::model::OpenPosition;
@@ -123,7 +124,7 @@ pub async fn sync_breakeven(app: &AppHandle, pos: &mut OpenPosition) -> bool {
         );
         return false;
     };
-    let long = pos.direction == "long";
+    let long = pos.direction == Direction::Long;
     let mut changed = false;
     for action in actions {
         match action {
@@ -233,7 +234,7 @@ pub async fn execute_partial(app: &AppHandle, pos: &mut OpenPosition) {
             return;
         }
     };
-    let long = pos.direction == "long";
+    let long = pos.direction == Direction::Long;
     match exchange
         .reduce_market(&cred, &pos.symbol, long, q)
         .await

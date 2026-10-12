@@ -18,6 +18,25 @@ pub enum Direction {
     Short,
 }
 
+impl Direction {
+    /// The wire and storage text, identical to the serde form.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Direction::Long => "long",
+            Direction::Short => "short",
+        }
+    }
+
+    /// Exactly "long" or "short"; any other text is not a direction.
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "long" => Some(Direction::Long),
+            "short" => Some(Direction::Short),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfluenceItem {
     pub source: String,

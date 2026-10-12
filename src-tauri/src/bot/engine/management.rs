@@ -26,6 +26,8 @@
 //! overshoot (HANA, 7 Oct: a breakeven booked −0.79% instead of −0.08%).
 //! The paper runner keeps the polled price for its pre-registered arms.
 
+use crate::signal::model::Direction;
+
 use super::super::model::OpenPosition;
 use super::{pnl, sizing};
 
@@ -112,7 +114,7 @@ pub fn close_step_with(
         note_invalidation: invalidated,
         ..Step::default()
     };
-    let long = pos.direction == "long";
+    let long = pos.direction == Direction::Long;
     let sign = if long { 1.0 } else { -1.0 };
     // Legacy rows persisted before these fields existed: fall back to the
     // fill entry and plain TP/SL.

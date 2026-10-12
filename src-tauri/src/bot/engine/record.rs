@@ -42,7 +42,7 @@ pub fn trade_record(pos: &OpenPosition, exit: f64, reason: &str, closed_at: u64)
         bot_kind: pos.bot_kind.as_str().to_string(),
         exchange_id: pos.exchange_id.clone(),
         symbol: pos.symbol.clone(),
-        direction: pos.direction.clone(),
+        direction: pos.direction,
         entry: pos.entry,
         exit,
         leverage: pos.leverage,

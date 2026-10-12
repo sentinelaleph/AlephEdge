@@ -2317,6 +2317,7 @@
     "keychainSaltMissing": "Falta la sal de la bóveda en el llavero de este equipo. Esta bóveda pertenece a otro dispositivo o cuenta de usuario.",
     "keyNoFutures": "Esta clave no tiene permiso de Futuros. Activa Futuros en el exchange y vuelve a añadirla.",
     "keyRejected": "El exchange rechazó esta clave API y su secreto. Revisa si hay errores.",
+    "keyRsaUnsupported": "Las claves RSA no son compatibles. Crea en el exchange una clave API generada por el sistema (HMAC) y vuelve a añadirla.",
     "sentinelUnreachable": "No se pudo conectar con Sentinel. Revisa tu conexión.",
     "unexpectedResponse": "Sentinel envió una respuesta inesperada.",
     "serverRejected": "Sentinel rechazó la solicitud: {{detail}}",
