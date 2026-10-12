@@ -574,6 +574,13 @@ fn find_salt(store: &impl SecretStore, service: &str) -> Result<SaltEntry, Strin
 mod tests {
     use super::*;
     use idle::TestClock;
+
+    /// Known answer: `vault.edge` stores this fingerprint, so it must not move
+    /// across a SHA-256 or base64 upgrade.
+    #[test]
+    fn salt_check_matches_the_known_answer() {
+        assert_eq!(salt_check(b"sixteen_byte_slt"), "gBihLtBGIDs=");
+    }
     use model::CredentialPermission;
     use std::time::Duration;
 

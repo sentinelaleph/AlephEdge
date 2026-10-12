@@ -3,7 +3,7 @@
 //! (detect a withdraw-enabled key, don't trust a dropdown). Only
 //! Binance exposes this today; other exchanges keep self-declared permission.
 
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use sha2::Sha256;
@@ -177,6 +177,14 @@ pub(super) fn now_millis() -> u64 {
 #[cfg(test)]
 mod key_check_tests {
     use super::*;
+
+    /// The signed-endpoint example from Binance's API documentation.
+    #[test]
+    fn signature_matches_the_binance_documentation_example() {
+        let secret = "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j";
+        let query = "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559";
+        assert_eq!(sign_query(secret, query), "c8db56825ae71d6d79447849e617115f4a920fa2acdcab2b053c4b2838bd6b71");
+    }
 
     #[test]
     fn a_clock_error_is_not_a_rejected_key() {

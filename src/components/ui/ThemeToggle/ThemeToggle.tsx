@@ -1,10 +1,11 @@
+import type { ReactElement } from "react";
 import { motion } from "framer-motion";
 import { useTheme, type ThemeMode } from "@/theme/ThemeProvider";
 import { SPRING } from "@/lib/motion";
 import { useTranslation } from "react-i18next";
 import "./ThemeToggle.css";
 
-const MODES: { mode: ThemeMode; labelKey: string; icon: JSX.Element }[] = [
+const MODES: { mode: ThemeMode; labelKey: string; icon: ReactElement }[] = [
   { mode: "light", labelKey: "theme.light", icon: <SunIcon /> },
   { mode: "dark", labelKey: "theme.dark", icon: <MoonIcon /> },
   { mode: "contrast", labelKey: "theme.contrast", icon: <ContrastIcon /> },

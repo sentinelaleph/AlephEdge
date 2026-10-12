@@ -184,7 +184,7 @@ export function PageShell({ title, crumbs, primary, secondary, actions, left, le
         </>
       )}
       {/* Natural widths for the fit, never seen or reached. */}
-      <div className="ae-pageactions__measure" ref={measureRef} aria-hidden="true" {...{ inert: "" }}>
+      <div className="ae-pageactions__measure" ref={measureRef} aria-hidden="true" inert>
         <span data-part="title" className="ae-pagehead__title">
           {title}
         </span>

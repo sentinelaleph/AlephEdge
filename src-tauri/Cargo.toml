@@ -1,6 +1,6 @@
 [package]
 name = "aleph-edge"
-version = "0.3.6"
+version = "0.3.7"
 description = "Aleph Edge — Sentinel Aleph automated trading bot"
 authors = ["Sentinel Aleph"]
 edition = "2021"
@@ -31,7 +31,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 
 # Vault crypto — key material never leaves the device.
-argon2 = "0.5"
+argon2 = "0.6"
 aes-gcm = "0.10"
 rand = "0.8"
 zeroize = "1"
@@ -47,8 +47,8 @@ keyring = { version = "3", features = ["windows-native", "apple-native"] }
 
 # HMAC-SHA256 request signing for authenticated Binance calls (e.g. verifying
 # a newly-added key's real withdraw permission).
-hmac = "0.12"
-sha2 = "0.10"
+hmac = "0.13"
+sha2 = "0.11"
 
 # Sentinel membership client (ribqa.com auth + billing status) and the
 # Sentinel signal stream (SSE over a streamed HTTP body).

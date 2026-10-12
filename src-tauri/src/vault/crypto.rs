@@ -79,6 +79,16 @@ mod tests {
 
     const SALT: &[u8] = b"sixteen_byte_slt";
 
+    /// Known answer for the parameters this build writes. Every vault on disk
+    /// was sealed with a key from this function, so a dependency upgrade
+    /// that changes one output bit makes every existing vault unopenable.
+    #[test]
+    fn key_derivation_matches_the_known_answer() {
+        let key = derive_key(b"correct horse", SALT, &KdfParams::default()).unwrap();
+        let hex: String = key.iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(hex, "bd1bb14c874996956dc97c7b9f7b25ee38c9383e47ded8d8b84bfcbb6b61b780");
+    }
+
     #[test]
     fn the_parameters_the_app_itself_writes_are_accepted() {
         // The ceiling is worthless if it rejects vaults this build creates.

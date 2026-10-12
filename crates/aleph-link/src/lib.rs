@@ -14,7 +14,7 @@
 //! phone) would drift apart over time, and here the drift would sit on a
 //! security boundary. So the protocol lives in one place and both ends link it.
 
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use subtle::ConstantTimeEq;
@@ -615,6 +615,14 @@ pub fn parse_qr(text: &str) -> Result<ScannedPairing, LinkError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Known answer: a phone and a desk on different builds must agree on
+    /// every signature, so an HMAC, SHA-256 or base64 upgrade may not change it.
+    #[test]
+    fn signature_matches_the_known_answer() {
+        let key = PairingKey::from_bytes([7u8; 32]);
+        assert_eq!(sign(&key, b"aleph-link known answer"), "u10j6jkqc5xuv9xXU+SHS9u3FWy9xXnVgkpRMHxjQbU=");
+    }
 
     fn key() -> PairingKey {
         PairingKey::from_bytes([7u8; 32])
