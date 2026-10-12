@@ -48,7 +48,7 @@ keyring = { version = "3", features = ["windows-native", "apple-native"] }
 # HMAC-SHA256 request signing for authenticated Binance calls (e.g. verifying
 # a newly-added key's real withdraw permission).
 hmac = "0.12"
-sha2 = "0.10"
+sha2 = "0.11"
 
 # Sentinel membership client (ribqa.com auth + billing status) and the
 # Sentinel signal stream (SSE over a streamed HTTP body).
