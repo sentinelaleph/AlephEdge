@@ -141,7 +141,11 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
           { label: t("table.market"), value: t(`filters.market.${row.market}`) },
           { label: t("table.exchange"), value: row.exchangeId ? exchangeName(row.exchangeId, catalog.exchanges) : NO_VALUE },
           { label: t("table.pairs"), value: row.config ? (row.symbols.length ? row.symbols.join(", ") : t("botsList.allPairs")) : NO_VALUE },
-          ...(row.live ? [{ label: t("table.mode"), value: "LIVE", tone: "danger" as const }] : []),
+          ...(row.live
+            ? [{ label: t("table.mode"), value: "LIVE", tone: "danger" as const }]
+            : s.liveTradingEnabled
+              ? [{ label: t("table.mode"), value: t("states.paper") }]
+              : []),
           { label: t("table.leverage"), value: row.config ? `${row.config.leverage}x` : NO_VALUE },
           { label: t("table.capital"), value: row.capital !== null ? formatUsdt(row.capital, locale) : NO_VALUE },
           { label: t("table.maxPositions"), value: row.maxPositions ?? NO_VALUE },

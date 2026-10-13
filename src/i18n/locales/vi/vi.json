@@ -568,9 +568,6 @@
     "filters": "Bộ lọc",
     "summary": "Tóm tắt",
     "closeSummary": "Đóng tóm tắt",
-    "scopePaperLive": "Mô phỏng + Thật",
-    "scopePaperTooltip": "Tất cả bot chạy mô phỏng: khớp lệnh mô phỏng, không có lệnh thật.",
-    "scopeLiveTooltip": "Ít nhất một bot giao dịch bằng tiền thật. LIVE được bật riêng cho từng bot.",
     "killSwitchTripped": "Đã kích hoạt dừng ngày",
     "badge": {
       "killSwitch": "Đã kích hoạt dừng ngày",
@@ -584,7 +581,17 @@
     "summaryPanel": "Bảng tóm tắt",
     "more": "Thêm",
     "guide": "Hướng dẫn",
-    "faq": "Câu hỏi thường gặp"
+    "faq": "Câu hỏi thường gặp",
+    "scope": {
+      "paperBuild": "Chỉ mô phỏng",
+      "liveAvailable": "Mô phỏng · Live tắt",
+      "live": "LIVE · {{n}}"
+    },
+    "scopeTooltip": {
+      "paperBuild": "Bản này chỉ giao dịch mô phỏng: khớp lệnh mô phỏng, không lệnh thật. Nhấn để xem tiền thật hoạt động thế nào.",
+      "liveAvailable": "Bản này có thể giao dịch tiền thật trên Futures của {{venues}}. Hiện không bot nào làm vậy: tất cả ở mô phỏng. Tiền thật được bật theo từng bot (gõ LIVE). Nhấn để xem chi tiết.",
+      "live": "{{n}} bot giao dịch bằng tiền thật. LIVE được bật theo từng bot. Nhấn để xem chi tiết."
+    }
   },
   "page": {
     "botNew": "Bot mới",
@@ -720,11 +727,22 @@
       "range": "Đi ngang"
     },
     "mode": {
-      "signal": "Mô phỏng, LIVE tùy chọn (Futures: Binance, Bybit, OKX)",
+      "title": "Mô phỏng và tiền thật",
+      "liveBuildLine": "Mặc định là mô phỏng; tiền thật được bật theo từng bot, chỉ Futures, sau các kiểm tra live",
+      "paperHead": "Mô phỏng: mọi bot mới bắt đầu ở đây",
+      "paperBody": "Khớp lệnh mô phỏng theo giá thật, đã gồm phí. Không lệnh nào tới sàn; không thể mất gì.",
+      "realHead": "Tiền thật: theo từng bot, sau khi tạo",
+      "realBody": "Chỉ trên Futures USDT-M của {{venues}}: bot tín hiệu Futures, và bot DCA hoặc Grid đặt ở Futures trên sàn đó. Spot vẫn ở mô phỏng.",
+      "step1": "Một khóa có quyền Futures và Trade trong két:",
+      "step2": "Kiểm tra sẵn sàng live đạt:",
+      "step3": "Trên bot, chuyển sang tiền thật và gõ LIVE.",
+      "step4": "Thử nghiệm: 3 lần vào lệnh thật đầu tiên của bot tín hiệu giới hạn 50 USDT; 3 chu kỳ đầu của bot DCA hoặc Grid khoảng 100 USDT.",
+      "preflight": "Sẵn sàng live",
+      "notYet": "{{venues}}: tiền thật vẫn tắt cho đến khi chạy thử trên testnet đạt.",
+      "guide": "Tiền thật hoạt động thế nào",
       "paperOnly": "Mô phỏng: khớp lệnh mô phỏng theo giá trực tiếp, đã tính phí"
     },
     "presetsLink": "Cấu hình mẫu cho loại này",
-    "create": "Tạo",
     "how": {
       "signal": "Mở vị thế với mỗi tín hiệu Sentinel qua bộ lọc của bạn và thoát tại mục tiêu hoặc stop của tín hiệu.",
       "dca": "Mở bằng lệnh cơ sở, thêm lệnh an toàn khi giá đi ngược, và đóng toàn bộ vị thế tại một mức chốt lời tính trên giá trung bình.",
@@ -735,7 +753,35 @@
     "yoursValue": "{{total}} · đang chạy {{running}}",
     "templates": "Cấu hình mẫu",
     "templatesNone": "Bản này không có",
-    "templatesValue": "Đạt {{passed}}/{{total}}"
+    "yoursLive": "{{n}} LIVE",
+    "templatesPassed": "{{n}} đạt",
+    "templatesReview": "{{n}} đang xem xét",
+    "templatesFailed": "{{n}} không đạt",
+    "templatesSignal": "Không có: theo tín hiệu Sentinel",
+    "evidence": "Kết quả đã kiểm định",
+    "evidenceSignal": "Chưa kiểm định trong ứng dụng này. Mọi tín hiệu Sentinel và kết quả sau phí đều có trên sổ cái công khai, ribqa.com/signals.",
+    "evidenceNone": "Không mẫu nào qua kiểm định lịch sử",
+    "evidenceTemplate": "Mẫu tốt nhất, TEST lịch sử: {{mean}} mỗi bot-tháng (KTC 95% {{lo}} đến {{hi}}), bot tệ nhất {{dd}}",
+    "evidenceInfo": "Mô phỏng lịch sử trên nến cũ có phí, đánh giá một lần trên giai đoạn TEST để riêng. Không phải dự báo; trang Mẫu liệt kê các kiểm tra của từng mẫu.",
+    "realMoney": "Tiền thật",
+    "realFutures": "Futures trên {{venues}}",
+    "realNotInBuild": "Không có trong bản này",
+    "openSignal": "Mở bot tín hiệu",
+    "fromTemplate": "Từ mẫu",
+    "blank": "Trống",
+    "ready": {
+      "title": "Trước khi bắt đầu",
+      "risk": "Mức rủi ro",
+      "riskValue": "{{level}} · tối đa {{lev}}x · {{pos}} vị thế",
+      "budget": "Ngân sách chiến lược còn trống",
+      "budgetValue": "{{free}} (giới hạn {{cap}}% số dư)",
+      "keys": "Khóa sàn",
+      "keysNone": "Không có (mô phỏng không cần)",
+      "noVenue": "Chưa sàn nào qua chạy thử testnet",
+      "liveBots": "Bot dùng tiền thật",
+      "toRisk": "Rủi ro & an toàn",
+      "toKeys": "Khóa sàn"
+    }
   },
   "botDetail": {
     "notFound": "Không tìm thấy bot",

@@ -568,9 +568,6 @@
     "filters": "Filtreler",
     "summary": "Özet",
     "closeSummary": "Özeti kapat",
-    "scopePaperLive": "Simüle + Canlı",
-    "scopePaperTooltip": "Tüm botlar simüle işlem yapar: gerçek emir yok.",
-    "scopeLiveTooltip": "En az bir bot gerçek parayla işlem yapıyor. LIVE bot bazında açılır.",
     "killSwitchTripped": "Günlük stop tetiklendi",
     "badge": {
       "killSwitch": "Günlük stop tetiklendi",
@@ -584,7 +581,17 @@
     "summaryPanel": "Özet paneli",
     "more": "Daha fazla",
     "guide": "Rehber",
-    "faq": "SSS"
+    "faq": "SSS",
+    "scope": {
+      "paperBuild": "Yalnızca simüle",
+      "liveAvailable": "Simüle · Canlı kapalı",
+      "live": "LIVE · {{n}}"
+    },
+    "scopeTooltip": {
+      "paperBuild": "Bu sürüm yalnızca simüle işlem yapar: simüle dolum, gerçek emir yok. Gerçek paranın nasıl çalıştığı için tıklayın.",
+      "liveAvailable": "Bu sürüm {{venues}} Futures'ta gerçek parayla işlem yapabilir. Şu an hiçbir bot gerçek parada değil: hepsi simülede. Gerçek para bot başına açılır (LIVE yazılarak). Ayrıntı için tıklayın.",
+      "live": "{{n}} bot gerçek parayla işlem yapıyor. LIVE bot başına açılır. Ayrıntı için tıklayın."
+    }
   },
   "page": {
     "botNew": "Yeni bot",
@@ -720,11 +727,22 @@
       "range": "Yatay"
     },
     "mode": {
-      "signal": "Simüle, LIVE isteğe bağlı (Vadeli: Binance, Bybit, OKX)",
+      "title": "Simüle ve gerçek para",
+      "liveBuildLine": "Varsayılan simüle; gerçek para bot başına, yalnızca Futures'ta, canlı kontrollerden sonra açılır",
+      "paperHead": "Simüle: her yeni bot buradan başlar",
+      "paperBody": "Canlı fiyatlarla simüle dolum, ücretler dahil. Borsaya emir gitmez; para kaybedilemez.",
+      "realHead": "Gerçek para: bot başına, bot oluşturulduktan sonra",
+      "realBody": "Yalnızca {{venues}} USDT-M Futures'ta: Futures sinyal botu ve o borsada Futures'a ayarlı DCA veya Grid botları. Spot simülede kalır.",
+      "step1": "Kasada Futures ve Trade izinli bir anahtar:",
+      "step2": "Canlı hazırlık kontrolü geçer:",
+      "step3": "Botta gerçek paraya geçip LIVE yazın.",
+      "step4": "Pilot: sinyal botunun ilk 3 gerçek girişi 50 USDT ile sınırlıdır; DCA veya Grid botunun ilk 3 döngüsü yaklaşık 100 USDT büyüklüğündedir.",
+      "preflight": "Canlı hazırlık",
+      "notYet": "{{venues}}: test ağı denemesi geçene kadar gerçek para kapalı.",
+      "guide": "Gerçek para nasıl çalışır",
       "paperOnly": "Simüle: canlı fiyatlarla simüle dolumlar, ücretler dahil"
     },
     "presetsLink": "Bu türün hazır ayarları",
-    "create": "Oluştur",
     "how": {
       "signal": "Filtrelerinizden geçen her Sentinel sinyalinde pozisyon açar, sinyalin hedeflerinde ya da stopunda çıkar.",
       "dca": "Bir ana emirle açar, fiyat aleyhine gittikçe güvenlik emirleri ekler ve tüm pozisyonu ortalama fiyat üzerinden tek bir kâr al ile kapatır.",
@@ -735,7 +753,35 @@
     "yoursValue": "{{total}} · çalışan {{running}}",
     "templates": "Hazır ayarlar",
     "templatesNone": "Bu sürümde yok",
-    "templatesValue": "Geçen {{passed}} / {{total}}"
+    "yoursLive": "{{n}} LIVE",
+    "templatesPassed": "{{n}} geçti",
+    "templatesReview": "{{n}} incelemede",
+    "templatesFailed": "{{n}} başarısız",
+    "templatesSignal": "Yok: Sentinel sinyallerini izler",
+    "evidence": "Test sonucu",
+    "evidenceSignal": "Bu uygulamada test edilmedi. Her Sentinel sinyali ve ücretler sonrası sonucu açık defterde: ribqa.com/signals.",
+    "evidenceNone": "Geçmiş testi geçen şablon yok",
+    "evidenceTemplate": "En iyi şablon, geçmiş TEST: bot-ay başına {{mean}} (%95 GA {{lo}} ile {{hi}}), en kötü bot {{dd}}",
+    "evidenceInfo": "Geçmiş mumlar üzerinde ücretli simülasyon; ayrılmış bir TEST döneminde bir kez değerlendirildi. Tahmin değildir; her şablonun kontrolleri Şablonlar sayfasında.",
+    "realMoney": "Gerçek para",
+    "realFutures": "{{venues}} Futures",
+    "realNotInBuild": "Bu sürümde yok",
+    "openSignal": "Sinyal botlarını aç",
+    "fromTemplate": "Şablondan başla",
+    "blank": "Boş başla",
+    "ready": {
+      "title": "Başlamadan önce",
+      "risk": "Risk seviyesi",
+      "riskValue": "{{level}} · en fazla {{lev}}x · {{pos}} pozisyon",
+      "budget": "Boştaki strateji bütçesi",
+      "budgetValue": "{{free}} (bakiyenin %{{cap}} sınırı)",
+      "keys": "Borsa anahtarları",
+      "keysNone": "Yok (simüle için gerekmez)",
+      "noVenue": "Test ağı denemesini geçen borsa yok",
+      "liveBots": "Gerçek paradaki botlar",
+      "toRisk": "Risk ve güvenlik",
+      "toKeys": "Borsa anahtarları"
+    }
   },
   "botDetail": {
     "notFound": "Bot bulunamadı",

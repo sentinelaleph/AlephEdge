@@ -6,6 +6,8 @@ import { Tooltip } from "@/components/ui/Tooltip/Tooltip";
 import { Cockpit, type CockpitReadings } from "@/components/Shell/Cockpit/Cockpit";
 import { streamLabelKey, streamTone } from "@/lib/ipc/signal/streamStatus";
 import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
+import { scopeState } from "@/pages/Bots/botNewModel";
+import { exchangeName } from "@/lib/ipc/exchange/exchange";
 import { Icon } from "./icons";
 
 interface HeaderProps {
@@ -33,11 +35,17 @@ interface HeaderProps {
  */
 export function Header({ showMenu, menuOpen, onMenu, headingRef, actionsRef, unread, alertsOpen, onAlerts }: HeaderProps) {
   const { t } = useTranslation();
-  const { desk, endpoints, membership, accountExchange, feed, health } = useDeskContext();
+  const { desk, endpoints, membership, accountExchange, feed, health, catalog } = useDeskContext();
   const s = desk.status;
-  const strategyLive = useStrategyLive().anyLive;
-  const liveScope =
-    desk.loaded && s.liveTradingEnabled && ([s.futures, s.spot, s.pump].some((c) => c?.live === true) || strategyLive);
+  const { liveIds } = useStrategyLive();
+  // Paper only (public build), paper with real money off (live build, no bot
+  // live), or LIVE with how many bots trade real money. One readout, linked
+  // to the guide's real-money chapter; real money is still switched per bot.
+  const scope = scopeState(
+    desk.loaded && s.liveTradingEnabled,
+    [s.futures, s.spot, s.pump].filter((c) => c?.live === true).length + liveIds.size,
+  );
+  const liveScope = scope.kind === "live";
   const email = membership.view.email ?? membership.view.displayName ?? "";
   const tone = streamTone(feed.health, feed.loaded);
   const exHealth = accountExchange ? health?.exchanges.find((e) => e.id === accountExchange) : undefined;
@@ -69,13 +77,15 @@ export function Header({ showMenu, menuOpen, onMenu, headingRef, actionsRef, unr
 
       <div className="ae-header__global">
         {desk.loaded ? (
-          <span
+          <Link
+            to="/guide?s=real-money"
             className="ae-header__scope"
             data-live={liveScope || undefined}
-            title={t(liveScope ? "nav.scopeLiveTooltip" : "nav.scopePaperTooltip")}
+            data-scope={scope.kind}
+            title={t(`nav.scopeTooltip.${scope.kind}`, { venues: (s.liveVenues ?? []).map((v) => exchangeName(v, catalog.exchanges)).join(", ") })}
           >
-            {liveScope ? t("nav.scopePaperLive") : t("states.paper")}
-          </span>
+            {t(`nav.scope.${scope.kind}`, { n: scope.kind === "live" ? scope.bots : 0 })}
+          </Link>
         ) : null}
         {endpoints && !endpoints.binanceIsProduction ? (
           <span className="ae-header__testnet" title={t("app.testnetTooltip", { host: endpoints.binanceFuturesBase })}>

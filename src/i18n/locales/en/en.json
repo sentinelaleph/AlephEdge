@@ -568,9 +568,6 @@
     "filters": "Filters",
     "summary": "Summary",
     "closeSummary": "Close summary",
-    "scopePaperLive": "Paper + Live",
-    "scopePaperTooltip": "All bots trade on paper: simulated fills, no real orders.",
-    "scopeLiveTooltip": "At least one bot trades real money. LIVE is switched per bot.",
     "killSwitchTripped": "Daily stop tripped",
     "badge": {
       "killSwitch": "Daily stop tripped",
@@ -584,7 +581,17 @@
     "summaryPanel": "Summary panel",
     "more": "More",
     "guide": "Guide",
-    "faq": "FAQ"
+    "faq": "FAQ",
+    "scope": {
+      "paperBuild": "Paper only",
+      "liveAvailable": "Paper · Live off",
+      "live": "LIVE · {{n}}"
+    },
+    "scopeTooltip": {
+      "paperBuild": "This build trades on paper only: simulated fills, no real orders. Click for how real money works.",
+      "liveAvailable": "This build can trade real money on {{venues}} Futures. No bot does now: all are on paper. Real money is switched per bot (type LIVE). Click for details.",
+      "live": "{{n}} bots trade real money. LIVE is switched per bot. Click for details."
+    }
   },
   "page": {
     "botNew": "New bot",
@@ -720,11 +727,22 @@
       "range": "Range"
     },
     "mode": {
-      "signal": "Paper, LIVE opt-in (Futures: Binance, Bybit, OKX)",
+      "title": "Paper and real money",
+      "liveBuildLine": "Paper by default; real money is switched on per bot, Futures only, after the live checks",
+      "paperHead": "Paper: every new bot starts here",
+      "paperBody": "Simulated fills at live prices, fees included. No order reaches the exchange; nothing can be lost.",
+      "realHead": "Real money: per bot, after it is created",
+      "realBody": "Only on {{venues}} USDT-M Futures: the Futures signal bot, and DCA or Grid bots set to Futures on that exchange. Spot stays on paper.",
+      "step1": "A key with Futures and Trade access in the vault:",
+      "step2": "The live readiness check passes:",
+      "step3": "On the bot, switch to real money and type LIVE.",
+      "step4": "Pilot: a signal bot's first 3 real entries are capped at 50 USDT; a DCA or Grid bot's first 3 cycles are sized to about 100 USDT.",
+      "preflight": "Live readiness",
+      "notYet": "{{venues}}: real money stays off until their test-network run passes.",
+      "guide": "How real money works",
       "paperOnly": "Paper: simulated fills at live prices, fees included"
     },
     "presetsLink": "Presets for this type",
-    "create": "Create",
     "how": {
       "signal": "Opens a position on each Sentinel signal that passes your filters and exits at the signal's targets or stop.",
       "dca": "Opens with a base order, adds safety orders as the price moves against it, and closes the whole position at one take-profit on the average price.",
@@ -735,7 +753,35 @@
     "yoursValue": "{{total}} · running {{running}}",
     "templates": "Presets",
     "templatesNone": "None in this build",
-    "templatesValue": "Passed {{passed}} of {{total}}"
+    "yoursLive": "{{n}} LIVE",
+    "templatesPassed": "{{n}} passed",
+    "templatesReview": "{{n}} under review",
+    "templatesFailed": "{{n}} failed",
+    "templatesSignal": "None: follows Sentinel signals",
+    "evidence": "Tested result",
+    "evidenceSignal": "Not tested in this app. Every Sentinel signal and its result after fees is on the public ledger, ribqa.com/signals.",
+    "evidenceNone": "No template passed the historical test",
+    "evidenceTemplate": "Best template, historical TEST: {{mean}} per bot-month (95% CI {{lo}} to {{hi}}), worst bot {{dd}}",
+    "evidenceInfo": "Historical simulation on past candles with fees, judged once on a held-out TEST period. Not a forecast; Presets lists every template's checks.",
+    "realMoney": "Real money",
+    "realFutures": "Futures on {{venues}}",
+    "realNotInBuild": "Not in this build",
+    "openSignal": "Open signal bots",
+    "fromTemplate": "From a template",
+    "blank": "Blank",
+    "ready": {
+      "title": "Before you start",
+      "risk": "Risk level",
+      "riskValue": "{{level}} · up to {{lev}}x · {{pos}} positions",
+      "budget": "Strategy budget free",
+      "budgetValue": "{{free}} (cap {{cap}}% of balance)",
+      "keys": "Exchange keys",
+      "keysNone": "None (paper needs none)",
+      "noVenue": "No exchange has passed its test-network run",
+      "liveBots": "Bots on real money",
+      "toRisk": "Risk & safety",
+      "toKeys": "Exchange keys"
+    }
   },
   "botDetail": {
     "notFound": "Bot not found",

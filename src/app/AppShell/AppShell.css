@@ -459,6 +459,12 @@ button.ae-sidebar__grouphead[aria-disabled="true"] {
   line-height: 22px;
   white-space: nowrap;
 }
+a.ae-header__scope {
+  text-decoration: none;
+}
+.ae-header__scope[data-scope="liveAvailable"] {
+  box-shadow: inset 0 0 0 1px var(--mode-paper-text);
+}
 .ae-header__scope[data-live] {
   background: transparent;
   color: var(--mode-live);

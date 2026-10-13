@@ -8,7 +8,7 @@ import { DeskFeed } from "@/components/BotDesk/DeskFeed/DeskFeed";
 import { DeskPrinciples } from "@/components/BotDesk/DeskPrinciples/DeskPrinciples";
 import { RegimeCard, RiskReadout, StreamCard } from "@/components/Desk/Readouts";
 import { Button } from "@/components/ui/Button/Button";
-import { LiveChip, UntestedChip } from "@/components/ui/Chip/Chip";
+import { LiveChip, PaperChip, UntestedChip } from "@/components/ui/Chip/Chip";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
 import { botMoneyColumns, useSignalBotMoney } from "./botMoney";
 import { FilterGroup, listParam } from "@/components/ui/FilterPanel/FilterPanel";
@@ -91,7 +91,7 @@ export function SignalBotsPage() {
             {t(`bots.kind.${r.kind}`)}
           </Link>
           {r.untested ? <UntestedChip title={t("bots.pumpNote")} /> : null}
-          {r.live ? <LiveChip /> : null}
+          {r.live ? <LiveChip /> : s.liveTradingEnabled && r.config ? <PaperChip /> : null}
         </span>
       ),
     },

@@ -568,9 +568,6 @@
     "filters": "Filter",
     "summary": "Ringkasan",
     "closeSummary": "Tutup ringkasan",
-    "scopePaperLive": "Simulasi + Nyata",
-    "scopePaperTooltip": "Semua bot berjalan simulasi: eksekusi simulasi, tanpa order nyata.",
-    "scopeLiveTooltip": "Setidaknya satu bot memakai uang nyata. LIVE diaktifkan per bot.",
     "killSwitchTripped": "Stop harian terpicu",
     "badge": {
       "killSwitch": "Stop harian terpicu",
@@ -584,7 +581,17 @@
     "summaryPanel": "Panel ringkasan",
     "more": "Lainnya",
     "guide": "Panduan",
-    "faq": "FAQ"
+    "faq": "FAQ",
+    "scope": {
+      "paperBuild": "Hanya simulasi",
+      "liveAvailable": "Simulasi · Live mati",
+      "live": "LIVE · {{n}}"
+    },
+    "scopeTooltip": {
+      "paperBuild": "Versi ini hanya berdagang dalam simulasi: pengisian simulasi, tanpa order nyata. Klik untuk cara kerja uang sungguhan.",
+      "liveAvailable": "Versi ini bisa berdagang dengan uang sungguhan di Futures {{venues}}. Saat ini tidak ada bot yang melakukannya: semua dalam simulasi. Uang sungguhan dinyalakan per bot (ketik LIVE). Klik untuk detail.",
+      "live": "{{n}} bot berdagang dengan uang sungguhan. LIVE dinyalakan per bot. Klik untuk detail."
+    }
   },
   "page": {
     "botNew": "Bot baru",
@@ -720,11 +727,22 @@
       "range": "Sideways"
     },
     "mode": {
-      "signal": "Simulasi, LIVE opsional (Futures: Binance, Bybit, OKX)",
+      "title": "Simulasi dan uang sungguhan",
+      "liveBuildLine": "Simulasi secara bawaan; uang sungguhan dinyalakan per bot, hanya Futures, setelah pemeriksaan live",
+      "paperHead": "Simulasi: setiap bot baru mulai di sini",
+      "paperBody": "Pengisian simulasi pada harga live, termasuk biaya. Tidak ada order ke bursa; tidak ada yang bisa hilang.",
+      "realHead": "Uang sungguhan: per bot, setelah dibuat",
+      "realBody": "Hanya di Futures USDT-M {{venues}}: bot sinyal Futures, serta bot DCA atau Grid yang diatur ke Futures di bursa itu. Spot tetap disimulasikan.",
+      "step1": "Kunci dengan akses Futures dan Trade di brankas:",
+      "step2": "Pemeriksaan kesiapan live lulus:",
+      "step3": "Di bot, beralih ke uang sungguhan dan ketik LIVE.",
+      "step4": "Pilot: 3 entri nyata pertama bot sinyal dibatasi 50 USDT; 3 siklus pertama bot DCA atau Grid sekitar 100 USDT.",
+      "preflight": "Kesiapan live",
+      "notYet": "{{venues}}: uang sungguhan tetap mati sampai uji testnet-nya lulus.",
+      "guide": "Cara kerja uang sungguhan",
       "paperOnly": "Simulasi: eksekusi simulasi di harga live, termasuk biaya"
     },
     "presetsLink": "Preset untuk jenis ini",
-    "create": "Buat",
     "how": {
       "signal": "Membuka posisi pada setiap sinyal Sentinel yang lolos filter Anda dan keluar di target atau stop sinyal.",
       "dca": "Dibuka dengan order dasar, menambah safety order saat harga bergerak berlawanan, dan menutup seluruh posisi di satu take profit dari harga rata-rata.",
@@ -735,7 +753,35 @@
     "yoursValue": "{{total}} · berjalan {{running}}",
     "templates": "Preset",
     "templatesNone": "Tidak ada di versi ini",
-    "templatesValue": "Lolos {{passed}} dari {{total}}"
+    "yoursLive": "{{n}} LIVE",
+    "templatesPassed": "{{n}} lulus",
+    "templatesReview": "{{n}} ditinjau",
+    "templatesFailed": "{{n}} gagal",
+    "templatesSignal": "Tidak ada: mengikuti sinyal Sentinel",
+    "evidence": "Hasil teruji",
+    "evidenceSignal": "Tidak diuji di aplikasi ini. Setiap sinyal Sentinel dan hasilnya setelah biaya ada di buku besar publik, ribqa.com/signals.",
+    "evidenceNone": "Tidak ada templat yang lulus uji historis",
+    "evidenceTemplate": "Templat terbaik, TEST historis: {{mean}} per bot-bulan (CI 95% {{lo}} hingga {{hi}}), bot terburuk {{dd}}",
+    "evidenceInfo": "Simulasi historis pada candle lama dengan biaya, dinilai sekali pada periode TEST yang disisihkan. Bukan ramalan; Templat mencantumkan pemeriksaan tiap templat.",
+    "realMoney": "Uang sungguhan",
+    "realFutures": "Futures di {{venues}}",
+    "realNotInBuild": "Tidak di versi ini",
+    "openSignal": "Buka bot sinyal",
+    "fromTemplate": "Dari templat",
+    "blank": "Kosong",
+    "ready": {
+      "title": "Sebelum mulai",
+      "risk": "Level risiko",
+      "riskValue": "{{level}} · hingga {{lev}}x · {{pos}} posisi",
+      "budget": "Anggaran strategi kosong",
+      "budgetValue": "{{free}} (batas {{cap}}% saldo)",
+      "keys": "Kunci bursa",
+      "keysNone": "Tidak ada (simulasi tidak perlu)",
+      "noVenue": "Belum ada bursa yang lulus uji testnet",
+      "liveBots": "Bot dengan uang sungguhan",
+      "toRisk": "Risiko & keamanan",
+      "toKeys": "Kunci bursa"
+    }
   },
   "botDetail": {
     "notFound": "Bot tidak ditemukan",

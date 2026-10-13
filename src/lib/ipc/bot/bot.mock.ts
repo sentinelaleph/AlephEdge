@@ -10,9 +10,20 @@ import { mock as riskMock } from "../risk/risk.mock";
 import { customPctValid, MAX_CUSTOM_TP_PCT, MIN_CUSTOM_TP_PCT } from "@/lib/takeProfit";
 import { LIVE_CONFIRMATION, type BotConfig, type BotDeskStatus, type BotKind } from "./bot";
 
+/** Preview a live build in `npm run dev`: localStorage "ae-mock-live" = "1". */
+function mockLiveBuild(): boolean {
+  try {
+    return globalThis.localStorage?.getItem("ae-mock-live") === "1";
+  } catch {
+    return false;
+  }
+}
+
 export const mock = (() => {
+  const live = mockLiveBuild();
   const state: BotDeskStatus = {
-    liveTradingEnabled: false,
+    liveTradingEnabled: live,
+    ...(live ? { liveVenues: ["binance"] } : {}),
     binanceIsProduction: true,
     futures: null,
     spot: null,

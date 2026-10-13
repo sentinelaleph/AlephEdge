@@ -7,7 +7,7 @@ import { riskSections } from "@/pages/Risk/RiskPage";
 describe("paper build surfaces", () => {
   it("the bot type cards say paper only, without a LIVE opt-in", () => {
     expect(modeKey(false)).toBe("botCreate.mode.paperOnly");
-    expect(modeKey(true)).toBe("botCreate.mode.signal");
+    expect(modeKey(true)).toBe("botCreate.mode.liveBuildLine");
   });
 
   it("Risk & safety has no Live readiness section in the paper build", () => {

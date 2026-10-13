@@ -9,7 +9,7 @@ import { localeForLanguage } from "@/i18n";
 import { formatNumber, formatPnl, formatSignedPercent, pnlToneAttr } from "@/lib/format";
 import { isActive, type StrategyBotView } from "@/lib/ipc/strategy/strategy";
 import { RUN_TONE, runActionKey, runStateText, sideText } from "@/lib/strategyText";
-import { LiveChip } from "@/components/ui/Chip/Chip";
+import { LiveChip, PaperChip } from "@/components/ui/Chip/Chip";
 import type { StrategyActions } from "./useStrategyActions";
 import { useStrategyLive } from "./useStrategyLive";
 
@@ -55,8 +55,9 @@ export function runStatusKind(v: StrategyBotView): StatusKind {
 export function StrategyBotsTable({ rows, actions, showType }: Props) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
-  const { strategy } = useDeskContext();
+  const { strategy, desk } = useDeskContext();
   const { liveIds } = useStrategyLive();
+  const liveBuild = desk.loaded && desk.status.liveTradingEnabled;
 
   const columns: DataColumn<StrategyBotView>[] = [
     {
@@ -67,7 +68,7 @@ export function StrategyBotsTable({ rows, actions, showType }: Props) {
           <Link to={`/bots/${v.id}`} className="ae-link">
             {v.name}
           </Link>
-          {liveIds.has(v.id) ? <> <LiveChip /></> : null}
+          {liveIds.has(v.id) ? <> <LiveChip /></> : liveBuild ? <> <PaperChip /></> : null}
         </>
       ),
     },

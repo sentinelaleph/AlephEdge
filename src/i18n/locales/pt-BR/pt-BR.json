@@ -568,9 +568,6 @@
     "filters": "Filtros",
     "summary": "Resumo",
     "closeSummary": "Fechar resumo",
-    "scopePaperLive": "Simulado + Real",
-    "scopePaperTooltip": "Todos os bots operam no simulado: execuções simuladas, sem ordens reais.",
-    "scopeLiveTooltip": "Pelo menos um bot opera com dinheiro real. O LIVE é ligado por bot.",
     "killSwitchTripped": "Stop diário acionado",
     "badge": {
       "killSwitch": "Stop diário acionado",
@@ -584,7 +581,17 @@
     "summaryPanel": "Painel de resumo",
     "more": "Mais",
     "guide": "Guia",
-    "faq": "Perguntas frequentes"
+    "faq": "Perguntas frequentes",
+    "scope": {
+      "paperBuild": "Só simulado",
+      "liveAvailable": "Simulado · Ao vivo desligado",
+      "live": "LIVE · {{n}}"
+    },
+    "scopeTooltip": {
+      "paperBuild": "Esta versão opera só em modo simulado: execuções simuladas, sem ordens reais. Clique para ver como funciona o dinheiro real.",
+      "liveAvailable": "Esta versão pode operar com dinheiro real em Futuros da {{venues}}. Nenhum bot opera agora: todos estão em modo simulado. O dinheiro real é ativado por bot (digitando LIVE). Clique para detalhes.",
+      "live": "{{n}} bots operam com dinheiro real. LIVE é ativado por bot. Clique para detalhes."
+    }
   },
   "page": {
     "botNew": "Novo bot",
@@ -720,11 +727,22 @@
       "range": "Lateral"
     },
     "mode": {
-      "signal": "Simulado, LIVE opcional (Futuros: Binance, Bybit, OKX)",
+      "title": "Simulado e dinheiro real",
+      "liveBuildLine": "Simulado por padrão; dinheiro real é ativado por bot, só em Futuros, após as verificações ao vivo",
+      "paperHead": "Simulado: todo bot novo começa aqui",
+      "paperBody": "Execuções simuladas a preços ao vivo, taxas incluídas. Nenhuma ordem chega à corretora; nada pode ser perdido.",
+      "realHead": "Dinheiro real: por bot, depois de criado",
+      "realBody": "Só em Futuros USDT-M da {{venues}}: o bot de sinais de Futuros e bots DCA ou Grid configurados em Futuros nessa corretora. Spot fica simulado.",
+      "step1": "Uma chave com acesso a Futuros e Trade no cofre:",
+      "step2": "A verificação de prontidão ao vivo passa:",
+      "step3": "No bot, mude para dinheiro real e digite LIVE.",
+      "step4": "Piloto: as 3 primeiras entradas reais de um bot de sinais são limitadas a 50 USDT; os 3 primeiros ciclos de um bot DCA ou Grid têm cerca de 100 USDT.",
+      "preflight": "Prontidão ao vivo",
+      "notYet": "{{venues}}: dinheiro real fica desligado até o teste na testnet passar.",
+      "guide": "Como funciona o dinheiro real",
       "paperOnly": "Simulado: execuções simuladas a preços ao vivo, taxas incluídas"
     },
     "presetsLink": "Presets deste tipo",
-    "create": "Criar",
     "how": {
       "signal": "Abre uma posição em cada sinal do Sentinel que passa nos seus filtros e sai nos alvos ou no stop do sinal.",
       "dca": "Abre com uma ordem base, adiciona ordens de segurança quando o preço vai contra e fecha a posição inteira em um único take profit sobre o preço médio.",
@@ -735,7 +753,35 @@
     "yoursValue": "{{total}} · rodando {{running}}",
     "templates": "Presets",
     "templatesNone": "Nenhum nesta versão",
-    "templatesValue": "Passaram {{passed}} de {{total}}"
+    "yoursLive": "{{n}} LIVE",
+    "templatesPassed": "{{n}} aprovados",
+    "templatesReview": "{{n}} em revisão",
+    "templatesFailed": "{{n}} reprovados",
+    "templatesSignal": "Nenhum: segue os sinais do Sentinel",
+    "evidence": "Resultado testado",
+    "evidenceSignal": "Não testado neste app. Cada sinal do Sentinel e seu resultado após taxas está no registro público, ribqa.com/signals.",
+    "evidenceNone": "Nenhum modelo passou no teste histórico",
+    "evidenceTemplate": "Melhor modelo, TEST histórico: {{mean}} por bot-mês (IC 95% {{lo}} a {{hi}}), pior bot {{dd}}",
+    "evidenceInfo": "Simulação histórica em candles passados com taxas, julgada uma vez num período TEST reservado. Não é previsão; Modelos lista as verificações de cada um.",
+    "realMoney": "Dinheiro real",
+    "realFutures": "Futuros na {{venues}}",
+    "realNotInBuild": "Não nesta versão",
+    "openSignal": "Abrir bots de sinais",
+    "fromTemplate": "De um modelo",
+    "blank": "Em branco",
+    "ready": {
+      "title": "Antes de começar",
+      "risk": "Nível de risco",
+      "riskValue": "{{level}} · até {{lev}}x · {{pos}} posições",
+      "budget": "Orçamento de estratégia livre",
+      "budgetValue": "{{free}} (limite {{cap}}% do saldo)",
+      "keys": "Chaves de corretora",
+      "keysNone": "Nenhuma (o modo simulado não precisa)",
+      "noVenue": "Nenhuma corretora passou no teste na testnet",
+      "liveBots": "Bots com dinheiro real",
+      "toRisk": "Risco e segurança",
+      "toKeys": "Chaves de corretora"
+    }
   },
   "botDetail": {
     "notFound": "Bot não encontrado",
