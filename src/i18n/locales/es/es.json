@@ -1001,7 +1001,9 @@
       "windowInvalid": "Elige un periodo que termine después de empezar",
       "windowTooLong": "Periodo de más de 3 años",
       "runNotFound": "Backtest no encontrado",
-      "backtestRunUnreadable": "No se pudo leer la ejecución guardada"
+      "backtestRunUnreadable": "No se pudo leer la ejecución guardada",
+      "suggestHistoryShort": "No hay historial suficiente para una sugerencia (se necesitan 15 días de velas horarias)",
+      "suggestGridOnly": "Las sugerencias son solo para bots grid"
     },
     "deleteAll": "Eliminar todo",
     "deleteAllTitle": "¿Eliminar {{n}} ejecuciones?",
@@ -1757,6 +1759,24 @@
       "down": "Desde arriba",
       "up": "Desde abajo"
     },
+    "suggest": {
+      "button": "Sugerir según la volatilidad",
+      "busy": "Leyendo 30 días…",
+      "note": "Rango y número de grids a partir de las velas horarias de los últimos 30 días (ATR); ambas configuraciones se reproducen en esos días. Nada cambia hasta que apliques.",
+      "range": "Rango sugerido",
+      "rangeInfo": "Mínimo de 14 días {{low}}, máximo {{high}}; cada lado al menos 1,5 ATR diarios ({{atr}} al día).",
+      "grids": "Grids sugeridas",
+      "gridsValue": "{{n}} grids · paso {{step}} · neto {{net}} por grid",
+      "gridsInfo": "Paso de aproximadamente un ATR horario ({{atr}}), nunca por debajo del mínimo de comisiones más un 25 %. Espaciado geométrico.",
+      "current": "Configuración actual, últimos 30 días",
+      "suggested": "Configuración sugerida, últimos 30 días",
+      "briefValue": "drawdown máximo {{dd}} · resultado {{pnl}} · {{fills}} grids cerradas",
+      "liquidated": "{{n}} liquidaciones",
+      "notValid": "No reproducida: esta configuración no es válida",
+      "window": "{{from}} – {{to}} UTC · {{bars}} velas horarias · {{source}} · sin funding · datos pasados, no una previsión",
+      "apply": "Aplicar sugerencia",
+      "applied": "Aplicada"
+    },
     "preview": {
       "title": "Resumen",
       "referencePrice": "Precio de referencia",
@@ -1785,6 +1805,8 @@
       "grid": "Niveles de la grid",
       "range": "Rango",
       "profitPerGrid": "Beneficio por grid tras comisiones",
+      "minNetPerGrid": "Neto mínimo por grid",
+      "minNetPerGridInfo": "Se rechaza una grid cuyo paso más pequeño gana menos que esto tras comisiones: otra ida y vuelta de comisiones maker más deslizamiento, para que las comisiones nunca se lleven más de la mitad de lo que gana una grid.",
       "ordersNow": "Órdenes al inicio",
       "buySell": "{{buy}} compra · {{sell}} venta",
       "qtyPerLevel": "Cantidad por nivel",
@@ -2178,7 +2200,7 @@
       "trailingUpLongOnly": "El seguimiento al alza es solo para grids largas.",
       "gridTpInvalid": "El take profit debe ser mayor que 0.",
       "trailLimitInvalid": "El límite de seguimiento debe estar sobre el precio superior.",
-      "gridStepBelowFees": "El paso de la grid no cubre las comisiones: menos intervalos o un rango más amplio.",
+      "gridStepBelowFees": "Paso de la grid demasiado pequeño: tras comisiones cada grid debe ganar otra ida y vuelta de comisiones más deslizamiento. Usa menos intervalos o un rango más amplio.",
       "gridLiqInsideBand": "La liquidación est. queda dentro del rango o del stop: reduzca el apalancamiento.",
       "gridBadRange": "Rango de grid no válido.",
       "botUnknown": "Bot no encontrado.",

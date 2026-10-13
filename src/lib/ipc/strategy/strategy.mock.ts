@@ -242,6 +242,7 @@ export function preview(cfg: StrategyConfig): Promise<PreviewDto> {
       qtyPerLevel: q,
       profitPerGridMinPct: Math.min(step, stepTop) - 0.04,
       profitPerGridMaxPct: Math.max(step, stepTop) - 0.04,
+      minNetPerGridPct: (2 * costs.maker + costs.slippage) * 100,
       buyOrders: buys,
       sellOrders: sells,
       initialBaseQty,

@@ -1001,7 +1001,9 @@
       "windowInvalid": "Chọn giai đoạn kết thúc sau khi bắt đầu",
       "windowTooLong": "Giai đoạn dài hơn 3 năm",
       "runNotFound": "Không tìm thấy backtest",
-      "backtestRunUnreadable": "Không đọc được lần chạy đã lưu"
+      "backtestRunUnreadable": "Không đọc được lần chạy đã lưu",
+      "suggestHistoryShort": "Chưa đủ lịch sử để gợi ý (cần 15 ngày nến 1 giờ)",
+      "suggestGridOnly": "Gợi ý chỉ dành cho bot lưới"
     },
     "deleteAll": "Xóa tất cả",
     "deleteAllTitle": "Xóa {{n}} lần chạy?",
@@ -1757,6 +1759,24 @@
       "down": "Từ trên xuống",
       "up": "Từ dưới lên"
     },
+    "suggest": {
+      "button": "Gợi ý theo biến động",
+      "busy": "Đang đọc 30 ngày…",
+      "note": "Khoảng giá và số lưới từ nến 1 giờ của 30 ngày qua (ATR); cả hai thiết lập được chạy lại trên cùng các ngày đó. Không gì thay đổi cho đến khi bạn áp dụng.",
+      "range": "Khoảng giá gợi ý",
+      "rangeInfo": "Đáy 14 ngày {{low}}, đỉnh {{high}}; mỗi phía ít nhất 1,5 ATR ngày ({{atr}} mỗi ngày).",
+      "grids": "Số lưới gợi ý",
+      "gridsValue": "{{n}} lưới · bước {{step}} · ròng {{net}} mỗi lưới",
+      "gridsInfo": "Bước khoảng một ATR giờ ({{atr}}), không bao giờ dưới ngưỡng phí cộng 25%. Khoảng cách hình học.",
+      "current": "Thiết lập hiện tại, 30 ngày qua",
+      "suggested": "Thiết lập gợi ý, 30 ngày qua",
+      "briefValue": "sụt giảm tối đa {{dd}} · kết quả {{pnl}} · {{fills}} lưới đã đóng",
+      "liquidated": "{{n}} lần thanh lý",
+      "notValid": "Không chạy lại: thiết lập này không hợp lệ",
+      "window": "{{from}} – {{to}} UTC · {{bars}} nến 1 giờ · {{source}} · chưa gồm funding · dữ liệu quá khứ, không phải dự báo",
+      "apply": "Áp dụng gợi ý",
+      "applied": "Đã áp dụng"
+    },
     "preview": {
       "title": "Tóm tắt",
       "referencePrice": "Giá tham chiếu",
@@ -1785,6 +1805,8 @@
       "grid": "Các mức lưới",
       "range": "Khoảng",
       "profitPerGrid": "Lợi nhuận mỗi lưới sau phí",
+      "minNetPerGrid": "Lãi ròng tối thiểu mỗi lưới",
+      "minNetPerGridInfo": "Lưới có bước nhỏ nhất lãi ít hơn mức này sau phí sẽ bị từ chối: thêm một vòng phí maker nữa cộng trượt giá, để phí không bao giờ lấy quá khoảng một nửa số lãi của lưới.",
       "ordersNow": "Lệnh lúc bắt đầu",
       "buySell": "{{buy}} mua · {{sell}} bán",
       "qtyPerLevel": "Khối lượng mỗi mức",
@@ -2178,7 +2200,7 @@
       "trailingUpLongOnly": "Dời lên chỉ dành cho lưới long.",
       "gridTpInvalid": "Chốt lời phải lớn hơn 0.",
       "trailLimitInvalid": "Giới hạn dời phải cao hơn giá trên.",
-      "gridStepBelowFees": "Bước lưới không bù được phí: giảm số khoảng hoặc nới rộng khoảng giá.",
+      "gridStepBelowFees": "Bước lưới quá nhỏ: sau phí mỗi lưới vẫn phải lãi thêm một vòng phí cộng trượt giá. Giảm số khoảng hoặc nới rộng khoảng giá.",
       "gridLiqInsideBand": "Thanh lý ước tính nằm trong khoảng giá hoặc vùng dừng: giảm đòn bẩy.",
       "gridBadRange": "Khoảng lưới không hợp lệ.",
       "botUnknown": "Không tìm thấy bot.",

@@ -28,6 +28,7 @@ import {
 import { configErrorText, presetName, strategyErrorText, universeText } from "@/lib/strategyText";
 import { CheckRow, FieldShell, NumField, Segmented } from "./formControls";
 import { StrategyLevelsTable } from "./StrategyPreviewPanel";
+import { GridSuggest } from "./GridSuggest";
 import "./StrategyForm.css";
 import { TrendMismatchNote } from "@/components/Desk/MarketTrend";
 
@@ -634,6 +635,7 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
                 <NumField label={t("strategy.field.maxDurationHours")} unit="h" value={toHours(p.maxDurationMin)} disabled={paramLocked} onChange={(h) => setGrid({ maxDurationMin: toMin(h) })} onInvalid={inv("maxDurationMin")} invalidText={invalidText} error={fieldError("maxDurationMin")} />
               ) : null}
             </div>
+            <GridSuggest cfg={cfg} disabled={paramLocked || invalid.size > 0} onApply={setCfg} />
           </Panel>
         )}
 

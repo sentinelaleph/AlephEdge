@@ -12,7 +12,7 @@ import { KpiGrid } from "@/components/ui/KpiGrid/KpiGrid";
 import { KpiTile } from "@/components/ui/KpiTile/KpiTile";
 import { PageShell } from "@/components/ui/PageShell/PageShell";
 import { FactList, Panel, type Fact } from "@/components/ui/Panel/Panel";
-import i18n, { localeForLanguage } from "@/i18n";
+import { localeForLanguage } from "@/i18n";
 import {
   formatNumber,
   formatPercent,
@@ -46,7 +46,7 @@ import {
   type StrategyConfig,
   type StrategyKind,
 } from "@/lib/ipc/strategy/strategy";
-import { sideText, strategyErrorText, strategyNoteText } from "@/lib/strategyText";
+import { backtestErrorText, sideText, strategyErrorText, strategyNoteText } from "@/lib/strategyText";
 import { EquityChart } from "@/pages/Bots/strategy/EquityChart";
 import { Segmented } from "@/pages/Bots/strategy/formControls";
 import { matchesPreset, StrategyForm, type FormPreview } from "@/pages/Bots/strategy/StrategyForm";
@@ -68,15 +68,7 @@ const WINDOWS = [
 ] as const;
 type WindowId = (typeof WINDOWS)[number]["id"];
 
-/** "code|detail" -> `backtest.errors.<code>`, else the strategy validation text. */
-export function backtestErrorText(t: TFunction, raw: string): string {
-  const [code, ...rest] = raw.split("|");
-  const detail = rest.join("|").trim();
-  const key = `backtest.errors.${code.trim()}`;
-  if (!i18n.exists(key)) return strategyErrorText(t, raw);
-  const text = t(key);
-  return detail ? `${text} (${detail})` : text;
-}
+export { backtestErrorText };
 
 const utcDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 const parseDay = (s: string) => {

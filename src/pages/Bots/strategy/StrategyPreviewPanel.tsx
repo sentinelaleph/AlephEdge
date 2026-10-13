@@ -126,7 +126,17 @@ export function StrategyPreviewPanel({ preview, error, cfg, available, backtest 
               {
                 label: t("strategy.preview.profitPerGrid"),
                 value: `${formatNumber(preview.grid.profitPerGridMinPct, locale, { maximumFractionDigits: 3 })}% – ${formatNumber(preview.grid.profitPerGridMaxPct, locale, { maximumFractionDigits: 3 })}%`,
-                tone: preview.grid.profitPerGridMinPct < 0.3 ? "warn" : undefined,
+                tone:
+                  preview.grid.profitPerGridMinPct < preview.grid.minNetPerGridPct - 1e-9
+                    ? "danger"
+                    : preview.grid.profitPerGridMinPct < 0.3
+                      ? "warn"
+                      : undefined,
+              },
+              {
+                label: t("strategy.preview.minNetPerGrid"),
+                value: `${formatNumber(preview.grid.minNetPerGridPct, locale, { maximumFractionDigits: 3 })}%`,
+                info: t("strategy.preview.minNetPerGridInfo"),
               },
               { label: t("strategy.preview.ordersNow"), value: t("strategy.preview.buySell", { buy: preview.grid.buyOrders, sell: preview.grid.sellOrders }) },
               { label: t("strategy.preview.qtyPerLevel"), value: formatNumber(preview.grid.qtyPerLevel, locale, { maximumSignificantDigits: 6 }) },

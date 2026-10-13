@@ -6,7 +6,7 @@
  * the screenshot harness seeds runs (labelled "Sample data" there).
  */
 
-import type { BacktestRun, BacktestRunSummary } from "./backtest";
+import type { BacktestRun, BacktestRunSummary, GridSuggestDto } from "./backtest";
 
 const runs = new Map<string, BacktestRun>();
 
@@ -35,6 +35,7 @@ function summary(r: BacktestRun): BacktestRunSummary {
 }
 
 export const run = (): Promise<BacktestRun> => Promise.reject("historyNotAvailable");
+export const suggest = (): Promise<GridSuggestDto> => Promise.reject("historyNotAvailable");
 export const list = (): Promise<BacktestRunSummary[]> => Promise.resolve([...runs.values()].map(summary));
 export const get = (id: string): Promise<BacktestRun> => {
   const r = runs.get(id);

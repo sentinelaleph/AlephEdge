@@ -1001,7 +1001,9 @@
       "windowInvalid": "Pilih periode yang berakhir setelah dimulai",
       "windowTooLong": "Periode lebih dari 3 tahun",
       "runNotFound": "Backtest tidak ditemukan",
-      "backtestRunUnreadable": "Run tersimpan tidak dapat dibaca"
+      "backtestRunUnreadable": "Run tersimpan tidak dapat dibaca",
+      "suggestHistoryShort": "Riwayat belum cukup untuk saran (perlu 15 hari candle 1 jam)",
+      "suggestGridOnly": "Saran hanya untuk bot grid"
     },
     "deleteAll": "Hapus semua",
     "deleteAllTitle": "Hapus {{n}} run?",
@@ -1757,6 +1759,24 @@
       "down": "Dari atas",
       "up": "Dari bawah"
     },
+    "suggest": {
+      "button": "Sarankan dari volatilitas",
+      "busy": "Membaca 30 hari…",
+      "note": "Rentang dan jumlah grid dari candle 1 jam 30 hari terakhir (ATR); kedua pengaturan diputar ulang pada hari yang sama. Tidak ada yang berubah sampai Anda menerapkannya.",
+      "range": "Rentang saran",
+      "rangeInfo": "Terendah 14 hari {{low}}, tertinggi {{high}}; tiap sisi minimal 1,5 ATR harian ({{atr}} per hari).",
+      "grids": "Grid saran",
+      "gridsValue": "{{n}} grid · langkah {{step}} · neto {{net}} per grid",
+      "gridsInfo": "Langkah sekitar satu ATR 1 jam ({{atr}}), tidak pernah di bawah batas biaya plus 25%. Jarak geometris.",
+      "current": "Pengaturan saat ini, 30 hari terakhir",
+      "suggested": "Pengaturan saran, 30 hari terakhir",
+      "briefValue": "drawdown maks {{dd}} · hasil {{pnl}} · {{fills}} grid tertutup",
+      "liquidated": "{{n}} likuidasi",
+      "notValid": "Tidak diputar ulang: pengaturan ini tidak lolos validasi",
+      "window": "{{from}} – {{to}} UTC · {{bars}} candle 1 jam · {{source}} · tanpa funding · data masa lalu, bukan prediksi",
+      "apply": "Terapkan saran",
+      "applied": "Diterapkan"
+    },
     "preview": {
       "title": "Ringkasan",
       "referencePrice": "Harga acuan",
@@ -1785,6 +1805,8 @@
       "grid": "Level grid",
       "range": "Rentang",
       "profitPerGrid": "Profit per grid setelah biaya",
+      "minNetPerGrid": "Neto minimum per grid",
+      "minNetPerGridInfo": "Grid yang langkah terkecilnya menghasilkan kurang dari ini setelah biaya ditolak: satu putaran biaya maker lagi ditambah slippage, sehingga biaya tidak pernah mengambil lebih dari sekitar setengah hasil grid.",
       "ordersNow": "Order saat mulai",
       "buySell": "{{buy}} beli · {{sell}} jual",
       "qtyPerLevel": "Jumlah per level",
@@ -2178,7 +2200,7 @@
       "trailingUpLongOnly": "Trailing naik hanya untuk grid long.",
       "gridTpInvalid": "Take profit harus di atas 0.",
       "trailLimitInvalid": "Batas trailing harus di atas harga atas.",
-      "gridStepBelowFees": "Langkah grid tidak menutup biaya: kurangi interval atau lebarkan rentang.",
+      "gridStepBelowFees": "Langkah grid terlalu kecil: setelah biaya setiap grid harus tetap menghasilkan satu putaran biaya lagi ditambah slippage. Kurangi interval atau lebarkan rentang.",
       "gridLiqInsideBand": "Perkiraan likuidasi berada di dalam rentang atau stop: turunkan leverage.",
       "gridBadRange": "Rentang grid tidak valid.",
       "botUnknown": "Bot tidak ditemukan.",

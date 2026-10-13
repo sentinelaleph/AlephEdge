@@ -255,6 +255,8 @@ export interface GridPreview {
   qtyPerLevel: number;
   profitPerGridMinPct: number;
   profitPerGridMaxPct: number;
+  /** Smallest net per grid validation accepts, percent (2 x maker + slippage). */
+  minNetPerGridPct: number;
   buyOrders: number;
   sellOrders: number;
   initialBaseQty: number;

@@ -1001,7 +1001,9 @@
       "windowInvalid": "Choose a window that ends after it starts",
       "windowTooLong": "Window longer than 3 years",
       "runNotFound": "Backtest run not found",
-      "backtestRunUnreadable": "Stored run could not be read"
+      "backtestRunUnreadable": "Stored run could not be read",
+      "suggestHistoryShort": "Not enough history for a suggestion (15 days of hourly candles needed)",
+      "suggestGridOnly": "Suggestions are for grid bots only"
     },
     "deleteAll": "Delete all",
     "deleteAllTitle": "Delete {{n}} runs?",
@@ -1757,6 +1759,24 @@
       "down": "From above",
       "up": "From below"
     },
+    "suggest": {
+      "button": "Suggest from volatility",
+      "busy": "Reading 30 days…",
+      "note": "Range and grid count from the last 30 days of hourly candles (ATR); both settings are replayed over the same days. Nothing changes until you apply.",
+      "range": "Suggested range",
+      "rangeInfo": "14-day low {{low}}, high {{high}}; each side at least 1.5 daily ATRs ({{atr}} a day).",
+      "grids": "Suggested grids",
+      "gridsValue": "{{n}} grids · step {{step}} · net {{net}} per grid",
+      "gridsInfo": "Step about one hourly ATR ({{atr}}), never under the fee floor plus 25%. Geometric spacing.",
+      "current": "Current settings, last 30 days",
+      "suggested": "Suggested settings, last 30 days",
+      "briefValue": "max drawdown {{dd}} · result {{pnl}} · {{fills}} closed grids",
+      "liquidated": "{{n}} liquidations",
+      "notValid": "Not replayed: these settings do not validate",
+      "window": "{{from}} – {{to}} UTC · {{bars}} hourly bars · {{source}} · funding not included · past data, not a forecast",
+      "apply": "Apply suggestion",
+      "applied": "Applied"
+    },
     "preview": {
       "title": "Summary",
       "referencePrice": "Reference price",
@@ -1785,6 +1805,8 @@
       "grid": "Grid levels",
       "range": "Range",
       "profitPerGrid": "Profit per grid after fees",
+      "minNetPerGrid": "Minimum net per grid",
+      "minNetPerGridInfo": "A grid whose smallest step earns less than this after fees is refused: one more round trip of maker fees plus slippage, so fees never take more than about half of what a grid earns.",
       "ordersNow": "Orders at start",
       "buySell": "{{buy}} buy · {{sell}} sell",
       "qtyPerLevel": "Quantity per level",
@@ -2178,7 +2200,7 @@
       "trailingUpLongOnly": "Trailing up is for long grids only.",
       "gridTpInvalid": "Take profit must be above 0.",
       "trailLimitInvalid": "The trailing limit must be above the upper price.",
-      "gridStepBelowFees": "Grid step does not cover fees: fewer intervals or a wider range.",
+      "gridStepBelowFees": "Grid step too small: after fees each grid must still earn another round trip of fees plus slippage. Use fewer intervals or a wider range.",
       "gridLiqInsideBand": "Est. liquidation sits inside the range or stop: lower the leverage.",
       "gridBadRange": "Invalid grid range.",
       "botUnknown": "Bot not found.",

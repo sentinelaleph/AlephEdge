@@ -31,6 +31,7 @@ pub mod model;
 pub mod path;
 pub mod presets;
 pub mod stats;
+pub mod suggest;
 pub mod validate;
 pub mod venue;
 

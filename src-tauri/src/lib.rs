@@ -30,7 +30,7 @@ use bot::strategy::commands::{
     strategy_update, strategy_validate,
 };
 use bot::strategy::backtest_commands::{
-    backtest_delete, backtest_delete_all, backtest_get, backtest_list, backtest_run,
+    backtest_delete, backtest_delete_all, backtest_get, backtest_list, backtest_run, grid_suggest,
 };
 use bot::strategy::StrategyManager;
 use bot::{
@@ -236,6 +236,7 @@ pub fn run() {
             backtest_get,
             backtest_delete,
             backtest_delete_all,
+            grid_suggest,
         ])
         .run(context)
         .expect("error while running Aleph Edge");

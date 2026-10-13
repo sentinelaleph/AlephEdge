@@ -20,7 +20,9 @@ use crate::store::StoreManager;
 
 use super::backtest::{self, interval_ms, plan_pages, MAX_WINDOW_MS};
 use super::engine::now_ms;
-use super::model::{MarketKind, StrategyConfig, CONFIG_SCHEMA_VERSION};
+use super::costs::CostModel;
+use super::model::{MarketKind, Spacing, StrategyConfig, StrategyParams, CONFIG_SCHEMA_VERSION};
+use super::suggest::{self, GridSuggestion};
 use super::validate;
 
 pub const PROGRESS_EVENT: &str = "backtest:progress";
@@ -214,6 +216,106 @@ pub async fn backtest_run(
     let dir = data_dir(&app)?;
     app.state::<StoreManager>().backtests(&dir, |c| db::insert(c, &run))?;
     Ok(run)
+}
+
+/// Days of hourly history the grid suggestion reads.
+pub const SUGGEST_DAYS: u64 = 30;
+
+/// The figures of a backtest the setup form shows next to a suggestion.
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct BacktestBrief {
+    pub max_drawdown_pct: f64,
+    pub total_pnl_pct: f64,
+    pub grid_closing_fills: Option<u32>,
+    pub liquidations: u32,
+    pub end_state: String,
+}
+
+impl From<&backtest::BacktestResult> for BacktestBrief {
+    fn from(r: &backtest::BacktestResult) -> Self {
+        BacktestBrief {
+            max_drawdown_pct: r.max_drawdown_pct,
+            total_pnl_pct: r.total_pnl_pct,
+            grid_closing_fills: r.grid_closing_fills,
+            liquidations: r.liquidations,
+            end_state: r.end_state.clone(),
+        }
+    }
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct GridSuggestDto {
+    pub suggestion: GridSuggestion,
+    pub start_ms: u64,
+    pub end_ms: u64,
+    pub bars: u32,
+    pub source: String,
+    pub coverage_pct: Option<f64>,
+    /// The form's own settings over the same window; None when they do not
+    /// validate (the form already shows why).
+    pub current: Option<BacktestBrief>,
+    /// The form's settings with the suggested range and grid count.
+    pub suggested: Option<BacktestBrief>,
+    /// Refusal code when the suggested settings do not validate.
+    pub suggested_error: Option<String>,
+}
+
+/// The suggested settings: the form's grid with the range, grid count and
+/// spacing replaced. Everything else (stop-out, trailing, leverage) stays.
+pub fn apply_suggestion(cfg: &StrategyConfig, s: &GridSuggestion) -> Option<StrategyConfig> {
+    let StrategyParams::Grid(p) = &cfg.params else { return None };
+    let mut p = p.clone();
+    p.range = super::model::GridRange::Relative { lower_pct: s.lower_pct, upper_pct: s.upper_pct };
+    p.n_grids = s.n_grids;
+    p.spacing = Spacing::Geom;
+    Some(StrategyConfig { params: StrategyParams::Grid(p), ..cfg.clone() })
+}
+
+/// A range and grid count from the last 30 days of hourly DataHub candles
+/// (ATR and the 14-day low/high), and both the form's settings and the
+/// suggested ones replayed over those 30 days. Paper only; nothing stored.
+#[tauri::command]
+pub async fn grid_suggest(app: AppHandle, config: StrategyConfig) -> Result<GridSuggestDto, String> {
+    if !matches!(config.params, StrategyParams::Grid(_)) {
+        return Err("suggestGridOnly".into());
+    }
+    let cfg = StrategyConfig {
+        symbol: config.symbol.trim().to_uppercase(),
+        ..config
+    };
+    let iv = 3_600_000;
+    let now = now_ms();
+    let (start, end) = window(now.saturating_sub(SUGGEST_DAYS * 86_400_000), now, iv, now).map_err(str::to_string)?;
+    let (candles, data) = fetch_all(&app, &cfg.symbol, cfg.market, "1h", iv, start, end, "grid-suggest").await?;
+    let (bars, _) = backtest::candles_to_bars(candles, iv, now);
+    let bars: Vec<_> = bars.into_iter().filter(|b| b.open_ms >= start && b.open_ms < end).collect();
+    let costs = CostModel::for_market(cfg.market);
+    let suggestion = suggest::suggest_grid(&bars, &costs).ok_or("suggestHistoryShort")?;
+
+    let max_lev = app.state::<RiskManager>().limits().max_leverage;
+    let replay = |c: &StrategyConfig| -> Result<BacktestBrief, String> {
+        validate::validate(c, max_lev).map_err(|e| e.to_string())?;
+        backtest::run(c, &bars).map(|r| BacktestBrief::from(&r)).map_err(str::to_string)
+    };
+    let current = replay(&cfg).ok();
+    let (suggested, suggested_error) = match apply_suggestion(&cfg, &suggestion).map(|c| replay(&c)) {
+        Some(Ok(b)) => (Some(b), None),
+        Some(Err(e)) => (None, Some(e)),
+        None => (None, Some("suggestGridOnly".to_string())),
+    };
+    Ok(GridSuggestDto {
+        suggestion,
+        start_ms: start,
+        end_ms: end,
+        bars: bars.len() as u32,
+        source: data.source,
+        coverage_pct: data.coverage_pct,
+        current,
+        suggested,
+        suggested_error,
+    })
 }
 
 /// Stored runs, newest first (at most 50).

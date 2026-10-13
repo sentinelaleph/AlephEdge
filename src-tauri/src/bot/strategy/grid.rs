@@ -102,6 +102,14 @@ pub fn stop_band(lower: f64, upper: f64, stop_out_pct: Option<f64>, trailing_up:
     }
 }
 
+/// Smallest net profit per grid a config may have, percent: one more round
+/// trip of maker fees plus slippage. With `profit_per_grid_pct` already net
+/// of a round trip, the gross step must cover 2 x (buy + sell fee) +
+/// slippage, so fees never take more than about half of what a grid earns.
+pub fn min_net_per_grid_pct(maker: f64, slippage: f64) -> f64 {
+    (2.0 * maker + slippage) * 100.0
+}
+
 /// Profit per grid after maker fees on both sides, min..max over the levels.
 pub fn profit_per_grid_pct(levels: &[f64], maker: f64) -> (f64, f64) {
     let mut lo = f64::INFINITY;

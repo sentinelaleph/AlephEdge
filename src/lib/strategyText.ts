@@ -28,6 +28,16 @@ export function strategyErrorText(t: TFunction, raw: string): string {
   return t(`strategy.errors.${code}`, { defaultValue: raw, detail: field ?? "" });
 }
 
+/** "code|detail" -> `backtest.errors.<code>`, else the strategy validation text. */
+export function backtestErrorText(t: TFunction, raw: string): string {
+  const [code, ...rest] = raw.split("|");
+  const detail = rest.join("|").trim();
+  const key = `backtest.errors.${code.trim()}`;
+  if (!i18n.exists(key)) return strategyErrorText(t, raw);
+  const text = t(key);
+  return detail ? `${text} (${detail})` : text;
+}
+
 /**
  * A Rust refusal of the config being edited. The min-notional refusal names
  * the budget that passes (`minBudget` from the preview or validation).

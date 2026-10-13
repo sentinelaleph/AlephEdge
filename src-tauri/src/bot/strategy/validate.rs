@@ -349,7 +349,8 @@ fn validate_grid(cfg: &StrategyConfig, p: &GridParams) -> V {
     let lv = grid::levels(lower, upper, p.n_grids, p.spacing);
     let costs = CostModel::for_market(cfg.market);
     let (min_step, _) = grid::profit_per_grid_pct(&lv, costs.maker);
-    need(min_step > 0.0, "gridStepBelowFees", "nGrids")?;
+    let floor = grid::min_net_per_grid_pct(costs.maker, costs.slippage);
+    need(min_step >= floor - 1e-9, "gridStepBelowFees", "nGrids")?;
     let lev = f64::from(cfg.leverage.max(1));
     let q = grid::qty_per_level(cfg.budget, lev, &lv);
     need(q * lv[0] >= MIN_ORDER_NOTIONAL, "budgetBelowMinNotional", "budget")?;
@@ -466,6 +467,8 @@ pub struct GridPreview {
     pub qty_per_level: f64,
     pub profit_per_grid_min_pct: f64,
     pub profit_per_grid_max_pct: f64,
+    /// Smallest net per grid validation accepts (`min_net_per_grid_pct`).
+    pub min_net_per_grid_pct: f64,
     pub buy_orders: u32,
     pub sell_orders: u32,
     /// Initial position bought (long) or sold (short) at start, base units.
@@ -614,6 +617,7 @@ pub fn preview(cfg: &StrategyConfig, price: f64, max_leverage: u8) -> PreviewDto
                 qty_per_level: q,
                 profit_per_grid_min_pct: pmin,
                 profit_per_grid_max_pct: pmax,
+                min_net_per_grid_pct: grid::min_net_per_grid_pct(costs.maker, costs.slippage),
                 buy_orders: buys,
                 sell_orders: sells,
                 initial_base_qty,
@@ -672,7 +676,7 @@ impl IntoDto for GridPreview {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::bot::strategy::model::{RestartPolicy, Spacing};
 
@@ -852,6 +856,19 @@ mod tests {
             }), 2),
             Some("gridStepBelowFees")
         );
+        // Futures: maker 0.02%, slippage 0.02%, so the net per grid must be
+        // at least 0.06% (gross 0.10%). 100 -> 101.08 over 10 geometric
+        // grids is a ~0.1074% gross step: passes; 100 -> 101.0 is 0.0995%.
+        let narrow = |upper: f64| {
+            with_grid(|p| {
+                p.range = GridRange::Absolute { lower: 100.0, upper };
+                p.n_grids = 10;
+                p.spacing = Spacing::Geom;
+                p.stop_out_pct = None;
+            })
+        };
+        assert_eq!(code(&narrow(101.0), 2), Some("gridStepBelowFees"), "net 0.0595% < 0.06% floor");
+        assert_eq!(code(&narrow(101.08), 2), None, "net ~0.0674% clears the floor");
         let mut c = grid_cfg();
         c.budget = 40.0;
         assert_eq!(code(&c, 2), Some("budgetBelowMinNotional"));

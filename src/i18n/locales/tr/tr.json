@@ -1001,7 +1001,9 @@
       "windowInvalid": "Bitişi başlangıcından sonra olan bir dönem seçin",
       "windowTooLong": "Dönem 3 yıldan uzun",
       "runNotFound": "Test bulunamadı",
-      "backtestRunUnreadable": "Kayıtlı test okunamadı"
+      "backtestRunUnreadable": "Kayıtlı test okunamadı",
+      "suggestHistoryShort": "Öneri için yeterli geçmiş yok (15 günlük saatlik mum gerekir)",
+      "suggestGridOnly": "Öneriler yalnızca grid botları için"
     },
     "deleteAll": "Tümünü sil",
     "deleteAllTitle": "{{n}} çalıştırma silinsin mi?",
@@ -1757,6 +1759,24 @@
       "down": "Yukarıdan inerek",
       "up": "Aşağıdan çıkarak"
     },
+    "suggest": {
+      "button": "Oynaklığa göre öner",
+      "busy": "30 gün okunuyor…",
+      "note": "Aralık ve grid sayısı son 30 günün saatlik mumlarından (ATR); iki ayar da aynı günlerde yeniden oynatılır. Uygula demeden hiçbir şey değişmez.",
+      "range": "Önerilen aralık",
+      "rangeInfo": "14 günlük dip {{low}}, tepe {{high}}; her yan en az 1,5 günlük ATR (günde {{atr}}).",
+      "grids": "Önerilen grid",
+      "gridsValue": "{{n}} grid · adım {{step}} · grid başına net {{net}}",
+      "gridsInfo": "Adım yaklaşık bir saatlik ATR ({{atr}}), ücret tabanının %25 üstünden asla az değil. Geometrik aralık.",
+      "current": "Mevcut ayarlar, son 30 gün",
+      "suggested": "Önerilen ayarlar, son 30 gün",
+      "briefValue": "en büyük düşüş {{dd}} · sonuç {{pnl}} · {{fills}} kapanan grid",
+      "liquidated": "{{n}} likidasyon",
+      "notValid": "Oynatılmadı: bu ayarlar doğrulamadan geçmiyor",
+      "window": "{{from}} – {{to}} UTC · {{bars}} saatlik mum · {{source}} · fonlama dahil değil · geçmiş veri, tahmin değil",
+      "apply": "Öneriyi uygula",
+      "applied": "Uygulandı"
+    },
     "preview": {
       "title": "Özet",
       "referencePrice": "Referans fiyat",
@@ -1785,6 +1805,8 @@
       "grid": "Grid seviyeleri",
       "range": "Aralık",
       "profitPerGrid": "Ücretler sonrası grid başına kâr",
+      "minNetPerGrid": "Grid başına en az net",
+      "minNetPerGridInfo": "En küçük adımı ücretlerden sonra bundan az kazandıran grid reddedilir: bir gidiş-dönüş maker ücreti daha artı kayma; böylece ücretler bir gridin kazancının yaklaşık yarısından fazlasını almaz.",
       "ordersNow": "Başlangıçtaki emirler",
       "buySell": "{{buy}} alış · {{sell}} satış",
       "qtyPerLevel": "Seviye başına miktar",
@@ -2178,7 +2200,7 @@
       "trailingUpLongOnly": "Yukarı izleme yalnızca long gridler için.",
       "gridTpInvalid": "Kâr al 0'dan büyük olmalı.",
       "trailLimitInvalid": "İzleme sınırı üst fiyatın üstünde olmalı.",
-      "gridStepBelowFees": "Grid adımı ücretleri karşılamıyor: daha az aralık veya daha geniş bir aralık seçin.",
+      "gridStepBelowFees": "Grid adımı çok küçük: ücretlerden sonra her grid bir gidiş-dönüş ücreti artı kayma kadar daha kazanmalı. Daha az aralık veya daha geniş bir fiyat aralığı seçin.",
       "gridLiqInsideBand": "Tahmini likidasyon aralığın veya stopun içinde: kaldıracı düşürün.",
       "gridBadRange": "Geçersiz grid aralığı.",
       "botUnknown": "Bot bulunamadı.",

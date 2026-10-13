@@ -149,6 +149,45 @@ export const backtestRun = (a: BacktestRunArgs) =>
     (m) => m.run(),
   );
 
+/** Mirrors `suggest::GridSuggestion`: percentages are percent, not fractions. */
+export interface GridSuggestion {
+  price: number;
+  lowerPct: number;
+  upperPct: number;
+  nGrids: number;
+  stepPct: number;
+  netPerGridPct: number;
+  atrHourPct: number;
+  atrDayPct: number;
+  windowLow: number;
+  windowHigh: number;
+}
+
+export interface BacktestBrief {
+  maxDrawdownPct: number;
+  totalPnlPct: number;
+  gridClosingFills: number | null;
+  liquidations: number;
+  endState: string;
+}
+
+/** Mirrors `backtest_commands::GridSuggestDto`. */
+export interface GridSuggestDto {
+  suggestion: GridSuggestion;
+  startMs: number;
+  endMs: number;
+  bars: number;
+  source: string;
+  coveragePct: number | null;
+  /** The form's settings over the same 30 days; null when they do not validate. */
+  current: BacktestBrief | null;
+  suggested: BacktestBrief | null;
+  suggestedError: string | null;
+}
+
+/** ATR range / grid count from 30 days of hourly DataHub candles, both configs replayed. */
+export const gridSuggest = (config: StrategyConfig) => call<GridSuggestDto>("grid_suggest", { config }, (m) => m.suggest());
+
 /** A fresh run token ([A-Za-z0-9-], what Rust keeps of it). */
 export function newBacktestRunToken(): string {
   const c = globalThis.crypto;
