@@ -1,10 +1,10 @@
 [package]
 name = "aleph-edge"
-version = "0.3.7"
+version = "0.3.8"
 description = "Aleph Edge — Sentinel Aleph automated trading bot"
 authors = ["Sentinel Aleph"]
 edition = "2021"
-rust-version = "1.77"
+rust-version = "1.90"
 
 # The library the desktop binary (src/main.rs) is a thin wrapper around.
 [lib]
