@@ -60,7 +60,17 @@ export function useVault(): VaultController {
   useEffect(() => {
     let alive = true;
     vaultStatus()
-      .then((s) => alive && setStatus(s))
+      .then(async (s) => {
+        if (!alive) return;
+        setStatus(s);
+        // A webview reload keeps the Rust session, so a vault can already be
+        // unlocked here; its keys must be listed too, or every key-dependent
+        // panel reads "no key" while the key is still in the vault.
+        if (s.state === "unlocked") {
+          const list = await vaultListCredentials().catch(() => [] as CredentialMeta[]);
+          if (alive) setCredentials(list);
+        }
+      })
       .catch(() => undefined)
       .finally(() => alive && setInitializing(false));
     return () => {
