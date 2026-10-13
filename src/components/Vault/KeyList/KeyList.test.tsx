@@ -93,4 +93,27 @@ describe("KeyList", () => {
     const el = await mount(<KeyList credentials={[{ ...KEY, permission: "withdrawEnabled" }]} busy={false} onRemove={() => undefined} />);
     expect(el.textContent).toContain("Withdrawals enabled: renew");
   });
+
+  it("says which of two keys for one exchange the app signs with", async () => {
+    const el = await mount(
+      <KeyList
+        credentials={[
+          { ...KEY, label: "old", inUse: true },
+          { ...KEY, label: "v2", inUse: false },
+        ]}
+        busy={false}
+        onRemove={() => undefined}
+      />,
+    );
+    expect(el.querySelectorAll('[data-testid="key-in-use"]')).toHaveLength(1);
+    expect(el.querySelector('[data-testid="key-not-used"]')?.textContent).toBe(
+      "Not used: the app signs with “old”. Renew that key or remove one of them.",
+    );
+  });
+
+  it("marks nothing when an exchange has one key", async () => {
+    const el = await mount(<KeyList credentials={[{ ...KEY, inUse: true }]} busy={false} onRemove={() => undefined} />);
+    expect(el.querySelector('[data-testid="key-in-use"]')).toBeNull();
+    expect(el.querySelector('[data-testid="key-not-used"]')).toBeNull();
+  });
 });

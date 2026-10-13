@@ -46,7 +46,7 @@ pub async fn exchange_account(
     exchange
         .futures_account(&cred)
         .await
-        .map_err(explain)
+        .map_err(|e| explain(&cred.label, e))
 }
 
 /// Manually closes ONE open futures position at market (reduce-only). This is a
@@ -67,7 +67,7 @@ pub async fn exchange_close_position(
         Ok(true) => Ok(()),
         // Closed; its stop / take-profit is still on the exchange.
         Ok(false) => Err(format!("closeCleanupFailed|{symbol}")),
-        Err(e) => Err(explain(e)),
+        Err(e) => Err(explain(&cred.label, e)),
     }
 }
 
@@ -84,7 +84,7 @@ pub async fn exchange_close_all(
 ) -> Result<usize, String> {
     check_close_confirmation(&confirmation)?;
     let cred = binance_credential(&vault, &exchange_id)?;
-    let report = exchange.close_all(&cred).await.map_err(explain)?;
+    let report = exchange.close_all(&cred).await.map_err(|e| explain(&cred.label, e))?;
     super::close::close_all_verdict(&report)
 }
 
@@ -121,10 +121,12 @@ fn binance_credential(
 }
 
 /// Maps a Binance call error to a stable code the UI localizes (`errors.*`);
-/// Binance's own code and text ride along as detail.
-fn explain(e: BinanceKeyCheckError) -> String {
+/// Binance's own code and text ride along as detail. A refused key also names
+/// the stored key the call used, so a second key for the exchange that is not
+/// the one in use cannot be mistaken for it.
+fn explain(label: &str, e: BinanceKeyCheckError) -> String {
     match e {
-        BinanceKeyCheckError::InvalidCredentials => "binanceKeyRejected".to_string(),
+        e @ BinanceKeyCheckError::InvalidCredentials { .. } => e.key_rejected(label),
         BinanceKeyCheckError::NetworkUnavailable => "binanceUnreachable".to_string(),
         BinanceKeyCheckError::Rejected { code, msg } => format!("binanceRefused|{code}: {msg}"),
         BinanceKeyCheckError::RateLimited => "binanceRateLimited".to_string(),
@@ -145,16 +147,29 @@ mod tests {
 
     #[test]
     fn binance_failures_are_codes_with_binance_text_as_detail() {
-        assert_eq!(explain(BinanceKeyCheckError::InvalidCredentials), "binanceKeyRejected");
-        assert_eq!(explain(BinanceKeyCheckError::NetworkUnavailable), "binanceUnreachable");
         assert_eq!(
-            explain(BinanceKeyCheckError::Rejected {
+            explain(
+                "main",
+                BinanceKeyCheckError::InvalidCredentials {
+                    code: -2015,
+                    msg: "Invalid API-key, IP, or permissions for action.".into()
+                }
+            ),
+            "binanceKeyRejected|key \"main\" · -2015: Invalid API-key, IP, or permissions for action."
+        );
+        assert_eq!(
+            explain("v2", BinanceKeyCheckError::InvalidCredentials { code: 0, msg: "HTTP 401".into() }),
+            "binanceKeyRejected|key \"v2\" · HTTP 401"
+        );
+        assert_eq!(explain("main", BinanceKeyCheckError::NetworkUnavailable), "binanceUnreachable");
+        assert_eq!(
+            explain("main", BinanceKeyCheckError::Rejected {
                 code: -2019,
                 msg: "Margin is insufficient.".into()
             }),
             "binanceRefused|-2019: Margin is insufficient."
         );
-        assert_eq!(explain(BinanceKeyCheckError::RateLimited), "binanceRateLimited");
-        assert_eq!(explain(BinanceKeyCheckError::Unknown), "binanceUnconfirmed");
+        assert_eq!(explain("main", BinanceKeyCheckError::RateLimited), "binanceRateLimited");
+        assert_eq!(explain("main", BinanceKeyCheckError::Unknown), "binanceUnconfirmed");
     }
 }

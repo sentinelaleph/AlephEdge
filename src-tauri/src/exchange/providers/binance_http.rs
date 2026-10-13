@@ -176,9 +176,9 @@ pub fn classify_rejection(status: u16, body: &str) -> E {
     }
     match serde_json::from_str::<Raw>(body) {
         Ok(r) if r.code == -1007 => E::Unknown,
-        Ok(r) if matches!(r.code, -2014 | -2015 | -1022 | -2008) => E::InvalidCredentials,
+        Ok(r) if matches!(r.code, -2014 | -2015 | -1022 | -2008) => E::InvalidCredentials { code: r.code, msg: r.msg },
         Ok(r) => E::Rejected { code: r.code, msg: r.msg },
-        Err(_) if status == 401 => E::InvalidCredentials,
+        Err(_) if status == 401 => E::InvalidCredentials { code: 0, msg: "HTTP 401".into() },
         // Binance: "HTTP 403 is used when the WAF Limit has been violated".
         // Key problems arrive as JSON codes (-2014/-2015/-1022) above. Read as
         // a bad key, a WAF block made stop placement give up on a live
@@ -265,17 +265,17 @@ mod tests {
             classify_rejection(400, r#"{"code":-1021,"msg":"Timestamp..."}"#),
             E::Rejected { code: -1021, .. }
         ));
-        assert!(matches!(
-            classify_rejection(401, r#"{"code":-2015,"msg":"Invalid API-key"}"#),
-            E::InvalidCredentials
-        ));
-        assert!(matches!(classify_rejection(401, "<html>"), E::InvalidCredentials));
+        assert_eq!(
+            classify_rejection(401, r#"{"code":-2015,"msg":"Invalid API-key, IP, or permissions for action."}"#),
+            E::InvalidCredentials { code: -2015, msg: "Invalid API-key, IP, or permissions for action.".into() }
+        );
+        assert_eq!(classify_rejection(401, "<html>"), E::InvalidCredentials { code: 0, msg: "HTTP 401".into() });
         // WAF block: a limit, not a key problem; a JSON key code still wins.
         assert!(matches!(classify_rejection(403, "<html>403 Forbidden</html>"), E::RateLimited));
         assert!(matches!(classify_rejection(403, ""), E::RateLimited));
         assert!(matches!(
             classify_rejection(403, r#"{"code":-2015,"msg":"Invalid API-key"}"#),
-            E::InvalidCredentials
+            E::InvalidCredentials { code: -2015, .. }
         ));
         assert!(matches!(
             classify_rejection(400, "garbage"),

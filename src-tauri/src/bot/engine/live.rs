@@ -434,7 +434,7 @@ async fn place_stop(
             }
             // A rejection (e.g. -2021 "would trigger immediately") will not
             // change on a resend.
-            Err(E::Rejected { .. } | E::InvalidCredentials) => return None,
+            Err(E::Rejected { .. } | E::InvalidCredentials { .. }) => return None,
             Err(_) => {}
         }
     }
@@ -560,7 +560,7 @@ mod tests {
             E::NetworkUnavailable,
             E::RateLimited,
             E::Unknown,
-            E::InvalidCredentials,
+            E::InvalidCredentials { code: -2015, msg: "Invalid API-key".into() },
             rej(0),     // an unreadable HTTP body, not a Binance verdict
             rej(-1021), // clock skew
             rej(-1003), // too many requests

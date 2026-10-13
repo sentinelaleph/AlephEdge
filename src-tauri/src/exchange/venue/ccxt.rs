@@ -131,7 +131,7 @@ fn map_err(e: ExchangeError) -> E {
     if e.is("OrderNotFound") {
         E::Rejected { code: -2013, msg }
     } else if e.is("AuthenticationError") || e.is("PermissionDenied") || e.is("AccountSuspended") {
-        E::InvalidCredentials
+        E::InvalidCredentials { code: 0, msg }
     } else if e.is("RateLimitExceeded") || e.is("DDoSProtection") {
         E::RateLimited
     } else if e.is("RequestTimeout") || kind == "ExchangeNotAvailable" || kind == "OnMaintenance" {

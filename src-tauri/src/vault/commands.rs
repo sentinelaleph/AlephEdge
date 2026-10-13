@@ -155,6 +155,10 @@ pub async fn vault_add_credential(
     input: AddCredentialInput,
 ) -> Result<Vec<CredentialMeta>, String> {
     let label = checked_label(&input.label)?;
+    // One key per exchange, checked before Binance is asked anything.
+    if let Some(existing) = vault.label_in_use(&input.exchange_id) {
+        return Err(super::taken(&existing, &label));
+    }
     let permission = detect_permission(&exchange, &input).await?;
     let cred = ExchangeCredential {
         exchange_id: input.exchange_id.clone(),
@@ -296,9 +300,7 @@ async fn detect_permission(
         } else {
             CredentialPermission::TradeOnly
         }),
-        Err(BinanceKeyCheckError::InvalidCredentials) => {
-            Err("keyRejected".to_string())
-        }
+        Err(e @ BinanceKeyCheckError::InvalidCredentials { .. }) => Err(format!("keyRejected|{}", e.detail())),
         // Binance unreachable: the permissions are unknown, and an unknown
         // key could be a withdraw key. Refuse with a retryable reason rather
         // than store it, so a network hiccup never lets a withdraw key in.
@@ -335,7 +337,7 @@ async fn detect_venue_permission(exchange: &ExchangeManager, input: &AddCredenti
         Err(BinanceKeyCheckError::Rejected { code: 0, .. }) if !crate::exchange::has_order_path(&input.exchange_id) => {
             Err(format!("keyExchangeUnverified|{}", input.exchange_id))
         }
-        Err(BinanceKeyCheckError::InvalidCredentials) => Err("keyRejected".to_string()),
+        Err(e @ BinanceKeyCheckError::InvalidCredentials { .. }) => Err(format!("keyRejected|{}", e.detail())),
         Err(_) => Err("keyCheckUnavailable".to_string()),
     }
 }

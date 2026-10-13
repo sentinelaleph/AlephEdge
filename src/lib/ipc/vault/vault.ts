@@ -29,6 +29,8 @@ export interface CredentialMeta {
   addedAt: number;
   /** Last key renewal (Settings, Renew key); null if never renewed. */
   updatedAt?: number | null;
+  /** The key the app signs with for this exchange (only the first stored one is used). */
+  inUse?: boolean;
 }
 
 export interface AddCredentialInput {

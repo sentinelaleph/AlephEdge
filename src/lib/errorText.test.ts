@@ -21,6 +21,7 @@ const RUST_CODES = [
   "keyNoFutures",
   "keyRejected",
   "keyRsaUnsupported",
+  "credentialExchangeTaken",
   "sentinelUnreachable",
   "serverRejected",
   "sessionExpired",
@@ -70,6 +71,13 @@ describe("localizeError", () => {
 
   it("appends the detail in parentheses when the sentence has no {{detail}}", () => {
     expect(localizeError("keyRejected|-2015: Invalid API-key")).toBe(`${enErrors.keyRejected} (-2015: Invalid API-key)`);
+    // The account card: Binance's code and the stored key the call used.
+    expect(localizeError('binanceKeyRejected|key "main" · -2015: Invalid API-key, IP, or permissions for action.')).toBe(
+      'The exchange rejected the key for this request. (key "main" · -2015: Invalid API-key, IP, or permissions for action.)',
+    );
+    expect(localizeError("credentialExchangeTaken|main")).toBe(
+      "This exchange already has a stored key, “main”. Renew that key with the new one, or remove it first.",
+    );
   });
 
   it("keeps later pipes inside the detail and trims around them", () => {

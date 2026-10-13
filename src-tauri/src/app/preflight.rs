@@ -187,9 +187,9 @@ fn worst(checks: &[Check]) -> Verdict {
 }
 
 /// Same stable codes as the exchange commands (`errors.*` in the UI).
-fn code(e: E) -> String {
+fn code(label: &str, e: E) -> String {
     match e {
-        E::InvalidCredentials => "binanceKeyRejected".into(),
+        e @ E::InvalidCredentials { .. } => e.key_rejected(label),
         E::NetworkUnavailable => "binanceUnreachable".into(),
         E::Rejected { code, .. } => format!("binanceRefused{code}"),
         E::RateLimited => "binanceRateLimited".into(),
@@ -252,9 +252,9 @@ pub async fn live_preflight(app: AppHandle, venue: Option<String>) -> Result<Pre
                 .filter(|s| !own_signal.contains(&s.as_str()) && !owns_symbol(&app, s))
                 .collect();
         }
-        i.account = Some(account.map_err(code));
+        i.account = Some(account.map_err(|e| code(&cred.label, e)));
         // Bybit sets the mode per symbol; BTCUSDT stands for the account.
-        i.hedge_mode = Some(exchange.hedge_mode(cred, "BTCUSDT").await.map_err(code));
+        i.hedge_mode = Some(exchange.hedge_mode(cred, "BTCUSDT").await.map_err(|e| code(&cred.label, e)));
     }
     let checks = evaluate(&i);
     Ok(Preflight {

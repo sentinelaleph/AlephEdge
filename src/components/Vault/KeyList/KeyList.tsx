@@ -36,6 +36,10 @@ export function KeyList({ credentials, busy, error, onRemove, onRenew, onRename 
   if (credentials.length === 0) {
     return <EmptyState title={t("vault.noKeys")} detail={t("accounts.noKeys")} />;
   }
+  // A vault from before the one-key rule can hold two keys for an exchange;
+  // only the one in use signs, so both rows say which is which.
+  const inUseLabel = (exchangeId: string) => credentials.find((k) => k.exchangeId === exchangeId && k.inUse)?.label;
+  const shared = (exchangeId: string) => credentials.filter((k) => k.exchangeId === exchangeId).length > 1;
 
   return (
     <ul className="ae-keylist">
@@ -72,6 +76,17 @@ export function KeyList({ credentials, busy, error, onRemove, onRenew, onRename 
                   </div>
                   {c.permission === "withdrawEnabled" ? (
                     <span className="ae-keylist__warn">{t("vault.withdrawStored")}</span>
+                  ) : null}
+                  {shared(c.exchangeId) ? (
+                    c.inUse ? (
+                      <span className="ae-keylist__use" data-testid="key-in-use">
+                        {t("vault.keyInUse")}
+                      </span>
+                    ) : (
+                      <span className="ae-keylist__warn" data-testid="key-not-used">
+                        {t("vault.keyNotUsed", { label: inUseLabel(c.exchangeId) ?? "" })}
+                      </span>
+                    )
                   ) : null}
                 </div>
                 <div className="ae-keylist__actions">

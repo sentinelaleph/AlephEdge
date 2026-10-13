@@ -303,11 +303,8 @@ impl VaultManager {
     pub fn add(&self, path: &Path, cred: ExchangeCredential) -> Result<(), String> {
         let mut guard = self.use_session();
         let s = guard.as_mut().ok_or("vaultLocked")?;
-        if s.creds
-            .iter()
-            .any(|c| c.exchange_id == cred.exchange_id && c.label == cred.label)
-        {
-            return Err("credentialExists".to_string());
+        if let Some(c) = s.creds.iter().find(|c| c.exchange_id == cred.exchange_id) {
+            return Err(taken(&c.label, &cred.label));
         }
         s.creds.push(cred);
         if let Err(e) = persist(path, &s.key, &s.params, &s.creds, s.salt_check.as_deref()) {
@@ -321,7 +318,23 @@ impl VaultManager {
     pub fn list(&self) -> Result<Vec<CredentialMeta>, String> {
         let guard = self.use_session();
         let s = guard.as_ref().ok_or("vaultLocked")?;
-        Ok(s.creds.iter().map(ExchangeCredential::to_meta).collect())
+        let mut seen: Vec<&str> = Vec::new();
+        Ok(s.creds
+            .iter()
+            .map(|c| {
+                let mut meta = c.to_meta();
+                meta.in_use = !seen.contains(&c.exchange_id.as_str());
+                seen.push(&c.exchange_id);
+                meta
+            })
+            .collect())
+    }
+
+    /// Label of the key `credential` returns for `exchange_id`, if any.
+    pub fn label_in_use(&self, exchange_id: &str) -> Option<String> {
+        let guard = self.use_session();
+        let s = guard.as_ref()?;
+        s.creds.iter().find(|c| c.exchange_id == exchange_id).map(|c| c.label.clone())
     }
 
     /// Returns a copy of the first stored credential for `exchange_id`, secrets
@@ -568,6 +581,16 @@ fn find_salt(store: &impl SecretStore, service: &str) -> Result<SaltEntry, Strin
         }
     }
     Err("keychainSaltMissing".to_string())
+}
+
+/// The refusal for a second key on an exchange: the same label is a
+/// duplicate; another label names the stored key, which Renew replaces.
+fn taken(existing: &str, new: &str) -> String {
+    if existing == new {
+        "credentialExists".to_string()
+    } else {
+        format!("credentialExchangeTaken|{existing}")
+    }
 }
 
 #[cfg(test)]
@@ -838,6 +861,30 @@ mod tests {
     }
 
     #[test]
+    fn an_exchange_holds_one_key() {
+        let (m, _c) = manager(60_000);
+        unlocked(&m, &["main"]);
+        let (dir, path) = sealed("one-key", &m);
+        assert_eq!(m.add(&path, cred("v2")).unwrap_err(), "credentialExchangeTaken|main");
+        assert_eq!(m.add(&path, cred("main")).unwrap_err(), "credentialExists");
+        let mut other = cred("v2");
+        other.exchange_id = "okx".into();
+        m.add(&path, other).expect("another exchange");
+        assert_eq!(m.label_in_use("binance").as_deref(), Some("main"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A vault from before the one-key rule: the key in use is marked.
+    #[test]
+    fn the_list_marks_the_key_in_use() {
+        let (m, _c) = manager(60_000);
+        unlocked(&m, &["old", "v2"]);
+        let used: Vec<(String, bool)> = m.list().unwrap().into_iter().map(|c| (c.label, c.in_use)).collect();
+        assert_eq!(used, vec![("old".to_string(), true), ("v2".to_string(), false)]);
+        assert_eq!(m.credential("binance").unwrap().label, "old");
+    }
+
+    #[test]
     fn a_rename_refuses_duplicates_and_blank_labels() {
         let (m, _c) = manager(60_000);
         unlocked(&m, &["main", "second"]);
@@ -981,7 +1028,9 @@ mod tests {
         m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").expect("opens");
         assert_eq!(file_check(&path), Some(salt_check(&salt)), "fingerprint written at unlock");
         // Every later save keeps it.
-        m.add(&path, cred("second")).unwrap();
+        let mut second = cred("second");
+        second.exchange_id = "okx".into();
+        m.add(&path, second).unwrap();
         assert_eq!(file_check(&path), Some(salt_check(&salt)));
         m.lock();
         m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").expect("still opens");

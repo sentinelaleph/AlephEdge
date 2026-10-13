@@ -57,6 +57,7 @@ impl ExchangeCredential {
             has_passphrase: self.passphrase.is_some(),
             added_at: self.added_at,
             updated_at: self.updated_at,
+            in_use: false,
         }
     }
 
@@ -106,6 +107,11 @@ pub struct CredentialMeta {
     pub has_passphrase: bool,
     pub added_at: u64,
     pub updated_at: Option<u64>,
+    /// The key the app signs with for this exchange. Only the first stored key
+    /// of an exchange is used; a vault from before the one-key rule may hold
+    /// more, and the others are listed as not in use.
+    #[serde(default)]
+    pub in_use: bool,
 }
 
 /// Argon2id cost parameters, stored in the vault header so a file sealed under

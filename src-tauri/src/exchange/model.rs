@@ -121,8 +121,11 @@ pub struct FuturesPosition {
 /// Why a Binance call didn't produce a verified answer.
 #[derive(Debug, Clone, PartialEq)]
 pub enum BinanceKeyCheckError {
-    /// Binance rejected the key/secret pair itself — almost always a typo.
-    InvalidCredentials,
+    /// Binance refused the key for this request: a wrong key or secret, a
+    /// caller IP outside the key's list, or a missing permission (-2014,
+    /// -2015, -1022, -2008, or a bare 401). Binance's own code and text are
+    /// kept so the user sees which one; `code` is 0 when the reply had none.
+    InvalidCredentials { code: i64, msg: String },
     /// Couldn't reach Binance at all; nothing was sent.
     NetworkUnavailable,
     /// Binance refused the request, with its own error code (-2019 margin,
@@ -133,4 +136,22 @@ pub enum BinanceKeyCheckError {
     /// Sent, but the outcome is unknown (5xx, timeout after send, unreadable
     /// 200). An order may have executed: look before acting.
     Unknown,
+}
+
+impl BinanceKeyCheckError {
+    /// Binance's code and text for the UI's detail, "-2015: Invalid API-key,
+    /// IP, or permissions for action." (empty for errors without a reply).
+    pub fn detail(&self) -> String {
+        match self {
+            Self::InvalidCredentials { code, msg } | Self::Rejected { code, msg } if *code != 0 => format!("{code}: {msg}"),
+            Self::InvalidCredentials { msg, .. } | Self::Rejected { msg, .. } => msg.clone(),
+            _ => String::new(),
+        }
+    }
+
+    /// The UI code for a refused key, naming the stored key the call used:
+    /// "binanceKeyRejected|key \"main\" · -2015: Invalid API-key, …".
+    pub fn key_rejected(&self, label: &str) -> String {
+        format!("binanceKeyRejected|key \"{label}\" · {}", self.detail())
+    }
 }

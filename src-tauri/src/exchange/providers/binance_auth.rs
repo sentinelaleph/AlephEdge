@@ -83,11 +83,14 @@ pub async fn check_binance_permissions(
 }
 
 /// Maps a 400/401 from the key check. Only a timestamp error (-1021) is kept
-/// out of "invalid credentials"; everything else there is the key.
+/// out of "invalid credentials"; everything else there is the key, with
+/// Binance's code and text kept for the user.
 fn key_check_rejection(status: u16, body: &str) -> BinanceKeyCheckError {
     match binance_http::classify_rejection(status, body) {
         BinanceKeyCheckError::Rejected { code: -1021, .. } => BinanceKeyCheckError::NetworkUnavailable,
-        _ => BinanceKeyCheckError::InvalidCredentials,
+        e @ BinanceKeyCheckError::InvalidCredentials { .. } => e,
+        BinanceKeyCheckError::Rejected { code, msg } => BinanceKeyCheckError::InvalidCredentials { code, msg },
+        _ => BinanceKeyCheckError::InvalidCredentials { code: 0, msg: format!("HTTP {status}") },
     }
 }
 
@@ -192,10 +195,10 @@ mod key_check_tests {
             key_check_rejection(400, r#"{"code":-1021,"msg":"Timestamp for this request was 1000ms ahead"}"#),
             BinanceKeyCheckError::NetworkUnavailable
         ));
-        assert!(matches!(
+        assert_eq!(
             key_check_rejection(401, r#"{"code":-2015,"msg":"Invalid API-key"}"#),
-            BinanceKeyCheckError::InvalidCredentials
-        ));
-        assert!(matches!(key_check_rejection(400, "garbage"), BinanceKeyCheckError::InvalidCredentials));
+            BinanceKeyCheckError::InvalidCredentials { code: -2015, msg: "Invalid API-key".into() }
+        );
+        assert!(matches!(key_check_rejection(400, "garbage"), BinanceKeyCheckError::InvalidCredentials { code: 0, .. }));
     }
 }

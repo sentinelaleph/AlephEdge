@@ -63,7 +63,11 @@ export function LivePreflight() {
   const reason = (c: PreflightCheck) => {
     if (!c.code) return null;
     if (c.code.startsWith(REFUSED)) return t("preflight.codes.binanceRefused", { code: c.code.slice(REFUSED.length), exchange });
-    return t(`preflight.codes.${c.code}`, { defaultValue: c.code, exchange });
+    // "code|detail": the exchange's own code and text ride after the pipe.
+    const [code, ...rest] = c.code.split("|");
+    const detail = rest.join("|").trim();
+    const text = t(`preflight.codes.${code}`, { defaultValue: code, exchange });
+    return detail ? `${text} (${detail})` : text;
   };
 
   const columns: DataColumn<PreflightCheck>[] = [
