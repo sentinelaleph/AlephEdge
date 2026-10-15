@@ -513,3 +513,45 @@
 .ae-installfacts .ae-facts dd {
   min-width: 0;
 }
+
+/* Telegram panel (TelegramPanel.tsx). */
+.ae-tg__steps {
+  margin: var(--space-2) 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-sm);
+}
+.ae-tg__token {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.ae-tg__token .ae-field {
+  flex: 1 1 260px;
+}
+.ae-tg__link {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.ae-tg__code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 2px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  user-select: all;
+}
+.ae-tg__row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.ae-tg__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}

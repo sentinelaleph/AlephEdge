@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Preset, StrategyConfig } from "@/lib/ipc/strategy/strategy";
 import { openingBudget } from "../StrategyCreatePage";
-import { matchesPreset } from "./StrategyForm";
+import { matchesPreset, rangeExitOf, withRangeExit } from "./StrategyForm";
 
 const preset = (rule: string): Preset =>
   ({
@@ -56,5 +56,40 @@ describe("openingBudget", () => {
   it("never raises a budget that already fits", () => {
     expect(openingBudget(100, 200, 50)).toEqual({ budget: 100, short: false });
     expect(openingBudget(1000, 4000, null)).toEqual({ budget: 1000, short: false });
+  });
+});
+
+describe("grid range exit", () => {
+  const grid = (stopOutPct: number | null, afterStop: boolean) =>
+    ({
+      market: "futures",
+      restart: { cooldownMin: 0, maxCycles: null, afterStop, afterLiquidation: false, priceBand: null, endAtMs: null },
+      params: { kind: "grid", range: { type: "relative", lowerPct: 8, upperPct: 8 }, nGrids: 20, spacing: "geom", stopOutPct, trailingUp: false, trailUpLimit: null, takeProfitPct: null, maxDurationMin: null },
+    }) as unknown as StrategyConfig;
+  const exitOf = (c: StrategyConfig) => (c.params.kind === "grid" ? rangeExitOf(c.params, c.restart.afterStop) : null);
+
+  it("reads the two engine settings as one choice", () => {
+    expect(exitOf(grid(null, true))).toBe("wait");
+    expect(exitOf(grid(null, false))).toBe("wait");
+    expect(exitOf(grid(5, false))).toBe("close");
+    expect(exitOf(grid(5, true))).toBe("restart");
+  });
+
+  it("writes each choice back to exactly those settings", () => {
+    const close = withRangeExit(grid(null, true), "close");
+    expect(close.params).toMatchObject({ stopOutPct: 3 });
+    expect(close.restart.afterStop).toBe(false);
+    const restart = withRangeExit(grid(5, false), "restart");
+    expect(restart.params).toMatchObject({ stopOutPct: 5 });
+    expect(restart.restart.afterStop).toBe(true);
+    const wait = withRangeExit(grid(5, false), "wait");
+    expect(wait.params).toMatchObject({ stopOutPct: null });
+    expect(wait.restart.afterStop).toBe(false);
+    for (const e of ["wait", "close", "restart"] as const) expect(exitOf(withRangeExit(grid(4, true), e))).toBe(e);
+  });
+
+  it("leaves a DCA config alone", () => {
+    const dca = { params: { kind: "dca" }, restart: { afterStop: true } } as unknown as StrategyConfig;
+    expect(withRangeExit(dca, "close")).toBe(dca);
   });
 });

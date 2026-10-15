@@ -3,7 +3,8 @@
 //! Subsystems: the local key **vault**, the Sentinel **membership** gate, the
 //! **signal** client (SSE), the **exchange** adapters, the **risk** manager,
 //! Sentinel **market** data (FR/LD/BTC macro), the SQLite **store**, the
-//! **bot** orchestrator and the phone **link**. Real orders compile only with
+//! **bot** orchestrator, the phone **link** and optional **telegram**
+//! notifications. Real orders compile only with
 //! the `live` cargo feature. Each subsystem owns its own types, logic, and
 //! commands; this file only registers managed state and the command surface,
 //! then runs the app.
@@ -17,6 +18,7 @@ mod membership;
 mod risk;
 mod signal;
 mod store;
+mod telegram;
 mod vault;
 
 use app::cockpit::{cockpit_exchange, cockpit_sentinel};
@@ -119,6 +121,9 @@ pub fn run() {
             // keys past that budget.
             vault::restore_idle_minutes(app.handle());
             spawn_idle_watchdog(app.handle().clone());
+            // Optional Telegram notifications: idle until the user sets a
+            // token and links a chat (Settings, Notifications).
+            telegram::spawn(app.handle());
             // Signature-verified auto-update (desktop only).
             #[cfg(desktop)]
             app.handle()
@@ -136,12 +141,19 @@ pub fn run() {
         .manage(bot::strategy_live::StrategyLiveManager::new())
         .manage(link::commands::PairingState::new())
         .manage(link::commands::LinkRuntime::new())
+        .manage(telegram::TelegramManager::new())
         .invoke_handler(tauri::generate_handler![
             link::commands::link_begin_pairing,
             link::commands::link_pairing_status,
             link::commands::link_cancel_pairing,
             link::health::link_relay_health,
             link::commands::link_state,
+            telegram::commands::telegram_status,
+            telegram::commands::telegram_set_token,
+            telegram::commands::telegram_remove,
+            telegram::commands::telegram_link_code,
+            telegram::commands::telegram_set_prefs,
+            telegram::commands::telegram_test,
             get_health_snapshot,
             get_endpoints,
             app_version,

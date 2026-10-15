@@ -3,6 +3,7 @@ import { ALERT_CATEGORIES, deriveAlerts, useAlertPrefs, useNow, useVaultAutoLock
 import { useDeskContext } from "@/app/DeskProvider";
 import { Button } from "@/components/ui/Button/Button";
 import { Panel } from "@/components/ui/Panel/Panel";
+import { TelegramPanel } from "./TelegramPanel";
 
 type Severity = "danger" | "warn" | "info";
 
@@ -102,6 +103,8 @@ export function NotificationsTab() {
           </ul>
         </Panel>
       ))}
+
+      <TelegramPanel />
     </>
   );
 }

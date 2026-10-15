@@ -409,7 +409,7 @@ export const notes = (): Promise<StrategyNote[]> => ok([]);
 
 /** Same figures as presets.rs (the Rust copy is the source). */
 export function presets(): Promise<Preset[]> {
-  return classicPreset().then((c) => [
+  return classicPreset().then((c): Preset[] => [
     c,
     // One failed template so the dev preview shows the verdict and the ask.
     {
@@ -478,13 +478,15 @@ export function presets(): Promise<Preset[]> {
         recheck: null,
       },
     },
-  ]);
+  ]).then((list) => list.map((p) => ({ ...p, minBudget: minBudget(p.config) })));
 }
 
 function classicPreset(): Promise<Preset> {
   return defaults("dca", "binance", "").then((base) => (
     {
       id: "dca_long_classic",
+      // Filled from the config by presets().
+      minBudget: null,
       verdict: "presetReady",
       failReasons: [],
       situation: "bullMajors",

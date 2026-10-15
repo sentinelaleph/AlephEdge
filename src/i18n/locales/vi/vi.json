@@ -1358,7 +1358,7 @@
     "shortcutsHint": "Phím tắt hoạt động bên ngoài ô nhập văn bản.",
     "motionHint": "Đặt trong Windows: Settings, Accessibility, Visual effects, Animation effects.",
     "notify": {
-      "lede": "Cảnh báo hiện dưới biểu tượng chuông và trên Bảng điều khiển. Máy tính này tạo cảnh báo từ những gì bot của bạn báo về. Không có gì được gửi qua email, tới điện thoại hay dưới dạng thông báo Windows.",
+      "lede": "Cảnh báo hiện dưới biểu tượng chuông và trên Bảng điều khiển. Máy tính này tạo cảnh báo từ những gì bot của bạn báo về. Không có gì được gửi qua email hay dưới dạng thông báo Windows; tin nhắn Telegram chỉ được gửi nếu bạn liên kết một cuộc trò chuyện bên dưới.",
       "group": {
         "safety": "An toàn",
         "bots": "Bot và giao dịch",
@@ -1382,6 +1382,48 @@
       "activeNow": "Hiện tại: {{count}}",
       "offNote": "Ẩn khỏi chuông. Bot vẫn xử lý như bình thường.",
       "allOn": "Hiện tất cả"
+    },
+    "telegram": {
+      "title": "Telegram",
+      "loading": "Đang tải…",
+      "failed": "Yêu cầu tới Telegram thất bại.",
+      "lede": "Gửi sự kiện của bot từ máy tính này tới một cuộc trò chuyện Telegram qua bot của chính bạn, kể cả khi cửa sổ thu nhỏ xuống khay. Tin nhắn bằng tiếng Anh và ghi rõ Paper (mô phỏng) hay LIVE.",
+      "state": {
+        "none": "Chưa thiết lập",
+        "noChat": "Chưa liên kết trò chuyện",
+        "waiting": "Đang chờ /start",
+        "linked": "Đã liên kết"
+      },
+      "step1": "Trong Telegram, mở @BotFather, gửi /newbot và sao chép token được cấp.",
+      "step2": "Dán token vào đây. Token được kiểm tra với Telegram và lưu trong keychain của hệ thống.",
+      "step3": "Lấy mã và gửi /start kèm mã tới bot của bạn từ một cuộc trò chuyện riêng.",
+      "token": "Token bot",
+      "tokenHint": "Được lưu trong keychain của hệ thống. Bảng này không thể hiển thị lại.",
+      "saveToken": "Lưu token",
+      "bot": "Bot",
+      "chat": "Trò chuyện",
+      "noChat": "Chưa liên kết",
+      "linkedNoName": "Đã liên kết",
+      "lastSent": "Gửi gần nhất",
+      "lastError": "Lỗi gần nhất",
+      "never": "Chưa bao giờ",
+      "sendThis": "Gửi tin nhắn này tới {{bot}}:",
+      "codeExpires": "Có hiệu lực đến {{time}}. Chỉ cuộc trò chuyện riêng gửi mã này được liên kết; mọi cuộc trò chuyện khác bị bỏ qua.",
+      "getCode": "Lấy mã",
+      "newCode": "Mã mới",
+      "notifications": "Gửi thông báo",
+      "notificationsDesc": "Kiểm tra mỗi 30 giây. Hơn 5 sự kiện cùng lúc được gộp vào một tin nhắn.",
+      "desc": {
+        "killSwitch": "Dừng lỗ theo ngày hoặc cầu dao danh mục đã kích hoạt.",
+        "botError": "Một bot không thể thực hiện vì lý do kỹ thuật, hoặc một bot DCA/Grid đã kết thúc.",
+        "stopLoss": "Một giao dịch tín hiệu hoặc một chu kỳ DCA/Grid đóng tại mức dừng.",
+        "dealClosed": "Mỗi giao dịch tín hiệu và chu kỳ DCA/Grid đã đóng, kèm kết quả ròng."
+      },
+      "commands": "Lệnh /status và /stop",
+      "commandsDesc": "/status: bot đang chạy, vị thế mở, kết quả ròng hôm nay. /stop: dừng vào lệnh mới trên mọi bot; vị thế mở vẫn mở và vẫn được quản lý. Chỉ cuộc trò chuyện đã liên kết mới dùng được.",
+      "sendTest": "Gửi thử",
+      "testSent": "Đã gửi tin nhắn thử.",
+      "remove": "Gỡ bỏ"
     },
     "devices": {
       "canTitle": "Điện thoại đã ghép nối có thể làm gì",
@@ -1726,7 +1768,7 @@
       "upper": "Giá trên",
       "nGrids": "Số khoảng lưới",
       "spacing": "Kiểu giãn cách",
-      "stopOut": "Dừng khi ra ngoài khoảng",
+      "rangeExit": "Khi giá ra khỏi phạm vi",
       "stopOutPct": "Khoảng cách dừng ngoài khoảng",
       "trailingUp": "Dời lên",
       "trailUpLimitOn": "Giới hạn dời lên",
@@ -1773,6 +1815,12 @@
       "rangeAbsolute": "Giá cố định.",
       "nGrids": "{{levels}} mức giá.",
       "stopOut": "Đóng lưới khi giá giao dịch xa ngoài khoảng đến mức này.",
+      "rangeExit": {
+        "wait": "Lưới giữ vị thế và không đặt lệnh ngoài phạm vi; giao dịch lại khi giá quay về.",
+        "close": "Đóng vị thế theo giá thị trường khi giá giao dịch ngoài phạm vi bằng khoảng cách dừng. Sau đó bot dừng.",
+        "restartRelative": "Đóng vị thế theo giá thị trường khi giá giao dịch ngoài phạm vi bằng khoảng cách dừng, rồi sau thời gian chờ mở lưới mới quanh giá mới.",
+        "restartAbsolute": "Đóng vị thế theo giá thị trường khi giá giao dịch ngoài phạm vi bằng khoảng cách dừng, rồi mở lại cùng phạm vi khi giá quay vào trong dải dừng (kiểm tra mỗi giờ)."
+      },
       "trailingUp": "Chỉ lưới long: khoảng giá dời lên theo giá và tắt dừng phía trên.",
       "gridTp": "Đóng chu kỳ khi lợi nhuận đạt phần ngân sách chu kỳ này.",
       "startPrice": "Kích hoạt khi nến 1 phút chạm giá; chu kỳ mở ở nến sau. Nếu giá đã vượt qua: kích hoạt ở nến đầu tiên.",
@@ -1788,6 +1836,11 @@
     "sizing": {
       "weights": "Theo ngân sách",
       "fixed": "USDT cố định"
+    },
+    "rangeExit": {
+      "wait": "Chờ",
+      "close": "Đóng",
+      "restart": "Khởi động lại"
     },
     "range": {
       "relative": "Tương đối %",
@@ -2033,6 +2086,7 @@
       "testMeanNote": "Kiểm thử = cửa sổ dữ liệu cuối, được giữ riêng khi chọn cấu hình mẫu. Mọi con số tính theo bot-tháng: mỗi tháng một bot mới 1000 USDT cho mỗi cặp, chu kỳ còn mở cuối tháng chạy tiếp đến khi đóng. Không phải một bot chạy liên tục nhiều tháng.",
       "ci95": "Khoảng 95%",
       "monthsPositive": "Tháng dương",
+      "minBudgetShort": "từ {{amount}} USDT",
       "worstBotDd": "Sụt giảm bot tệ nhất",
       "verdict": "Kết luận",
       "verdicts": {
@@ -2506,7 +2560,19 @@
     "closeCleanupFailed": "Đã đóng, nhưng không hủy được lệnh dừng lỗ hoặc chốt lời trên {{detail}}. Hãy hủy chúng trên sàn.",
     "botCapitalAboveCap": "Vốn mỗi vị thế vượt trần {{detail}} USDT của mức rủi ro hiện tại. Hãy giảm vốn, hoặc tăng số dư mô phỏng hay mức rủi ro trong Rủi ro & an toàn.",
     "vaultSaltMismatch": "Salt của kho này trong chuỗi khóa hệ thống đã bị một bản dựng Aleph Edge khác thay thế, nên không mật khẩu nào mở được. Chọn \"Quên mật khẩu? Đặt lại kho\" và thêm lại khóa sàn của bạn.",
-    "updateOffTestnet": "Bản dựng testnet không cài đặt bản cập nhật."
+    "updateOffTestnet": "Bản dựng testnet không cài đặt bản cập nhật.",
+    "telegramTokenFormat": "Đây không phải token bot. Token có dạng 123456789:AA… như @BotFather hiển thị.",
+    "telegramTokenRejected": "Telegram đã từ chối token bot.",
+    "telegramNetwork": "Không thể kết nối tới Telegram.",
+    "telegramTimeout": "Telegram không phản hồi kịp thời.",
+    "telegramRateLimited": "Telegram đang giới hạn tin nhắn. Hãy thử lại sau một phút.",
+    "telegramChatUnreachable": "Bot không thể gửi tới cuộc trò chuyện đã liên kết. Mở bot trong Telegram và nhấn Bắt đầu.",
+    "telegramPollConflict": "Một chương trình khác đang đọc tin nhắn của bot này. Chỉ dùng bot này cho Aleph Edge.",
+    "telegramHttp": "Telegram trả về lỗi ({{detail}}).",
+    "telegramBadResponse": "Telegram gửi phản hồi mà ứng dụng này không đọc được.",
+    "telegramNotLinked": "Hãy liên kết một cuộc trò chuyện Telegram trước.",
+    "telegramNoToken": "Hãy lưu token bot trước.",
+    "telegramKeychainFailed": "Keychain của hệ thống không lưu được token."
   },
   "status": {
     "running": "Đang chạy",

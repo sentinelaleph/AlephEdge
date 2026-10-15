@@ -66,10 +66,10 @@ fn new_run_id() -> String {
 }
 
 /// Window aligned to the interval grid and clipped to now. Err = i18n code.
-pub fn window(start_ms: u64, end_ms: u64, iv: u64, now: u64) -> Result<(u64, u64), &'static str> {
-    let start = start_ms - start_ms % iv;
+pub fn window(start_ms: u64, end_ms: u64, step_ms: u64, now: u64) -> Result<(u64, u64), &'static str> {
+    let start = start_ms - start_ms % step_ms;
     let end = end_ms.min(now);
-    let end = end - end % iv;
+    let end = end - end % step_ms;
     if end <= start {
         return Err("windowInvalid");
     }
@@ -87,7 +87,7 @@ async fn fetch_all(
     symbol: &str,
     market: MarketKind,
     interval: &str,
-    iv: u64,
+    step_ms: u64,
     start: u64,
     end: u64,
     run_token: &str,
@@ -96,7 +96,7 @@ async fn fetch_all(
     let base = membership.base_url();
     let mut token = membership.fresh_access_token().await.ok_or("historySignIn")?;
     let client = history::build_client();
-    let pages = plan_pages(start, end, iv);
+    let pages = plan_pages(start, end, step_ms);
     let total = pages.len() as u32;
     let mut candles = Vec::new();
     let mut sources = BTreeSet::new();
@@ -171,9 +171,9 @@ pub async fn backtest_run(
     run_token: Option<String>,
 ) -> Result<BacktestRun, String> {
     let run_token = clean_token(run_token);
-    let iv = interval_ms(&interval).ok_or("intervalInvalid")?;
+    let step_ms = interval_ms(&interval).ok_or("intervalInvalid")?;
     let now = now_ms();
-    let (start, end) = window(start_ms, end_ms, iv, now).map_err(str::to_string)?;
+    let (start, end) = window(start_ms, end_ms, step_ms, now).map_err(str::to_string)?;
     let cfg = StrategyConfig {
         schema_version: CONFIG_SCHEMA_VERSION,
         name: config.name.trim().to_string(),
@@ -184,18 +184,18 @@ pub async fn backtest_run(
     let max_lev = app.state::<RiskManager>().limits().max_leverage;
     validate::validate(&cfg, max_lev).map_err(|e| e.to_string())?;
 
-    let (candles, mut data) = fetch_all(&app, &cfg.symbol, market, &interval, iv, start, end, &run_token).await?;
-    let (bars, dropped) = backtest::candles_to_bars(candles, iv, now);
+    let (candles, mut data) = fetch_all(&app, &cfg.symbol, market, &interval, step_ms, start, end, &run_token).await?;
+    let (bars, dropped) = backtest::candles_to_bars(candles, step_ms, now);
     let bars: Vec<_> = bars.into_iter().filter(|b| b.open_ms >= start && b.open_ms < end).collect();
     if bars.is_empty() {
         return Err("historyEmpty".into());
     }
     data.candle_count = bars.len() as u64;
     data.dropped_candles += dropped;
-    data.missing_bars = backtest::missing_bars(&bars, iv);
+    data.missing_bars = backtest::missing_bars(&bars, step_ms);
     if data.coverage_pct.is_none() {
         // The server sent no coverage: the window's own grid is the expectation.
-        let expected = (end - start) / iv;
+        let expected = (end - start) / step_ms;
         data.expected_candles = Some(expected);
         data.coverage_pct = Some((bars.len() as f64 / expected as f64 * 100.0).min(100.0));
     }
@@ -285,11 +285,11 @@ pub async fn grid_suggest(app: AppHandle, config: StrategyConfig) -> Result<Grid
         symbol: config.symbol.trim().to_uppercase(),
         ..config
     };
-    let iv = 3_600_000;
+    let step_ms = 3_600_000;
     let now = now_ms();
-    let (start, end) = window(now.saturating_sub(SUGGEST_DAYS * 86_400_000), now, iv, now).map_err(str::to_string)?;
-    let (candles, data) = fetch_all(&app, &cfg.symbol, cfg.market, "1h", iv, start, end, "grid-suggest").await?;
-    let (bars, _) = backtest::candles_to_bars(candles, iv, now);
+    let (start, end) = window(now.saturating_sub(SUGGEST_DAYS * 86_400_000), now, step_ms, now).map_err(str::to_string)?;
+    let (candles, data) = fetch_all(&app, &cfg.symbol, cfg.market, "1h", step_ms, start, end, "grid-suggest").await?;
+    let (bars, _) = backtest::candles_to_bars(candles, step_ms, now);
     let bars: Vec<_> = bars.into_iter().filter(|b| b.open_ms >= start && b.open_ms < end).collect();
     let costs = CostModel::for_market(cfg.market);
     let suggestion = suggest::suggest_grid(&bars, &costs).ok_or("suggestHistoryShort")?;

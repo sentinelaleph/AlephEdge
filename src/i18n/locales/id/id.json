@@ -1358,7 +1358,7 @@
     "shortcutsHint": "Pintasan berfungsi di luar kolom teks.",
     "motionHint": "Atur di Windows: Pengaturan, Aksesibilitas, Efek visual, Efek animasi.",
     "notify": {
-      "lede": "Peringatan muncul di bawah lonceng dan di Dasbor. Komputer ini menyusunnya dari laporan bot Anda. Tidak ada yang dikirim lewat email, ke ponsel, atau sebagai notifikasi Windows.",
+      "lede": "Peringatan muncul di bawah lonceng dan di Dasbor. Komputer ini menyusunnya dari laporan bot Anda. Tidak ada yang dikirim lewat email atau sebagai notifikasi Windows; pesan Telegram hanya terkirim jika Anda menautkan chat di bawah.",
       "group": {
         "safety": "Keamanan",
         "bots": "Bot dan trade",
@@ -1382,6 +1382,48 @@
       "activeNow": "Sekarang: {{count}}",
       "offNote": "Tidak tampil di lonceng. Bot tetap bertindak seperti biasa.",
       "allOn": "Tampilkan semua"
+    },
+    "telegram": {
+      "title": "Telegram",
+      "loading": "Memuat…",
+      "failed": "Permintaan ke Telegram gagal.",
+      "lede": "Mengirim peristiwa bot dari komputer ini ke satu chat Telegram melalui bot Anda sendiri, juga saat jendela ada di baki. Pesan berbahasa Inggris dan menyebut Paper (simulasi) atau LIVE.",
+      "state": {
+        "none": "Belum diatur",
+        "noChat": "Belum ada chat tertaut",
+        "waiting": "Menunggu /start",
+        "linked": "Tertaut"
+      },
+      "step1": "Di Telegram, buka @BotFather, kirim /newbot, lalu salin token yang diberikan.",
+      "step2": "Tempel token di sini. Token dicek ke Telegram dan disimpan di keychain sistem.",
+      "step3": "Ambil kode, lalu kirim /start beserta kodenya ke bot Anda dari chat pribadi.",
+      "token": "Token bot",
+      "tokenHint": "Disimpan di keychain sistem. Panel ini tidak dapat menampilkannya lagi.",
+      "saveToken": "Simpan token",
+      "bot": "Bot",
+      "chat": "Chat",
+      "noChat": "Belum tertaut",
+      "linkedNoName": "Tertaut",
+      "lastSent": "Terakhir dikirim",
+      "lastError": "Galat terakhir",
+      "never": "Belum pernah",
+      "sendThis": "Kirim pesan ini ke {{bot}}:",
+      "codeExpires": "Berlaku sampai {{time}}. Hanya chat pribadi yang mengirimnya yang ditautkan; semua chat lain diabaikan.",
+      "getCode": "Ambil kode",
+      "newCode": "Kode baru",
+      "notifications": "Kirim notifikasi",
+      "notificationsDesc": "Dicek setiap 30 detik. Lebih dari 5 peristiwa sekaligus dikirim dalam satu pesan.",
+      "desc": {
+        "killSwitch": "Stop rugi harian atau pemutus portofolio terpicu.",
+        "botError": "Sebuah bot tidak dapat bertindak karena alasan teknis, atau bot DCA/Grid berakhir.",
+        "stopLoss": "Trade sinyal atau siklus DCA/Grid ditutup di stop.",
+        "dealClosed": "Setiap trade sinyal dan siklus DCA/Grid yang ditutup, dengan hasil bersihnya."
+      },
+      "commands": "Perintah /status dan /stop",
+      "commandsDesc": "/status: bot yang berjalan, posisi terbuka, hasil bersih hari ini. /stop: menghentikan entri baru di semua bot; posisi terbuka tetap terbuka dan dikelola. Hanya chat tertaut yang dapat memakainya.",
+      "sendTest": "Kirim tes",
+      "testSent": "Pesan tes terkirim.",
+      "remove": "Hapus"
     },
     "devices": {
       "canTitle": "Yang bisa dilakukan ponsel yang dipasangkan",
@@ -1726,7 +1768,7 @@
       "upper": "Harga atas",
       "nGrids": "Interval grid",
       "spacing": "Jarak",
-      "stopOut": "Stop di luar rentang",
+      "rangeExit": "Saat harga keluar dari rentang",
       "stopOutPct": "Jarak stop di luar rentang",
       "trailingUp": "Trailing naik",
       "trailUpLimitOn": "Batas trailing naik",
@@ -1773,6 +1815,12 @@
       "rangeAbsolute": "Harga tetap.",
       "nGrids": "{{levels}} level harga.",
       "stopOut": "Menutup grid saat harga diperdagangkan sejauh ini di luar rentang.",
+      "rangeExit": {
+        "wait": "Grid mempertahankan posisinya dan tidak memasang order di luar rentang; berdagang lagi saat harga kembali.",
+        "close": "Menutup posisi di harga pasar saat harga diperdagangkan sejauh jarak stop di luar rentang. Lalu bot berhenti.",
+        "restartRelative": "Menutup posisi di harga pasar saat harga diperdagangkan sejauh jarak stop di luar rentang, lalu setelah jeda membuka grid baru di sekitar harga baru.",
+        "restartAbsolute": "Menutup posisi di harga pasar saat harga diperdagangkan sejauh jarak stop di luar rentang, lalu membuka rentang yang sama lagi setelah harga kembali ke dalam pita stop (dicek setiap jam)."
+      },
       "trailingUp": "Hanya grid long: rentang mengikuti harga naik dan stop atas dimatikan.",
       "gridTp": "Menutup siklus saat profitnya mencapai porsi anggaran siklus ini.",
       "startPrice": "Terpicu saat candle 1 menit menyentuh harga; siklus dibuka pada candle berikutnya. Jika sudah melewatinya: terpicu di candle pertama.",
@@ -1788,6 +1836,11 @@
     "sizing": {
       "weights": "Diskalakan ke anggaran",
       "fixed": "USDT tetap"
+    },
+    "rangeExit": {
+      "wait": "Tunggu",
+      "close": "Tutup",
+      "restart": "Mulai ulang"
     },
     "range": {
       "relative": "Relatif %",
@@ -2033,6 +2086,7 @@
       "testMeanNote": "Uji = jendela data terakhir, disisihkan saat preset dipilih. Setiap angka per bot-bulan: bot baru 1000 USDT per pasangan setiap bulan, siklus yang masih terbuka di akhir bulan berjalan sampai tutup. Bukan satu bot yang berjalan berbulan-bulan.",
       "ci95": "Interval 95%",
       "monthsPositive": "Bulan positif",
+      "minBudgetShort": "mulai {{amount}} USDT",
       "worstBotDd": "Drawdown bot terburuk",
       "verdict": "Keputusan",
       "verdicts": {
@@ -2506,7 +2560,19 @@
     "closeCleanupFailed": "Tertutup, tetapi order stop atau take-profit di {{detail}} tidak bisa dibatalkan. Batalkan di bursa.",
     "botCapitalAboveCap": "Modal per posisi di atas batas {{detail}} USDT untuk level risiko Anda. Turunkan, atau naikkan saldo simulasi atau level risiko di Risiko & keamanan.",
     "vaultSaltMismatch": "Salt brankas ini di keychain sistem telah diganti oleh build Aleph Edge lain, sehingga tidak ada kata sandi yang dapat membukanya. Pilih \"Lupa kata sandi? Setel ulang brankas\" lalu tambahkan kembali kunci bursa Anda.",
-    "updateOffTestnet": "Build testnet tidak memasang pembaruan."
+    "updateOffTestnet": "Build testnet tidak memasang pembaruan.",
+    "telegramTokenFormat": "Ini bukan token bot. Bentuknya 123456789:AA… seperti yang ditampilkan @BotFather.",
+    "telegramTokenRejected": "Telegram menolak token bot.",
+    "telegramNetwork": "Telegram tidak dapat dihubungi.",
+    "telegramTimeout": "Telegram tidak menjawab tepat waktu.",
+    "telegramRateLimited": "Telegram sedang membatasi pesan. Coba lagi dalam satu menit.",
+    "telegramChatUnreachable": "Bot tidak dapat menulis ke chat tertaut. Buka bot di Telegram lalu tekan Mulai.",
+    "telegramPollConflict": "Program lain sedang membaca pesan bot ini. Gunakan bot ini hanya untuk Aleph Edge.",
+    "telegramHttp": "Telegram menjawab dengan galat ({{detail}}).",
+    "telegramBadResponse": "Telegram mengirim jawaban yang tidak dapat dibaca aplikasi ini.",
+    "telegramNotLinked": "Tautkan chat Telegram terlebih dahulu.",
+    "telegramNoToken": "Simpan token bot terlebih dahulu.",
+    "telegramKeychainFailed": "Keychain sistem tidak menyimpan token."
   },
   "status": {
     "running": "Berjalan",

@@ -1358,7 +1358,7 @@
     "shortcutsHint": "Kısayollar metin alanlarının dışında çalışır.",
     "motionHint": "Windows'ta ayarlanır: Ayarlar, Erişilebilirlik, Görsel efektler, Animasyon efektleri.",
     "notify": {
-      "lede": "Uyarılar zilin altında ve Dashboard'da görünür. Bu bilgisayar onları botlarınızın bildirdiklerinden çıkarır. E-posta, telefon ya da Windows bildirimi gönderilmez.",
+      "lede": "Uyarılar zilin altında ve Dashboard'da görünür. Bu bilgisayar onları botlarınızın bildirdiklerinden çıkarır. E-posta ya da Windows bildirimi gönderilmez; Telegram mesajları yalnızca aşağıda bir sohbet bağlarsanız gider.",
       "group": {
         "safety": "Güvenlik",
         "bots": "Botlar ve işlemler",
@@ -1382,6 +1382,48 @@
       "activeNow": "Şu an: {{count}}",
       "offNote": "Zilde gösterilmez. Botlar yine de buna göre davranır.",
       "allOn": "Hepsini göster"
+    },
+    "telegram": {
+      "title": "Telegram",
+      "loading": "Yükleniyor…",
+      "failed": "Telegram isteği başarısız oldu.",
+      "lede": "Bot olaylarını bu bilgisayardan kendi botunuz üzerinden tek bir Telegram sohbetine gönderir; pencere tepsideyken de çalışır. Mesajlar İngilizcedir ve Paper (Simüle) ya da LIVE yazar.",
+      "state": {
+        "none": "Kurulmadı",
+        "noChat": "Sohbet bağlı değil",
+        "waiting": "/start bekleniyor",
+        "linked": "Bağlı"
+      },
+      "step1": "Telegram'da @BotFather'ı açın, /newbot gönderin ve verdiği token'ı kopyalayın.",
+      "step2": "Token'ı buraya yapıştırın. Telegram ile doğrulanır ve sistem anahtar zincirinde saklanır.",
+      "step3": "Bir kod alın ve botunuza özel sohbetten kodla birlikte /start gönderin.",
+      "token": "Bot token'ı",
+      "tokenHint": "Sistem anahtar zincirinde saklanır. Bu panel onu bir daha gösteremez.",
+      "saveToken": "Token'ı kaydet",
+      "bot": "Bot",
+      "chat": "Sohbet",
+      "noChat": "Bağlı değil",
+      "linkedNoName": "Bağlı",
+      "lastSent": "Son gönderim",
+      "lastError": "Son hata",
+      "never": "Hiç",
+      "sendThis": "Bu mesajı {{bot}} botuna gönderin:",
+      "codeExpires": "{{time}} saatine kadar geçerli. Yalnızca bunu gönderen özel sohbet bağlanır; diğer tüm sohbetler yok sayılır.",
+      "getCode": "Kod al",
+      "newCode": "Yeni kod",
+      "notifications": "Bildirim gönder",
+      "notificationsDesc": "30 saniyede bir kontrol edilir. Aynı anda 5'ten fazla olay tek mesajda gelir.",
+      "desc": {
+        "killSwitch": "Günlük zarar stopu ya da portföy kesicisi devreye girdi.",
+        "botError": "Bir bot teknik bir nedenle işlem yapamadı ya da bir DCA/Grid botu sona erdi.",
+        "stopLoss": "Bir sinyal işlemi ya da DCA/Grid döngüsü stop seviyesinde kapandı.",
+        "dealClosed": "Kapanan her sinyal işlemi ve DCA/Grid döngüsü, net sonucuyla."
+      },
+      "commands": "/status ve /stop komutları",
+      "commandsDesc": "/status: çalışan botlar, açık pozisyonlar, bugünün neti. /stop: tüm botlarda yeni girişleri durdurur; açık pozisyonlar açık kalır ve yönetilmeye devam eder. Yalnızca bağlı sohbet kullanabilir.",
+      "sendTest": "Test gönder",
+      "testSent": "Test mesajı gönderildi.",
+      "remove": "Kaldır"
     },
     "devices": {
       "canTitle": "Eşlenen telefon neler yapabilir",
@@ -1726,7 +1768,7 @@
       "upper": "Üst fiyat",
       "nGrids": "Grid aralığı sayısı",
       "spacing": "Aralık tipi",
-      "stopOut": "Aralık dışında durdur",
+      "rangeExit": "Fiyat aralıktan çıkınca",
       "stopOutPct": "Aralık dışı durdurma mesafesi",
       "trailingUp": "Yukarı izleme",
       "trailUpLimitOn": "Yukarı izleme sınırı",
@@ -1773,6 +1815,12 @@
       "rangeAbsolute": "Sabit fiyatlar.",
       "nGrids": "{{levels}} fiyat seviyesi.",
       "stopOut": "Fiyat aralığın bu kadar dışında işlem görünce grid kapanır.",
+      "rangeExit": {
+        "wait": "Grid pozisyonunu tutar ve aralık dışında emir koymaz; fiyat aralığa dönünce yeniden işlem yapar.",
+        "close": "Fiyat aralığın durdurma mesafesi kadar dışında işlem görünce pozisyonu piyasa fiyatından kapatır. Bot sonra durur.",
+        "restartRelative": "Fiyat aralığın durdurma mesafesi kadar dışında işlem görünce pozisyonu piyasa fiyatından kapatır, bekleme süresinden sonra yeni fiyatın çevresinde yeni bir grid açar.",
+        "restartAbsolute": "Fiyat aralığın durdurma mesafesi kadar dışında işlem görünce pozisyonu piyasa fiyatından kapatır, fiyat durdurma bandının içine dönünce aynı aralığı yeniden açar (saatte bir denetlenir)."
+      },
       "trailingUp": "Yalnızca long gridler: aralık fiyatı yukarı izler ve üst stop kapalıdır.",
       "gridTp": "Döngünün kârı döngü bütçesinin bu payına ulaşınca döngü kapanır.",
       "startPrice": "1 dakikalık bir mum fiyata dokununca tetiklenir; döngü sonraki mumda açılır. Fiyat zaten seviyenin ötesindeyse ilk mumda tetiklenir.",
@@ -1788,6 +1836,11 @@
     "sizing": {
       "weights": "Bütçeye ölçekli",
       "fixed": "Sabit USDT"
+    },
+    "rangeExit": {
+      "wait": "Bekle",
+      "close": "Kapat",
+      "restart": "Yeniden kur"
     },
     "range": {
       "relative": "Göreli %",
@@ -2033,6 +2086,7 @@
       "testMeanNote": "Test = hazır ayar seçilirken dışarıda tutulan son veri penceresi. Her rakam bot-ay başınadır: her ay parite başına yeni bir 1000 USDT bot; ay sonunda açık kalan döngü kapanana kadar sürer. Aylarca çalışan tek bir bot değildir.",
       "ci95": "%95 aralık",
       "monthsPositive": "Pozitif aylar",
+      "minBudgetShort": "en az {{amount}} USDT",
       "worstBotDd": "En kötü bot düşüşü",
       "verdict": "Karar",
       "verdicts": {
@@ -2506,7 +2560,19 @@
     "closeCleanupFailed": "Kapatıldı, ancak {{detail}} üzerindeki stop veya kâr al emirleri iptal edilemedi. Bunları borsada iptal edin.",
     "botCapitalAboveCap": "Pozisyon başına sermaye, risk seviyenin {{detail}} USDT tavanının üstünde. Düşür ya da Risk ve güvenlik sayfasında simüle bakiyeyi veya risk seviyesini yükselt.",
     "vaultSaltMismatch": "Bu kasanın sistem anahtar zincirindeki tuzu başka bir Aleph Edge derlemesi tarafından değiştirildi; hiçbir şifre onu açamaz. \"Parolanı mı unuttun? Kasayı sıfırla\" seçeneğini kullan ve borsa anahtarlarını yeniden ekle.",
-    "updateOffTestnet": "Testnet derlemesi güncelleme kurmaz."
+    "updateOffTestnet": "Testnet derlemesi güncelleme kurmaz.",
+    "telegramTokenFormat": "Bu bir bot token'ı değil. @BotFather'ın gösterdiği gibi 123456789:AA… biçimindedir.",
+    "telegramTokenRejected": "Telegram bot token'ını reddetti.",
+    "telegramNetwork": "Telegram'a ulaşılamadı.",
+    "telegramTimeout": "Telegram zamanında yanıt vermedi.",
+    "telegramRateLimited": "Telegram mesajları sınırlıyor. Bir dakika sonra yeniden deneyin.",
+    "telegramChatUnreachable": "Bot bağlı sohbete yazamıyor. Telegram'da botu açıp Başlat'a basın.",
+    "telegramPollConflict": "Bu botun mesajlarını başka bir program okuyor. Bu botu yalnızca Aleph Edge için kullanın.",
+    "telegramHttp": "Telegram hata döndürdü ({{detail}}).",
+    "telegramBadResponse": "Telegram bu uygulamanın okuyamadığı bir yanıt gönderdi.",
+    "telegramNotLinked": "Önce bir Telegram sohbeti bağlayın.",
+    "telegramNoToken": "Önce bir bot token'ı kaydedin.",
+    "telegramKeychainFailed": "Sistem anahtar zinciri token'ı kaydedemedi."
   },
   "status": {
     "running": "Çalışıyor",

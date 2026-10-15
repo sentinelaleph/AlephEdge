@@ -489,6 +489,8 @@ export interface Preset {
   capitalModel: string;
   universe: PresetUniverse;
   history: HistoricalSimulation;
+  /** Smallest budget at which every order clears the exchange minimum (Rust validate::min_budget, price-free). */
+  minBudget: number | null;
 }
 
 type Mock = typeof import("./strategy.mock");

@@ -112,6 +112,7 @@ function configFacts(t: TFunction, p: Preset, locale: string): Fact[] {
     { label: t("table.market"), value: t(`filters.market.${c.market}`) },
     { label: t("table.side"), value: sideText(t, c.side) },
     { label: t("table.leverage"), value: `${c.leverage}x` },
+    { label: t("strategy.preview.minBudget"), value: p.minBudget !== null ? `${formatNumber(p.minBudget, locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT` : NO_VALUE },
   ];
   if (c.params.kind === "dca") {
     const d = c.params;
@@ -184,7 +185,10 @@ export function PresetsPage() {
           <Link to={`/presets/${p.id}`} className="ae-link">
             {presetName(t, p)}
           </Link>
-          <span className="ae-preset__situation">{t(`strategy.preset.situation.${p.situation}`, { defaultValue: p.situation })}</span>
+          <span className="ae-preset__situation">
+            {t(`strategy.preset.situation.${p.situation}`, { defaultValue: p.situation })}
+            {p.minBudget !== null ? ` · ${t("strategy.preset.minBudgetShort", { amount: formatNumber(Math.ceil(p.minBudget), locale, { maximumFractionDigits: 0 }) })}` : null}
+          </span>
         </>
       ),
     },
@@ -194,6 +198,7 @@ export function PresetsPage() {
     {
       id: "testMean",
       header: t("strategy.preset.col.testMean"),
+      keep: true,
       headerTip: t("strategy.preset.testMean"),
       detailLabel: t("strategy.preset.testMean"),
       numeric: true,
@@ -229,7 +234,8 @@ export function PresetsPage() {
       headerTip: t("strategy.preset.worstBotDd"),
       detailLabel: t("strategy.preset.worstBotDd"),
       numeric: true,
-      priority: 2,
+      // What a beginner checks before starting: never folded away.
+      keep: true,
       cell: (p) => formatSignedPercent(p.history.testWorstBotDrawdownPct, locale, 1),
     },
     {

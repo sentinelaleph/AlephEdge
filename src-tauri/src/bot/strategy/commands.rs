@@ -789,15 +789,45 @@ pub fn strategy_notes(mgr: State<StrategyManager>) -> Result<Vec<StrategyNote>, 
     Ok(mgr.notes())
 }
 
+/// A preset with the smallest budget at which every order of its config
+/// clears the exchange minimum (price-free, as `validate::min_budget`).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PresetView {
+    #[serde(flatten)]
+    pub preset: Preset,
+    pub min_budget: Option<f64>,
+}
+
 /// PRESET-READY research presets with their historical-simulation numbers.
 #[tauri::command]
-pub fn strategy_presets() -> Result<Vec<Preset>, String> {
-    Ok(presets::all())
+pub fn strategy_presets() -> Result<Vec<PresetView>, String> {
+    Ok(preset_views())
+}
+
+fn preset_views() -> Vec<PresetView> {
+    presets::all()
+        .into_iter()
+        .map(|preset| PresetView { min_budget: validate::min_budget(&preset.config), preset })
+        .collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_preset_carries_its_minimum_budget_flat_in_the_payload() {
+        let views = preset_views();
+        assert_eq!(views.len(), presets::all().len());
+        for v in &views {
+            let min = v.min_budget.unwrap_or_else(|| panic!("{} has no minimum budget", v.preset.id));
+            assert_eq!(Some(min), validate::min_budget(&v.preset.config), "{}", v.preset.id);
+            let json = serde_json::to_value(v).unwrap();
+            assert_eq!(json["id"], v.preset.id, "flattened");
+            assert_eq!(json["minBudget"].as_f64(), Some(min));
+        }
+    }
 
     #[test]
     fn a_second_futures_bot_on_a_symbol_is_flagged_but_never_the_edited_bot_itself() {

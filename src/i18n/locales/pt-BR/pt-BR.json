@@ -1358,7 +1358,7 @@
     "shortcutsHint": "Os atalhos funcionam fora dos campos de texto.",
     "motionHint": "Ajuste no Windows: Configurações, Acessibilidade, Efeitos visuais, Efeitos de animação.",
     "notify": {
-      "lede": "Os alertas aparecem sob o sino e no Painel. Este computador os calcula a partir do que seus bots informam. Nada é enviado por e-mail, para um celular ou como notificação do Windows.",
+      "lede": "Os alertas aparecem sob o sino e no Painel. Este computador os calcula a partir do que seus bots informam. Nada é enviado por e-mail ou como notificação do Windows; mensagens do Telegram só saem se você vincular um chat abaixo.",
       "group": {
         "safety": "Segurança",
         "bots": "Bots e trades",
@@ -1382,6 +1382,48 @@
       "activeNow": "Agora: {{count}}",
       "offNote": "Não aparece no sino. Os bots continuam agindo normalmente.",
       "allOn": "Mostrar todos"
+    },
+    "telegram": {
+      "title": "Telegram",
+      "loading": "Carregando…",
+      "failed": "A solicitação ao Telegram falhou.",
+      "lede": "Envia os eventos dos bots deste computador para um chat do Telegram pelo seu próprio bot, também com a janela na bandeja. As mensagens são em inglês e indicam Paper (simulado) ou LIVE.",
+      "state": {
+        "none": "Não configurado",
+        "noChat": "Nenhum chat vinculado",
+        "waiting": "Aguardando /start",
+        "linked": "Vinculado"
+      },
+      "step1": "No Telegram, abra o @BotFather, envie /newbot e copie o token que ele fornece.",
+      "step2": "Cole o token aqui. Ele é verificado com o Telegram e guardado no chaveiro do sistema.",
+      "step3": "Gere um código e envie /start com o código para o seu bot a partir de um chat privado.",
+      "token": "Token do bot",
+      "tokenHint": "Guardado no chaveiro do sistema. Este painel não consegue mostrá-lo de novo.",
+      "saveToken": "Salvar token",
+      "bot": "Bot",
+      "chat": "Chat",
+      "noChat": "Não vinculado",
+      "linkedNoName": "Vinculado",
+      "lastSent": "Último envio",
+      "lastError": "Último erro",
+      "never": "Nunca",
+      "sendThis": "Envie esta mensagem para {{bot}}:",
+      "codeExpires": "Válido até {{time}}. Só o chat privado que enviar é vinculado; todos os outros chats são ignorados.",
+      "getCode": "Gerar código",
+      "newCode": "Novo código",
+      "notifications": "Enviar notificações",
+      "notificationsDesc": "Verificado a cada 30 segundos. Mais de 5 eventos de uma vez chegam em uma só mensagem.",
+      "desc": {
+        "killSwitch": "O stop de perda diária ou o disjuntor da carteira foi acionado.",
+        "botError": "Um bot não pôde agir por um motivo técnico, ou um bot DCA/Grid terminou.",
+        "stopLoss": "Um trade de sinal ou um ciclo DCA/Grid fechou em um stop.",
+        "dealClosed": "Cada trade de sinal e ciclo DCA/Grid fechado, com o resultado líquido."
+      },
+      "commands": "Comandos /status e /stop",
+      "commandsDesc": "/status: bots em execução, posições abertas, líquido de hoje. /stop: para novas entradas em todos os bots; as posições abertas continuam abertas e gerenciadas. Só o chat vinculado pode usá-los.",
+      "sendTest": "Enviar teste",
+      "testSent": "Mensagem de teste enviada.",
+      "remove": "Remover"
     },
     "devices": {
       "canTitle": "O que um celular pareado pode fazer",
@@ -1726,7 +1768,7 @@
       "upper": "Preço superior",
       "nGrids": "Intervalos do grid",
       "spacing": "Espaçamento",
-      "stopOut": "Stop fora da faixa",
+      "rangeExit": "Quando o preço sai da faixa",
       "stopOutPct": "Distância do stop fora da faixa",
       "trailingUp": "Acompanhar alta",
       "trailUpLimitOn": "Limite do acompanhamento de alta",
@@ -1773,6 +1815,12 @@
       "rangeAbsolute": "Preços fixos.",
       "nGrids": "{{levels}} níveis de preço.",
       "stopOut": "Fecha o grid quando o preço negocia tão longe fora da faixa.",
+      "rangeExit": {
+        "wait": "A grid mantém a posição e não coloca ordens fora da faixa; volta a operar quando o preço retorna.",
+        "close": "Fecha a posição a mercado quando o preço negocia à distância do stop fora da faixa. Depois o bot para.",
+        "restartRelative": "Fecha a posição a mercado quando o preço negocia à distância do stop fora da faixa e, após a espera, abre uma nova grid em torno do novo preço.",
+        "restartAbsolute": "Fecha a posição a mercado quando o preço negocia à distância do stop fora da faixa e reabre a mesma faixa quando o preço volta para dentro da banda do stop (verificado a cada hora)."
+      },
       "trailingUp": "Só grids comprados: a faixa acompanha a alta e o stop superior fica desligado.",
       "gridTp": "Fecha o ciclo quando o lucro dele atinge esta parte do orçamento do ciclo.",
       "startPrice": "Dispara quando um candle de 1 minuto toca o preço; o ciclo abre no candle seguinte. Se já passou: dispara no primeiro candle.",
@@ -1788,6 +1836,11 @@
     "sizing": {
       "weights": "Ajustado ao orçamento",
       "fixed": "USDT fixo"
+    },
+    "rangeExit": {
+      "wait": "Aguardar",
+      "close": "Fechar",
+      "restart": "Reiniciar"
     },
     "range": {
       "relative": "Relativa %",
@@ -2033,6 +2086,7 @@
       "testMeanNote": "Teste = a última janela de dados, reservada enquanto o preset era escolhido. Cada número é por bot-mês: um bot novo de 1000 USDT por par a cada mês, e o ciclo aberto no fim do mês segue até fechar. Não é um único bot rodando por meses.",
       "ci95": "Intervalo de 95%",
       "monthsPositive": "Meses positivos",
+      "minBudgetShort": "a partir de {{amount}} USDT",
       "worstBotDd": "Pior drawdown de um bot",
       "verdict": "Veredito",
       "verdicts": {
@@ -2506,7 +2560,19 @@
     "closeCleanupFailed": "Fechada, mas as ordens de stop ou take-profit em {{detail}} não puderam ser canceladas. Cancele-as na corretora.",
     "botCapitalAboveCap": "O capital por posição está acima do teto de {{detail}} USDT do seu nível de risco. Reduza-o, ou aumente o saldo simulado ou o nível de risco em Risco e segurança.",
     "vaultSaltMismatch": "Outra versão do Aleph Edge substituiu o salt deste cofre no chaveiro do sistema, então nenhuma senha consegue abri-lo. Escolha \"Esqueceu a senha? Redefinir cofre\" e adicione suas chaves de corretora novamente.",
-    "updateOffTestnet": "O build testnet não instala atualizações."
+    "updateOffTestnet": "O build testnet não instala atualizações.",
+    "telegramTokenFormat": "Isto não é um token de bot. Ele tem a forma 123456789:AA…, como o @BotFather mostra.",
+    "telegramTokenRejected": "O Telegram recusou o token do bot.",
+    "telegramNetwork": "Não foi possível acessar o Telegram.",
+    "telegramTimeout": "O Telegram não respondeu a tempo.",
+    "telegramRateLimited": "O Telegram está limitando as mensagens. Tente de novo em um minuto.",
+    "telegramChatUnreachable": "O bot não consegue escrever no chat vinculado. Abra o bot no Telegram e toque em Iniciar.",
+    "telegramPollConflict": "Outro programa está lendo as mensagens deste bot. Use este bot só para o Aleph Edge.",
+    "telegramHttp": "O Telegram respondeu com um erro ({{detail}}).",
+    "telegramBadResponse": "O Telegram enviou uma resposta que este app não consegue ler.",
+    "telegramNotLinked": "Vincule um chat do Telegram primeiro.",
+    "telegramNoToken": "Salve um token de bot primeiro.",
+    "telegramKeychainFailed": "O chaveiro do sistema não salvou o token."
   },
   "status": {
     "running": "Em execução",

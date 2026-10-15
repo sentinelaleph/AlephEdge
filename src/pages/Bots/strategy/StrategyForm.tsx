@@ -113,6 +113,26 @@ export function matchesPreset(cfg: StrategyConfig, preset: Preset): boolean {
   );
 }
 
+export type RangeExit = "wait" | "close" | "restart";
+
+/**
+ * What a grid does when price leaves its range, in the two settings the
+ * engine reads: no stop distance = wait (the grid keeps its position and
+ * trades again inside the range); a stop distance closes the position at
+ * market, and `restart.afterStop` decides whether a new grid opens after it.
+ */
+export function rangeExitOf(p: GridParams, afterStop: boolean): RangeExit {
+  if (p.stopOutPct === null) return "wait";
+  return afterStop ? "restart" : "close";
+}
+
+export function withRangeExit(c: StrategyConfig, exit: RangeExit): StrategyConfig {
+  if (c.params.kind !== "grid") return c;
+  const stopOutPct = exit === "wait" ? null : (c.params.stopOutPct ?? 3);
+  const afterStop = exit === "wait" ? c.restart.afterStop : exit === "restart";
+  return { ...c, params: { ...c.params, stopOutPct }, restart: { ...c.restart, afterStop } };
+}
+
 /** Minutes to hours for display; hours typed become whole minutes. */
 const toHours = (min: number) => Math.round((min / 60) * 100) / 100;
 const toMin = (h: number) => Math.max(1, Math.round(h * 60));
@@ -603,12 +623,25 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
               />
             </div>
             <div className="ae-sform__options">
-              <CheckRow
-                label={t("strategy.field.stopOut")}
-                checked={p.stopOutPct !== null}
+              <Segmented
+                label={t("strategy.field.rangeExit")}
+                value={rangeExitOf(p, cfg.restart.afterStop)}
                 disabled={paramLocked}
-                onChange={(on) => setGrid({ stopOutPct: on ? 3 : null })}
-                hint={p.stopOutPct === null ? <span className="ae-warntext">{t(dd ? "strategy.warnings.ddStopOnly" : "strategy.warnings.noStopOut")}</span> : undefined}
+                options={[
+                  { value: "wait", label: t("strategy.rangeExit.wait") },
+                  { value: "close", label: t("strategy.rangeExit.close") },
+                  { value: "restart", label: t("strategy.rangeExit.restart") },
+                ]}
+                onChange={(v) => setCfg((c) => withRangeExit(c, v))}
+                hint={
+                  p.stopOutPct === null ? (
+                    <>
+                      {t("strategy.hint.rangeExit.wait")} <span className="ae-warntext">{t(dd ? "strategy.warnings.ddStopOnly" : "strategy.warnings.noStopOut")}</span>
+                    </>
+                  ) : (
+                    t(`strategy.hint.rangeExit.${rangeExitOf(p, cfg.restart.afterStop) === "restart" ? (p.range.type === "relative" ? "restartRelative" : "restartAbsolute") : "close"}`)
+                  )
+                }
               />
               {p.stopOutPct !== null ? (
                 <NumField label={t("strategy.field.stopOutPct")} unit="%" value={p.stopOutPct} disabled={paramLocked} onChange={(stopOutPct) => setGrid({ stopOutPct })} onInvalid={inv("stopOutPct")} invalidText={invalidText} error={fieldError("stopOutPct")} hint={t("strategy.hint.stopOut")} />
@@ -698,7 +731,10 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
             {cfg.restart.maxCycles !== null ? (
               <NumField label={t("strategy.field.maxCyclesN")} integer wireMax={U32} value={cfg.restart.maxCycles} onChange={(maxCycles) => setRestart({ maxCycles })} onInvalid={inv("maxCycles")} invalidText={invalidText} error={fieldError("maxCycles")} />
             ) : null}
-            <CheckRow label={t("strategy.field.afterStop")} checked={cfg.restart.afterStop} onChange={(afterStop) => setRestart({ afterStop })} hint={t("strategy.hint.afterStop")} />
+            {/* A grid sets this with "When price leaves the range". */}
+            {cfg.params.kind === "dca" ? (
+              <CheckRow label={t("strategy.field.afterStop")} checked={cfg.restart.afterStop} onChange={(afterStop) => setRestart({ afterStop })} hint={t("strategy.hint.afterStop")} />
+            ) : null}
             {!spot ? (
               <CheckRow label={t("strategy.field.afterLiquidation")} checked={cfg.restart.afterLiquidation} onChange={(afterLiquidation) => setRestart({ afterLiquidation })} hint={t("strategy.hint.afterLiquidation")} />
             ) : null}

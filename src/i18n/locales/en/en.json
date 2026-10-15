@@ -1358,7 +1358,7 @@
     "shortcutsHint": "Shortcuts work outside text fields.",
     "motionHint": "Set in Windows: Settings, Accessibility, Visual effects, Animation effects.",
     "notify": {
-      "lede": "Alerts appear under the bell and on the Dashboard. This computer works them out from what your bots report. Nothing is sent by email, to a phone or as a Windows notification.",
+      "lede": "Alerts appear under the bell and on the Dashboard. This computer works them out from what your bots report. Nothing is sent by email or as a Windows notification; Telegram messages go out only if you link a chat below.",
       "group": {
         "safety": "Safety",
         "bots": "Bots and trades",
@@ -1382,6 +1382,48 @@
       "activeNow": "Now: {{count}}",
       "offNote": "Hidden from the bell. The bots still act on it.",
       "allOn": "Show all"
+    },
+    "telegram": {
+      "title": "Telegram",
+      "loading": "Loading…",
+      "failed": "The Telegram request failed.",
+      "lede": "Sends bot events from this computer to one Telegram chat through your own bot, also while the window is in the tray. Messages are in English and say Paper or LIVE.",
+      "state": {
+        "none": "Not set up",
+        "noChat": "No chat linked",
+        "waiting": "Waiting for /start",
+        "linked": "Linked"
+      },
+      "step1": "In Telegram, open @BotFather, send /newbot and copy the token it gives you.",
+      "step2": "Paste the token here. It is checked with Telegram and kept in the system keychain.",
+      "step3": "Get a code and send /start with the code to your bot from a private chat.",
+      "token": "Bot token",
+      "tokenHint": "Kept in the system keychain. This panel cannot show it again.",
+      "saveToken": "Save token",
+      "bot": "Bot",
+      "chat": "Chat",
+      "noChat": "Not linked",
+      "linkedNoName": "Linked",
+      "lastSent": "Last sent",
+      "lastError": "Last error",
+      "never": "Never",
+      "sendThis": "Send this message to {{bot}}:",
+      "codeExpires": "Valid until {{time}}. Only the private chat that sends it is linked; every other chat is ignored.",
+      "getCode": "Get a code",
+      "newCode": "New code",
+      "notifications": "Send notifications",
+      "notificationsDesc": "Checked every 30 seconds. More than 5 events at once arrive as one message.",
+      "desc": {
+        "killSwitch": "The daily loss stop or the portfolio breaker tripped.",
+        "botError": "A bot could not act for a technical reason, or a DCA/Grid bot ended.",
+        "stopLoss": "A signal trade or a DCA/Grid cycle closed at a stop.",
+        "dealClosed": "Each closed signal trade and DCA/Grid cycle, with its net result."
+      },
+      "commands": "Commands /status and /stop",
+      "commandsDesc": "/status: bots running, open positions, today's net. /stop: stops new entries on every bot; open positions stay open and managed. Only the linked chat can use them.",
+      "sendTest": "Send test",
+      "testSent": "Test message sent.",
+      "remove": "Remove"
     },
     "devices": {
       "canTitle": "What a paired phone can do",
@@ -1726,7 +1768,7 @@
       "upper": "Upper price",
       "nGrids": "Grid intervals",
       "spacing": "Spacing",
-      "stopOut": "Stop beyond range",
+      "rangeExit": "When price leaves the range",
       "stopOutPct": "Stop distance beyond range",
       "trailingUp": "Trailing up",
       "trailUpLimitOn": "Trailing up limit",
@@ -1773,6 +1815,12 @@
       "rangeAbsolute": "Fixed prices.",
       "nGrids": "{{levels}} price levels.",
       "stopOut": "Closes the grid when price trades this far outside the range.",
+      "rangeExit": {
+        "wait": "The grid keeps its position and places no orders outside the range; it trades again when price comes back.",
+        "close": "Closes the position at market when price trades the stop distance beyond the range. The bot then stops.",
+        "restartRelative": "Closes the position at market when price trades the stop distance beyond the range, then opens a new grid around the new price after the cooldown.",
+        "restartAbsolute": "Closes the position at market when price trades the stop distance beyond the range, then opens the same range again once price is back inside the stop band (checked every hour)."
+      },
       "trailingUp": "Long grids only: the range follows price up and the upper stop is off.",
       "gridTp": "Closes the cycle when its profit reaches this share of the cycle budget.",
       "startPrice": "Fires when a 1-minute candle touches the price; the cycle opens on the next candle. Already past it: fires on the first candle.",
@@ -1788,6 +1836,11 @@
     "sizing": {
       "weights": "Scaled to budget",
       "fixed": "Fixed USDT"
+    },
+    "rangeExit": {
+      "wait": "Wait",
+      "close": "Close",
+      "restart": "Restart"
     },
     "range": {
       "relative": "Relative %",
@@ -2033,6 +2086,7 @@
       "testMeanNote": "Test = the last data window, held out while the preset was chosen. Every figure is per bot-month: a new 1000 USDT bot per pair each month, a cycle open at month end left to run on. Not one bot kept running.",
       "ci95": "95% interval",
       "monthsPositive": "Months positive",
+      "minBudgetShort": "from {{amount}} USDT",
       "worstBotDd": "Worst bot drawdown",
       "verdict": "Verdict",
       "verdicts": {
@@ -2506,7 +2560,19 @@
     "closeCleanupFailed": "Closed, but the stop or take-profit orders on {{detail}} could not be cancelled. Cancel them on the exchange.",
     "botCapitalAboveCap": "Capital per position is above your risk level's cap of {{detail}} USDT. Lower it, or raise the simulated balance or the risk level on Risk & safety.",
     "vaultSaltMismatch": "This vault's salt in the system keychain was replaced by another Aleph Edge build, so no password can open it. Choose \"Forgot your password? Reset vault\" and add your exchange keys again.",
-    "updateOffTestnet": "The testnet build does not install updates."
+    "updateOffTestnet": "The testnet build does not install updates.",
+    "telegramTokenFormat": "This is not a bot token. It looks like 123456789:AA… as @BotFather shows it.",
+    "telegramTokenRejected": "Telegram rejected the bot token.",
+    "telegramNetwork": "Telegram could not be reached.",
+    "telegramTimeout": "Telegram did not answer in time.",
+    "telegramRateLimited": "Telegram is limiting messages. Try again in a minute.",
+    "telegramChatUnreachable": "The bot cannot write to the linked chat. Open the bot in Telegram and press Start.",
+    "telegramPollConflict": "Another program is reading this bot's messages. Use this bot for Aleph Edge only.",
+    "telegramHttp": "Telegram answered with an error ({{detail}}).",
+    "telegramBadResponse": "Telegram sent an answer this app cannot read.",
+    "telegramNotLinked": "Link a Telegram chat first.",
+    "telegramNoToken": "Save a bot token first.",
+    "telegramKeychainFailed": "The system keychain did not save the token."
   },
   "status": {
     "running": "Running",

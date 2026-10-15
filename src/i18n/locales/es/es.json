@@ -1358,7 +1358,7 @@
     "shortcutsHint": "Los atajos funcionan fuera de los campos de texto.",
     "motionHint": "Se ajusta en Windows: Configuración, Accesibilidad, Efectos visuales, Efectos de animación.",
     "notify": {
-      "lede": "Las alertas aparecen bajo la campana y en el Panel. Este equipo las calcula a partir de lo que informan tus bots. No se envía nada por correo, a un teléfono ni como notificación de Windows.",
+      "lede": "Las alertas aparecen bajo la campana y en el Panel. Este equipo las calcula a partir de lo que informan tus bots. No se envía nada por correo ni como notificación de Windows; los mensajes de Telegram solo salen si vinculas un chat abajo.",
       "group": {
         "safety": "Seguridad",
         "bots": "Bots y operaciones",
@@ -1382,6 +1382,48 @@
       "activeNow": "Ahora: {{count}}",
       "offNote": "No aparece en la campana. Los bots siguen actuando igual.",
       "allOn": "Mostrar todas"
+    },
+    "telegram": {
+      "title": "Telegram",
+      "loading": "Cargando…",
+      "failed": "La solicitud a Telegram falló.",
+      "lede": "Envía los eventos de los bots desde este equipo a un chat de Telegram a través de tu propio bot, también con la ventana en la bandeja. Los mensajes están en inglés e indican Paper (simulado) o LIVE.",
+      "state": {
+        "none": "Sin configurar",
+        "noChat": "Sin chat vinculado",
+        "waiting": "Esperando /start",
+        "linked": "Vinculado"
+      },
+      "step1": "En Telegram, abre @BotFather, envía /newbot y copia el token que te da.",
+      "step2": "Pega el token aquí. Se verifica con Telegram y se guarda en el llavero del sistema.",
+      "step3": "Obtén un código y envía /start con el código a tu bot desde un chat privado.",
+      "token": "Token del bot",
+      "tokenHint": "Se guarda en el llavero del sistema. Este panel no puede volver a mostrarlo.",
+      "saveToken": "Guardar token",
+      "bot": "Bot",
+      "chat": "Chat",
+      "noChat": "No vinculado",
+      "linkedNoName": "Vinculado",
+      "lastSent": "Último envío",
+      "lastError": "Último error",
+      "never": "Nunca",
+      "sendThis": "Envía este mensaje a {{bot}}:",
+      "codeExpires": "Válido hasta las {{time}}. Solo se vincula el chat privado que lo envíe; todos los demás chats se ignoran.",
+      "getCode": "Obtener código",
+      "newCode": "Nuevo código",
+      "notifications": "Enviar notificaciones",
+      "notificationsDesc": "Se revisa cada 30 segundos. Más de 5 eventos a la vez llegan en un solo mensaje.",
+      "desc": {
+        "killSwitch": "Se activó el stop de pérdida diaria o el cortacircuitos de la cartera.",
+        "botError": "Un bot no pudo actuar por un motivo técnico, o un bot DCA/Grid terminó.",
+        "stopLoss": "Una operación de señal o un ciclo DCA/Grid cerró en un stop.",
+        "dealClosed": "Cada operación de señal y ciclo DCA/Grid cerrado, con su resultado neto."
+      },
+      "commands": "Comandos /status y /stop",
+      "commandsDesc": "/status: bots en marcha, posiciones abiertas, neto de hoy. /stop: detiene las nuevas entradas en todos los bots; las posiciones abiertas siguen abiertas y gestionadas. Solo el chat vinculado puede usarlos.",
+      "sendTest": "Enviar prueba",
+      "testSent": "Mensaje de prueba enviado.",
+      "remove": "Quitar"
     },
     "devices": {
       "canTitle": "Qué puede hacer un teléfono emparejado",
@@ -1726,7 +1768,7 @@
       "upper": "Precio superior",
       "nGrids": "Intervalos de la grid",
       "spacing": "Espaciado",
-      "stopOut": "Stop fuera del rango",
+      "rangeExit": "Cuando el precio sale del rango",
       "stopOutPct": "Distancia del stop fuera del rango",
       "trailingUp": "Seguimiento al alza",
       "trailUpLimitOn": "Límite del seguimiento al alza",
@@ -1773,6 +1815,12 @@
       "rangeAbsolute": "Precios fijos.",
       "nGrids": "{{levels}} niveles de precio.",
       "stopOut": "Cierra la grid cuando el precio cotiza así de lejos fuera del rango.",
+      "rangeExit": {
+        "wait": "La grid mantiene su posición y no coloca órdenes fuera del rango; vuelve a operar cuando el precio regresa.",
+        "close": "Cierra la posición a mercado cuando el precio cotiza a la distancia del stop fuera del rango. Después el bot se detiene.",
+        "restartRelative": "Cierra la posición a mercado cuando el precio cotiza a la distancia del stop fuera del rango y, tras la espera, abre una nueva grid alrededor del nuevo precio.",
+        "restartAbsolute": "Cierra la posición a mercado cuando el precio cotiza a la distancia del stop fuera del rango y vuelve a abrir el mismo rango cuando el precio regresa dentro de la banda del stop (se comprueba cada hora)."
+      },
       "trailingUp": "Solo grids largas: el rango sigue al precio al alza y el stop superior queda desactivado.",
       "gridTp": "Cierra el ciclo cuando su ganancia alcanza esta parte del presupuesto del ciclo.",
       "startPrice": "Se activa cuando una vela de 1 minuto toca el precio; el ciclo abre en la vela siguiente. Si ya lo superó: se activa en la primera vela.",
@@ -1788,6 +1836,11 @@
     "sizing": {
       "weights": "Escalado al presupuesto",
       "fixed": "USDT fijos"
+    },
+    "rangeExit": {
+      "wait": "Esperar",
+      "close": "Cerrar",
+      "restart": "Reiniciar"
     },
     "range": {
       "relative": "Relativo %",
@@ -2033,6 +2086,7 @@
       "testMeanNote": "Test = la última ventana de datos, reservada mientras se elegía el preajuste. Cada cifra es por bot-mes: un bot nuevo de 1000 USDT por par cada mes, y el ciclo abierto a fin de mes sigue hasta cerrarse. No es un solo bot en marcha durante meses.",
       "ci95": "Intervalo del 95%",
       "monthsPositive": "Meses positivos",
+      "minBudgetShort": "desde {{amount}} USDT",
       "worstBotDd": "Peor drawdown de un bot",
       "verdict": "Veredicto",
       "verdicts": {
@@ -2506,7 +2560,19 @@
     "closeCleanupFailed": "Cerrada, pero no se pudieron cancelar las órdenes de stop o take-profit en {{detail}}. Cancélalas en el exchange.",
     "botCapitalAboveCap": "El capital por posición supera el tope de {{detail}} USDT de tu nivel de riesgo. Bájalo, o sube el saldo simulado o el nivel de riesgo en Riesgo y seguridad.",
     "vaultSaltMismatch": "Otra compilación de Aleph Edge reemplazó la sal de esta bóveda en el llavero del sistema, así que ninguna contraseña puede abrirla. Elige \"¿Olvidaste tu contraseña? Restablecer bóveda\" y vuelve a añadir tus claves de exchange.",
-    "updateOffTestnet": "La compilación testnet no instala actualizaciones."
+    "updateOffTestnet": "La compilación testnet no instala actualizaciones.",
+    "telegramTokenFormat": "Esto no es un token de bot. Tiene la forma 123456789:AA…, como lo muestra @BotFather.",
+    "telegramTokenRejected": "Telegram rechazó el token del bot.",
+    "telegramNetwork": "No se pudo contactar con Telegram.",
+    "telegramTimeout": "Telegram no respondió a tiempo.",
+    "telegramRateLimited": "Telegram está limitando los mensajes. Inténtalo de nuevo en un minuto.",
+    "telegramChatUnreachable": "El bot no puede escribir en el chat vinculado. Abre el bot en Telegram y pulsa Iniciar.",
+    "telegramPollConflict": "Otro programa está leyendo los mensajes de este bot. Usa este bot solo para Aleph Edge.",
+    "telegramHttp": "Telegram respondió con un error ({{detail}}).",
+    "telegramBadResponse": "Telegram envió una respuesta que esta app no puede leer.",
+    "telegramNotLinked": "Primero vincula un chat de Telegram.",
+    "telegramNoToken": "Primero guarda un token de bot.",
+    "telegramKeychainFailed": "El llavero del sistema no guardó el token."
   },
   "status": {
     "running": "En marcha",
