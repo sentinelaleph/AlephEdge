@@ -1853,6 +1853,8 @@
       "profitPerGrid": "Profit per grid setelah biaya",
       "minNetPerGrid": "Neto minimum per grid",
       "minNetPerGridInfo": "Grid yang langkah terkecilnya menghasilkan kurang dari ini setelah biaya ditolak: satu putaran biaya maker lagi ditambah slippage, sehingga biaya tidak pernah mengambil lebih dari sekitar setengah hasil grid.",
+      "tpNet": "Take profit setelah biaya",
+      "tpNetInfo": "Take profit dikurangi satu kali pulang-pergi (entri market, keluar maker, slippage). Take profit harus minimal {{min}}%.",
       "ordersNow": "Order saat mulai",
       "buySell": "{{buy}} beli · {{sell}} jual",
       "qtyPerLevel": "Jumlah per level",
@@ -1882,7 +1884,8 @@
       "noStopOut": "Tanpa stop: kerugian inventaris tak terbatas.",
       "trailLimitInsideRange": "Batas trail berada di dalam rentang pada harga ini: rentang tidak pernah bergeser.",
       "gridLiqInsideBandNow": "Perkiraan likuidasi masuk ke pita pada harga ini: bot menunggu hingga keluar.",
-      "ddStopOnly": "Hanya stop drawdown bot yang membatasi kerugian."
+      "ddStopOnly": "Hanya stop drawdown bot yang membatasi kerugian.",
+      "symbolSharedLive": "Bot lain memakai simbol futures ini. Keduanya bisa berjalan di paper, tetapi hanya satu yang bisa memperdagangkannya dengan uang sungguhan: Binance menyimpan satu leverage per simbol."
     },
     "detail": {
       "preset": "Preset",
@@ -2247,6 +2250,7 @@
       "gridTpInvalid": "Take profit harus di atas 0.",
       "trailLimitInvalid": "Batas trailing harus di atas harga atas.",
       "gridStepBelowFees": "Langkah grid terlalu kecil: setelah biaya setiap grid harus tetap menghasilkan satu putaran biaya lagi ditambah slippage. Kurangi interval atau lebarkan rentang.",
+      "tpBelowFees": "Take profit terlalu kecil: minimal dua kali biaya pulang-pergi (biaya plus slippage), atau biaya mengambil lebih dari separuh setiap siklus yang menang.",
       "gridLiqInsideBand": "Perkiraan likuidasi berada di dalam rentang atau stop: turunkan leverage.",
       "gridBadRange": "Rentang grid tidak valid.",
       "botUnknown": "Bot tidak ditemukan.",

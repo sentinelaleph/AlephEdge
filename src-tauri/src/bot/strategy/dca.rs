@@ -56,6 +56,20 @@ pub fn required_capital(base: f64, safeties: &[f64], leverage: f64) -> f64 {
     (base + safeties.iter().sum::<f64>()) / leverage
 }
 
+/// Cost of one round trip at the take profit, percent of notional: a market
+/// entry (taker + slippage; the base order is the worst case, safety orders
+/// are maker) and a maker exit.
+pub fn round_trip_cost_pct(costs: &super::costs::CostModel) -> f64 {
+    (costs.taker + costs.slippage + costs.maker) * 100.0
+}
+
+/// Smallest take profit a DCA config may have, percent: twice the round trip,
+/// so fees never take more than about half of a winning cycle (the grid
+/// floor's rule, `grid::min_net_per_grid_pct`). Futures 0.18%, spot 0.44%.
+pub fn min_tp_pct(costs: &super::costs::CostModel) -> f64 {
+    2.0 * round_trip_cost_pct(costs)
+}
+
 pub fn avg_entry(notional: f64, qty: f64) -> f64 {
     notional / qty
 }

@@ -201,7 +201,7 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
     const id = ++seq.current;
     setVerdict(undefined);
     const timer = window.setTimeout(() => {
-      strategyPreview(cfg)
+      strategyPreview(cfg, null, bot?.id ?? null)
         .then((p) => {
           if (id !== seq.current) return;
           setPreview(p);

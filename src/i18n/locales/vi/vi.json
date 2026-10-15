@@ -1853,6 +1853,8 @@
       "profitPerGrid": "Lợi nhuận mỗi lưới sau phí",
       "minNetPerGrid": "Lãi ròng tối thiểu mỗi lưới",
       "minNetPerGridInfo": "Lưới có bước nhỏ nhất lãi ít hơn mức này sau phí sẽ bị từ chối: thêm một vòng phí maker nữa cộng trượt giá, để phí không bao giờ lấy quá khoảng một nửa số lãi của lưới.",
+      "tpNet": "Chốt lời sau phí",
+      "tpNetInfo": "Chốt lời trừ một lượt khứ hồi (vào lệnh thị trường, thoát maker, trượt giá). Bản thân mức chốt lời phải ít nhất {{min}}%.",
       "ordersNow": "Lệnh lúc bắt đầu",
       "buySell": "{{buy}} mua · {{sell}} bán",
       "qtyPerLevel": "Khối lượng mỗi mức",
@@ -1882,7 +1884,8 @@
       "noStopOut": "Không có dừng: lỗ trên hàng tồn không giới hạn.",
       "trailLimitInsideRange": "Giới hạn trượt nằm trong vùng giá ở mức giá này: vùng sẽ không trượt.",
       "gridLiqInsideBandNow": "Thanh lý ước tính rơi vào dải ở mức giá này: bot chờ đến khi ra khỏi dải.",
-      "ddStopOnly": "Chỉ mức dừng theo sụt giảm của bot giới hạn khoản lỗ."
+      "ddStopOnly": "Chỉ mức dừng theo sụt giảm của bot giới hạn khoản lỗ.",
+      "symbolSharedLive": "Một bot khác đang dùng mã futures này. Cả hai có thể chạy giấy, nhưng chỉ một bot được giao dịch bằng tiền thật: Binance giữ một mức đòn bẩy cho mỗi mã."
     },
     "detail": {
       "preset": "Cấu hình mẫu",
@@ -2247,6 +2250,7 @@
       "gridTpInvalid": "Chốt lời phải lớn hơn 0.",
       "trailLimitInvalid": "Giới hạn dời phải cao hơn giá trên.",
       "gridStepBelowFees": "Bước lưới quá nhỏ: sau phí mỗi lưới vẫn phải lãi thêm một vòng phí cộng trượt giá. Giảm số khoảng hoặc nới rộng khoảng giá.",
+      "tpBelowFees": "Chốt lời quá nhỏ: phải ít nhất gấp đôi chi phí khứ hồi (phí cộng trượt giá), nếu không phí sẽ lấy hơn một nửa mỗi chu kỳ thắng.",
       "gridLiqInsideBand": "Thanh lý ước tính nằm trong khoảng giá hoặc vùng dừng: giảm đòn bẩy.",
       "gridBadRange": "Khoảng lưới không hợp lệ.",
       "botUnknown": "Không tìm thấy bot.",

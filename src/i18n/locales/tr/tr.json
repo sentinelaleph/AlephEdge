@@ -1853,6 +1853,8 @@
       "profitPerGrid": "Ücretler sonrası grid başına kâr",
       "minNetPerGrid": "Grid başına en az net",
       "minNetPerGridInfo": "En küçük adımı ücretlerden sonra bundan az kazandıran grid reddedilir: bir gidiş-dönüş maker ücreti daha artı kayma; böylece ücretler bir gridin kazancının yaklaşık yarısından fazlasını almaz.",
+      "tpNet": "Komisyon sonrası kâr al",
+      "tpNetInfo": "Kâr al eksi bir gidiş-dönüş (market giriş, maker çıkış, kayma). Kâr alın kendisi en az %{{min}} olmalı.",
       "ordersNow": "Başlangıçtaki emirler",
       "buySell": "{{buy}} alış · {{sell}} satış",
       "qtyPerLevel": "Seviye başına miktar",
@@ -1882,7 +1884,8 @@
       "noStopOut": "Stop yok: envanter kaybı sınırsız.",
       "trailLimitInsideRange": "Takip sınırı bu fiyatta aralığın içinde: aralık hiç kaymaz.",
       "gridLiqInsideBandNow": "Tahmini likidasyon bu fiyatta bandın içine giriyor: bot bant dışına çıkana kadar bekler.",
-      "ddStopOnly": "Kaybı yalnızca bot düşüş durdurucusu sınırlar."
+      "ddStopOnly": "Kaybı yalnızca bot düşüş durdurucusu sınırlar.",
+      "symbolSharedLive": "Bu vadeli sembolü başka bir bot da kullanıyor. Simülede ikisi birlikte çalışabilir, ama gerçek parayla yalnızca biri işlem yapabilir: Binance her sembol için tek kaldıraç tutar."
     },
     "detail": {
       "preset": "Hazır ayar",
@@ -2247,6 +2250,7 @@
       "gridTpInvalid": "Kâr al 0'dan büyük olmalı.",
       "trailLimitInvalid": "İzleme sınırı üst fiyatın üstünde olmalı.",
       "gridStepBelowFees": "Grid adımı çok küçük: ücretlerden sonra her grid bir gidiş-dönüş ücreti artı kayma kadar daha kazanmalı. Daha az aralık veya daha geniş bir fiyat aralığı seçin.",
+      "tpBelowFees": "Kâr al çok küçük: gidiş-dönüş maliyetinin (komisyon artı kayma) en az iki katı olmalı, yoksa komisyon her kazançlı döngünün yarısından fazlasını alır.",
       "gridLiqInsideBand": "Tahmini likidasyon aralığın veya stopun içinde: kaldıracı düşürün.",
       "gridBadRange": "Geçersiz grid aralığı.",
       "botUnknown": "Bot bulunamadı.",

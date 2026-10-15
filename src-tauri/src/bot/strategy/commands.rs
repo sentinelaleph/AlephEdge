@@ -171,6 +171,7 @@ pub async fn strategy_preview(
     app: AppHandle,
     config: StrategyConfig,
     last_price: Option<f64>,
+    bot_id: Option<String>,
 ) -> Result<PreviewDto, String> {
     let price = match last_price.filter(|p| p.is_finite() && *p > 0.0) {
         Some(p) => p,
@@ -186,7 +187,32 @@ pub async fn strategy_preview(
             .ok_or("priceUnavailable")?
         }
     };
-    Ok(validate::preview(&config, price, max_leverage(&app)))
+    let mut dto = validate::preview(&config, price, max_leverage(&app));
+    let others: Vec<_> = app.state::<StrategyManager>().bots().into_iter().map(|b| (b.id, b.cfg)).collect();
+    if shares_live_symbol(&config, bot_id.as_deref(), &others) {
+        dto.warnings.push("symbolSharedLive");
+    }
+    Ok(dto)
+}
+
+/// True when another strategy bot trades the same futures symbol. Paper bots
+/// can share it, but real money allows one position per symbol
+/// (`liveSymbolBusy`): the user should learn that while setting up, not when
+/// switching to live. Binance keeps leverage per symbol, which is why two
+/// real bots on one symbol could not each keep their own (3Commas warns about
+/// exactly this). `bot_id` is the bot being edited, never counted.
+pub(crate) fn shares_live_symbol(
+    cfg: &StrategyConfig,
+    bot_id: Option<&str>,
+    others: &[(String, StrategyConfig)],
+) -> bool {
+    cfg.market == MarketKind::Futures
+        && others.iter().any(|(id, o)| {
+            Some(id.as_str()) != bot_id
+                && o.market == MarketKind::Futures
+                && o.exchange_id == cfg.exchange_id
+                && o.symbol.eq_ignore_ascii_case(&cfg.symbol)
+        })
 }
 
 #[derive(Serialize)]
@@ -772,6 +798,26 @@ pub fn strategy_presets() -> Result<Vec<Preset>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_second_futures_bot_on_a_symbol_is_flagged_but_never_the_edited_bot_itself() {
+        let a = default_config(StrategyKind::Dca, "binance".into(), "BTCUSDT".into());
+        let others = vec![("bot-a".to_string(), a.clone())];
+        // The same bot being edited does not count.
+        assert!(!shares_live_symbol(&a, Some("bot-a"), &others));
+        // A new bot on the same symbol does.
+        assert!(shares_live_symbol(&a, None, &others));
+        // Another symbol, a spot bot, or another exchange does not.
+        let mut eth = a.clone();
+        eth.symbol = "ETHUSDT".into();
+        assert!(!shares_live_symbol(&eth, None, &others));
+        let mut spot = a.clone();
+        spot.market = MarketKind::Spot;
+        assert!(!shares_live_symbol(&spot, None, &others));
+        let mut other_venue = a.clone();
+        other_venue.exchange_id = "bybit".into();
+        assert!(!shares_live_symbol(&other_venue, None, &others));
+    }
 
     #[test]
     fn rust_defaults_validate() {

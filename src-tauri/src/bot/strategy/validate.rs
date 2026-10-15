@@ -144,6 +144,13 @@ fn validate_dca(cfg: &StrategyConfig, p: &DcaParams) -> V {
     // A short's take profit sits at avg x (1 - tp%): 100% is a price of 0,
     // an order that can never fill.
     need(cfg.side != Side::Short || p.tp_pct < 100.0, "tpInvalid", "tpPct")?;
+    // A take profit inside the round-trip cost wins nothing: fees would take
+    // more than half of every winning cycle (3Commas only warns about this).
+    need(
+        p.tp_pct >= dca::min_tp_pct(&CostModel::for_market(cfg.market)) - 1e-9,
+        "tpBelowFees",
+        "tpPct",
+    )?;
     if let Some(t) = p.trailing_pct {
         need(pos(t) && t < 50.0, "trailingInvalid", "trailingPct")?;
         // The trail arms at the take profit and exits t% off the peak: with
@@ -445,6 +452,10 @@ pub struct DcaPreview {
     /// The stop loss the form proposes when it is switched on (None: no
     /// stop fits this ladder at this leverage).
     pub suggested_sl_pct: Option<f64>,
+    /// Smallest take profit validation accepts (`dca::min_tp_pct`), %.
+    pub min_tp_pct: f64,
+    /// Take profit after one round trip of fees and slippage, %.
+    pub tp_net_pct: f64,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -550,6 +561,8 @@ pub fn preview(cfg: &StrategyConfig, price: f64, max_leverage: u8) -> PreviewDto
             }
             DcaPreview {
                 suggested_sl_pct: suggested_sl_pct(cfg, p),
+                min_tp_pct: dca::min_tp_pct(&costs),
+                tp_net_pct: p.tp_pct - dca::round_trip_cost_pct(&costs),
                 liq_distance_pct: match (last_so_price, liq) {
                     (Some(so), Some(l)) => Some((l / so - 1.0).abs() * 100.0),
                     _ => None,
@@ -748,6 +761,26 @@ pub(crate) mod tests {
             f(p);
         }
         c
+    }
+
+    #[test]
+    fn dca_take_profit_must_clear_twice_the_round_trip() {
+        // Futures: taker 0.05% + slippage 0.02% + maker 0.02% = 0.09% a round trip.
+        assert!((dca::min_tp_pct(&CostModel::for_market(MarketKind::Futures)) - 0.18).abs() < 1e-9);
+        assert_eq!(code(&with_dca(|p| p.tp_pct = 0.17), 1), Some("tpBelowFees"));
+        assert_eq!(code(&with_dca(|p| p.tp_pct = 0.18), 1), None);
+        // Spot: 0.10% + 0.02% + 0.10% = 0.22%, floor 0.44%.
+        let mut spot = with_dca(|p| p.tp_pct = 0.40);
+        spot.market = MarketKind::Spot;
+        assert_eq!(code(&spot, 1), Some("tpBelowFees"));
+        if let StrategyParams::Dca(p) = &mut spot.params {
+            p.tp_pct = 0.44;
+        }
+        assert_eq!(code(&spot, 1), None);
+        // The preview shows the floor and what is left after one round trip.
+        let pv = preview(&with_dca(|p| p.tp_pct = 1.0), 100.0, 1);
+        let d = pv.dca.expect("dca preview");
+        assert!((d.min_tp_pct - 0.18).abs() < 1e-9 && (d.tp_net_pct - 0.91).abs() < 1e-9);
     }
 
     // A trail at or beyond the take-profit turns target hits into trail

@@ -238,6 +238,10 @@ export interface DcaPreview {
   worstLossBasis: "sl" | "ddStop" | "liq" | "none";
   /** The stop loss proposed when it is switched on; null = none fits. */
   suggestedSlPct: number | null;
+  /** Smallest take profit validation accepts (twice the round-trip cost), %. */
+  minTpPct: number;
+  /** Take profit after one round trip of fees and slippage, %. */
+  tpNetPct: number;
 }
 
 export interface GridLevelRow {
@@ -503,8 +507,9 @@ export const strategyDefault = (kind: StrategyKind, exchangeId: string, symbol: 
   call<StrategyConfig>("strategy_default", { kind, exchangeId, symbol }, (m) => m.defaults(kind, exchangeId, symbol));
 
 /** `lastPrice` null = Rust reads the live price itself. */
-export const strategyPreview = (config: StrategyConfig, lastPrice: number | null = null) =>
-  call<PreviewDto>("strategy_preview", { config, lastPrice }, (m) => m.preview(config));
+/** `botId`: the bot being edited, so it never counts as another bot on its own symbol. */
+export const strategyPreview = (config: StrategyConfig, lastPrice: number | null = null, botId: string | null = null) =>
+  call<PreviewDto>("strategy_preview", { config, lastPrice, botId }, (m) => m.preview(config));
 
 export interface ValidationReport {
   ok: boolean;

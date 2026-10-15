@@ -1853,6 +1853,8 @@
       "profitPerGrid": "Profit per grid after fees",
       "minNetPerGrid": "Minimum net per grid",
       "minNetPerGridInfo": "A grid whose smallest step earns less than this after fees is refused: one more round trip of maker fees plus slippage, so fees never take more than about half of what a grid earns.",
+      "tpNet": "Take profit after fees",
+      "tpNetInfo": "Take profit minus one round trip (market entry, maker exit, slippage). The take profit itself must be at least {{min}}%.",
       "ordersNow": "Orders at start",
       "buySell": "{{buy}} buy · {{sell}} sell",
       "qtyPerLevel": "Quantity per level",
@@ -1882,7 +1884,8 @@
       "noStopOut": "No stop: inventory loss is open-ended.",
       "trailLimitInsideRange": "Trail limit sits inside the range at this price: the range never trails.",
       "gridLiqInsideBandNow": "Est. liquidation enters the band at this price: the bot waits until it leaves.",
-      "ddStopOnly": "Only the bot drawdown stop limits the loss."
+      "ddStopOnly": "Only the bot drawdown stop limits the loss.",
+      "symbolSharedLive": "Another bot uses this futures symbol. Both can run on paper, but only one can trade it with real money: Binance keeps one leverage per symbol."
     },
     "detail": {
       "preset": "Preset",
@@ -2247,6 +2250,7 @@
       "gridTpInvalid": "Take profit must be above 0.",
       "trailLimitInvalid": "The trailing limit must be above the upper price.",
       "gridStepBelowFees": "Grid step too small: after fees each grid must still earn another round trip of fees plus slippage. Use fewer intervals or a wider range.",
+      "tpBelowFees": "Take profit too small: it must be at least twice the round-trip cost (fees plus slippage), or fees take more than half of every winning cycle.",
       "gridLiqInsideBand": "Est. liquidation sits inside the range or stop: lower the leverage.",
       "gridBadRange": "Invalid grid range.",
       "botUnknown": "Bot not found.",

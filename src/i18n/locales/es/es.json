@@ -1853,6 +1853,8 @@
       "profitPerGrid": "Beneficio por grid tras comisiones",
       "minNetPerGrid": "Neto mínimo por grid",
       "minNetPerGridInfo": "Se rechaza una grid cuyo paso más pequeño gana menos que esto tras comisiones: otra ida y vuelta de comisiones maker más deslizamiento, para que las comisiones nunca se lleven más de la mitad de lo que gana una grid.",
+      "tpNet": "Take profit tras comisiones",
+      "tpNetInfo": "Take profit menos una ida y vuelta (entrada a mercado, salida maker, deslizamiento). El take profit debe ser al menos {{min}}%.",
       "ordersNow": "Órdenes al inicio",
       "buySell": "{{buy}} compra · {{sell}} venta",
       "qtyPerLevel": "Cantidad por nivel",
@@ -1882,7 +1884,8 @@
       "noStopOut": "Sin stop: la pérdida del inventario no tiene límite.",
       "trailLimitInsideRange": "El límite de arrastre queda dentro del rango a este precio: el rango nunca se desplaza.",
       "gridLiqInsideBandNow": "La liquidación estimada entra en la banda a este precio: el bot espera hasta que salga.",
-      "ddStopOnly": "Solo el stop por drawdown del bot limita la pérdida."
+      "ddStopOnly": "Solo el stop por drawdown del bot limita la pérdida.",
+      "symbolSharedLive": "Otro bot usa este símbolo de futuros. Ambos pueden funcionar en papel, pero solo uno puede operarlo con dinero real: Binance guarda un único apalancamiento por símbolo."
     },
     "detail": {
       "preset": "Preajuste",
@@ -2247,6 +2250,7 @@
       "gridTpInvalid": "El take profit debe ser mayor que 0.",
       "trailLimitInvalid": "El límite de seguimiento debe estar sobre el precio superior.",
       "gridStepBelowFees": "Paso de la grid demasiado pequeño: tras comisiones cada grid debe ganar otra ida y vuelta de comisiones más deslizamiento. Usa menos intervalos o un rango más amplio.",
+      "tpBelowFees": "Take profit demasiado bajo: debe ser al menos el doble del coste de ida y vuelta (comisiones más deslizamiento), o las comisiones se llevan más de la mitad de cada ciclo ganador.",
       "gridLiqInsideBand": "La liquidación est. queda dentro del rango o del stop: reduzca el apalancamiento.",
       "gridBadRange": "Rango de grid no válido.",
       "botUnknown": "Bot no encontrado.",

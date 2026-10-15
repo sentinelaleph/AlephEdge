@@ -101,6 +101,12 @@ export function StrategyPreviewPanel({ preview, error, cfg, available, backtest 
               { label: t("strategy.preview.coverage"), value: `${formatNumber(preview.dca.maxCoveragePct, locale, { maximumFractionDigits: 2 })}%` },
               { label: t("strategy.preview.lastSoPrice"), value: px(preview.dca.lastSoPrice) },
               { label: t("strategy.preview.totalNotional"), value: usdt(preview.dca.totalNotional) },
+              {
+                label: t("strategy.preview.tpNet"),
+                value: `${formatNumber(preview.dca.tpNetPct, locale, { maximumFractionDigits: 3 })}%`,
+                info: t("strategy.preview.tpNetInfo", { min: formatNumber(preview.dca.minTpPct, locale, { maximumFractionDigits: 2 }) }),
+                tone: preview.dca.tpNetPct < preview.dca.minTpPct / 2 - 1e-9 ? "danger" : undefined,
+              },
               { label: t("strategy.preview.liqPrice"), value: preview.dca.liqPrice === null ? t("strategy.preview.noLiqAt", { leverage: cfg.leverage }) : px(preview.dca.liqPrice), tone: preview.dca.liqPrice !== null ? "warn" : undefined },
               ...(preview.dca.liqDistancePct !== null
                 ? [{ label: t("strategy.preview.liqDistance"), value: `${formatNumber(preview.dca.liqDistancePct, locale, { maximumFractionDigits: 2 })}%` }]

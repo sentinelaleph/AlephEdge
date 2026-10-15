@@ -1853,6 +1853,8 @@
       "profitPerGrid": "Lucro por grid após taxas",
       "minNetPerGrid": "Líquido mínimo por grid",
       "minNetPerGridInfo": "Um grid cujo menor passo rende menos que isso após as taxas é recusado: mais uma ida e volta de taxas maker mais slippage, para que as taxas nunca levem mais de cerca da metade do que um grid rende.",
+      "tpNet": "Take profit após taxas",
+      "tpNetInfo": "Take profit menos uma ida e volta (entrada a mercado, saída maker, slippage). O take profit precisa ser de pelo menos {{min}}%.",
       "ordersNow": "Ordens no início",
       "buySell": "{{buy}} compra · {{sell}} venda",
       "qtyPerLevel": "Quantidade por nível",
@@ -1882,7 +1884,8 @@
       "noStopOut": "Sem stop: a perda do estoque não tem limite.",
       "trailLimitInsideRange": "O limite de arrasto fica dentro do intervalo a este preço: o intervalo nunca se move.",
       "gridLiqInsideBandNow": "A liquidação estimada entra na faixa a este preço: o bot espera até que saia.",
-      "ddStopOnly": "Só o stop por drawdown do bot limita a perda."
+      "ddStopOnly": "Só o stop por drawdown do bot limita a perda.",
+      "symbolSharedLive": "Outro bot usa este símbolo de futuros. Ambos podem rodar no papel, mas só um pode operá-lo com dinheiro real: a Binance mantém uma única alavancagem por símbolo."
     },
     "detail": {
       "preset": "Preset",
@@ -2247,6 +2250,7 @@
       "gridTpInvalid": "O take profit deve ser maior que 0.",
       "trailLimitInvalid": "O limite de acompanhamento deve ficar acima do preço superior.",
       "gridStepBelowFees": "Passo do grid pequeno demais: após as taxas cada grid ainda precisa render mais uma ida e volta de taxas mais slippage. Use menos intervalos ou uma faixa maior.",
+      "tpBelowFees": "Take profit pequeno demais: deve ser pelo menos o dobro do custo de ida e volta (taxas mais slippage), ou as taxas levam mais da metade de cada ciclo vencedor.",
       "gridLiqInsideBand": "A liquidação est. fica dentro da faixa ou do stop: reduza a alavancagem.",
       "gridBadRange": "Faixa do grid inválida.",
       "botUnknown": "Bot não encontrado.",

@@ -120,6 +120,8 @@ function check(cfg: StrategyConfig): { code: string; field: string } | null {
   if (p.kind === "dca") {
     if (cfg.side === "neutral") return { code: "neutralDcaRefused", field: "side" };
     if (p.tpPct <= 0) return { code: "tpInvalid", field: "tpPct" };
+    // dca::min_tp_pct: twice taker + slippage + maker (futures 0.18%, spot 0.44%).
+    if (p.tpPct < (cfg.market === "futures" ? 0.18 : 0.44) - 1e-9) return { code: "tpBelowFees", field: "tpPct" };
     if (p.stepScale < 1 || p.stepScale > 10) return { code: "stepScaleInvalid", field: "stepScale" };
     if (p.volumeScale < 1 || p.volumeScale > 10) return { code: "volumeScaleInvalid", field: "volumeScale" };
     if (p.maxSo > 25) return { code: "maxSoAboveCap", field: "maxSo" };
@@ -208,6 +210,9 @@ export function preview(cfg: StrategyConfig): Promise<PreviewDto> {
         worstLossQuote: worst[0]?.[0] ?? null,
         worstLossBasis: worst[0]?.[1] ?? "none",
         suggestedSlPct: Math.min(90, Math.round(devs[devs.length - 1] + 5)),
+        // Mirrors dca::min_tp_pct / round_trip_cost_pct.
+        minTpPct: 2 * (costs.taker + costs.slippage + costs.maker) * 100,
+        tpNetPct: p.tpPct - (costs.taker + costs.slippage + costs.maker) * 100,
       },
       grid: null,
       warnings,
