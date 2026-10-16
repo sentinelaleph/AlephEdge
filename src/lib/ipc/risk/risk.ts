@@ -40,6 +40,27 @@ export interface RiskState {
   effectiveDailyLossPct: number;
   /** True when the typed tolerance was looser than the level allows. */
   dailyLossOverrideCapped: boolean;
+  /** Portfolio risk view thresholds (Risk page chips and alerts). */
+  viewThresholds: ViewThresholds;
+}
+
+/** Portfolio risk view thresholds, % each (Rust `ViewThresholds`). */
+export interface ViewThresholds {
+  /** Share of risk capital on the dominant side; 50..100. */
+  sameDirectionPct: number;
+  /** Share of risk capital in one coin; 10..100. */
+  singleCoinPct: number;
+  /** Loss at BTC -20%, % of the capital in bots; 1..100. */
+  stress20Pct: number;
+}
+
+export const DEFAULT_VIEW_THRESHOLDS: ViewThresholds = { sameDirectionPct: 80, singleCoinPct: 40, stress20Pct: 25 };
+
+/** Stores new view thresholds; Rust refuses an out-of-range value with an `errors.*` code. */
+export function riskSetViewThresholds(thresholds: ViewThresholds): Promise<RiskState> {
+  return inTauri()
+    ? invoke<RiskState>("risk_set_view_thresholds", { thresholds })
+    : mock((m) => m.mock.set({ viewThresholds: thresholds }));
 }
 
 export function riskGet(): Promise<RiskState> {

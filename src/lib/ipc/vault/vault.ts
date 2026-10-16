@@ -12,6 +12,19 @@ import { devMock, inTauri, invoke, listenEvent, type Unlisten } from "../bridge"
 
 export type CredentialPermission = "tradeOnly" | "withdrawEnabled" | "unknown";
 export type VaultState = "absent" | "locked" | "unlocked";
+/** How requests with a key are signed (vault::model::KeyType). */
+export type KeyType = "hmac" | "ed25519";
+
+/** Key-age and IP warnings (vault::key_safety::KeySafety). Never refusals. */
+export interface KeySafety {
+  /** The exchange said the key has NO IP restriction (unknown is false). */
+  noIpRestriction: boolean;
+  ageDays: number;
+  /** "exchange": the exchange's creation date; "vault": when it was added here. */
+  ageFrom: "exchange" | "vault";
+  /** Older than 90 days. */
+  rotate: boolean;
+}
 
 export interface VaultStatus {
   state: VaultState;
@@ -31,15 +44,24 @@ export interface CredentialMeta {
   updatedAt?: number | null;
   /** The key the app signs with for this exchange (only the first stored one is used). */
   inUse?: boolean;
+  keyType?: KeyType;
+  /** Exchange creation date (ms), when the exchange reports it (Binance). */
+  exchangeCreatedAt?: number | null;
+  /** IP restriction at the last check; null = unknown. */
+  ipRestricted?: boolean | null;
+  safety?: KeySafety;
 }
 
 export interface AddCredentialInput {
   exchangeId: string;
   label: string;
   apiKey: string;
+  /** Empty for an Ed25519 key: its private key never leaves Rust. */
   apiSecret: string;
   passphrase?: string;
   permission: CredentialPermission;
+  /** Omitted = HMAC. "ed25519" seals the keypair made by `vaultEd25519Generate`. */
+  keyType?: KeyType;
 }
 
 export function vaultStatus(): Promise<VaultStatus> {
@@ -87,6 +109,33 @@ export function vaultReplaceCredential(input: AddCredentialInput): Promise<Crede
   return inTauri()
     ? invoke<CredentialMeta[]>("vault_replace_credential", { input })
     : devMock(() => import("./vault.mock"), (m) => m.mock.replace(input));
+}
+
+/** Reads a stored key's permissions, IP restriction and age from the exchange again. */
+export function vaultRecheckCredential(exchangeId: string, label: string): Promise<CredentialMeta[]> {
+  return inTauri()
+    ? invoke<CredentialMeta[]>("vault_recheck_credential", { exchangeId, label })
+    : devMock(() => import("./vault.mock"), (m) => m.mock.recheck(exchangeId, label));
+}
+
+/**
+ * Generates an Ed25519 keypair in Rust and returns ONLY the public key (PEM)
+ * to register on Binance. The private key stays in Rust and is sealed into
+ * the vault by `vaultAddCredential` / `vaultReplaceCredential` with
+ * `keyType: "ed25519"`.
+ */
+export function vaultEd25519Generate(): Promise<string> {
+  return inTauri() ? invoke<string>("vault_ed25519_generate") : devMock(() => import("./vault.mock"), (m) => m.mock.ed25519Generate());
+}
+
+/** Public key of the keypair still waiting for its API key, if any. */
+export function vaultEd25519Pending(): Promise<string | null> {
+  return inTauri() ? invoke<string | null>("vault_ed25519_pending") : devMock(() => import("./vault.mock"), (m) => m.mock.ed25519Pending());
+}
+
+/** Drops the waiting keypair. */
+export function vaultEd25519Discard(): Promise<void> {
+  return inTauri() ? invoke<void>("vault_ed25519_discard") : devMock(() => import("./vault.mock"), (m) => m.mock.ed25519Discard());
 }
 
 export function vaultRenameCredential(exchangeId: string, label: string, newLabel: string): Promise<CredentialMeta[]> {

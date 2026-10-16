@@ -218,7 +218,7 @@ export function TelegramPanel() {
   );
 }
 
-function SwitchRow(props: { id: string; name: string; desc: string; checked: boolean; disabled: boolean; onChange: (on: boolean) => void }) {
+export function SwitchRow(props: { id: string; name: string; desc: string; checked: boolean; disabled: boolean; onChange: (on: boolean) => void }) {
   const { id, name, desc, checked, disabled, onChange } = props;
   return (
     <li className="ae-notify__row ae-tg__row" data-off={checked ? undefined : true}>

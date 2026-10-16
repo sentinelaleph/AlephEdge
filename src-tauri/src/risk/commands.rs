@@ -3,7 +3,7 @@
 
 use tauri::{AppHandle, Manager, State};
 
-use super::model::{RiskLevel, RiskState};
+use super::model::{RiskLevel, RiskState, ViewThresholds};
 use super::RiskManager;
 
 fn data_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
@@ -42,6 +42,18 @@ pub fn risk_set_close_on_stop(
     close: bool,
 ) -> Result<RiskState, String> {
     Ok(risk.set_close_on_stop(&data_dir(&app)?, close))
+}
+
+/// Sets the portfolio risk view's alert thresholds (same direction, one coin,
+/// stress at BTC -20%). Err = `errors.*` code when a value is out of range.
+#[tauri::command]
+pub fn risk_set_view_thresholds(
+    app: AppHandle,
+    risk: State<RiskManager>,
+    thresholds: ViewThresholds,
+) -> Result<RiskState, String> {
+    risk.set_view_thresholds(&data_dir(&app)?, thresholds)
+        .map_err(str::to_string)
 }
 
 /// Sets the user's own daily-loss tolerance, or clears it with `None`.

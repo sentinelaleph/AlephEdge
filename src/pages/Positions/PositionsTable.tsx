@@ -62,7 +62,7 @@ export function PositionsTable({
         <span className="ae-postable__sym">
           {p.symbol}
           {p.live ? <LiveChip /> : null}
-          {p.manual ? <ManualChip /> : null}
+          {p.manual ? <ManualChip signalId={p.signalId} /> : null}
           {p.live && p.unprotected ? (
             <Chip tone="danger" title={t("bots.skipReasons.liveUnprotected")}>
               {t("pnl.exit.unprotected")}

@@ -206,6 +206,17 @@ impl StrategyLiveManager {
             .any(|s| s.enabled || s.synced_qty != 0.0 || s.last_real_qty != 0.0)
     }
 
+    /// (symbol, algo id) of every exchange stop the mirror holds: the
+    /// foreign-trade check counts their fills as this app's.
+    pub fn stop_algos(&self) -> Vec<(String, i64)> {
+        self.states
+            .lock()
+            .expect("live mutex")
+            .values()
+            .filter_map(|s| Some((s.symbol.clone()?, s.stop_algo_id?)))
+            .collect()
+    }
+
     fn snapshot(&self) -> HashMap<String, LiveState> {
         self.states.lock().expect("live mutex").clone()
     }

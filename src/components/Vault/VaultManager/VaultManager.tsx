@@ -52,6 +52,7 @@ export function VaultManager({ vault }: VaultManagerProps) {
           onRemove={vault.removeKey}
           onRenew={vault.renewKey}
           onRename={vault.renameKey}
+          onRecheck={vault.recheckKey}
         />
       </Panel>
 

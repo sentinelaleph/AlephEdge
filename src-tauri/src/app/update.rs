@@ -98,6 +98,11 @@ async fn install(app: &AppHandle) -> Result<(), String> {
     let Some(update) = updater.check().await.map_err(|e| format!("updateCheckFailed|{e}"))? else {
         return Err("updateNone".to_string());
     };
+    // Before any byte is downloaded: a copy of the database, the settings
+    // file and the vault (app/backup.rs). No backup, no install.
+    let from = app.package_info().version.to_string();
+    crate::app::backup::take_now(app, crate::app::backup::Reason::Update { from, to: update.version.clone() })
+        .map_err(|e| format!("updateBackupFailed|{e}"))?;
     let mut downloaded: u64 = 0;
     let progress = app.clone();
     update

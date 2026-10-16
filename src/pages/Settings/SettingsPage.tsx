@@ -2,10 +2,12 @@ import { useTranslation } from "react-i18next";
 import { useQueryParam } from "@/app/router/router";
 import { PageShell } from "@/components/ui/PageShell/PageShell";
 import { AboutTab } from "./AboutTab";
+import { BackupTab } from "./BackupTab";
 import { DevicesTab } from "./DevicesTab";
 import { ExchangeKeysTab } from "./ExchangeKeysTab";
 import { GeneralTab } from "./GeneralTab";
 import { NotificationsTab } from "./NotificationsTab";
+import { TradingViewTab } from "./TradingViewTab";
 import { isSettingsTab, useAppInfo, useLinkStateView, type SettingsTab } from "./settingsData";
 import { SettingsNav } from "./SettingsNav";
 import { SettingsSummary } from "./SettingsSummary";
@@ -40,10 +42,14 @@ export function SettingsPage() {
           <GeneralTab />
         ) : tab === "notifications" ? (
           <NotificationsTab />
+        ) : tab === "tradingview" ? (
+          <TradingViewTab />
         ) : tab === "devices" ? (
           <DevicesTab />
         ) : tab === "keys" ? (
           <ExchangeKeysTab />
+        ) : tab === "backup" ? (
+          <BackupTab />
         ) : (
           <AboutTab info={info} />
         )}

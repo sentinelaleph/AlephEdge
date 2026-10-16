@@ -10,9 +10,10 @@ pub mod model;
 pub(crate) mod strategy;
 pub mod strategy_live;
 
+pub(crate) use commands::{apply_config, KeepLive};
 pub use commands::{
     bot_close_position, bot_configure, bot_default_config, bot_end_pilot, bot_preview_take, bot_set_live, bot_start,
-    bot_status, bot_stop, bot_take_signal,
+    bot_status, bot_stop, bot_take_signal, bot_open_trade, bot_preview_trade,
 };
 
 use std::collections::{HashMap, HashSet, VecDeque};

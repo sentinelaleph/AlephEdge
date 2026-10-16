@@ -46,7 +46,11 @@ pub async fn run(
     let strict = strict_data(limits) || (LIVE_TRADING_ENABLED && cfg.live);
 
     // 2b. Sentinel has not already resolved it (see `judge_still_open`).
-    judge_still_open(signals.open_status(sig, now_ms), strict)?;
+    // A "New trade" (engine/user_trade.rs) was never published: Sentinel
+    // has no status for it, and none is asked.
+    if !super::user_trade::is_user_trade_id(&sig.id) {
+        judge_still_open(signals.open_status(sig, now_ms), strict)?;
+    }
 
     let base = membership.base_url();
     // Both market feeds sit behind the API's session check, so no token means

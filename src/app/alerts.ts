@@ -10,6 +10,7 @@ import type { TFunction } from "i18next";
 import type { DeskContextValue } from "./DeskProvider";
 import { BUDGET_REASONS, groupSkips, isBotFailure, skipParams } from "@/lib/skipNotes";
 import { streamAlertSeverity, streamErrorText } from "@/lib/ipc/signal/streamStatus";
+import { crossedChecks } from "@/lib/riskView";
 
 export const ALERT_CATEGORIES = [
   "killSwitch",
@@ -20,6 +21,7 @@ export const ALERT_CATEGORIES = [
   "vaultAutoLock",
   "streamDown",
   "regime",
+  "portfolioRisk",
 ] as const;
 export type AlertCategory = (typeof ALERT_CATEGORIES)[number];
 
@@ -78,6 +80,20 @@ export function deriveAlerts(ctx: DeskContextValue, t: TFunction, lockedAt: numb
         : undefined,
     });
   }
+  // Fills this app did not make: a leaked key, or the user trading by hand.
+  const foreign = ctx.foreignFill?.liveBuild ? ctx.foreignFill.alarms : [];
+  if (foreign.length > 0) {
+    const latest = foreign[foreign.length - 1];
+    out.push({
+      key: "foreignTrades",
+      category: "killSwitch",
+      severity: "danger",
+      title: t("alerts.foreignTrades", { count: foreign.length }),
+      detail: [...new Set(foreign.map((f) => f.symbol))].join(", "),
+      count: foreign.length,
+      at: latest.detectedMs,
+    });
+  }
   if (ctx.strategy.risk?.tripped) {
     out.push({
       key: "strategyBreaker",
@@ -100,6 +116,20 @@ export function deriveAlerts(ctx: DeskContextValue, t: TFunction, lockedAt: numb
       severity: streamSeverity,
       title: t("alerts.streamDown"),
       detail: streamErrorText(ctx.feed.health),
+    });
+  }
+  // Portfolio risk view: a threshold crossed (danger), while it holds.
+  for (const { book, check } of crossedChecks(ctx.riskView?.snapshot ?? null)) {
+    out.push({
+      key: `portfolioRisk:${book}:${check.key}`,
+      category: "portfolioRisk",
+      severity: "danger",
+      title: t(`alerts.portfolioRisk.${check.key}`, {
+        value: Math.round(check.value ?? 0),
+        threshold: check.threshold,
+      }),
+      detail: t(book === "real" ? "alerts.portfolioRisk.real" : "alerts.portfolioRisk.paper"),
+      at: check.sinceMs ?? undefined,
     });
   }
   if (ctx.desk.loaded && s.btcRegime === "break") {

@@ -6,6 +6,12 @@
 
 import type { PresetsLive } from "./presetsLive";
 
+const SAMPLE_PAIRS: Record<string, string[]> = {
+  dca_long_btc: ["BTCUSDT"],
+  dca_long_alts: ["DOGEUSDT", "BNBUSDT", "SUIUSDT", "NEARUSDT", "ENAUSDT"],
+};
+const SAMPLE_MAJORS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "ZECUSDT"];
+
 const IDS = ["dca_long_classic", "dca_long_safe", "dca_long_quick", "dca_long_btc", "dca_long_alts", "dca_long_stop", "dca_short_classic", "dca_short_safe", "grid_neutral", "grid_neutral_tight", "grid_long_trail", "grid_short"];
 
 export function presetsLive(): PresetsLive {
@@ -30,6 +36,8 @@ export function presetsLive(): PresetsLive {
         { d: "2026-10-09", r: ((i % 5) - 2) * 0.1, dd: -0.5 },
         { d: "2026-10-10", r: ((i % 5) - 2) * 0.31, dd: -1 },
       ],
+      symbols: SAMPLE_PAIRS[id] ?? SAMPLE_MAJORS,
+      universeMonth: "2026-10",
     })),
   };
 }

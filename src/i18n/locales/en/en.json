@@ -139,7 +139,7 @@
     "withdrawStored": "Withdrawals enabled: renew this key with a trade-only key.",
     "keyInUse": "In use",
     "keyNotUsed": "Not used: the app signs with “{{label}}”. Renew that key or remove one of them.",
-    "tradeOnlyRule": "Only trade-only keys are accepted. Turn off withdrawals for the key on the exchange.",
+    "tradeOnlyRule": "Only trade-only keys are accepted. Turn off withdrawals and transfers for the key on the exchange.",
     "autoLockHint": "Locks after {{duration}} without activity. A vault with no key stays unlocked.",
     "changePassword": "Change password",
     "changingPassword": "Changing…",
@@ -152,7 +152,33 @@
       "week": "1 week",
       "month": "1 month (30 days)"
     },
-    "venueNotDryRun": "Real money on {{exchange}} stays off until its order path passes an end-to-end run on the exchange's own test network. The key can still read the account and close positions."
+    "venueNotDryRun": "Real money on {{exchange}} stays off until its order path passes an end-to-end run on the exchange's own test network. The key can still read the account and close positions.",
+    "keyType": "Key type",
+    "keyTypeHmac": "Key and secret from Binance",
+    "keyTypeEd25519": "Ed25519 key made here",
+    "ed": {
+      "intro": "The app makes the key pair. Binance gets only the public key; the private key stays in your vault.",
+      "create": "Create key pair",
+      "recreate": "New key pair",
+      "creating": "Creating…",
+      "publicKey": "Public key (register this on Binance)",
+      "copy": "Copy public key",
+      "copied": "Copied",
+      "copyFailed": "Could not copy. Select the key and copy it.",
+      "step1": "On Binance: API Management, Create API, Self-generated.",
+      "step2": "Paste the public key, name the key and confirm.",
+      "step3": "Turn on Futures. Leave withdrawals and transfers off. Restrict access to your IP.",
+      "step4": "Paste the API key Binance shows into the field below.",
+      "private": "The private key goes straight into the encrypted vault. It is never shown, copied or exported. Locking the vault before you save discards it."
+    },
+    "ipOpen": "No IP restriction",
+    "ipGuide": "Restrict the key to your IP address on the exchange.",
+    "ipGuideBinance": "Binance: API Management, Edit restrictions, Restrict access to trusted IPs only. Keys with an IP restriction do not expire.",
+    "rotateExchange": "Created {{days}} days ago: older than 90 days, rotate it (Renew).",
+    "rotateVault": "In this vault for {{days}} days: older than 90 days, rotate it (Renew).",
+    "recheck": "Check again",
+    "recheckDone": "Checked with the exchange.",
+    "renewHintEd25519": "Create a new key pair, register its public key on Binance and paste the new API key. The current key stays until the new one is accepted."
   },
   "workspace": {
     "loading": "Loading…"
@@ -221,6 +247,8 @@
     "noSkips": "Nothing skipped yet.",
     "manualBadge": "Manual",
     "manualBadgeTooltip": "Opened by hand from Execute · bot filters skipped, risk limits kept",
+    "ownTradeBadge": "Own",
+    "ownTradeBadgeTooltip": "New trade · your own take-profit and stop · not a Sentinel signal · paper",
     "skipReasons": {
       "spotLongOnly": "Short signal · spot is long-only",
       "belowConfidence": "Below the Sentinel score filter ({{detail}})",
@@ -296,7 +324,8 @@
       "restoreConfigInvalid": "Saved bot settings fail a check ({{detail}}) · fix and save them to start the bot",
       "settledPositionDropped": "Already closed in History · its leftover open row was removed at startup",
       "belowExchangeMinimum": "Below the exchange minimum order ({{detail}} USDT, Binance needs about 5)",
-      "manualOpened": "Opened by hand from Execute · paper"
+      "manualOpened": "Opened by hand from Execute · paper",
+      "userTradeOpened": "New trade opened · your levels · paper"
     },
     "exchange": "Exchange",
     "signalFilter": "Signal filter",
@@ -1102,6 +1131,51 @@
       "range": "Stop → target",
       "rangeTip": "Where the price sits between the stop (left) and the target (right). The tick is the entry.",
       "rangeLabel": "Price {{pct}}% of the way from the stop to the target"
+    },
+    "newTrade": {
+      "button": "New trade",
+      "title": "New trade",
+      "previewTitle": "{{symbol}} · {{side}} · {{bot}} bot",
+      "close": "Close",
+      "bot": "Bot",
+      "notSaved": "Not saved",
+      "symbol": "Pair",
+      "side": "Side",
+      "size": "Size",
+      "sizeBot": "Bot sizing",
+      "notional": "Notional (USDT)",
+      "takeProfit": "Take-profit price",
+      "stopLoss": "Stop-loss price",
+      "incomplete": "Enter pair, take-profit and stop-loss",
+      "fill": "Fill now",
+      "qty": "Quantity",
+      "notionalFigure": "Notional",
+      "margin": "Margin",
+      "lossAtStop": "Loss at stop {{price}}",
+      "riskValue": "{{amount}} · {{pct}} of bot capital",
+      "gainAtTarget": "Gain at take-profit {{price}}",
+      "rewardRisk": "Reward:risk",
+      "liquidation": "Liquidation at {{leverage}}x",
+      "fees": "Fees, open + close",
+      "exitLine": "Exits at take-profit or stop · no time limit",
+      "open": "Open paper trade",
+      "opened": "Opened · {{symbol}} at {{price}} · paper",
+      "refusal": {
+        "manualTakePaperOnly": "This bot trades real money · New trade opens paper positions only",
+        "botNotConfigured": "Save this bot's settings first",
+        "marketHeld": "This bot already holds a position on this pair",
+        "stopPassed": "Price moved past the stop",
+        "targetPassedBeforeEntry": "Price moved past the take-profit",
+        "tradeBotKind": "New trade opens on the Futures or Spot bot",
+        "tradeSymbolInvalid": "Pair must be a USDT pair, e.g. BTCUSDT",
+        "tradeSymbolNotListed": "Pair not listed on this exchange's market",
+        "tradeLevelsInvalid": "Take-profit and stop-loss must be prices above 0",
+        "tradeSizeInvalid": "Size must be above 0 USDT",
+        "tradeTargetWrongSide": "Take-profit on the wrong side of the live price",
+        "tradeStopWrongSide": "Stop-loss on the wrong side of the live price",
+        "tradeStopInsideFees": "Stop closer than both fees · needs more than {{detail}}",
+        "tradeTargetInsideFees": "Take-profit closer than both fees · needs more than {{detail}}"
+      }
     }
   },
   "history": {
@@ -1179,7 +1253,9 @@
       "preflight": "Live readiness",
       "summary": "At risk now",
       "open": "Open risk",
-      "strategy": "DCA/Grid budget"
+      "strategy": "DCA/Grid budget",
+      "portfolio": "Portfolio stress",
+      "replay": "Crash replay"
     },
     "level": {
       "title": "Risk level"
@@ -1278,7 +1354,9 @@
       "notifications": "Notifications",
       "devices": "Devices",
       "about": "About",
-      "keys": "Exchange keys"
+      "keys": "Exchange keys",
+      "backup": "Backup",
+      "tradingview": "TradingView"
     },
     "language": "Language",
     "numberPreview": "Number",
@@ -1319,7 +1397,9 @@
       "notifications": "What the alerts bell shows",
       "devices": "Phone remote control",
       "keys": "API keys, vault, connections",
-      "about": "Version, updates, your data"
+      "about": "Version, updates, your data",
+      "backup": "Backups, bot settings file",
+      "tradingview": "Alerts to paper trades"
     },
     "navStatus": {
       "alerts": "{{on}} of {{total}} shown",
@@ -1372,7 +1452,8 @@
         "budget": "A signal was skipped because a budget, a position limit or the capital cap was full.",
         "dealClosed": "Signal trades and DCA/Grid cycles closed today.",
         "streamDown": "The Sentinel signal stream is down and still retrying.",
-        "regime": "Sentinel declared a BTC break. New signal longs are refused while it lasts."
+        "regime": "Sentinel declared a BTC break. New signal longs are refused while it lasts.",
+        "portfolioRisk": "A portfolio risk threshold on the Risk page was crossed: one side, one coin, or the loss at BTC -20%."
       },
       "severity": {
         "danger": "Critical",
@@ -1452,8 +1533,8 @@
     "keys": {
       "requirementsTitle": "Which key to add",
       "requirements": {
-        "permissions": "Trade permission on, withdrawals off. On Binance, futures permission on too.",
-        "checked": "The app reads the key's permissions from the exchange and refuses a key that can withdraw.",
+        "permissions": "Trade permission on, withdrawals and transfers off. On Binance, futures permission on too.",
+        "checked": "The app reads the key's permissions from the exchange and refuses a key that can withdraw or transfer funds.",
         "local": "Keys are stored only in the encrypted vault on this computer and are never sent to ribqa.com.",
         "optional": "Paper bots need no key. A key lets you see your exchange account and close positions there."
       },
@@ -1510,6 +1591,122 @@
       "securityTitle": "Security reports",
       "security": "Write to support@ribqa.com with \"security\" in the subject, and give us time to fix the issue before publishing it.",
       "reportSecurity": "Report a security issue"
+    },
+    "backup": {
+      "listTitle": "Backups",
+      "now": "Back up now",
+      "running": "Backing up…",
+      "openFolder": "Open folder",
+      "col": {
+        "taken": "Taken",
+        "reason": "Reason",
+        "size": "Size",
+        "bot": "Bot",
+        "result": "Result"
+      },
+      "reasonUpdate": "Before update {{from}} → {{to}}",
+      "reasonManual": "Manual",
+      "empty": "No backups yet",
+      "emptyDetail": "One is taken before every update install.",
+      "contents": "Each backup holds the database (bots, trades, cycles), config.json and the encrypted vault. The newest 5 are kept.",
+      "listFailed": "Could not read the backups folder.",
+      "failed": "The backup failed.",
+      "fileTitle": "Bot settings file",
+      "fileHolds": "Signal bot settings and every DCA / Grid bot's settings in one JSON file. No API keys, vault, Telegram token or trade history.",
+      "importRule": "Import replaces the signal bot settings and adds each DCA / Grid bot as a new stopped bot. Everything imported is simulated; real money is never switched on.",
+      "export": "Export settings",
+      "exporting": "Exporting…",
+      "import": "Import settings",
+      "importing": "Importing…",
+      "exported": "Download started: {{name}}",
+      "exportFailed": "The export failed.",
+      "importFailed": "The import failed.",
+      "importResult": "Import result",
+      "importSummary": "{{ok}} of {{total}} applied",
+      "importEmpty": "The file holds no bots.",
+      "created": "Added, stopped, simulated",
+      "replaced": "Settings replaced, simulated",
+      "refused": "Refused",
+      "signalBot": "{{kind}} signal bot",
+      "unreadableEntry": "Unreadable entry",
+      "promiseTitle": "What an update keeps",
+      "promise": {
+        "keeps": "An update keeps bots, settings, trade history and exchange keys on this computer.",
+        "backup": "A backup is taken before each install. If the backup fails, the update does not install.",
+        "liveBlocks": "An update does not start while real money is in play: close the real positions and switch real money off first.",
+        "signal": "Signal bots come back simulated after any restart; real money needs LIVE typed again. Simulated signal bots that were running start again when their start checks pass.",
+        "strategy": "Simulated DCA / Grid bots that were running start again after a restart when their start checks pass. A bot on real money comes back stopped; its open cycle stays managed."
+      }
+    },
+    "tv": {
+      "failed": "TradingView link request failed.",
+      "loading": "Loading…",
+      "urlTitle": "Webhook URL",
+      "state": {
+        "signedOut": "Signed out",
+        "unknown": "Relay not readable",
+        "none": "No URL",
+        "active": "Active"
+      },
+      "signedOut": "Sign in to use TradingView alerts. While signed out nothing is read.",
+      "signIn": "Sign in",
+      "noUrl": "No webhook URL yet.",
+      "created": "Created",
+      "lastReceived": "Last alert received",
+      "received24h": "Received, 24h",
+      "pending": "Not yet read",
+      "never": "Never",
+      "create": "Create URL",
+      "rotate": "Rotate URL",
+      "revoke": "Revoke",
+      "rotateNote": "Rotate makes a new URL; the old one stops working at once. Revoke stops it with no new one.",
+      "shownOnce": "Shown once: the app does not store it and cannot show it again. If lost, rotate. Rotating stops the old URL.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyFailed": "Copy failed",
+      "alertsTitle": "Alerts",
+      "receive": "Receive alerts",
+      "receiveDesc": "Read alerts from the relay every 5 s and list them below. Nothing is executed.",
+      "execute": "Execute alerts as paper trades",
+      "executeDesc": "Buy and sell open one paper position through New trade, with all its checks. Close closes your own open trade on that pair. Alerts older than 120 s when read are not executed.",
+      "lastRead": "Last read",
+      "lastError": "Last error",
+      "howTitle": "Set up in TradingView",
+      "step1": "Create an alert on a chart or a strategy.",
+      "step2": "Notifications: turn on Webhook URL and paste the URL above.",
+      "step3": "Message: paste one of the messages below.",
+      "twoFactor": "TradingView requires 2FA for webhooks.",
+      "action": {
+        "buy": "Buy",
+        "sell": "Sell",
+        "close": "Close"
+      },
+      "field": {
+        "action": "action: buy (long), sell (short, Futures bot only), close (closes your own open trade on the pair).",
+        "symbol": "symbol: {{ticker}} or a pair. BINANCE:BTCUSDT.P, BTCUSDT.P, BTCUSDTPERP and btcusdt all read as BTCUSDT. USDT pairs only.",
+        "levels": "tp or tp_pct, and sl or sl_pct: exactly one of each for buy and sell. tp and sl are prices.",
+        "pct": "tp_pct and sl_pct are percent distances from the live price at execution. Long: tp = price × (1 + tp_pct/100), sl = price × (1 − sl_pct/100). Short: tp = price × (1 − tp_pct/100), sl = price × (1 + sl_pct/100).",
+        "bot": "bot: futures (default) or spot. Spot is long-only.",
+        "size": "size_usdt: optional notional in USDT. Without it the bot's own sizing applies.",
+        "stale": "An alert received more than 120 s before the app reads it is not executed. Plain text or other JSON is listed as unreadable."
+      },
+      "resultsTitle": "Recent alerts",
+      "resultsEmpty": "No alerts read yet.",
+      "col": {
+        "time": "Time",
+        "action": "Action",
+        "symbol": "Pair",
+        "outcome": "Outcome"
+      },
+      "outcome": {
+        "received": "Received · not executed (Execute off)",
+        "opened": "Opened · paper",
+        "closed": "Closed · paper",
+        "tvExpired": "Not executed · older than 120 s when read",
+        "tvBadMessage": "Unreadable · not JSON in the alert format",
+        "tvBadLevels": "Give one of tp / tp_pct and one of sl / sl_pct, above 0",
+        "tvNothingToClose": "Nothing to close · no open trade of yours on this pair and bot"
+      }
     }
   },
   "accountPage": {
@@ -1599,13 +1796,22 @@
       "dealClosed": "Trade closed",
       "vaultAutoLock": "Vault auto-lock",
       "streamDown": "Stream down",
-      "regime": "BTC regime"
+      "regime": "BTC regime",
+      "portfolioRisk": "Portfolio risk"
     },
     "strategyBreaker": "DCA/Grid portfolio breaker tripped",
     "strategyBreakerDetail": "Drawdown from the P&L peak reached {{pct}}% of the budgets of the bots inside the breaker. Their cycles closed; their starts blocked until re-armed.",
     "cycleStopsToday": "DCA/Grid cycles closed by a stop today: {{count}}",
     "cyclesClosedToday": "DCA/Grid cycles closed today: {{count}}",
-    "strategyDead": "{{name}} ended"
+    "strategyDead": "{{name}} ended",
+    "foreignTrades": "Trades this app did not make: {{count}}",
+    "portfolioRisk": {
+      "sameDirection": "Same-direction exposure {{value}}% (threshold {{threshold}}%)",
+      "singleCoin": "One coin holds {{value}}% of the capital in bots (threshold {{threshold}}%)",
+      "stress20": "BTC -20% would lose {{value}}% of the capital in bots (threshold {{threshold}}%)",
+      "paper": "Paper book",
+      "real": "Real-money book"
+    }
   },
   "statusbar": {
     "label": "Status",
@@ -1727,6 +1933,9 @@
       "discard": "Discard changes",
       "presetFailed": "This template did not pass its checks ({{reasons}}). Its settings are kept for learning; try them in a backtest first.",
       "fromPresetPairChecked": "From preset {{id}}: settings and pair match its historical simulation ({{universe}}).",
+      "fromPresetPairInList": "From preset {{id}}: settings match its historical simulation, and {{symbol}} is on its {{month}} pair list ({{list}}).",
+      "presetPairOutside": "{{symbol}} is not on the {{month}} pair list of preset {{id}} ({{list}}). The preset's results were measured on those pairs only; on other pairs they are unknown.",
+      "presetPairOutsideWide": "Measured on the top {{n}} pairs by volume, the same settings returned {{train}} (training), {{valid}} (validation) and {{test}} (test) per bot-month; the worst bot fell {{dd}}.",
       "budgetShort": "Minimum budget {{min}} USDT (every order at least 5 USDT); {{free}} USDT free under the DCA/Grid budget cap. Raise the simulated balance or the risk level:",
       "custom": {
         "base": "Custom settings: no historical simulation.",
@@ -2572,7 +2781,34 @@
     "telegramBadResponse": "Telegram sent an answer this app cannot read.",
     "telegramNotLinked": "Link a Telegram chat first.",
     "telegramNoToken": "Save a bot token first.",
-    "telegramKeychainFailed": "The system keychain did not save the token."
+    "telegramKeychainFailed": "The system keychain did not save the token.",
+    "updateBackupFailed": "The backup before the update failed, so the update was not installed.",
+    "backupDirFailed": "The backups folder could not be written.",
+    "backupDbFailed": "The database could not be copied.",
+    "backupCopyFailed": "A file could not be copied into the backup.",
+    "backupExists": "A backup with this time already exists. Try again in a second.",
+    "backupPathInvalid": "The data folder path cannot be used for a backup.",
+    "importTooLarge": "This file is too large to be a settings file.",
+    "importUnreadable": "This file is not readable JSON.",
+    "importNotSettings": "This is not an Aleph Edge bot settings file.",
+    "importNewerFormat": "This file was made by a newer Aleph Edge (format {{detail}}). Update the app first.",
+    "importEntryUnreadable": "This entry could not be read.",
+    "importDuplicateKind": "This bot type is listed twice; the first entry was used.",
+    "importPreview": "Not saved: the browser preview has no data folder.",
+    "exportConfigUnreadable": "A saved {{detail}} bot setting could not be read; nothing was exported.",
+    "tvSignedOut": "Signed out · sign in to use TradingView alerts",
+    "tvRotateConflict": "Another rotation ran at the same time · try again",
+    "tvBadResponse": "Unexpected reply from the TradingView relay",
+    "tvForbidden": "The TradingView relay refused this account",
+    "tvRateLimited": "Too many requests to the TradingView relay · wait a minute",
+    "tvHttp": "TradingView relay request failed ({{detail}})",
+    "tvTimeout": "The TradingView relay did not answer in time",
+    "keyTransferEnabled": "This key can transfer funds to other accounts (internal or universal transfer). Turn off transfers on the exchange, then add it again.",
+    "keyTypeUnsupported": "Ed25519 keys work with Binance only.",
+    "ed25519NoPendingKey": "No key pair is waiting. Create a key pair, register its public key on Binance, then paste the API key.",
+    "viewThresholdSameDirection": "Same direction: enter 50 to 100%.",
+    "viewThresholdSingleCoin": "One coin: enter 10 to 100%.",
+    "viewThresholdStress": "Loss at BTC -20%: enter 1 to 100%."
   },
   "status": {
     "running": "Running",
@@ -2626,7 +2862,8 @@
     "scheduleValue": "At launch, then every 6 hours",
     "notes": "What's new",
     "offTestnet": "Off in the testnet build",
-    "offTestnetNote": "The testnet build does not update itself: the update feed carries the normal app. Run the testnet build from the source tree."
+    "offTestnetNote": "The testnet build does not update itself: the update feed carries the normal app. Run the testnet build from the source tree.",
+    "backupNote": "A backup is taken before the install (Settings, Backup)."
   },
   "preflight": {
     "title": "Live readiness",
@@ -2662,7 +2899,9 @@
       "membership": "Membership",
       "stream": "Sentinel signal stream",
       "liveBots": "Live bots (signal + DCA/Grid)",
-      "venue": "Order path"
+      "venue": "Order path",
+      "foreignTrades": "Foreign trades",
+      "keySafety": "Key IP restriction and age"
     },
     "codes": {
       "buildOff": "This build has no real-money trading",
@@ -2695,7 +2934,13 @@
       "preflightFailed": "Check failed",
       "venueDryRun": "Run end to end on the test network",
       "venueNotDryRun": "Not yet run on {{exchange}}'s test network: real money stays off",
-      "venueUnsupported": "No order path for this exchange"
+      "venueUnsupported": "No order path for this exchange",
+      "foreignTrades": "Fills this app did not make: see Foreign trades below",
+      "watching": "Checked every minute",
+      "watchOff": "Watch switched off",
+      "keyNoIpRestriction": "No IP restriction: restrict the key to your IP on {{exchange}}",
+      "keyOld": "Older than 90 days: rotate the key",
+      "keyNoIpAndOld": "No IP restriction and older than 90 days: restrict and rotate"
     },
     "exchange": "Exchange"
   },
@@ -2736,5 +2981,172 @@
     "cycles": "Open cycles: {{count}}",
     "realizedNote": "After fees, all time",
     "totalNote": "Realized plus open"
+  },
+  "foreignFill": {
+    "title": "Foreign trades",
+    "desc": "Every minute, the fills on your Binance futures account are matched against the orders this app placed. A fill it did not make stops new entries on every bot. Open positions are not closed.",
+    "alarm": "Fills this app did not make. New entries are stopped on every bot; open positions are untouched. If this was not you, delete this API key on Binance now.",
+    "ack": "That was me",
+    "ackNote": "Clears the alarm. Bots stay stopped until you start them.",
+    "switch": "Watch for foreign trades",
+    "handTrades": "Trades you make yourself on Binance, including while this app is closed, raise this alarm too.",
+    "lastCheck": "Last check {{time}}",
+    "checkFailed": "Last check failed: {{reason}}",
+    "actionFailed": "Could not save",
+    "state": {
+      "watching": "Watching",
+      "idle": "Not checking: key locked",
+      "off": "Off",
+      "alarm": "Foreign trade"
+    },
+    "side": {
+      "buy": "Buy",
+      "sell": "Sell"
+    },
+    "col": {
+      "time": "Time",
+      "symbol": "Symbol",
+      "side": "Side",
+      "qty": "Quantity",
+      "price": "Price",
+      "trade": "Trade ID"
+    }
+  },
+  "riskview": {
+    "sample": "Sample data",
+    "computedAt": "Computed {{time}}",
+    "refresh": "Recompute",
+    "loading": "Computing…",
+    "failed": "The portfolio risk view could not be computed.",
+    "empty": "No open exposures",
+    "bookLabel": "Book",
+    "book": {
+      "paper": "Paper",
+      "real": "Real money"
+    },
+    "capital": "Capital in bots",
+    "scenarios": "BTC shocks",
+    "excludedNote": "Not included, no beta: {{count}}. The totals leave them out.",
+    "unpricedNote": "No price read yet, not included: {{count}}",
+    "topFor": "Largest losses at {{move}}",
+    "noLosses": "No losses in this scenario.",
+    "concentration": "Concentration",
+    "sameDirection": "Same direction",
+    "topCoin": "Largest coin",
+    "avgBeta": "Average beta",
+    "checks": "Thresholds",
+    "checkTitle": "{{level}} · threshold {{threshold}}%",
+    "check": {
+      "sameDirection": "Same direction",
+      "singleCoin": "One coin",
+      "stress20": "BTC -20%"
+    },
+    "level": {
+      "ok": "OK",
+      "warn": "Near",
+      "danger": "Crossed",
+      "unavailable": "Unavailable"
+    },
+    "exposures": "Open exposures",
+    "method": "Beta: {{days}} days of hourly DataHub candles against BTCUSDT, clamped to 0-3. Each exposure is walked along the move: stops, safety orders, grid buys, liquidation at the margin. A new cycle after an exit is not simulated.",
+    "btcShareTip": "Of the losses, the share BTC's direction explains: each coin's R² to BTC over 30 days of hourly returns, weighted by its loss.",
+    "betaClamped": "Clamped from {{raw}}",
+    "noPrice": "No price yet",
+    "col": {
+      "move": "BTC move",
+      "result": "Result",
+      "pctCapital": "% of capital in bots",
+      "btcShare": "From BTC direction",
+      "excluded": "Not included",
+      "symbol": "Coin",
+      "bot": "Bot",
+      "exit": "Exit on the way",
+      "capital": "Capital",
+      "mark": "Price",
+      "stop": "Stop",
+      "liq": "Liquidation",
+      "beta": "Beta",
+      "r2": "R²"
+    },
+    "source": {
+      "signal": "Signal bot",
+      "manual": "Manual",
+      "dca": "DCA",
+      "grid": "Grid"
+    },
+    "dir": {
+      "long": "long",
+      "short": "short",
+      "neutral": "neutral"
+    },
+    "exit": {
+      "sl": "Stop-loss",
+      "breakeven": "Breakeven stop",
+      "tp": "Take-profit",
+      "liq": "Liquidation",
+      "maxLoss": "Max-loss cap",
+      "horizon": "Time limit",
+      "stop": "Stop-out",
+      "trail": "Trailing exit",
+      "gridTp": "Grid take-profit",
+      "timeout": "Max duration",
+      "ddstop": "Drawdown stop",
+      "other": "Closed",
+      "open": "Still open"
+    },
+    "errors": {
+      "betaShort": "Less than 10 days of hourly history on DataHub",
+      "replayBtcShort": "DataHub did not serve BTC for at least 95% of this window",
+      "whatifNoPrice": "No reference price yet",
+      "whatifTradeIncomplete": "The trade preview is incomplete"
+    },
+    "thresholds": {
+      "title": "Alert thresholds",
+      "sameDirectionPct": "Same direction above, %",
+      "singleCoinPct": "One coin above, %",
+      "stress20Pct": "Loss at BTC -20% above, % of capital",
+      "save": "Save thresholds",
+      "saved": "Saved",
+      "hint": "Crossing one raises an alert here and, if Telegram is linked, one message. Nothing is closed or blocked."
+    },
+    "nav": {
+      "ok": "Within thresholds",
+      "warn": "Near a threshold",
+      "danger": "Threshold crossed",
+      "unavailable": "Unavailable"
+    },
+    "card": {
+      "stress": "BTC -20%, {{book}}"
+    },
+    "replay": {
+      "run": "Run replay",
+      "running": "Reading DataHub…",
+      "notRun": "Today's open book through past crash windows, on each coin's own hourly path.",
+      "unavailable": "Unavailable",
+      "estimated": "estimated (beta)",
+      "noBook": "No exposures in this book.",
+      "topFor": "Largest losses in {{window}}",
+      "method": "Coins with less than {{coverage}}% of the window's hours on DataHub follow beta × BTC and are marked estimated (beta). A window without BTC history is unavailable.",
+      "col": {
+        "window": "Window",
+        "btcMove": "BTC move",
+        "btcLow": "BTC low",
+        "estimated": "Estimated (beta)"
+      },
+      "window": {
+        "oct2025": "10 Oct 2025 crash",
+        "ftx2022": "FTX, 8-10 Nov 2022",
+        "luna2022": "LUNA, 9-12 May 2022",
+        "may2021": "19 May 2021",
+        "mar2020": "12 Mar 2020"
+      }
+    },
+    "whatif": {
+      "title": "Portfolio stress",
+      "line": "Portfolio stress at BTC -20%: before {{before}} → after {{after}}",
+      "candidate": "This bot at BTC -20%",
+      "candidateTrade": "This trade at BTC -20%",
+      "emptyBook": "no open exposures"
+    }
   }
 }

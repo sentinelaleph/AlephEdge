@@ -272,6 +272,27 @@ impl Inner {
     }
 }
 
+/// One line to the linked chat, under the Paper header, when notifications
+/// and `category` are on; nothing otherwise. Used by the TradingView link
+/// for an alert that was not executed.
+pub(crate) async fn send_line(app: &tauri::AppHandle, category: notify::Category, body: &str) {
+    send_line_for(app, category, body, false).await;
+}
+
+/// `send_line` under the Paper or LIVE header (`live`): the portfolio risk
+/// view says which book crossed a threshold.
+pub(crate) async fn send_line_for(app: &tauri::AppHandle, category: notify::Category, body: &str, live: bool) {
+    use tauri::Manager;
+    let target = {
+        let mgr = app.state::<TelegramManager>();
+        let g = mgr.lock();
+        g.active().filter(|_| g.settings.categories.allows(&[category]))
+    };
+    if let Some((token, chat)) = target {
+        let _ = tasks::send(app, &token, chat, &format!("{}\n{body}", notify::header(live))).await;
+    }
+}
+
 pub struct TelegramManager {
     pub(crate) inner: Mutex<Inner>,
     /// Time of the last send (ms): at most one message a second.

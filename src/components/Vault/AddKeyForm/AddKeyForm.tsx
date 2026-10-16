@@ -5,8 +5,9 @@ import { Panel } from "@/components/ui/Panel/Panel";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { exchangeName as catalogName } from "@/lib/ipc/exchange/exchange";
 import { useExchangeCatalog } from "@/lib/ipc/exchange/useExchangeCatalog";
-import type { AddCredentialInput, CredentialPermission } from "@/lib/ipc/vault/vault";
+import type { AddCredentialInput, CredentialPermission, KeyType } from "@/lib/ipc/vault/vault";
 import { venueNotDryRun } from "@/lib/venues";
+import { ED25519_EXCHANGES, Ed25519Setup, KeyTypeSwitch } from "../Ed25519Setup/Ed25519Setup";
 import { MAX_LABEL_CHARS } from "../KeyList/KeyList";
 import "./AddKeyForm.css";
 
@@ -38,6 +39,8 @@ const EMPTY = {
 export function AddKeyForm({ onAdd, busy, error, onCancel }: AddKeyFormProps) {
   const { t } = useTranslation();
   const [form, setForm] = useState(EMPTY);
+  const [keyType, setKeyType] = useState<KeyType>("hmac");
+  const [edReady, setEdReady] = useState(false);
   const catalog = useExchangeCatalog(t("common.exchangeListFailed"));
 
   const set = <K extends keyof typeof EMPTY>(key: K, value: (typeof EMPTY)[K]) =>
@@ -48,8 +51,10 @@ export function AddKeyForm({ onAdd, busy, error, onCancel }: AddKeyFormProps) {
   // never blocks adding a key (it only needs to disambiguate multiple keys).
   // The catalog must have loaded: the exchange picker IS the catalog.
   const needsPassphrase = PASSPHRASE_REQUIRED.has(form.exchangeId);
+  const ed25519 = keyType === "ed25519" && ED25519_EXCHANGES.has(form.exchangeId);
+  const secretOk = ed25519 ? edReady : Boolean(form.apiSecret.trim());
   const canSubmit =
-    form.apiKey.trim() && form.apiSecret.trim() && (!needsPassphrase || form.passphrase.trim()) && !busy && catalog.exchanges !== null;
+    form.apiKey.trim() && secretOk && (ed25519 || !needsPassphrase || form.passphrase.trim()) && !busy && catalog.exchanges !== null;
 
   const exchangeName = catalogName(form.exchangeId, catalog.exchanges);
 
@@ -61,11 +66,14 @@ export function AddKeyForm({ onAdd, busy, error, onCancel }: AddKeyFormProps) {
         exchangeId: form.exchangeId,
         label: form.label.trim() || exchangeName,
         apiKey: form.apiKey.trim(),
-        apiSecret: form.apiSecret.trim(),
-        passphrase: form.passphrase.trim() || undefined,
+        apiSecret: ed25519 ? "" : form.apiSecret.trim(),
+        passphrase: ed25519 ? undefined : form.passphrase.trim() || undefined,
         permission: form.permission,
+        keyType: ed25519 ? "ed25519" : "hmac",
       });
       setForm(EMPTY);
+      setKeyType("hmac");
+      setEdReady(false);
     } catch {
       /* error surfaced via prop */
     }
@@ -109,30 +117,37 @@ export function AddKeyForm({ onAdd, busy, error, onCancel }: AddKeyFormProps) {
           />
         </div>
 
+        {ED25519_EXCHANGES.has(form.exchangeId) ? <KeyTypeSwitch value={keyType} onChange={setKeyType} disabled={busy} /> : null}
+        {ed25519 ? <Ed25519Setup busy={busy} onReady={setEdReady} /> : null}
+
         <TextField
           label={`${t("vault.apiKey")} *`}
           autoComplete="off"
           spellCheck={false}
           value={form.apiKey}
           onChange={(e) => set("apiKey", e.target.value)}
-          disabled={busy}
+          disabled={busy || (ed25519 && !edReady)}
         />
-        <TextField
-          label={`${t("vault.apiSecret")} *`}
-          type="password"
-          autoComplete="off"
-          value={form.apiSecret}
-          onChange={(e) => set("apiSecret", e.target.value)}
-          disabled={busy}
-        />
-        <TextField
-          label={needsPassphrase ? `${t("vault.passphrase")} *` : `${t("vault.passphrase")} ${t("vault.passphraseOptional")}`}
-          type="password"
-          autoComplete="off"
-          value={form.passphrase}
-          onChange={(e) => set("passphrase", e.target.value)}
-          disabled={busy}
-        />
+        {ed25519 ? null : (
+          <>
+            <TextField
+              label={`${t("vault.apiSecret")} *`}
+              type="password"
+              autoComplete="off"
+              value={form.apiSecret}
+              onChange={(e) => set("apiSecret", e.target.value)}
+              disabled={busy}
+            />
+            <TextField
+              label={needsPassphrase ? `${t("vault.passphrase")} *` : `${t("vault.passphrase")} ${t("vault.passphraseOptional")}`}
+              type="password"
+              autoComplete="off"
+              value={form.passphrase}
+              onChange={(e) => set("passphrase", e.target.value)}
+              disabled={busy}
+            />
+          </>
+        )}
 
         <p className="ae-subtle">{t("vault.tradeOnlyRule")}</p>
         {venueNotDryRun(undefined, form.exchangeId) ? <p className="ae-error" role="note">{t("vault.venueNotDryRun", { exchange: exchangeName })}</p> : null}

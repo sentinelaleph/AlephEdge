@@ -113,7 +113,7 @@ export function PnlPanel({ pnl, trades, stats, children }: PnlPanelProps) {
         <span className="ae-pnl__sym">
           {tr.symbol}
           {isLiveTrade(tr) ? <LiveChip /> : null}
-          {tr.manual ? <ManualChip /> : null}
+          {tr.manual ? <ManualChip signalId={tr.signalId} /> : null}
         </span>
       ),
     },

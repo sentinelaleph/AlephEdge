@@ -17,6 +17,7 @@ use crate::exchange::ExchangeManager;
 use crate::membership::model::MembershipHealth;
 use crate::membership::MembershipManager;
 use crate::signal::SignalManager;
+use crate::vault::key_safety::KeySafety;
 use crate::vault::model::{CredentialPermission, VaultState};
 use crate::vault::VaultManager;
 
@@ -68,6 +69,8 @@ pub struct Inputs {
     pub production: bool,
     pub vault: Option<VaultState>,
     pub key: Option<CredentialPermission>,
+    /// Age and IP-restriction warnings of that key.
+    pub key_safety: Option<KeySafety>,
     pub clock_offset_ms: Option<i64>,
     pub account: Option<Result<FuturesAccount, String>>,
     pub hedge_mode: Option<Result<bool, String>>,
@@ -80,6 +83,16 @@ pub struct Inputs {
     pub live_signal_bots: usize,
     pub live_strategy_bots: usize,
     pub halted_strategy_bots: usize,
+    /// The foreign-trade watch (Binance only, where real money is).
+    pub foreign_watch: Option<ForeignWatch>,
+}
+
+/// The foreign-trade watch as the readiness list judges it.
+#[derive(Debug, Clone, Default)]
+pub struct ForeignWatch {
+    pub enabled: bool,
+    /// Symbols of unacknowledged fills this app did not make.
+    pub alarm_symbols: Vec<String>,
 }
 
 fn check(id: &'static str, verdict: Verdict, code: Option<&str>, value: Option<String>) -> Check {
@@ -116,6 +129,14 @@ pub fn evaluate(i: &Inputs) -> Vec<Check> {
         (Some(VaultState::Absent), None) => check("key", Fail, Some("noVault"), None),
         _ => check("key", Fail, Some("vaultLocked"), None),
     });
+    // Warnings only (never blocks): the worst of no IP restriction and age.
+    if let Some(s) = i.key_safety {
+        let days = Some(format!("{} d", s.age_days));
+        out.push(match s.worst_code() {
+            Some(code) => check("keySafety", Warn, Some(code), days),
+            None => check("keySafety", ok, None, days),
+        });
+    }
     let ms = |v: i64| Some(format!("{}{v} ms", if v > 0 { "+" } else { "" }));
     out.push(match i.clock_offset_ms {
         None => check("clock", Fail, Some("unreachable"), None),
@@ -145,6 +166,17 @@ pub fn evaluate(i: &Inputs) -> Vec<Check> {
             check("positions", ok, None, Some("0".into()))
         } else {
             check("positions", Warn, Some("foreignPositions"), Some(i.foreign_positions.join(", ")))
+        });
+    }
+    if let Some(w) = &i.foreign_watch {
+        out.push(if !w.alarm_symbols.is_empty() {
+            let mut syms = w.alarm_symbols.clone();
+            syms.dedup();
+            check("foreignTrades", Fail, Some("foreignTrades"), Some(syms.join(", ")))
+        } else if w.enabled {
+            check("foreignTrades", ok, Some("watching"), None)
+        } else {
+            check("foreignTrades", Warn, Some("watchOff"), None)
         });
     }
     out.push(if i.kill_switch {
@@ -230,11 +262,16 @@ pub async fn live_preflight(app: AppHandle, venue: Option<String>) -> Result<Pre
             .count(),
         live_strategy_bots,
         halted_strategy_bots,
+        foreign_watch: (venue == "binance").then(|| {
+            let ff = app.state::<crate::app::foreign_fill::ForeignFillManager>();
+            ForeignWatch { enabled: ff.enabled(), alarm_symbols: ff.alarms().into_iter().map(|a| a.symbol).collect() }
+        }),
         ..Inputs::default()
     };
     i.clock_offset_ms = exchange.sync_clock().await;
     let cred = vault.credential(&venue);
     i.key = cred.as_ref().map(|c| c.permission);
+    i.key_safety = cred.as_ref().map(|c| c.safety(crate::bot::engine::now_ms()));
     if let Some(cred) = cred.as_ref() {
         let account = exchange.futures_account(cred).await;
         if let Ok(acc) = &account {
@@ -277,6 +314,7 @@ mod tests {
             production: true,
             vault: Some(VaultState::Unlocked),
             key: Some(CredentialPermission::TradeOnly),
+            key_safety: Some(KeySafety::default()),
             clock_offset_ms: Some(-40),
             account: Some(Ok(FuturesAccount {
                 total_wallet_balance: 500.0,
@@ -293,6 +331,7 @@ mod tests {
             live_signal_bots: 1,
             live_strategy_bots: 2,
             halted_strategy_bots: 0,
+            foreign_watch: Some(ForeignWatch { enabled: true, alarm_symbols: vec![] }),
         }
     }
 
@@ -369,6 +408,43 @@ mod tests {
         let mut i = ready();
         (i.venue, i.sandbox, i.production) = ("bitget".into(), true, false);
         assert_eq!(get(&evaluate(&i), "venue").verdict, Verdict::Fail);
+    }
+
+    #[test]
+    fn a_foreign_trade_blocks_and_a_switched_off_watch_warns() {
+        assert_eq!(get(&evaluate(&ready()), "foreignTrades").code.as_deref(), Some("watching"));
+        let mut i = ready();
+        i.foreign_watch = Some(ForeignWatch { enabled: true, alarm_symbols: vec!["XUSDT".into(), "XUSDT".into(), "YUSDT".into()] });
+        let c = evaluate(&i);
+        assert_eq!(get(&c, "foreignTrades").verdict, Verdict::Fail);
+        assert_eq!(get(&c, "foreignTrades").value.as_deref(), Some("XUSDT, YUSDT"));
+        i.foreign_watch = Some(ForeignWatch { enabled: false, alarm_symbols: vec![] });
+        assert_eq!(get(&evaluate(&i), "foreignTrades").verdict, Verdict::Warn);
+        // Bybit / OKX hold no real money: no row.
+        i.foreign_watch = None;
+        assert!(evaluate(&i).iter().all(|c| c.id != "foreignTrades"));
+    }
+
+    #[test]
+    fn an_open_or_old_key_warns_and_never_blocks() {
+        use crate::vault::key_safety::classify;
+        const DAY: u64 = 86_400_000;
+        let now = 1_000 * DAY;
+        let mut i = ready();
+        i.key_safety = Some(classify(Some(now - 200 * DAY), now, Some(false), now));
+        let c = evaluate(&i);
+        let row = get(&c, "keySafety");
+        assert_eq!((row.verdict, row.code.as_deref(), row.value.as_deref()), (Verdict::Warn, Some("keyNoIpAndOld"), Some("200 d")));
+        assert_eq!(worst(&c), Verdict::Warn, "a warning, not a block: {c:?}");
+        i.key_safety = Some(classify(None, now - 10 * DAY, Some(false), now));
+        assert_eq!(get(&evaluate(&i), "keySafety").code.as_deref(), Some("keyNoIpRestriction"));
+        i.key_safety = Some(classify(None, now - 100 * DAY, Some(true), now));
+        assert_eq!(get(&evaluate(&i), "keySafety").code.as_deref(), Some("keyOld"));
+        i.key_safety = Some(classify(None, now - 10 * DAY, Some(true), now));
+        assert_eq!(get(&evaluate(&i), "keySafety").verdict, Verdict::Ok);
+        // No key, no row.
+        i.key_safety = None;
+        assert!(evaluate(&i).iter().all(|c| c.id != "keySafety"));
     }
 
     #[test]

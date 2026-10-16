@@ -22,6 +22,7 @@ import {
 } from "@/lib/ipc/strategy/strategy";
 import { StrategyForm, type FormActions, type FormPreview } from "./strategy/StrategyForm";
 import { StrategyPreviewPanel } from "./strategy/StrategyPreviewPanel";
+import { PortfolioWhatIf, strategyCandidate } from "@/pages/Risk/PortfolioWhatIf";
 
 const DEFAULT_SYMBOL = "BTCUSDT";
 
@@ -230,12 +231,15 @@ export function StrategyCreatePage({ kind }: { kind: StrategyKind }) {
       }
       right={
         initial ? (
-          <StrategyPreviewPanel
-            preview={summary?.preview ?? null}
-            error={summary?.error ?? null}
-            cfg={summary?.cfg ?? initial}
-            available={summary?.available ?? null}
-          />
+          <>
+            <StrategyPreviewPanel
+              preview={summary?.preview ?? null}
+              error={summary?.error ?? null}
+              cfg={summary?.cfg ?? initial}
+              available={summary?.available ?? null}
+            />
+            <PortfolioWhatIf candidate={summary ? strategyCandidate(summary.cfg, summary.preview) : null} />
+          </>
         ) : null
       }
     >

@@ -101,6 +101,48 @@ pub struct RiskConfig {
     /// table is the ceiling the product stands behind.
     #[serde(default)]
     pub daily_loss_override_pct: Option<f64>,
+    /// Portfolio risk view alert thresholds (Risk page, `riskview`).
+    #[serde(default)]
+    pub view_thresholds: ViewThresholds,
+}
+
+/// When the portfolio risk view (src/riskview) raises its warnings, % each.
+/// Readouts, not limits: crossing one alerts, it never blocks or closes.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ViewThresholds {
+    /// Share of risk capital on the dominant side (long or short).
+    pub same_direction_pct: f64,
+    /// Share of risk capital in one coin.
+    pub single_coin_pct: f64,
+    /// Loss at a BTC -20% shock, % of the capital in bots.
+    pub stress20_pct: f64,
+}
+
+impl Default for ViewThresholds {
+    fn default() -> Self {
+        Self { same_direction_pct: 80.0, single_coin_pct: 40.0, stress20_pct: 25.0 }
+    }
+}
+
+impl ViewThresholds {
+    /// Each value inside its accepted range (same direction 50..=100, one
+    /// coin 10..=100, stress 1..=100), or the i18n code of the first that is
+    /// not. A share below 50% on the dominant side is impossible, so such a
+    /// threshold would alert on every book.
+    pub fn check(&self) -> Result<(), &'static str> {
+        let within = |v: f64, lo: f64| v.is_finite() && (lo..=100.0).contains(&v);
+        if !within(self.same_direction_pct, 50.0) {
+            return Err("viewThresholdSameDirection");
+        }
+        if !within(self.single_coin_pct, 10.0) {
+            return Err("viewThresholdSingleCoin");
+        }
+        if !within(self.stress20_pct, 1.0) {
+            return Err("viewThresholdStress");
+        }
+        Ok(())
+    }
 }
 
 fn default_balance() -> f64 {
@@ -119,6 +161,7 @@ impl Default for RiskConfig {
             balance: default_balance(),
             close_on_stop: default_close_on_stop(),
             daily_loss_override_pct: None,
+            view_thresholds: ViewThresholds::default(),
         }
     }
 }
@@ -165,6 +208,8 @@ pub struct RiskState {
     /// UI can say the cap won rather than appearing to accept a number it did
     /// not honour.
     pub daily_loss_override_capped: bool,
+    /// Portfolio risk view thresholds (warn/danger chips and alerts).
+    pub view_thresholds: ViewThresholds,
 }
 
 impl RiskState {
@@ -181,6 +226,7 @@ impl RiskState {
             limits,
             balance: config.balance,
             close_on_stop: config.close_on_stop,
+            view_thresholds: config.view_thresholds,
         }
     }
 }
@@ -195,6 +241,7 @@ mod tests {
             balance: 1_000.0,
             close_on_stop: true,
             daily_loss_override_pct: override_pct,
+            view_thresholds: ViewThresholds::default(),
         }
     }
 
@@ -253,6 +300,23 @@ mod tests {
             cfg(RiskLevel::Calm, Some(f64::NAN)).effective_daily_loss_pct(),
             4.0
         );
+    }
+
+    #[test]
+    fn view_thresholds_default_and_bounds() {
+        let d = ViewThresholds::default();
+        assert_eq!((d.same_direction_pct, d.single_coin_pct, d.stress20_pct), (80.0, 40.0, 25.0));
+        assert!(d.check().is_ok());
+        assert_eq!(ViewThresholds { same_direction_pct: 40.0, ..d }.check(), Err("viewThresholdSameDirection"));
+        assert_eq!(ViewThresholds { single_coin_pct: 101.0, ..d }.check(), Err("viewThresholdSingleCoin"));
+        assert_eq!(ViewThresholds { stress20_pct: f64::NAN, ..d }.check(), Err("viewThresholdStress"));
+        // A config saved before the field existed loads the defaults.
+        let old: RiskConfig = serde_json::from_str(r#"{"level":"calm","balance":500}"#).unwrap();
+        assert_eq!(old.view_thresholds, d);
+        let partial: RiskConfig =
+            serde_json::from_str(r#"{"level":"calm","viewThresholds":{"stress20Pct":10}}"#).unwrap();
+        assert_eq!(partial.view_thresholds.stress20_pct, 10.0);
+        assert_eq!(partial.view_thresholds.same_direction_pct, 80.0);
     }
 
     #[test]

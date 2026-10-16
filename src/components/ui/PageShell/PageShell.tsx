@@ -33,6 +33,8 @@ interface PageShellProps {
   left?: ReactNode;
   /** Names the left panel and its fold button when it is not filters (Settings: its sections). */
   leftLabel?: string;
+  /** Opens the folded left panel (narrow windows) when it turns true: the panel holds the task the user just asked for. */
+  leftOpen?: boolean;
   /** Summaries and readouts for this page. */
   right?: ReactNode;
   /** The wider left panel (backtest configuration). */
@@ -58,7 +60,7 @@ interface PageShellProps {
  * (or a synonym) as an <h2> at the top of the center column; group content
  * with <Panel title> (framed) or <Section title> (unframed), both 13px/600.
  */
-export function PageShell({ title, crumbs, primary, secondary, actions, left, leftLabel, right, wideLeft, single, children }: PageShellProps) {
+export function PageShell({ title, crumbs, primary, secondary, actions, left, leftLabel, leftOpen: openLeft, right, wideLeft, single, children }: PageShellProps) {
   const { t } = useTranslation();
   const slots = useShellSlots();
   const { route, kind } = useRouter();
@@ -66,6 +68,9 @@ export function PageShell({ title, crumbs, primary, secondary, actions, left, le
   const centerRef = useRef<HTMLDivElement>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [leftOpen, setLeftOpen] = useState(false);
+  useEffect(() => {
+    if (openLeft) setLeftOpen(true);
+  }, [openLeft]);
   const [level, setLevel] = useState<ActionLevel>(0);
   const levelRef = useRef<ActionLevel>(0);
   levelRef.current = level;

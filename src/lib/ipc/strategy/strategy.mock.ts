@@ -478,7 +478,12 @@ export function presets(): Promise<Preset[]> {
         recheck: null,
       },
     },
-  ]).then((list) => list.map((p) => ({ ...p, minBudget: minBudget(p.config) })));
+  ]).then((list) => list.map((p) => ({
+      ...p,
+      minBudget: minBudget(p.config),
+      // Same figures as presets.rs wide_universe.
+      wideUniverse: p.id === "dca_long_classic" ? { topN: 30, trainMeanPct: -0.44, validMeanPct: -0.79, testMeanPct: 0.62, worstBotDrawdownPct: -97.7 } : null,
+    })));
 }
 
 function classicPreset(): Promise<Preset> {
@@ -487,6 +492,7 @@ function classicPreset(): Promise<Preset> {
       id: "dca_long_classic",
       // Filled from the config by presets().
       minBudget: null,
+      wideUniverse: null,
       verdict: "presetReady",
       failReasons: [],
       situation: "bullMajors",

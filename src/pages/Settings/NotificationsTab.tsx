@@ -13,6 +13,7 @@ const GROUPS: { id: "safety" | "bots" | "market"; items: { category: AlertCatego
     id: "safety",
     items: [
       { category: "killSwitch", severity: "danger" },
+      { category: "portfolioRisk", severity: "danger" },
       { category: "stopLoss", severity: "warn" },
       { category: "vaultAutoLock", severity: "info" },
     ],

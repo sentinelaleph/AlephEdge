@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { appInfo, type AppInfo } from "@/lib/ipc/app/about";
 import { linkState, type LinkStateView } from "@/lib/ipc/link/link";
 
-export const SETTINGS_TABS = ["general", "notifications", "devices", "keys", "about"] as const;
+export const SETTINGS_TABS = ["general", "notifications", "tradingview", "devices", "keys", "backup", "about"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export function isSettingsTab(v: string | null): v is SettingsTab {

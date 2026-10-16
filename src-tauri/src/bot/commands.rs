@@ -53,6 +53,22 @@ pub fn bot_configure(
     bots: State<BotManager>,
     config: BotConfig,
 ) -> Result<BotDeskStatus, String> {
+    apply_config(&app, &bots, config, KeepLive::Yes)?;
+    Ok(bots.status())
+}
+
+/// Whether a saved config keeps the bot's real-money switch.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum KeepLive {
+    /// A settings save: live stays as it was (unless its terms changed).
+    Yes,
+    /// A settings import: the bot is simulated afterwards, whatever it was.
+    No,
+}
+
+/// The checks and the save of `bot_configure`, shared with the settings
+/// import (app/settings_transfer.rs).
+pub(crate) fn apply_config(app: &AppHandle, bots: &BotManager, config: BotConfig, keep: KeepLive) -> Result<(), String> {
     config.validate()?;
     if config.max_positions > MAX_BOT_POSITIONS {
         return Err(format!("botMaxPositionsRange|1–{MAX_BOT_POSITIONS}"));
@@ -75,15 +91,18 @@ pub fn bot_configure(
     if let Some(refusal) = exchange_change_refusal(prev.as_ref(), &config, &bots.positions_snapshot()) {
         return Err(refusal);
     }
-    config.live = prev.as_ref().is_some_and(|c| c.live);
+    config.live = keep == KeepLive::Yes && prev.as_ref().is_some_and(|c| c.live);
     // The typed LIVE confirmed real money at the sizing it showed. A change
     // to capital, leverage or the position cap switches live off; the user
     // confirms the new sizing with LIVE again.
     if prev.as_ref().is_some_and(|p| p.live && live_terms_changed(p, &config)) {
         config.live = false;
     }
+    if keep == KeepLive::No {
+        bots.set_pilot(config.kind, 0);
+    }
     let changed = prev.as_ref().is_some_and(|p| settings_changed(p, &config));
-    bots.save_config(&app, &config);
+    bots.save_config(app, &config);
     let kind = config.kind;
     bots.configure(config);
     // Saved settings apply to signals already refused under the old ones,
@@ -91,7 +110,7 @@ pub fn bot_configure(
     if changed {
         bots.clear_settings_verdicts(kind);
     }
-    Ok(bots.status())
+    Ok(())
 }
 
 /// Any setting other than the real-money flag differs. Comparing the whole
@@ -301,6 +320,29 @@ pub async fn bot_preview_take(
     signal_id: String,
 ) -> Result<super::engine::manual::TakePreview, String> {
     super::engine::manual::preview(&app, kind, &signal_id).await
+}
+
+/// "New trade": opens ONE paper position on the user's own symbol, side,
+/// size, take-profit and stop, at the live price now, through the same entry
+/// pipeline as `bot_take_signal` (see engine/user_trade.rs). Paper only
+/// (`manualTakePaperOnly`); every other refusal is a code, `key|detail`.
+#[tauri::command]
+pub async fn bot_open_trade(
+    app: AppHandle,
+    request: super::engine::user_trade::TradeRequest,
+) -> Result<OpenPosition, String> {
+    super::engine::user_trade::open(&app, &request).await
+}
+
+/// What `bot_open_trade` would open now: fill, quantity, risk in USDT and %
+/// of the bot's capital, reward:risk, liquidation price, fees; or the same
+/// refusal.
+#[tauri::command]
+pub async fn bot_preview_trade(
+    app: AppHandle,
+    request: super::engine::user_trade::TradeRequest,
+) -> Result<super::engine::user_trade::TradePreview, String> {
+    super::engine::user_trade::preview(&app, &request).await
 }
 
 #[tauri::command]

@@ -37,6 +37,11 @@ pub struct LiveTemplate {
     pub median_dd_pct: Option<f64>,
     pub win_rate_cycles: Option<f64>,
     pub history: Vec<LivePoint>,
+    /// The template's pairs this month, ranked as its historical simulation
+    /// (empty when the server file predates the field).
+    pub symbols: Vec<String>,
+    /// "YYYY-MM" of `symbols`.
+    pub universe_month: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -73,6 +78,10 @@ struct WireTemplate {
     win_rate_cycles: Option<f64>,
     #[serde(default)]
     history: Vec<LivePoint>,
+    #[serde(default)]
+    symbols: Vec<String>,
+    #[serde(default)]
+    universe_month: Option<String>,
 }
 
 pub fn parse(body: &str) -> Result<PresetsLive, String> {
@@ -96,6 +105,8 @@ pub fn parse(body: &str) -> Result<PresetsLive, String> {
                 median_dd_pct: t.median_dd_pct,
                 win_rate_cycles: t.win_rate_cycles,
                 history: t.history,
+                symbols: t.symbols,
+                universe_month: t.universe_month,
             })
             .collect(),
     })
@@ -160,6 +171,17 @@ mod tests {
         assert_eq!(v.templates[0].id, "dca_long_classic");
         assert_eq!(v.templates[0].history[0].r, 0.1);
         assert_eq!(v.min_days_for_ranking, 30.0);
+        assert!(v.templates[0].symbols.is_empty() && v.templates[0].universe_month.is_none(), "older files still read");
+    }
+
+    #[test]
+    fn reads_the_month_pair_list() {
+        let body = r#"{"t0":"a","updated_at":"b","data_end":"c","days":7,"min_days_for_ranking":30,"templates":[
+            {"id":"dca_long_classic","return_pct":0,"bots":5,"cycles":1,"open_cycles":0,"worst_dd_pct":null,
+            "median_dd_pct":null,"win_rate_cycles":null,"symbols":["BTCUSDT","ETHUSDT"],"universe_month":"2026-10"}]}"#;
+        let v = parse(body).unwrap();
+        assert_eq!(v.templates[0].symbols, vec!["BTCUSDT", "ETHUSDT"]);
+        assert_eq!(v.templates[0].universe_month.as_deref(), Some("2026-10"));
     }
 
     #[test]

@@ -176,7 +176,7 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
         <span className="ae-namecell">
           {tr.symbol}
           {tr.live ? <LiveChip /> : null}
-          {tr.manual ? <ManualChip /> : null}
+          {tr.manual ? <ManualChip signalId={tr.signalId} /> : null}
         </span>
       ),
     },
@@ -208,7 +208,7 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
         <span className="ae-namecell">
           {o.position.symbol}
           {o.position.live ? <LiveChip /> : null}
-          {o.position.manual ? <ManualChip /> : null}
+          {o.position.manual ? <ManualChip signalId={o.position.signalId} /> : null}
         </span>
       ),
     },

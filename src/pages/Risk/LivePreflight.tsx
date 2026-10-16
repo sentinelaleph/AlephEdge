@@ -19,6 +19,7 @@ const CHIP: Record<PreflightVerdict, StatusKind> = { ok: "ok", warn: "needsSetup
 /** Where a check that is not ok gets fixed inside the app. */
 const FIX: Partial<Record<PreflightCheckId, string>> = {
   key: KEYS_PATH,
+  keySafety: KEYS_PATH,
   account: KEYS_PATH,
   positions: "/positions?tab=exchange",
   membership: "/account",

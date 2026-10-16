@@ -22,6 +22,10 @@ export interface LiveTemplate {
   medianDdPct: number | null;
   winRateCycles: number | null;
   history: LivePoint[];
+  /** The template's pairs this month, ranked as its historical simulation (empty: not published). */
+  symbols: string[];
+  /** "YYYY-MM" of `symbols`. */
+  universeMonth: string | null;
 }
 
 export interface PresetsLive {

@@ -10,11 +10,13 @@ import { PageShell } from "@/components/ui/PageShell/PageShell";
 import { FactList, Panel } from "@/components/ui/Panel/Panel";
 import { Section } from "@/components/ui/Section/Section";
 import { Tabs } from "@/components/ui/Tabs/Tabs";
+import { Button } from "@/components/ui/Button/Button";
 import { localeForLanguage } from "@/i18n";
 import { formatPercent, formatPnl, formatUsdt, NO_VALUE, pnlToneAttr } from "@/lib/format";
 import type { BotKind } from "@/lib/ipc/bot/bot";
 import { marksByPosition, openPnl } from "@/lib/positionMarks";
 import { SkeletonRows } from "@/pages/Bots/SkeletonRows";
+import { NewTradeForm, NewTradePreview, useNewTrade } from "./NewTrade";
 import { PaperCloseAll } from "./PaperCloseAll";
 import { PositionsTable } from "./PositionsTable";
 import { StrategyCyclesTable } from "./StrategyCyclesTable";
@@ -37,6 +39,8 @@ export function PositionsPage() {
   const kind = listParam(route.query.get("kind"));
   const side = listParam(route.query.get("side"));
   const sym = route.query.get("q") ?? "";
+  // "New trade" open: its terms take the left panel, its preview the center.
+  const newTrade = tab === "paper" && route.query.get("new") === "1";
   const set = (patch: Record<string, string>) =>
     navigate(
       withQuery("/positions", {
@@ -44,10 +48,12 @@ export function PositionsPage() {
         kind: kind.join(","),
         side: side.join(","),
         q: sym,
+        new: newTrade ? "1" : "",
         ...patch,
       }),
       { replace: true },
     );
+  const trade = useNewTrade(desk.status, newTrade);
 
   // Paper only: a LIVE bot's positions are real and show on the Exchange tab.
   const all = desk.status.openPositions.filter((p) => !p.live);
@@ -124,7 +130,9 @@ export function PositionsPage() {
     <PageShell
       title={t("nav.positions")}
       crumbs={[{ label: t("nav.groups.portfolio") }]}
-      left={tab === "paper" ? paperLeft : undefined}
+      left={tab === "paper" ? (newTrade ? <NewTradeForm ctl={trade} status={desk.status} /> : paperLeft) : undefined}
+      leftLabel={tab === "paper" && newTrade ? t("positions.newTrade.title") : undefined}
+      leftOpen={tab === "paper" && newTrade}
       right={tab === "paper" ? paperRight : undefined}
     >
       <Tabs
@@ -150,8 +158,14 @@ export function PositionsPage() {
           ) : (
             <>
               <div className="ae-toolbar ae-positions__emergency">
+                {newTrade ? null : (
+                  <Button variant="secondary" size="sm" onClick={() => set({ new: "1" })}>
+                    {t("positions.newTrade.button")}
+                  </Button>
+                )}
                 <PaperCloseAll />
               </div>
+              {newTrade ? <NewTradePreview ctl={trade} onClose={() => set({ new: "" })} /> : null}
               <Section title={t("table.openPositions")} count={rows.length}>
                 <PositionsTable positions={rows} showBot onClose={desk.closePosition} />
               </Section>

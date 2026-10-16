@@ -29,6 +29,8 @@ import { configErrorText, presetName, strategyErrorText, universeText } from "@/
 import { CheckRow, FieldShell, NumField, Segmented } from "./formControls";
 import { StrategyLevelsTable } from "./StrategyPreviewPanel";
 import { GridSuggest } from "./GridSuggest";
+import { pairListText, presetPairCheck } from "./presetPair";
+import { presetsLive, type LiveTemplate } from "@/lib/ipc/strategy/presetsLive";
 import "./StrategyForm.css";
 import { TrendMismatchNote } from "@/components/Desk/MarketTrend";
 
@@ -152,6 +154,19 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const { strategy, catalog } = useDeskContext();
   const [cfg, setCfg] = useState<StrategyConfig>(initial);
+  // This month's pair list of the template (ghost track); null = cannot check.
+  const [liveTpl, setLiveTpl] = useState<LiveTemplate | null>(null);
+  const presetId = preset && preset.universe.rule !== "btcOnly" ? preset.id : null;
+  useEffect(() => {
+    if (!presetId) return;
+    let alive = true;
+    presetsLive()
+      .then((v) => alive && setLiveTpl(v.templates.find((x) => x.id === presetId) ?? null))
+      .catch(() => alive && setLiveTpl(null));
+    return () => {
+      alive = false;
+    };
+  }, [presetId]);
   const [invalid, setInvalid] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<PreviewDto | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -342,6 +357,9 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
   }, [canSubmit, canStart, saving, stableSubmit, onActions]);
   const universe = preset ? universeText(t, preset.universe) : null;
   const dd = cfg.maxDrawdownPct !== null;
+  const pair = preset ? presetPairCheck(preset, cfg.symbol, liveTpl) : ({ state: "unknown" } as const);
+  const wide = preset?.wideUniverse ?? null;
+  const pctText = (v: number) => `${v > 0 ? "+" : ""}${formatNumber(v, locale, { maximumFractionDigits: 2 })}%`;
 
   return (
     <>
@@ -358,12 +376,29 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
           </Link>
         </p>
         {preset ? (
-          <p className="ae-banner" data-tone={presetParity ? "info" : "warn"}>
+          <p className="ae-banner" data-tone={!presetParity || pair.state === "outside" ? "warn" : "info"}>
             {!presetParity
               ? t("strategy.form.presetDiffers", { id: preset.id })
               : preset.universe.rule === "btcOnly"
                 ? t("strategy.form.fromPresetPairChecked", { id: preset.id, universe })
-                : t("strategy.form.fromPreset", { id: preset.id, universe })}
+                : pair.state === "inList"
+                  ? t("strategy.form.fromPresetPairInList", { id: preset.id, symbol: cfg.symbol.trim().toUpperCase(), month: pair.month, list: pairListText(pair.list) })
+                  : pair.state === "outside"
+                    ? [
+                        t("strategy.form.presetPairOutside", { id: preset.id, symbol: cfg.symbol.trim().toUpperCase(), month: pair.month, list: pairListText(pair.list) }),
+                        wide
+                          ? t("strategy.form.presetPairOutsideWide", {
+                              n: wide.topN,
+                              train: pctText(wide.trainMeanPct),
+                              valid: pctText(wide.validMeanPct),
+                              test: pctText(wide.testMeanPct),
+                              dd: `${formatNumber(Math.abs(wide.worstBotDrawdownPct), locale, { maximumFractionDigits: 1 })}%`,
+                            })
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" ")
+                    : t("strategy.form.fromPreset", { id: preset.id, universe })}
           </p>
         ) : !edit && !backtest ? (
           <CustomSettingsNote kind={kind} templates={templates ?? null} />

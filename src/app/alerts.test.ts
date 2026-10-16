@@ -76,3 +76,50 @@ describe("DCA / Grid alerts", () => {
     expect(dead?.title).toContain("DCA X");
   });
 });
+
+describe("foreign-trade alert", () => {
+  const fill = (symbol: string, tradeId: number, detectedMs: number) => ({
+    symbol,
+    tradeId,
+    orderId: 1,
+    side: "BUY",
+    qty: 1,
+    price: 1,
+    timeMs: detectedMs - 1_000,
+    detectedMs,
+  });
+  const withWatch = (liveBuild: boolean, alarms: ReturnType<typeof fill>[]) =>
+    ({ ...ctx([], 0), foreignFill: { liveBuild, enabled: true, watching: true, lastCheckMs: NOW, lastError: null, alarms } }) as DeskContextValue;
+
+  it("an unacknowledged foreign fill is a danger alert in the kill-switch category", () => {
+    const alerts = deriveAlerts(withWatch(true, [fill("XUSDT", 1, NOW - 5_000), fill("XUSDT", 2, NOW - 1_000), fill("YUSDT", 3, NOW - 2_000)]), t, null, NOW);
+    const a = alerts.find((x) => x.key === "foreignTrades");
+    expect(a?.severity).toBe("danger");
+    expect(a?.category).toBe("killSwitch");
+    expect(a?.count).toBe(3);
+    expect(a?.detail).toBe("XUSDT, YUSDT");
+    expect(alerts[0].key).toBe("foreignTrades");
+  });
+
+  it("no alarm, or a paper build, raises nothing", () => {
+    expect(deriveAlerts(withWatch(true, []), t, null, NOW).some((a) => a.key === "foreignTrades")).toBe(false);
+    expect(deriveAlerts(withWatch(false, [fill("XUSDT", 1, NOW)]), t, null, NOW).some((a) => a.key === "foreignTrades")).toBe(false);
+    expect(deriveAlerts(ctx([], 0), t, null, NOW).some((a) => a.key === "foreignTrades")).toBe(false);
+  });
+});
+
+describe("portfolio risk alerts", () => {
+  it("a crossed threshold alerts while it holds, with its start time", async () => {
+    const { SAMPLE_SNAPSHOT } = await import("@/lib/ipc/riskview/riskview.mock");
+    const base = ctx([], 0);
+    const withView = { ...base, riskView: { snapshot: SAMPLE_SNAPSHOT } } as unknown as DeskContextValue;
+    const alerts = deriveAlerts(withView, t, null, NOW).filter((a) => a.category === "portfolioRisk");
+    // The sample paper book crosses same-direction and single-coin; stress is only a warning.
+    expect(alerts.map((a) => a.key)).toEqual(["portfolioRisk:paper:sameDirection", "portfolioRisk:paper:singleCoin"]);
+    expect(alerts[0].severity).toBe("danger");
+    expect(alerts[0].at).toBe(SAMPLE_SNAPSHOT.paper.checks[0].sinceMs);
+    expect(alerts[0].title).toContain('"value":88');
+    // No snapshot (not loaded yet, or the old test context): nothing.
+    expect(deriveAlerts(base, t, null, NOW).some((a) => a.category === "portfolioRisk")).toBe(false);
+  });
+});

@@ -12,8 +12,10 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use crate::exchange::model::BinanceKeyCheckError;
 use crate::exchange::ExchangeManager;
 
-use super::model::{CredentialMeta, CredentialPermission, ExchangeCredential, VaultStatus};
-use super::VaultManager;
+use crate::exchange::model::BinancePermissions;
+
+use super::model::{CredentialMeta, CredentialPermission, ExchangeCredential, KeyType, VaultStatus};
+use super::{KeyFacts, VaultManager};
 
 /// New-credential input from the UI. `added_at` is stamped server-side so the UI
 /// never controls it.
@@ -23,8 +25,14 @@ pub struct AddCredentialInput {
     pub exchange_id: String,
     pub label: String,
     pub api_key: String,
+    /// The exchange's secret for an HMAC key. Empty for an Ed25519 key: its
+    /// private key never crosses IPC, it is the pending one generated here.
+    #[serde(default)]
     pub api_secret: String,
     pub passphrase: Option<String>,
+    /// Absent = HMAC (what every UI before 0.3.15 sent).
+    #[serde(default)]
+    pub key_type: KeyType,
     // The UI's declared permission is not read: the vault stores only what
     // Binance itself reports (serde ignores the field the UI still sends).
 }
@@ -38,8 +46,41 @@ impl std::fmt::Debug for AddCredentialInput {
             .field("api_key", &"<redacted>")
             .field("api_secret", &"<redacted>")
             .field("passphrase", &self.passphrase.as_ref().map(|_| "<redacted>"))
+            .field("key_type", &self.key_type)
             .finish()
     }
+}
+
+/// The secret a new credential is stored with: the HMAC secret the user
+/// pasted, or for Ed25519 the pending private seed generated in this process.
+/// Only Binance takes Ed25519 keys.
+fn secret_for(vault: &VaultManager, input: &AddCredentialInput) -> Result<String, String> {
+    match input.key_type {
+        KeyType::Hmac => Ok(input.api_secret.clone()),
+        KeyType::Ed25519 if input.exchange_id != "binance" => Err("keyTypeUnsupported".to_string()),
+        KeyType::Ed25519 => vault.pending_ed25519_seed().ok_or_else(|| "ed25519NoPendingKey".to_string()),
+    }
+}
+
+/// Generates an Ed25519 keypair for a Binance "Self-generated" API key and
+/// returns ONLY its public key (PEM) for the user to register on Binance. The
+/// private key stays in this process until `vault_add_credential` /
+/// `vault_replace_credential` with `keyType: "ed25519"` seals it.
+#[tauri::command]
+pub fn vault_ed25519_generate(vault: State<VaultManager>) -> Result<String, String> {
+    vault.generate_ed25519()
+}
+
+/// The public key of the keypair still waiting for its API key, if any.
+#[tauri::command]
+pub fn vault_ed25519_pending(vault: State<VaultManager>) -> Option<String> {
+    vault.pending_ed25519_public()
+}
+
+/// Drops the waiting keypair (the user cancelled).
+#[tauri::command]
+pub fn vault_ed25519_discard(vault: State<VaultManager>) {
+    vault.discard_ed25519();
 }
 
 /// The vault file's location. `pub(super)` because the idle watchdog needs the
@@ -159,24 +200,31 @@ pub async fn vault_add_credential(
     if let Some(existing) = vault.label_in_use(&input.exchange_id) {
         return Err(super::taken(&existing, &label));
     }
-    let permission = detect_permission(&exchange, &input).await?;
     let cred = ExchangeCredential {
         exchange_id: input.exchange_id.clone(),
         label,
         api_key: input.api_key.clone(),
-        api_secret: input.api_secret.clone(),
+        api_secret: secret_for(&vault, &input)?,
         passphrase: input.passphrase.clone().filter(|p| !p.is_empty()),
-        permission,
+        permission: CredentialPermission::Unknown,
         added_at: now_millis(),
         updated_at: None,
+        key_type: input.key_type,
+        exchange_created_at: None,
+        ip_restricted: None,
     };
+    let cred = verified(&exchange, cred).await?;
+    let ed25519 = cred.key_type == KeyType::Ed25519;
     vault.add(&vault_path(&app)?, cred)?;
+    if ed25519 {
+        vault.discard_ed25519();
+    }
     vault.list()
 }
 
 /// Renews the key material of an existing (exchange, label): the same checks
-/// as adding (verified permissions, withdraw-enabled refused), then an
-/// in-place swap. The old key stays until the new one is sealed.
+/// as adding (verified permissions, withdraw- or transfer-enabled refused),
+/// then an in-place swap. The old key stays until the new one is sealed.
 #[tauri::command]
 pub async fn vault_replace_credential(
     app: AppHandle,
@@ -185,19 +233,58 @@ pub async fn vault_replace_credential(
     input: AddCredentialInput,
 ) -> Result<Vec<CredentialMeta>, String> {
     refuse_while_live(&app)?;
-    let permission = detect_permission(&exchange, &input).await?;
     let cred = ExchangeCredential {
         exchange_id: input.exchange_id.clone(),
         label: input.label.clone(),
         api_key: input.api_key.clone(),
-        api_secret: input.api_secret.clone(),
+        api_secret: secret_for(&vault, &input)?,
         passphrase: input.passphrase.clone().filter(|p| !p.is_empty()),
-        permission,
+        permission: CredentialPermission::Unknown,
         added_at: 0,
         updated_at: Some(now_millis()),
+        key_type: input.key_type,
+        exchange_created_at: None,
+        ip_restricted: None,
     };
+    let cred = verified(&exchange, cred).await?;
+    let ed25519 = cred.key_type == KeyType::Ed25519;
     vault.replace(&vault_path(&app)?, cred)?;
+    if ed25519 {
+        vault.discard_ed25519();
+    }
     vault.list()
+}
+
+/// Reads a stored key's permissions, IP restriction and creation date from
+/// the exchange again and stores them: the key-age and IP warnings clear
+/// once the user fixed them on the exchange. A key that has since gained
+/// withdrawal or transfer permission (or lost futures) is marked unverified,
+/// which keeps it off real money, and the reason is returned.
+#[tauri::command]
+pub async fn vault_recheck_credential(
+    app: AppHandle,
+    vault: State<'_, VaultManager>,
+    exchange: State<'_, ExchangeManager>,
+    exchange_id: String,
+    label: String,
+) -> Result<Vec<CredentialMeta>, String> {
+    let cred = vault
+        .credential(&exchange_id)
+        .filter(|c| c.label == label)
+        .ok_or_else(|| "credentialNotFound".to_string())?;
+    let path = vault_path(&app)?;
+    match check_key(&exchange, &cred).await {
+        Ok(facts) => {
+            vault.set_key_facts(&path, &exchange_id, &label, facts)?;
+            vault.list()
+        }
+        Err(Checked::Refused(code)) => {
+            let facts = KeyFacts { permission: CredentialPermission::Unknown, ip_restricted: None, exchange_created_at: None };
+            vault.set_key_facts(&path, &exchange_id, &label, facts)?;
+            Err(code)
+        }
+        Err(Checked::Unavailable(code)) => Err(code),
+    }
 }
 
 #[tauri::command]
@@ -281,74 +368,94 @@ fn checked_label(raw: &str) -> Result<String, String> {
     Ok(label.to_string())
 }
 
-async fn detect_permission(
-    exchange: &ExchangeManager,
-    input: &AddCredentialInput,
-) -> Result<CredentialPermission, String> {
-    if input.exchange_id != "binance" {
-        return detect_venue_permission(exchange, input).await;
-    }
-    match exchange
-        .check_binance_permissions(&input.api_key, &input.api_secret)
-        .await
-    {
-        // A key that cannot trade futures would fail at the first live order
-        // or manual close; refuse it now, with the reason.
-        Ok(perms) if !perms.futures_enabled => Err("keyNoFutures".to_string()),
-        Ok(perms) => refuse_withdraw(if perms.withdraw_enabled {
-            CredentialPermission::WithdrawEnabled
-        } else {
-            CredentialPermission::TradeOnly
-        }),
-        Err(e @ BinanceKeyCheckError::InvalidCredentials { .. }) => Err(format!("keyRejected|{}", e.detail())),
-        // Binance unreachable: the permissions are unknown, and an unknown
-        // key could be a withdraw key. Refuse with a retryable reason rather
-        // than store it, so a network hiccup never lets a withdraw key in.
-        Err(_) => Err("keyCheckUnavailable".to_string()),
-    }
+/// Why a key check did not produce facts. `Refused`: the exchange answered
+/// and the key may not be stored (or, re-checked, may not stay verified).
+/// `Unavailable`: no usable answer, nothing is decided.
+enum Checked {
+    Refused(String),
+    Unavailable(String),
 }
 
-/// Bybit / OKX through ccxt: the venue's own permission read. Any other
-/// exchange (Bitget, MEXC...) has no order path and no verifier and is
-/// refused: its permissions could only be taken on the user's word, and the
-/// vault holds verified trade-only keys.
-async fn detect_venue_permission(exchange: &ExchangeManager, input: &AddCredentialInput) -> Result<CredentialPermission, String> {
-    if crate::exchange::venue::ccxt::is_rsa_secret(&input.api_secret) {
-        return Err("keyRsaUnsupported".to_string());
-    }
-    let probe = ExchangeCredential {
-        exchange_id: input.exchange_id.clone(),
-        label: String::new(),
-        api_key: input.api_key.clone(),
-        api_secret: input.api_secret.clone(),
-        passphrase: input.passphrase.clone().filter(|p| !p.is_empty()),
-        permission: CredentialPermission::Unknown,
-        added_at: 0,
-        updated_at: None,
-    };
-    match exchange.venue_key_permissions(&probe).await {
-        Ok((false, _)) => Err("keyNoFutures".to_string()),
-        Ok((true, withdraw)) => refuse_withdraw(if withdraw {
-            CredentialPermission::WithdrawEnabled
-        } else {
-            CredentialPermission::TradeOnly
-        }),
-        // No order path, so no verifier.
-        Err(BinanceKeyCheckError::Rejected { code: 0, .. }) if !crate::exchange::has_order_path(&input.exchange_id) => {
-            Err(format!("keyExchangeUnverified|{}", input.exchange_id))
+impl Checked {
+    fn code(self) -> String {
+        match self {
+            Checked::Refused(c) | Checked::Unavailable(c) => c,
         }
-        Err(e @ BinanceKeyCheckError::InvalidCredentials { .. }) => Err(format!("keyRejected|{}", e.detail())),
-        Err(_) => Err("keyCheckUnavailable".to_string()),
     }
 }
 
-/// A key that can withdraw funds never enters the vault. Aleph Edge only
-/// trades; a leaked withdraw key empties the account.
-fn refuse_withdraw(p: CredentialPermission) -> Result<CredentialPermission, String> {
-    if p == CredentialPermission::WithdrawEnabled {
+/// Runs the permission check on `cred` and returns it carrying the verified
+/// facts, or the refusal code. Nothing unverified is ever stored.
+async fn verified(exchange: &ExchangeManager, mut cred: ExchangeCredential) -> Result<ExchangeCredential, String> {
+    let facts = check_key(exchange, &cred).await.map_err(Checked::code)?;
+    cred.permission = facts.permission;
+    cred.ip_restricted = facts.ip_restricted;
+    cred.exchange_created_at = facts.exchange_created_at;
+    Ok(cred)
+}
+
+/// Asks the exchange what this key may do. Binance: signed `apiRestrictions`
+/// (HMAC or Ed25519, per the key). Bybit / OKX: the venue's own read through
+/// ccxt. Any other exchange (Bitget, MEXC...) has no order path and no
+/// verifier and is refused: its permissions could only be taken on the
+/// user's word, and the vault holds verified trade-only keys.
+async fn check_key(exchange: &ExchangeManager, cred: &ExchangeCredential) -> Result<KeyFacts, Checked> {
+    if cred.exchange_id == "binance" {
+        return match exchange.check_binance_permissions(&cred.api_key, cred.binance_signer()).await {
+            Ok(perms) => judge_binance(perms).map_err(Checked::Refused),
+            Err(e @ BinanceKeyCheckError::InvalidCredentials { .. }) => {
+                Err(Checked::Unavailable(format!("keyRejected|{}", e.detail())))
+            }
+            // Binance unreachable: the permissions are unknown, and an unknown
+            // key could be a withdraw key. Refuse with a retryable reason
+            // rather than store it, so a network hiccup never lets one in.
+            Err(_) => Err(Checked::Unavailable("keyCheckUnavailable".to_string())),
+        };
+    }
+    if crate::exchange::venue::ccxt::is_rsa_secret(&cred.api_secret) {
+        return Err(Checked::Refused("keyRsaUnsupported".to_string()));
+    }
+    match exchange.venue_key_permissions(cred).await {
+        Ok((false, _)) => Err(Checked::Refused("keyNoFutures".to_string())),
+        Ok((true, withdraw)) => refuse(withdraw, false)
+            .map(|()| KeyFacts { permission: CredentialPermission::TradeOnly, ip_restricted: None, exchange_created_at: None })
+            .map_err(Checked::Refused),
+        // No order path, so no verifier.
+        Err(BinanceKeyCheckError::Rejected { code: 0, .. }) if !crate::exchange::has_order_path(&cred.exchange_id) => {
+            Err(Checked::Unavailable(format!("keyExchangeUnverified|{}", cred.exchange_id)))
+        }
+        Err(e @ BinanceKeyCheckError::InvalidCredentials { .. }) => Err(Checked::Unavailable(format!("keyRejected|{}", e.detail()))),
+        Err(_) => Err(Checked::Unavailable("keyCheckUnavailable".to_string())),
+    }
+}
+
+/// Binance's answer, judged. A key that cannot trade futures would fail at
+/// the first live order or manual close; withdraw and transfer keys never
+/// enter the vault. IP restriction and age are kept for the warnings.
+fn judge_binance(p: BinancePermissions) -> Result<KeyFacts, String> {
+    if !p.futures_enabled {
+        return Err("keyNoFutures".to_string());
+    }
+    refuse(p.withdraw_enabled, p.transfer_enabled)?;
+    Ok(KeyFacts {
+        permission: CredentialPermission::TradeOnly,
+        ip_restricted: p.ip_restricted,
+        exchange_created_at: p.created_at,
+    })
+}
+
+/// A key that can withdraw funds, or move them to another account by
+/// internal or universal transfer, never enters the vault. Aleph Edge only
+/// trades; a leaked withdraw key empties the account, and a leaked transfer
+/// key can move funds to an account the attacker controls without a
+/// withdrawal.
+fn refuse(withdraw: bool, transfer: bool) -> Result<(), String> {
+    if withdraw {
         Err("keyWithdrawEnabled".to_string())
+    } else if transfer {
+        Err("keyTransferEnabled".to_string())
     } else {
-        Ok(p)
+        Ok(())
     }
 }
 
@@ -356,11 +463,65 @@ fn refuse_withdraw(p: CredentialPermission) -> Result<CredentialPermission, Stri
 mod tests {
     use super::*;
 
+    fn perms(withdraw: bool, transfer: bool, futures: bool) -> BinancePermissions {
+        BinancePermissions {
+            withdraw_enabled: withdraw,
+            transfer_enabled: transfer,
+            futures_enabled: futures,
+            ip_restricted: Some(false),
+            created_at: Some(42),
+        }
+    }
+
     #[test]
     fn a_withdraw_enabled_key_is_refused() {
-        assert_eq!(refuse_withdraw(CredentialPermission::WithdrawEnabled).unwrap_err(), "keyWithdrawEnabled");
-        assert_eq!(refuse_withdraw(CredentialPermission::TradeOnly).unwrap(), CredentialPermission::TradeOnly);
-        assert_eq!(refuse_withdraw(CredentialPermission::Unknown).unwrap(), CredentialPermission::Unknown);
+        assert_eq!(refuse(true, false).unwrap_err(), "keyWithdrawEnabled");
+        assert_eq!(refuse(true, true).unwrap_err(), "keyWithdrawEnabled", "withdraw is named first");
+        assert_eq!(judge_binance(perms(true, false, true)).unwrap_err(), "keyWithdrawEnabled");
+    }
+
+    #[test]
+    fn a_transfer_enabled_key_is_refused() {
+        assert_eq!(refuse(false, true).unwrap_err(), "keyTransferEnabled");
+        assert_eq!(judge_binance(perms(false, true, true)).unwrap_err(), "keyTransferEnabled");
+        assert_eq!(judge_binance(perms(false, true, false)).unwrap_err(), "keyNoFutures");
+    }
+
+    #[test]
+    fn a_trade_only_key_is_stored_with_its_ip_and_age_facts() {
+        let f = judge_binance(perms(false, false, true)).unwrap();
+        assert_eq!(f.permission, CredentialPermission::TradeOnly);
+        assert_eq!((f.ip_restricted, f.exchange_created_at), (Some(false), Some(42)));
+    }
+
+    #[test]
+    fn an_ed25519_key_takes_the_pending_seed_and_only_on_binance() {
+        let vault = VaultManager::new();
+        let input = |exchange_id: &str, key_type| AddCredentialInput {
+            exchange_id: exchange_id.into(),
+            label: "main".into(),
+            api_key: "k".into(),
+            api_secret: "pasted".into(),
+            passphrase: None,
+            key_type,
+        };
+        assert_eq!(secret_for(&vault, &input("binance", KeyType::Hmac)).unwrap(), "pasted");
+        assert_eq!(secret_for(&vault, &input("binance", KeyType::Ed25519)).unwrap_err(), "ed25519NoPendingKey");
+        assert_eq!(secret_for(&vault, &input("okx", KeyType::Ed25519)).unwrap_err(), "keyTypeUnsupported");
+    }
+
+    #[test]
+    fn an_old_ui_payload_is_an_hmac_key_and_the_input_debug_is_redacted() {
+        let input: AddCredentialInput = serde_json::from_str(
+            r#"{"exchangeId":"binance","label":"m","apiKey":"KEY-1","apiSecret":"SEC-1","permission":"tradeOnly"}"#,
+        )
+        .unwrap();
+        assert_eq!(input.key_type, KeyType::Hmac);
+        let out = format!("{input:?}");
+        assert!(!out.contains("KEY-1") && !out.contains("SEC-1"), "{out}");
+        let ed: AddCredentialInput =
+            serde_json::from_str(r#"{"exchangeId":"binance","label":"m","apiKey":"k","keyType":"ed25519"}"#).unwrap();
+        assert_eq!((ed.key_type, ed.api_secret.as_str()), (KeyType::Ed25519, ""));
     }
 
     #[test]

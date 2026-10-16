@@ -76,4 +76,24 @@ mod tests {
         let flags: Vec<(u64, bool)> = rows.iter().map(|t| (t.opened_at, t.manual)).collect();
         assert_eq!(flags, vec![(5, true), (0, false)]);
     }
+
+    // A "New trade" (engine/user_trade.rs) is recorded and read back as
+    // manual, under its own synthetic id.
+    #[test]
+    fn a_new_trade_is_recorded_as_manual() {
+        let conn = Connection::open_in_memory().unwrap();
+        super::super::trades::migrate(&conn).unwrap();
+        migrate(&conn).unwrap();
+        let mut pos = position(&signal("long", 100.0, 106.0, 90.0), None);
+        pos.signal_id = crate::bot::engine::user_trade::new_id(1_790_000_000_000, 9);
+        crate::bot::engine::user_trade::mark_user_position(&mut pos);
+        let t = crate::bot::engine::book::trade_record(&pos, 106.0, "tp", 9);
+        super::super::trades::insert(&conn, &t).unwrap();
+        record(&conn, &t).unwrap();
+        let mut rows = super::super::trades::list(&conn, 10).unwrap();
+        mark(&conn, &mut rows).unwrap();
+        assert_eq!(rows.len(), 1);
+        assert!(rows[0].manual);
+        assert!(crate::bot::engine::user_trade::is_user_trade_id(&rows[0].signal_id));
+    }
 }

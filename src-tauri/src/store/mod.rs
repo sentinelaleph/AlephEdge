@@ -169,6 +169,22 @@ impl StoreManager {
     pub fn export_skips_csv(&self, dir: &Path) -> Result<String, String> {
         self.with_conn(dir, skips::export_csv)
     }
+
+    /// Writes a consistent copy of `edge.db` to `dest` (which must not exist
+    /// yet), through the store's own connection and under its lock: no write
+    /// lands half in the copy. Never a raw file copy of a database in use.
+    pub fn backup_into(&self, dir: &Path, dest: &Path) -> Result<(), String> {
+        self.with_conn(dir, |c| vacuum_into(c, dest))
+    }
+}
+
+/// SQLite's `VACUUM INTO`: a complete, compacted copy of the open database
+/// as one transaction's snapshot.
+pub(crate) fn vacuum_into(conn: &Connection, dest: &Path) -> Result<(), String> {
+    let target = dest.to_str().ok_or_else(|| "backupPathInvalid".to_string())?;
+    conn.execute("VACUUM INTO ?1", [target])
+        .map(|_| ())
+        .map_err(|e| format!("backupDbFailed|{e}"))
 }
 
 impl Default for StoreManager {

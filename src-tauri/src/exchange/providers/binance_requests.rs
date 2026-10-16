@@ -8,6 +8,16 @@
 //! `algoType=CONDITIONAL` and `triggerPrice`. `/fapi/v1/order` rejects
 //! STOP_MARKET / TAKE_PROFIT_MARKET with -4120, which would make every live
 //! entry fail its stop and flatten immediately.
+//!
+//! No `countdownCancelAll` (Binance's "dead-man switch"), on purpose. This
+//! app never leaves a resting entry order: entries, adds, closes and DCA /
+//! Grid mirror orders are all MARKET. The only orders it leaves open are the
+//! protective stop and take-profit, so all a countdown could cancel when the
+//! app goes quiet is the stop, which is what keeps a closed app safe. The
+//! docs do not say whether the countdown reaches algo (conditional) orders;
+//! either it does nothing here or it strips the stop. Revisit only if a
+//! resting LIMIT entry is ever added, and then arm it only for symbols with
+//! no position and no protective order.
 
 pub const ORDER_PATH: &str = "/fapi/v1/order";
 pub const ALGO_ORDER_PATH: &str = "/fapi/v1/algoOrder";

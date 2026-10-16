@@ -991,6 +991,9 @@ mod tests {
             permission: crate::vault::model::CredentialPermission::TradeOnly,
             added_at: 0,
             updated_at: None,
+            key_type: Default::default(),
+            exchange_created_at: None,
+            ip_restricted: None,
         }
     }
 

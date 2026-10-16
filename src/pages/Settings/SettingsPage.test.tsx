@@ -82,9 +82,9 @@ describe("Settings", () => {
   it("lists every section with its state and opens one from the list", async () => {
     const el = await mount();
     const labels = [...el.querySelectorAll(".ae-setnav__label")].map((n) => n.textContent);
-    expect(labels).toEqual(["General", "Notifications", "Devices", "Exchange keys", "About"]);
+    expect(labels).toEqual(["General", "Notifications", "TradingView", "Devices", "Exchange keys", "Backup", "About"]);
     expect(navItem(el, "General").getAttribute("aria-current")).toBe("page");
-    expect(navItem(el, "Notifications").textContent).toContain("8 of 8 shown");
+    expect(navItem(el, "Notifications").textContent).toContain("9 of 9 shown");
 
     await click(navItem(el, "About"));
     expect(window.location.hash).toBe("#/settings?tab=about");
@@ -108,7 +108,7 @@ describe("Settings", () => {
     await click(kill);
     expect(JSON.parse(localStorage.getItem("aleph-edge-notify") ?? "{}").killSwitch).toBe(false);
     expect(kill.closest("li")?.textContent).toContain("The bots still act on it");
-    expect(navItem(el, "Notifications").textContent).toContain("7 of 8 shown");
+    expect(navItem(el, "Notifications").textContent).toContain("8 of 9 shown");
 
     await click(button(el, "Show all"));
     expect(kill.checked).toBe(true);

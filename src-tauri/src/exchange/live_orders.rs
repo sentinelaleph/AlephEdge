@@ -27,6 +27,7 @@ use super::providers::binance_parse::{
 };
 use super::providers::binance_requests as q;
 use super::providers::binance_rules::{close_parts, parse_symbol_rules, SymbolRules};
+use super::providers::binance_sign::BinanceSigner;
 use super::ExchangeManager;
 
 impl ExchangeManager {
@@ -51,7 +52,7 @@ impl ExchangeManager {
     }
 
     /// Sets the symbol's initial leverage.
-    pub(crate) async fn bn_set_leverage(&self, key: &str, secret: &str, symbol: &str, leverage: u8) -> Result<(), E> {
+    pub(crate) async fn bn_set_leverage(&self, key: &str, secret: BinanceSigner<'_>, symbol: &str, leverage: u8) -> Result<(), E> {
         // -1000 is Binance's "unknown error": transient by definition (the
         // futures testnet returns it on most leverage changes). One retry;
         // a second failure refuses the entry as before.
@@ -64,7 +65,7 @@ impl ExchangeManager {
         }
     }
 
-    async fn post_leverage(&self, key: &str, secret: &str, symbol: &str, leverage: u8) -> Result<(), E> {
+    async fn post_leverage(&self, key: &str, secret: BinanceSigner<'_>, symbol: &str, leverage: u8) -> Result<(), E> {
         signed(
             &self.client,
             Method::POST,
@@ -78,7 +79,7 @@ impl ExchangeManager {
     }
 
     /// Puts the symbol on ISOLATED margin. Already isolated (-4046) is fine.
-    pub(crate) async fn bn_set_isolated(&self, key: &str, secret: &str, symbol: &str) -> Result<(), E> {
+    pub(crate) async fn bn_set_isolated(&self, key: &str, secret: BinanceSigner<'_>, symbol: &str) -> Result<(), E> {
         match signed(
             &self.client,
             Method::POST,
@@ -96,7 +97,7 @@ impl ExchangeManager {
 
     /// Open orders on `symbol` across BOTH books (regular + algo). A leftover
     /// closePosition stop on a flat symbol would act on the next position.
-    pub(crate) async fn bn_open_order_count(&self, key: &str, secret: &str, symbol: &str) -> Result<usize, E> {
+    pub(crate) async fn bn_open_order_count(&self, key: &str, secret: BinanceSigner<'_>, symbol: &str) -> Result<usize, E> {
         let mut total = 0;
         for path in [q::OPEN_ORDERS_PATH, q::OPEN_ALGO_ORDERS_PATH] {
             let body = signed(
@@ -117,7 +118,7 @@ impl ExchangeManager {
     pub(crate) async fn bn_order_by_client_id(
         &self,
         key: &str,
-        secret: &str,
+        secret: BinanceSigner<'_>,
         symbol: &str,
         client_id: &str,
     ) -> Result<OrderState, E> {
@@ -137,7 +138,7 @@ impl ExchangeManager {
     /// (the futures testnet omits avgPrice and cumQuote on a FILLED order),
     /// the order is read back by its id. Unknown only when that also shows
     /// no priced execution; callers then re-read the position.
-    async fn fill_or_read_back(&self, key: &str, secret: &str, symbol: &str, body: &str) -> Result<OrderFill, E> {
+    async fn fill_or_read_back(&self, key: &str, secret: BinanceSigner<'_>, symbol: &str, body: &str) -> Result<OrderFill, E> {
         if let Some(fill) = parse_order_fill(body) {
             return Ok(fill);
         }
@@ -167,7 +168,7 @@ impl ExchangeManager {
 
     /// The symbol's latest orders (read-only). Reconcile uses them to tell
     /// an entry of this app (client-id prefix) from the user's own trade.
-    pub(crate) async fn bn_recent_orders(&self, key: &str, secret: &str, symbol: &str) -> Result<Vec<RecentOrder>, E> {
+    pub(crate) async fn bn_recent_orders(&self, key: &str, secret: BinanceSigner<'_>, symbol: &str) -> Result<Vec<RecentOrder>, E> {
         let body = signed(
             &self.client,
             Method::GET,
@@ -181,7 +182,7 @@ impl ExchangeManager {
     }
 
     /// True when the account runs hedge (dual-side) mode.
-    pub(crate) async fn bn_hedge_mode(&self, key: &str, secret: &str) -> Result<bool, E> {
+    pub(crate) async fn bn_hedge_mode(&self, key: &str, secret: BinanceSigner<'_>) -> Result<bool, E> {
         let body = signed(
             &self.client,
             Method::GET,
@@ -199,7 +200,7 @@ impl ExchangeManager {
     pub(crate) async fn bn_open_market(
         &self,
         key: &str,
-        secret: &str,
+        secret: BinanceSigner<'_>,
         symbol: &str,
         long: bool,
         qty: f64,
@@ -215,7 +216,17 @@ impl ExchangeManager {
             secret,
         )
         .await?;
+        self.own_order(symbol, &body);
         self.fill_or_read_back(key, secret, symbol, &body).await
+    }
+
+    /// Records the order id in Binance's answer as this app's own (the
+    /// foreign-trade check). An answer without an id records nothing; an
+    /// entry is still recognised by its client id.
+    fn own_order(&self, symbol: &str, body: &str) {
+        if let Some(id) = parse_order_ack(body) {
+            self.own.record_order(symbol, id, now());
+        }
     }
 
     /// Reduce-only close of `qty`, in parts when it exceeds the symbol's
@@ -225,7 +236,7 @@ impl ExchangeManager {
     pub(crate) async fn bn_reduce_market_all(
         &self,
         key: &str,
-        secret: &str,
+        secret: BinanceSigner<'_>,
         symbol: &str,
         long: bool,
         qty: f64,
@@ -251,7 +262,7 @@ impl ExchangeManager {
     pub(crate) async fn bn_reduce_market(
         &self,
         key: &str,
-        secret: &str,
+        secret: BinanceSigner<'_>,
         symbol: &str,
         long: bool,
         qty: f64,
@@ -266,6 +277,7 @@ impl ExchangeManager {
             secret,
         )
         .await?;
+        self.own_order(symbol, &body);
         self.fill_or_read_back(key, secret, symbol, &body).await
     }
 
@@ -275,7 +287,7 @@ impl ExchangeManager {
     pub(crate) async fn bn_place_protective(
         &self,
         key: &str,
-        secret: &str,
+        secret: BinanceSigner<'_>,
         symbol: &str,
         long: bool,
         kind: q::Protective,
@@ -291,14 +303,16 @@ impl ExchangeManager {
             secret,
         )
         .await?;
-        parse_algo_id(&body).ok_or(E::Unknown)
+        let id = parse_algo_id(&body).ok_or(E::Unknown)?;
+        self.own.record_algo(symbol, id, now());
+        Ok(id)
     }
 
     /// Reduce-only quantity stop (the breakeven stop); its algo id.
     pub(crate) async fn bn_place_reduce_stop(
         &self,
         key: &str,
-        secret: &str,
+        secret: BinanceSigner<'_>,
         symbol: &str,
         long: bool,
         qty: f64,
@@ -313,10 +327,12 @@ impl ExchangeManager {
             secret,
         )
         .await?;
-        parse_algo_id(&body).ok_or(E::Unknown)
+        let id = parse_algo_id(&body).ok_or(E::Unknown)?;
+        self.own.record_algo(symbol, id, now());
+        Ok(id)
     }
 
-    pub(crate) async fn bn_cancel_algo(&self, key: &str, secret: &str, algo_id: i64) -> Result<(), E> {
+    pub(crate) async fn bn_cancel_algo(&self, key: &str, secret: BinanceSigner<'_>, algo_id: i64) -> Result<(), E> {
         let query = q::algo_id_query(algo_id, now());
         signed(
             &self.client,
@@ -331,7 +347,7 @@ impl ExchangeManager {
     }
 
     /// The algo order's `algoStatus` (NEW, TRIGGERED, FINISHED, CANCELED …).
-    pub(crate) async fn bn_algo_status(&self, key: &str, secret: &str, algo_id: i64) -> Result<String, E> {
+    pub(crate) async fn bn_algo_status(&self, key: &str, secret: BinanceSigner<'_>, algo_id: i64) -> Result<String, E> {
         // A just-placed algo order can read as -2013 "does not exist" for a
         // moment (seen on the futures testnet): two short retries.
         let mut attempt = 0u64;
@@ -361,7 +377,7 @@ impl ExchangeManager {
     pub(crate) async fn bn_cancel_symbol_orders(
         &self,
         key: &str,
-        secret: &str,
+        secret: BinanceSigner<'_>,
         symbol: &str,
     ) -> Result<(), E> {
         let regular = signed(
@@ -391,7 +407,7 @@ impl ExchangeManager {
     pub(crate) async fn bn_user_trades(
         &self,
         key: &str,
-        secret: &str,
+        secret: BinanceSigner<'_>,
         symbol: &str,
         start_ms: u64,
     ) -> Result<Vec<UserTrade>, E> {

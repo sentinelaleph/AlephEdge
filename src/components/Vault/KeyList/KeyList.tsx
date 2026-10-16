@@ -8,8 +8,26 @@ import { localeForLanguage } from "@/i18n";
 import { exchangeName } from "@/lib/ipc/exchange/exchange";
 import { useExchangeCatalog } from "@/lib/ipc/exchange/useExchangeCatalog";
 import { collapseTransition, SPRING } from "@/lib/motion";
-import type { AddCredentialInput, CredentialMeta } from "@/lib/ipc/vault/vault";
+import type { AddCredentialInput, CredentialMeta, KeyType } from "@/lib/ipc/vault/vault";
+import { ED25519_EXCHANGES, Ed25519Setup, KeyTypeSwitch } from "../Ed25519Setup/Ed25519Setup";
 import "./KeyList.css";
+
+/**
+ * The key's age and IP warnings (vault::key_safety), as sentences. Empty when
+ * there is nothing to say or the facts are unknown.
+ */
+export function keySafetyNotes(c: CredentialMeta, t: (key: string, opts?: Record<string, unknown>) => string): { id: string; text: string; guide?: string }[] {
+  const s = c.safety;
+  if (!s) return [];
+  const out: { id: string; text: string; guide?: string }[] = [];
+  if (s.noIpRestriction) {
+    out.push({ id: "ip", text: t("vault.ipOpen"), guide: c.exchangeId === "binance" ? t("vault.ipGuideBinance") : t("vault.ipGuide") });
+  }
+  if (s.rotate) {
+    out.push({ id: "age", text: t(s.ageFrom === "exchange" ? "vault.rotateExchange" : "vault.rotateVault", { days: s.ageDays }) });
+  }
+  return out;
+}
 
 /** Longest label the vault accepts (`vault::MAX_LABEL_CHARS`). */
 export const MAX_LABEL_CHARS = 40;
@@ -22,16 +40,19 @@ interface KeyListProps {
   onRemove: (exchangeId: string, label: string) => void;
   onRenew?: (input: AddCredentialInput) => Promise<void>;
   onRename?: (exchangeId: string, label: string, newLabel: string) => Promise<void>;
+  /** Reads the key's permissions, IP restriction and age again (Binance). */
+  onRecheck?: (exchangeId: string, label: string) => Promise<void>;
 }
 
 type Edit = { key: string; mode: "renew" | "rename" } | null;
 
 /** Stored credentials: metadata only; secrets never leave the Rust core. */
-export function KeyList({ credentials, busy, error, onRemove, onRenew, onRename }: KeyListProps) {
+export function KeyList({ credentials, busy, error, onRemove, onRenew, onRename, onRecheck }: KeyListProps) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.language);
   const { exchanges } = useExchangeCatalog(t("common.exchangeListFailed"));
   const [edit, setEdit] = useState<Edit>(null);
+  const [rechecked, setRechecked] = useState<{ key: string; failed: boolean } | null>(null);
 
   if (credentials.length === 0) {
     return <EmptyState title={t("vault.noKeys")} detail={t("accounts.noKeys")} />;
@@ -68,6 +89,7 @@ export function KeyList({ credentials, busy, error, onRemove, onRenew, onRename 
                     <span className="ae-keylist__perm" data-perm={c.permission}>
                       {t(`vault.perm.${c.permission}`)}
                     </span>
+                    {c.keyType === "ed25519" ? <span className="ae-keylist__type">Ed25519</span> : null}
                     <span className="ae-keylist__date">
                       {c.updatedAt
                         ? t("vault.renewedOn", { date: new Date(c.updatedAt).toLocaleDateString(locale) })
@@ -76,6 +98,22 @@ export function KeyList({ credentials, busy, error, onRemove, onRenew, onRename 
                   </div>
                   {c.permission === "withdrawEnabled" ? (
                     <span className="ae-keylist__warn">{t("vault.withdrawStored")}</span>
+                  ) : null}
+                  {keySafetyNotes(c, t).map((n) => (
+                    <span key={n.id} className="ae-keylist__safety" data-testid={`key-safety-${n.id}`}>
+                      <span className="ae-keylist__warn">{n.text}</span>
+                      {n.guide ? <span className="ae-subtle">{n.guide}</span> : null}
+                    </span>
+                  ))}
+                  {rechecked?.key === key && !rechecked.failed ? (
+                    <span className="ae-subtle" role="status">
+                      {t("vault.recheckDone")}
+                    </span>
+                  ) : null}
+                  {rechecked?.key === key && rechecked.failed && error ? (
+                    <span className="ae-error" role="alert">
+                      {error}
+                    </span>
                   ) : null}
                   {shared(c.exchangeId) ? (
                     c.inUse ? (
@@ -90,6 +128,22 @@ export function KeyList({ credentials, busy, error, onRemove, onRenew, onRename 
                   ) : null}
                 </div>
                 <div className="ae-keylist__actions">
+                  {onRecheck && c.exchangeId === "binance" && (c.inUse ?? true) ? (
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      disabled={busy}
+                      onClick={() => {
+                        setRechecked(null);
+                        onRecheck(c.exchangeId, c.label).then(
+                          () => setRechecked({ key, failed: false }),
+                          () => setRechecked({ key, failed: true }),
+                        );
+                      }}
+                    >
+                      {t("vault.recheck")}
+                    </Button>
+                  ) : null}
                   {onRenew ? (
                     <Button variant="secondary" size="xs" disabled={busy} aria-expanded={editing === "renew"} onClick={() => toggle("renew")}>
                       {t("vault.renew")}
@@ -149,7 +203,15 @@ function RenewForm({ cred, busy, error, onCancel, onDone, onRenew }: EditProps &
   const [apiSecret, setApiSecret] = useState("");
   const [passphrase, setPassphrase] = useState("");
   const [tried, setTried] = useState(false);
-  const can = apiKey.trim() !== "" && apiSecret.trim() !== "" && (!cred.hasPassphrase || passphrase.trim() !== "") && !busy;
+  const edCapable = ED25519_EXCHANGES.has(cred.exchangeId);
+  const [keyType, setKeyType] = useState<KeyType>(edCapable && cred.keyType === "ed25519" ? "ed25519" : "hmac");
+  const [edReady, setEdReady] = useState(false);
+  const ed25519 = edCapable && keyType === "ed25519";
+  const can =
+    apiKey.trim() !== "" &&
+    (ed25519 ? edReady : apiSecret.trim() !== "") &&
+    (ed25519 || !cred.hasPassphrase || passphrase.trim() !== "") &&
+    !busy;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -160,9 +222,10 @@ function RenewForm({ cred, busy, error, onCancel, onDone, onRenew }: EditProps &
         exchangeId: cred.exchangeId,
         label: cred.label,
         apiKey: apiKey.trim(),
-        apiSecret: apiSecret.trim(),
-        passphrase: passphrase.trim() || undefined,
+        apiSecret: ed25519 ? "" : apiSecret.trim(),
+        passphrase: ed25519 ? undefined : passphrase.trim() || undefined,
         permission: "tradeOnly",
+        keyType: ed25519 ? "ed25519" : "hmac",
       });
       onDone();
     } catch {
@@ -172,10 +235,14 @@ function RenewForm({ cred, busy, error, onCancel, onDone, onRenew }: EditProps &
 
   return (
     <form className="ae-keylist__form" onSubmit={submit}>
-      <p className="ae-subtle">{t("vault.renewHint")}</p>
-      <TextField label={`${t("vault.apiKey")} *`} autoComplete="off" spellCheck={false} value={apiKey} onChange={(e) => setApiKey(e.target.value)} disabled={busy} />
-      <TextField label={`${t("vault.apiSecret")} *`} type="password" autoComplete="off" value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} disabled={busy} />
-      {cred.hasPassphrase ? (
+      <p className="ae-subtle">{ed25519 ? t("vault.renewHintEd25519") : t("vault.renewHint")}</p>
+      {edCapable ? <KeyTypeSwitch value={keyType} onChange={setKeyType} disabled={busy} /> : null}
+      {ed25519 ? <Ed25519Setup busy={busy} onReady={setEdReady} /> : null}
+      <TextField label={`${t("vault.apiKey")} *`} autoComplete="off" spellCheck={false} value={apiKey} onChange={(e) => setApiKey(e.target.value)} disabled={busy || (ed25519 && !edReady)} />
+      {ed25519 ? null : (
+        <TextField label={`${t("vault.apiSecret")} *`} type="password" autoComplete="off" value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} disabled={busy} />
+      )}
+      {cred.hasPassphrase && !ed25519 ? (
         <TextField label={`${t("vault.passphrase")} *`} type="password" autoComplete="off" value={passphrase} onChange={(e) => setPassphrase(e.target.value)} disabled={busy} />
       ) : null}
       {tried && error ? <p className="ae-error" role="alert">{error}</p> : null}

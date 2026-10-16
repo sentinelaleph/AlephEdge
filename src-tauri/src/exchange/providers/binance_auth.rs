@@ -3,13 +3,12 @@
 //! (detect a withdraw-enabled key, don't trust a dropdown). Only
 //! Binance exposes this today; other exchanges keep self-declared permission.
 
-use hmac::{Hmac, KeyInit, Mac};
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
-use sha2::Sha256;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::binance_http;
+use super::binance_sign::BinanceSigner;
 use super::super::model::{
     BinanceKeyCheckError, BinancePermissions, FuturesAccount, FuturesPosition,
 };
@@ -22,19 +21,46 @@ pub(super) fn futures_base() -> String {
     crate::app::endpoints::binance_futures_base()
 }
 
+/// `GET /sapi/v1/account/apiRestrictions`. Binance's documented response
+/// carries every field below. `enableWithdrawals`, `enableInternalTransfer`
+/// and `permitsUniversalTransfer` are required: a body without them fails to
+/// parse and the key is refused as unchecked, never let in on a guess.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ApiRestrictions {
     enable_withdrawals: bool,
+    /// Moves funds to another Binance account (sub/master): a way out of the
+    /// account without a withdrawal.
+    enable_internal_transfer: bool,
+    /// Universal transfer between wallets and sub-accounts: same risk.
+    permits_universal_transfer: bool,
     /// Absent = unknown, treated as allowed: only an explicit `false` refuses.
     #[serde(default)]
     enable_futures: Option<bool>,
+    /// Absent = unknown: no IP warning either way.
+    #[serde(default)]
+    ip_restrict: Option<bool>,
+    /// Key creation, UNIX ms. Absent = the vault's own date is used for age.
+    #[serde(default)]
+    create_time: Option<u64>,
+}
+
+impl ApiRestrictions {
+    fn permissions(&self) -> BinancePermissions {
+        BinancePermissions {
+            withdraw_enabled: self.enable_withdrawals,
+            transfer_enabled: self.enable_internal_transfer || self.permits_universal_transfer,
+            futures_enabled: self.enable_futures.unwrap_or(true),
+            ip_restricted: self.ip_restrict,
+            created_at: self.create_time.filter(|t| *t > 0),
+        }
+    }
 }
 
 pub async fn check_binance_permissions(
     client: &Client,
     api_key: &str,
-    api_secret: &str,
+    signer: BinanceSigner<'_>,
 ) -> Result<BinancePermissions, BinanceKeyCheckError> {
     // apiRestrictions lives on the production SPOT API; a testnet key is
     // unknown there. On the testnet the key is checked by a signed futures
@@ -44,15 +70,21 @@ pub async fn check_binance_permissions(
     // it cannot reach real funds if the base is switched back.)
     if !crate::app::endpoints::binance_is_production() {
         binance_http::sync_clock(client).await;
-        return fetch_binance_futures_account(client, api_key, api_secret)
+        return fetch_binance_futures_account(client, api_key, signer)
             .await
-            .map(|_| BinancePermissions { withdraw_enabled: false, futures_enabled: true });
+            .map(|_| BinancePermissions {
+                withdraw_enabled: false,
+                transfer_enabled: false,
+                futures_enabled: true,
+                ip_restricted: None,
+                created_at: None,
+            });
     }
     // Stamp with Binance's clock: a PC clock running ahead makes Binance
     // answer -1021, which must not read as "wrong key".
     binance_http::sync_clock(client).await;
     let query = binance_http::with_recv_window(&format!("timestamp={}", binance_http::now_ms()));
-    let signature = sign_query(api_secret, &query);
+    let signature = signer.signature_param(&query)?;
     let url = format!("{SPOT_BASE}/sapi/v1/account/apiRestrictions?{query}&signature={signature}");
 
     let res = client
@@ -66,10 +98,7 @@ pub async fn check_binance_permissions(
         StatusCode::OK => res
             .json::<ApiRestrictions>()
             .await
-            .map(|body| BinancePermissions {
-                withdraw_enabled: body.enable_withdrawals,
-                futures_enabled: body.enable_futures.unwrap_or(true),
-            })
+            .map(|body| body.permissions())
             .map_err(|_| BinanceKeyCheckError::NetworkUnavailable),
         // -2015 ("Invalid API-key, IP, or permissions") and bad signatures
         // land on 401/400 — almost always a copy/paste typo. A -1021 is a
@@ -113,12 +142,12 @@ struct RawFuturesPosition {
 }
 
 /// Fetches the signed USDT-M futures account: wallet balance + open positions.
-/// Read-only, so a Trade-only key suffices; reuses the same HMAC signing as the
-/// permission check. Amounts arrive as strings and are parsed to f64.
+/// Read-only, so a Trade-only key suffices; signed like the permission check.
+/// Amounts arrive as strings and are parsed to f64.
 pub async fn fetch_binance_futures_account(
     client: &Client,
     api_key: &str,
-    api_secret: &str,
+    signer: BinanceSigner<'_>,
 ) -> Result<FuturesAccount, BinanceKeyCheckError> {
     let body = binance_http::signed(
         client,
@@ -126,7 +155,7 @@ pub async fn fetch_binance_futures_account(
         "/fapi/v2/account",
         &format!("timestamp={}", binance_http::now_ms()),
         api_key,
-        api_secret,
+        signer,
     )
     .await?;
     serde_json::from_str::<RawFuturesAccount>(&body)
@@ -159,15 +188,11 @@ fn to_futures_account(raw: RawFuturesAccount) -> FuturesAccount {
 }
 
 /// HMAC-SHA256 request signing, Binance's standard signed-endpoint scheme.
-pub(super) fn sign_query(secret: &str, query: &str) -> String {
-    let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes())
-        .expect("HMAC accepts a key of any length");
-    mac.update(query.as_bytes());
-    mac.finalize()
-        .into_bytes()
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
+/// Requests sign through `BinanceSigner`; this name stays for the
+/// documentation known-answer test below.
+#[cfg(test)]
+fn sign_query(secret: &str, query: &str) -> String {
+    super::binance_sign::hmac_hex(secret, query)
 }
 
 pub(super) fn now_millis() -> u64 {
@@ -187,6 +212,42 @@ mod key_check_tests {
         let secret = "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j";
         let query = "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559";
         assert_eq!(sign_query(secret, query), "c8db56825ae71d6d79447849e617115f4a920fa2acdcab2b053c4b2838bd6b71");
+    }
+
+    #[test]
+    fn the_hmac_signer_is_the_documented_scheme() {
+        let secret = "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j";
+        let query = "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559";
+        assert_eq!(BinanceSigner::Hmac(secret).signature_param(query).unwrap(), sign_query(secret, query));
+    }
+
+    /// The response shape from Binance's "Get API Key Permission" docs.
+    const DOC_BODY: &str = r#"{"ipRestrict":false,"createTime":1623840271000,"enableReading":true,"enableWithdrawals":false,"enableInternalTransfer":true,"enableMargin":false,"enableFutures":false,"permitsUniversalTransfer":true,"enableVanillaOptions":false,"enableFixApiTrade":false,"enableFixReadOnly":true,"enableSpotAndMarginTrading":false,"enablePortfolioMarginTrading":true}"#;
+
+    #[test]
+    fn the_documented_response_parses_with_transfers_ip_and_age() {
+        let p = serde_json::from_str::<ApiRestrictions>(DOC_BODY).unwrap().permissions();
+        assert!(!p.withdraw_enabled);
+        assert!(p.transfer_enabled, "internal + universal transfer on");
+        assert!(!p.futures_enabled);
+        assert_eq!(p.ip_restricted, Some(false));
+        assert_eq!(p.created_at, Some(1_623_840_271_000));
+    }
+
+    #[test]
+    fn either_transfer_flag_alone_counts_and_optional_fields_may_be_absent() {
+        let body = |internal: bool, universal: bool| {
+            format!(r#"{{"enableWithdrawals":false,"enableInternalTransfer":{internal},"permitsUniversalTransfer":{universal},"enableFutures":true}}"#)
+        };
+        let p = |b: String| serde_json::from_str::<ApiRestrictions>(&b).unwrap().permissions();
+        assert!(p(body(true, false)).transfer_enabled);
+        assert!(p(body(false, true)).transfer_enabled);
+        let clean = p(body(false, false));
+        assert!(!clean.transfer_enabled && clean.futures_enabled);
+        assert_eq!((clean.ip_restricted, clean.created_at), (None, None));
+        // The transfer flags are required: a body without them is refused as
+        // unchecked rather than read as "no transfers".
+        assert!(serde_json::from_str::<ApiRestrictions>(r#"{"enableWithdrawals":false}"#).is_err());
     }
 
     #[test]

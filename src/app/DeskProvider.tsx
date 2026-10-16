@@ -11,6 +11,9 @@ import { appVersion, getEndpoints, type Endpoints } from "@/lib/ipc/app/endpoint
 import type { ExchangeInfo } from "@/lib/ipc/exchange/exchange";
 import { useExchangeCatalog, type ExchangeCatalog } from "@/lib/ipc/exchange/useExchangeCatalog";
 import type { HealthSnapshot } from "@/lib/ipc/health/health";
+import type { ForeignFillStatus } from "@/lib/ipc/risk/foreignFill";
+import { useForeignFillPolling } from "@/lib/ipc/risk/useForeignFill";
+import { useRiskView, type RiskViewController } from "@/lib/ipc/riskview/useRiskView";
 import { useStrategyDesk, type StrategyDeskController } from "@/lib/ipc/strategy/useStrategyDesk";
 import { ORDER_VENUES } from "@/lib/venues";
 
@@ -27,6 +30,8 @@ export interface DeskContextValue {
   pnl: PnlController;
   /** DCA and Grid bots (paper only): list, strategy risk, notes. */
   strategy: StrategyDeskController;
+  /** Portfolio risk view: stress, concentration, threshold checks (Risk page, alerts). */
+  riskView: RiskViewController;
   catalog: ExchangeCatalog;
   /** The single get_health_snapshot poller (status bar, checklist, dashboard). */
   health: HealthSnapshot | null;
@@ -39,6 +44,8 @@ export interface DeskContextValue {
   accountExchanges: string[];
   /** The first of `accountExchanges` (header and dashboard summary), or null. */
   accountExchange: string | null;
+  /** Fills on the Binance account this app did not make (live builds). */
+  foreignFill?: ForeignFillStatus | null;
 }
 
 const DeskContext = createContext<DeskContextValue | null>(null);
@@ -66,10 +73,12 @@ export function DeskProvider({ membership, vault, children }: DeskProviderProps)
   // an unscoped call could sum real and simulated money.
   const pnl = usePnl(desk.loaded ? desk.status.liveTradingEnabled : null);
   const strategy = useStrategyDesk();
+  const riskView = useRiskView();
   const catalog = useExchangeCatalog(t("common.exchangeListFailed"));
   const health = useHealth();
   // Connects the Sentinel stream once for the whole desk (signal_connect).
   const feed = useSignalFeed();
+  const foreignFill = useForeignFillPolling();
   const [endpoints, setEndpoints] = useState<Endpoints | null>(null);
   const [version, setVersion] = useState<string | null>(null);
 
@@ -95,6 +104,7 @@ export function DeskProvider({ membership, vault, children }: DeskProviderProps)
       desk,
       pnl,
       strategy,
+      riskView,
       catalog,
       health,
       feed,
@@ -103,8 +113,9 @@ export function DeskProvider({ membership, vault, children }: DeskProviderProps)
       keyedExchanges: catalog.exchanges?.filter((e) => keyed.has(e.id)) ?? null,
       accountExchanges: ORDER_VENUES.filter((v) => keyed.has(v)),
       accountExchange: ORDER_VENUES.find((v) => keyed.has(v)) ?? null,
+      foreignFill,
     };
-  }, [membership, vault, risk, desk, pnl, strategy, catalog, health, feed, endpoints, version]);
+  }, [membership, vault, risk, desk, pnl, strategy, riskView, catalog, health, feed, endpoints, version, foreignFill]);
 
   return <DeskContext.Provider value={value}>{children}</DeskContext.Provider>;
 }

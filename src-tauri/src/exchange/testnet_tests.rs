@@ -110,6 +110,9 @@ fn testnet_dry_run() {
         permission: crate::vault::model::CredentialPermission::TradeOnly,
         added_at: 0,
         updated_at: None,
+        key_type: Default::default(),
+        exchange_created_at: None,
+        ip_restricted: None,
     };
     let ex = ExchangeManager::new();
     let mut report = Report::default();

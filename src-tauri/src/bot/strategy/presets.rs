@@ -1204,6 +1204,34 @@ pub fn grid_short() -> Preset {
     }
 }
 
+/// The same settings run on a wider pair list than the template's own (lab
+/// pre-reg `prereg_cluster_veto`, 15 Oct 2026, base arm): one 1000 USDT bot per
+/// (pair, month) on the top 30 USDT perps by 90-day quote volume. Mean return
+/// per bot-month, %, and the worst bot's max drawdown over all splits, %.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct WideUniverse {
+    pub top_n: u32,
+    pub train_mean_pct: f64,
+    pub valid_mean_pct: f64,
+    pub test_mean_pct: f64,
+    pub worst_bot_drawdown_pct: f64,
+}
+
+/// Only templates that were actually run on the wider list have a value.
+pub fn wide_universe(id: &str) -> Option<WideUniverse> {
+    match id {
+        "dca_long_classic" => Some(WideUniverse {
+            top_n: 30,
+            train_mean_pct: -0.44,
+            valid_mean_pct: -0.79,
+            test_mean_pct: 0.62,
+            worst_bot_drawdown_pct: -97.7,
+        }),
+        _ => None,
+    }
+}
+
 /// Every shipped template: the ones that passed first, then the rest.
 pub fn all() -> Vec<Preset> {
     let mut v = vec![

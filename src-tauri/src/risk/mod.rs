@@ -8,12 +8,13 @@ pub mod model;
 
 pub use commands::{
     risk_get, risk_set_balance, risk_set_close_on_stop, risk_set_daily_loss, risk_set_level,
+    risk_set_view_thresholds,
 };
 
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use model::{RiskConfig, RiskLevel, RiskLimits, RiskState};
+use model::{RiskConfig, RiskLevel, RiskLimits, RiskState, ViewThresholds};
 
 pub struct RiskManager {
     config: Mutex<RiskConfig>,
@@ -66,6 +67,17 @@ impl RiskManager {
     /// Sets (or clears, with `None`) the user's own daily-loss tolerance.
     pub fn set_daily_loss_override(&self, dir: &Path, pct: Option<f64>) -> RiskState {
         self.update(dir, |c| c.daily_loss_override_pct = pct)
+    }
+
+    /// The portfolio risk view's alert thresholds.
+    pub fn view_thresholds(&self) -> ViewThresholds {
+        self.config.lock().expect("risk mutex").view_thresholds
+    }
+
+    /// Stores new view thresholds after their range check (Err = i18n code).
+    pub fn set_view_thresholds(&self, dir: &Path, t: ViewThresholds) -> Result<RiskState, &'static str> {
+        t.check()?;
+        Ok(self.update(dir, |c| c.view_thresholds = t))
     }
 
     pub fn state(&self) -> RiskState {

@@ -24,6 +24,7 @@ import type { StrategyBotView, StrategyConfig } from "@/lib/ipc/strategy/strateg
 import type { StrategyDeskController } from "@/lib/ipc/strategy/useStrategyDesk";
 import { seed as seedStrategyMock } from "@/lib/ipc/strategy/strategy.mock";
 import { seed as seedBacktestMock } from "@/lib/ipc/strategy/backtest.mock";
+import { SAMPLE_SNAPSHOT as SAMPLE_RISKVIEW } from "@/lib/ipc/riskview/riskview.mock";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -32,7 +33,7 @@ const noop = () => Promise.resolve();
 
 /** About screen sample: a typical Windows installation, the user folder anonymised. */
 export const SAMPLE_APP_INFO = {
-  version: "0.3.14",
+  version: "0.3.15",
   os: "windows",
   arch: "x86_64",
   tauri: "2.11.5",
@@ -250,6 +251,7 @@ export const SAMPLE_RISK_STATE: RiskState = {
   dailyLossOverridePct: 3,
   effectiveDailyLossPct: 3,
   dailyLossOverrideCapped: false,
+  viewThresholds: { sameDirectionPct: 80, singleCoinPct: 40, stress20Pct: 25 },
 };
 
 export const SAMPLE_RISK: RiskController = {
@@ -261,6 +263,7 @@ export const SAMPLE_RISK: RiskController = {
   setBalance: noop,
   setCloseOnStop: noop,
   setDailyLoss: noop,
+  setViewThresholds: noop,
 };
 
 function trade(t: Partial<TradeRecord> & Pick<TradeRecord, "id" | "symbol" | "direction" | "entry" | "exit" | "pnlPct" | "exitReason">): TradeRecord {
@@ -428,6 +431,7 @@ export const SAMPLE_VAULT: VaultController = {
   removeKey: noop,
   renewKey: noop,
   renameKey: noop,
+  recheckKey: noop,
   changePassword: noop,
   setIdleMinutes: noop,
   reset: noop,
@@ -681,6 +685,8 @@ export const SAMPLE_DESK_CONTEXT: DeskContextValue = {
   desk: SAMPLE_DESK,
   pnl: SAMPLE_PNL,
   strategy: SAMPLE_STRATEGY,
+  // Sample snapshot: `sample: true`, labelled on the Risk page.
+  riskView: { snapshot: SAMPLE_RISKVIEW, loading: false, error: null, refresh: noop },
   catalog: { exchanges: SAMPLE_EXCHANGES, error: null, retry: () => undefined },
   health: {
     exchanges: [{ id: "binance", name: "Binance", level: "ok", latencyMs: 41 }],
@@ -705,7 +711,7 @@ export const SAMPLE_DESK_CONTEXT: DeskContextValue = {
     binanceFuturesBase: "https://fapi.binance.com",
     binanceIsProduction: true,
   },
-  version: "0.3.14",
+  version: "0.3.15",
   keyedExchanges: SAMPLE_EXCHANGES,
   accountExchanges: ["binance"],
   accountExchange: "binance",

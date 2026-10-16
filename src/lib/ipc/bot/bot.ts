@@ -320,6 +320,74 @@ export function botPreviewTake(kind: BotKind, signalId: string): Promise<TakePre
   return inTauri() ? invoke<TakePreview>("bot_preview_take", { kind, signalId }) : mock((m) => m.mock.takeSignal(kind));
 }
 
+/**
+ * Every "New trade" position's id starts with this (Rust
+ * `user_trade::ID_PREFIX`); a Sentinel signal id never does.
+ */
+export const USER_TRADE_ID_PREFIX = "manual-";
+
+/** Whether a position or trade is a "New trade" (the user's own levels), not a Sentinel signal. */
+export function isUserTradeId(signalId: string): boolean {
+  return signalId.startsWith(USER_TRADE_ID_PREFIX);
+}
+
+/** The "New trade" form (mirrors `TradeRequest` in bot/engine/user_trade.rs). */
+export interface TradeRequest {
+  /** Futures or Spot (Pump is refused). */
+  kind: BotKind;
+  symbol: string;
+  direction: SignalDirection;
+  /** USDT notional; absent = the bot's own sizing. */
+  notionalUsdt?: number;
+  takeProfit: number;
+  stopLoss: number;
+}
+
+/** What `botOpenTrade` would open now (mirrors `TradePreview` in user_trade.rs). */
+export interface TradePreview {
+  botKind: BotKind;
+  symbol: string;
+  direction: SignalDirection;
+  /** Paper fill: the live price. */
+  entry: number;
+  takeProfit: number;
+  stopLoss: number;
+  qty: number;
+  notionalUsdt: number;
+  /** The position's margin. */
+  capital: number;
+  /** The bot's configured capital, the base of `riskPctOfCapital`. */
+  botCapital: number;
+  sizingMode: SizingMode;
+  effectiveLeverage: number;
+  /** Isolated exchange leverage (1 for spot). */
+  leverage: number;
+  riskCapped: boolean;
+  /** Negative, fees included. */
+  lossAtStopUsdt: number;
+  riskPctOfCapital: number;
+  gainAtTargetUsdt: number;
+  rewardRisk: number;
+  /** Null for spot and a 1x long. */
+  liquidationPrice: number | null;
+  feesUsdt: number;
+}
+
+/**
+ * "New trade": opens ONE position on a signal bot's PAPER book at the live
+ * price with the user's own take-profit and stop (mirrors `bot_open_trade`).
+ * Rejects with a code (`key` or `key|detail`): `manualTakePaperOnly`, a
+ * `trade*` code, or a skip reason (`bots.skipReasons.*`).
+ */
+export function botOpenTrade(request: TradeRequest): Promise<OpenPosition> {
+  return inTauri() ? invoke<OpenPosition>("bot_open_trade", { request }) : mock((m) => m.mock.trade(request));
+}
+
+/** What `botOpenTrade` would open now, or the same refusal. */
+export function botPreviewTrade(request: TradeRequest): Promise<TradePreview> {
+  return inTauri() ? invoke<TradePreview>("bot_preview_trade", { request }) : mock((m) => m.mock.trade(request));
+}
+
 /** The exact text the user types to switch a bot to real money (mirrors
  *  `LIVE_CONFIRMATION` in bot/commands.rs). */
 export const LIVE_CONFIRMATION = "LIVE";

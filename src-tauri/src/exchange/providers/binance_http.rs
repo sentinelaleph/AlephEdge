@@ -24,7 +24,8 @@ use reqwest::{Client, Method, StatusCode};
 use serde::Deserialize;
 
 use super::super::model::BinanceKeyCheckError as E;
-use super::binance_auth::{futures_base, now_millis, sign_query};
+use super::binance_auth::{futures_base, now_millis};
+use super::binance_sign::BinanceSigner;
 
 /// Sent with every signed request. Binance's default is 5000 and its maximum
 /// 60000; 10 s absorbs a slow link without accepting a stale request.
@@ -52,6 +53,11 @@ fn apply_offset(local: u64, offset: i64) -> u64 {
 /// Reads `/fapi/v1/time` and stores the offset (midpoint of the round trip).
 /// A failure keeps the previous offset; the request then goes out on it.
 pub async fn sync_clock(client: &Client) {
+    sync_clock_at(client, &futures_base()).await
+}
+
+/// `sync_clock` against `base` (tests point it at a local fake).
+pub async fn sync_clock_at(client: &Client, base: &str) {
     #[derive(Deserialize)]
     #[serde(rename_all = "camelCase")]
     struct ServerTime {
@@ -59,7 +65,7 @@ pub async fn sync_clock(client: &Client) {
     }
     let before = now_millis();
     let Ok(res) = client
-        .get(format!("{}/fapi/v1/time", futures_base()))
+        .get(format!("{base}/fapi/v1/time"))
         .send()
         .await
     else {
@@ -94,18 +100,33 @@ pub async fn signed(
     path: &str,
     query: &str,
     api_key: &str,
-    api_secret: &str,
+    signer: BinanceSigner<'_>,
+) -> Result<String, E> {
+    signed_at(client, &futures_base(), method, path, query, api_key, signer).await
+}
+
+/// `signed` against `base`: the futures base in the app, a local fake in
+/// tests (nothing in a test may reach Binance).
+pub async fn signed_at(
+    client: &Client,
+    base: &str,
+    method: Method,
+    path: &str,
+    query: &str,
+    api_key: &str,
+    signer: BinanceSigner<'_>,
 ) -> Result<String, E> {
     if !CLOCK_SYNCED.load(Ordering::Relaxed) {
-        sync_clock(client).await;
+        sync_clock_at(client, base).await;
     }
     for attempt in 0..2 {
         if rate_limited() {
             return Err(E::RateLimited);
         }
         let sent = with_recv_window(&restamp(query, now_ms()));
-        let signature = sign_query(api_secret, &sent);
-        let url = format!("{}{path}?{sent}&signature={signature}", futures_base());
+        // HMAC hex or percent-encoded Ed25519 base64, over the exact `sent`.
+        let signature = signer.signature_param(&sent)?;
+        let url = format!("{base}{path}?{sent}&signature={signature}");
         let res = match client
             .request(method.clone(), url)
             .header("X-MBX-APIKEY", api_key)
@@ -119,7 +140,7 @@ pub async fn signed(
             Err(_) => return Err(E::Unknown),
         };
         match body_or_error(res).await {
-            Err(E::Rejected { code: -1021, .. }) if attempt == 0 => sync_clock(client).await,
+            Err(E::Rejected { code: -1021, .. }) if attempt == 0 => sync_clock_at(client, base).await,
             other => return other,
         }
     }

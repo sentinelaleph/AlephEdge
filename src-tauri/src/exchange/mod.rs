@@ -5,8 +5,10 @@
 
 mod close;
 mod commands;
+pub(crate) mod foreign_fill;
 mod live_orders;
 mod orders;
+pub(crate) mod own_orders;
 #[cfg(test)]
 mod testnet_tests;
 pub mod model;
@@ -33,6 +35,7 @@ use reqwest::Client;
 use model::{
     BinanceKeyCheckError, BinancePermissions, ExchangeInfo, ExchangeStatus, FuturesAccount,
 };
+pub use providers::binance_sign::{BinanceSigner, Ed25519Pending};
 
 const CACHE_TTL: Duration = Duration::from_secs(6);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(8);
@@ -46,6 +49,8 @@ pub struct ExchangeManager {
     symbols: Mutex<HashMap<String, (Vec<String>, Instant)>>,
     /// Bybit / OKX order clients (venue/ccxt.rs).
     venues: venue::ccxt::CcxtVenues,
+    /// Every Binance order this app placed (the foreign-trade check).
+    pub(crate) own: own_orders::OwnOrders,
 }
 
 const SYMBOLS_TTL: Duration = Duration::from_secs(3600);
@@ -60,6 +65,7 @@ impl ExchangeManager {
             cache: Mutex::new(HashMap::new()),
             symbols: Mutex::new(HashMap::new()),
             venues: venue::ccxt::CcxtVenues::default(),
+            own: own_orders::OwnOrders::default(),
         }
     }
 
@@ -86,6 +92,11 @@ impl ExchangeManager {
             }
             _ => Vec::new(),
         }
+    }
+
+    /// The shared HTTP client (the foreign-trade check reads with it).
+    pub(crate) fn http(&self) -> &Client {
+        &self.client
     }
 
     /// The catalog exchanges, for the UI picker and health strip.
@@ -127,13 +138,13 @@ impl ExchangeManager {
         join_all(futures).await
     }
 
-    /// Verifies a Binance key's real withdraw permission (see providers).
+    /// Verifies a Binance key's real withdraw/transfer permissions (see providers).
     pub async fn check_binance_permissions(
         &self,
         api_key: &str,
-        api_secret: &str,
+        signer: BinanceSigner<'_>,
     ) -> Result<BinancePermissions, BinanceKeyCheckError> {
-        providers::check_binance_permissions(&self.client, api_key, api_secret).await
+        providers::check_binance_permissions(&self.client, api_key, signer).await
     }
 
     /// The connected Binance account's USDT-M futures snapshot (balance + open
@@ -141,9 +152,9 @@ impl ExchangeManager {
     pub(crate) async fn bn_futures_account(
         &self,
         api_key: &str,
-        api_secret: &str,
+        signer: BinanceSigner<'_>,
     ) -> Result<FuturesAccount, BinanceKeyCheckError> {
-        providers::fetch_binance_futures_account(&self.client, api_key, api_secret).await
+        providers::fetch_binance_futures_account(&self.client, api_key, signer).await
     }
 
     fn cached(&self, key: &str) -> Option<ExchangeStatus> {

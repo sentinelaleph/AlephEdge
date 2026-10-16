@@ -114,3 +114,23 @@
   color: var(--text-subtle);
   font-variant-numeric: tabular-nums;
 }
+
+.ae-keylist__type {
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+
+/* Key age / IP restriction: warnings, not refusals. */
+.ae-keylist__safety {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: var(--text-2xs);
+}
+.ae-keylist__safety .ae-keylist__warn {
+  color: var(--warn-text);
+}

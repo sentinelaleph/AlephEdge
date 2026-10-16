@@ -24,14 +24,16 @@ mod commands;
 pub(crate) use commands::vault_path;
 mod crypto;
 mod idle;
+pub mod key_safety;
 pub mod model;
 pub mod secure_file;
 mod watchdog;
 
 pub use commands::{
-    vault_add_credential, vault_change_password, vault_create, vault_list_credentials,
-    vault_lock, vault_remove_credential, vault_rename_credential, vault_replace_credential,
-    vault_reset, vault_set_idle_minutes, vault_status, vault_touch, vault_unlock,
+    vault_add_credential, vault_change_password, vault_create, vault_ed25519_discard,
+    vault_ed25519_generate, vault_ed25519_pending, vault_list_credentials, vault_lock, vault_recheck_credential,
+    vault_remove_credential, vault_rename_credential, vault_replace_credential, vault_reset,
+    vault_set_idle_minutes, vault_status, vault_touch, vault_unlock,
 };
 pub use commands::restore_idle_minutes;
 pub use watchdog::spawn_idle_watchdog;
@@ -44,8 +46,12 @@ use base64::Engine;
 use zeroize::{Zeroize, Zeroizing};
 
 use crate::app::keychain::{self, OsKeychain, SecretStore};
+use crate::exchange::Ed25519Pending;
 use idle::IdleTimer;
-use model::{CredentialMeta, ExchangeCredential, KdfParams, VaultFile, VaultState, VaultStatus};
+use model::{
+    CredentialMeta, CredentialPermission, ExchangeCredential, KdfParams, VaultFile, VaultState,
+    VaultStatus,
+};
 
 /// The in-memory unlocked session.
 ///
@@ -68,6 +74,19 @@ pub struct VaultManager {
     session: Mutex<Option<Session>>,
     /// How long the session may sit unused before it is dropped (`idle`).
     idle: IdleTimer,
+    /// An Ed25519 keypair generated in Settings whose public key the user is
+    /// registering on Binance. In memory only, wiped on drop; dropped when
+    /// the vault locks (a locked vault holds no private key in memory), when
+    /// a new one is generated, and once it is sealed into the vault.
+    pending_ed25519: Mutex<Option<Ed25519Pending>>,
+}
+
+/// Facts read back from the exchange when a stored key is checked again.
+#[derive(Debug, Clone, Copy)]
+pub struct KeyFacts {
+    pub permission: CredentialPermission,
+    pub ip_restricted: Option<bool>,
+    pub exchange_created_at: Option<u64>,
 }
 
 impl VaultManager {
@@ -82,7 +101,41 @@ impl VaultManager {
         Self {
             session: Mutex::new(None),
             idle,
+            pending_ed25519: Mutex::new(None),
         }
+    }
+
+    /// Generates a new pending Ed25519 keypair (replacing any earlier one) and
+    /// returns its PUBLIC key PEM. Needs an unlocked vault: the private key is
+    /// only ever headed into it.
+    pub fn generate_ed25519(&self) -> Result<String, String> {
+        if self.use_session().is_none() {
+            return Err("vaultLocked".to_string());
+        }
+        let pending = Ed25519Pending::generate();
+        let pem = pending.public_pem.clone();
+        *self.pending_ed25519.lock().expect("vault mutex") = Some(pending);
+        Ok(pem)
+    }
+
+    /// The pending private key in its vault form, if one is waiting. A copy
+    /// for the one credential being built; it is wiped with that credential.
+    pub fn pending_ed25519_seed(&self) -> Option<String> {
+        self.pending_ed25519
+            .lock()
+            .expect("vault mutex")
+            .as_ref()
+            .map(|p| p.seed_b64().to_string())
+    }
+
+    /// Public key of the pending keypair, so a reopened form can show it again.
+    pub fn pending_ed25519_public(&self) -> Option<String> {
+        self.pending_ed25519.lock().expect("vault mutex").as_ref().map(|p| p.public_pem.clone())
+    }
+
+    /// Drops the pending keypair (sealed, cancelled or vault locked).
+    pub fn discard_ed25519(&self) {
+        *self.pending_ed25519.lock().expect("vault mutex") = None;
     }
 
     /// Takes the session lock AND records a use of the vault.
@@ -128,6 +181,9 @@ impl VaultManager {
         // locking happens, never what locking does.
         *guard = None;
         self.idle.clear();
+        // Its own mutex, never held while the session lock is taken: no
+        // deadlock with the guard above.
+        self.discard_ed25519();
         true
     }
 
@@ -272,6 +328,7 @@ impl VaultManager {
     /// Drop the in-memory session (Drop zeroizes secrets).
     pub fn lock(&self) {
         *self.session.lock().expect("vault mutex") = None;
+        self.discard_ed25519();
         // Clear, not touch: a locked vault has nothing left to expire, and a
         // stale stamp would have every watchdog tick believe it had work to do.
         self.idle.clear();
@@ -319,10 +376,11 @@ impl VaultManager {
         let guard = self.use_session();
         let s = guard.as_ref().ok_or("vaultLocked")?;
         let mut seen: Vec<&str> = Vec::new();
+        let now = now_ms();
         Ok(s.creds
             .iter()
             .map(|c| {
-                let mut meta = c.to_meta();
+                let mut meta = c.to_meta(now);
                 meta.in_use = !seen.contains(&c.exchange_id.as_str());
                 seen.push(&c.exchange_id);
                 meta
@@ -351,6 +409,21 @@ impl VaultManager {
         let guard = self.use_session();
         let s = guard.as_ref()?;
         s.creds
+            .iter()
+            .find(|c| c.exchange_id == exchange_id)
+            .cloned()
+    }
+
+    /// `credential` for a background watcher (the foreign-trade check) that
+    /// must NOT count as a use: polling every minute would otherwise keep the
+    /// vault unlocked forever. The expiry rule still applies first, so a spent
+    /// budget locks here instead of handing out the key.
+    pub fn credential_quiet(&self, exchange_id: &str) -> Option<ExchangeCredential> {
+        let mut guard = self.session.lock().expect("vault mutex");
+        self.expire_if_idle(&mut guard);
+        guard
+            .as_ref()?
+            .creds
             .iter()
             .find(|c| c.exchange_id == exchange_id)
             .cloned()
@@ -397,6 +470,28 @@ impl VaultManager {
         s.creds[idx].added_at = old.added_at;
         if let Err(e) = persist(path, &s.key, &s.params, &s.creds, s.salt_check.as_deref()) {
             s.creds[idx] = old;
+            return Err(e);
+        }
+        Ok(())
+    }
+
+    /// Stores what a re-check of (exchange, label) read back: permission, IP
+    /// restriction, exchange creation date. Same rollback as the other writes.
+    /// A fact the exchange did not report keeps its stored value.
+    pub fn set_key_facts(&self, path: &Path, exchange_id: &str, label: &str, facts: KeyFacts) -> Result<(), String> {
+        let mut guard = self.use_session();
+        let s = guard.as_mut().ok_or("vaultLocked")?;
+        let Some(idx) = s.creds.iter().position(|c| c.exchange_id == exchange_id && c.label == label) else {
+            return Err("credentialNotFound".to_string());
+        };
+        let c = &mut s.creds[idx];
+        let old = (c.permission, c.ip_restricted, c.exchange_created_at);
+        c.permission = facts.permission;
+        c.ip_restricted = facts.ip_restricted.or(c.ip_restricted);
+        c.exchange_created_at = facts.exchange_created_at.or(c.exchange_created_at);
+        if let Err(e) = persist(path, &s.key, &s.params, &s.creds, s.salt_check.as_deref()) {
+            let c = &mut s.creds[idx];
+            (c.permission, c.ip_restricted, c.exchange_created_at) = old;
             return Err(e);
         }
         Ok(())
@@ -472,6 +567,13 @@ impl VaultManager {
 
 /// Longest credential label (the add form's limit too).
 pub const MAX_LABEL_CHARS: usize = 40;
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
 
 /// Constant-time equality for two derived keys.
 fn same_key(a: &[u8; 32], b: &[u8; 32]) -> bool {
@@ -637,7 +739,56 @@ mod tests {
             permission: CredentialPermission::TradeOnly,
             added_at: 0,
             updated_at: None,
+            key_type: Default::default(),
+            exchange_created_at: None,
+            ip_restricted: None,
         }
+    }
+
+    #[test]
+    fn a_pending_ed25519_key_needs_an_open_vault_and_dies_with_the_lock() {
+        let (m, _clock) = manager(60_000);
+        assert_eq!(m.generate_ed25519().unwrap_err(), "vaultLocked");
+        unlocked(&m, &["main"]);
+        let pem = m.generate_ed25519().unwrap();
+        assert!(pem.starts_with("-----BEGIN PUBLIC KEY-----\n"), "{pem}");
+        assert_eq!(m.pending_ed25519_public().as_deref(), Some(pem.as_str()));
+        let seed = m.pending_ed25519_seed().expect("pending");
+        assert!(!pem.contains(&seed), "the public half never carries the private seed");
+        // A second generate replaces the first.
+        assert_ne!(m.generate_ed25519().unwrap(), pem);
+        m.lock();
+        assert!(m.pending_ed25519_seed().is_none(), "lock drops the pending private key");
+    }
+
+    #[test]
+    fn an_idle_lock_drops_the_pending_key_too() {
+        let (m, clock) = manager(1_000);
+        unlocked(&m, &["main"]);
+        m.generate_ed25519().unwrap();
+        clock.advance(1_001);
+        assert!(m.lock_if_idle());
+        assert!(m.pending_ed25519_seed().is_none());
+    }
+
+    #[test]
+    fn rechecked_facts_are_sealed_and_unreported_ones_kept() {
+        let (m, _clock) = manager(60_000);
+        unlocked(&m, &["main"]);
+        let (_dir, path) = sealed("facts", &m);
+        let set = |ip, created, permission| {
+            m.set_key_facts(&path, "binance", "main", KeyFacts { permission, ip_restricted: ip, exchange_created_at: created })
+        };
+        set(Some(false), Some(77), CredentialPermission::TradeOnly).unwrap();
+        set(None, None, CredentialPermission::Unknown).unwrap();
+        let back = read_back(&path, &[3u8; 32]);
+        assert_eq!(back[0].ip_restricted, Some(false));
+        assert_eq!(back[0].exchange_created_at, Some(77));
+        assert_eq!(back[0].permission, CredentialPermission::Unknown);
+        let meta = &m.list().unwrap()[0];
+        assert!(meta.safety.no_ip_restriction);
+        assert_eq!(meta.exchange_created_at, Some(77));
+        assert_eq!(m.set_key_facts(&path, "binance", "nope", KeyFacts { permission: CredentialPermission::TradeOnly, ip_restricted: None, exchange_created_at: None }).unwrap_err(), "credentialNotFound");
     }
 
     /// Decrypt a vault file the way `unlock` does, minus the keychain.
@@ -679,6 +830,21 @@ mod tests {
 
         clock.advance(1_000);
         assert!(m.lock_if_idle(), "left alone, it finally locks");
+    }
+
+    #[test]
+    fn the_background_watcher_read_is_not_a_use_and_never_outlives_the_budget() {
+        // The foreign-trade check reads the key every minute; that must not
+        // keep an unattended vault unlocked.
+        let (m, clock) = manager(1_000);
+        unlocked(&m, &["main"]);
+        for _ in 0..4 {
+            clock.advance(200);
+            assert!(m.credential_quiet("binance").is_some());
+        }
+        clock.advance(200);
+        assert!(m.credential_quiet("binance").is_none(), "spent budget: locked, no key");
+        assert_eq!(m.list().unwrap_err(), "vaultLocked");
     }
 
     #[test]

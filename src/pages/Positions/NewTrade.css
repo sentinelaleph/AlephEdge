@@ -1,0 +1,54 @@
+/* New trade: the terms in the left panel, the paper preview in the center. */
+.ae-newtrade__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.ae-newtrade__head,
+.ae-newtrade__bar,
+.ae-newtrade__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.ae-newtrade {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+.ae-newtrade__figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+.ae-newtrade__figures dt {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+.ae-newtrade__figures dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 600;
+}
+.ae-newtrade__figures dd[data-tone="up"] {
+  color: var(--pnl-up);
+}
+.ae-newtrade__figures dd[data-tone="down"] {
+  color: var(--pnl-down);
+}
+.ae-newtrade__refusal {
+  margin: 0;
+  color: var(--warn-text);
+  font-size: var(--text-sm);
+}
+.ae-newtrade__opened {
+  margin: 0;
+  font-size: var(--text-sm);
+}

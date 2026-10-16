@@ -81,13 +81,7 @@ async fn check_symbol(app: &AppHandle, cfg: &StrategyConfig) -> Result<(), Strin
         .state::<ExchangeManager>()
         .symbols(&cfg.exchange_id, cfg.market == MarketKind::Futures)
         .await;
-    if list.is_empty() {
-        return Err("symbolListUnavailable".into());
-    }
-    if !list.iter().any(|s| s == &cfg.symbol) {
-        return Err("symbolUnknown|symbol".into());
-    }
-    Ok(())
+    symbol_in(&list, cfg)
 }
 
 #[tauri::command]
@@ -251,19 +245,39 @@ pub async fn strategy_create(
     mgr: State<'_, StrategyManager>,
     config: StrategyConfig,
 ) -> Result<StrategyBotView, String> {
-    check(&config, &app)?;
+    let now = now_ms();
+    let bot = new_stopped_bot(config, max_leverage(&app), mgr.bots().len(), budget_limit(&app, &mgr), now)?;
+    check_symbol(&app, &bot.cfg).await?;
+    let id = persist_new_bot(&app, &mgr, bot, now)?;
+    view(&mgr, &id)
+}
+
+/// The budget a new bot may have: the declared balance times the cap in force.
+pub(crate) fn budget_limit(app: &AppHandle, mgr: &StrategyManager) -> f64 {
+    let cap = effective_cap_pct(app, &mgr.risk());
+    app.state::<RiskManager>().balance() * cap / 100.0
+}
+
+/// The checks of `strategy_create` that need no exchange, and the new bot:
+/// stopped, simulated (a strategy config cannot express real money), with no
+/// history. `existing` = bots the desk holds now. Shared with the settings
+/// import (app/settings_transfer.rs); the symbol check follows it.
+pub(crate) fn new_stopped_bot(
+    config: StrategyConfig,
+    max_leverage: u8,
+    existing: usize,
+    budget_limit: f64,
+    now: u64,
+) -> Result<StrategyBot, String> {
+    validate::validate(&config, max_leverage).map_err(|e| e.to_string())?;
     let config = with_provenance(config);
-    if mgr.bots().len() >= MAX_STRATEGY_BOTS {
+    if existing >= MAX_STRATEGY_BOTS {
         return Err("maxBots".into());
     }
-    let cap = effective_cap_pct(&app, &mgr.risk());
-    let limit = app.state::<RiskManager>().balance() * cap / 100.0;
-    if config.budget > limit {
-        return Err(cap_refusal("budget", limit, 0.0));
+    if config.budget > budget_limit {
+        return Err(cap_refusal("budget", budget_limit, 0.0));
     }
-    check_symbol(&app, &config).await?;
-    let now = now_ms();
-    let bot = StrategyBot {
+    Ok(StrategyBot {
         id: new_bot_id(),
         peak_equity: config.budget,
         cfg: StrategyConfig {
@@ -282,13 +296,29 @@ pub async fn strategy_create(
         start_triggered: false,
         util: Utilisation::default(),
         archived_at: None,
-    };
-    let dir = data_dir(&app)?;
+    })
+}
+
+/// Saves a new bot and adds it to the desk; returns its id.
+pub(crate) fn persist_new_bot(app: &AppHandle, mgr: &StrategyManager, bot: StrategyBot, now: u64) -> Result<String, String> {
+    let dir = data_dir(app)?;
     app.state::<StoreManager>()
         .strategy(&dir, |c| db::save_bot(c, &bot, now))?;
     let id = bot.id.clone();
     mgr.put_bot(bot);
-    view(&mgr, &id)
+    Ok(id)
+}
+
+/// The symbol check of `strategy_create` against a list already read
+/// (`ExchangeManager::symbols`).
+pub(crate) fn symbol_in(list: &[String], cfg: &StrategyConfig) -> Result<(), String> {
+    if list.is_empty() {
+        return Err("symbolListUnavailable".into());
+    }
+    if !list.iter().any(|s| s == &cfg.symbol) {
+        return Err("symbolUnknown|symbol".into());
+    }
+    Ok(())
 }
 
 /// Fields that may change while a cycle is open (never a reservation).
@@ -797,6 +827,8 @@ pub struct PresetView {
     #[serde(flatten)]
     pub preset: Preset,
     pub min_budget: Option<f64>,
+    /// The same settings on a wider pair list, where measured.
+    pub wide_universe: Option<presets::WideUniverse>,
 }
 
 /// PRESET-READY research presets with their historical-simulation numbers.
@@ -808,7 +840,11 @@ pub fn strategy_presets() -> Result<Vec<PresetView>, String> {
 fn preset_views() -> Vec<PresetView> {
     presets::all()
         .into_iter()
-        .map(|preset| PresetView { min_budget: validate::min_budget(&preset.config), preset })
+        .map(|preset| PresetView {
+            min_budget: validate::min_budget(&preset.config),
+            wide_universe: presets::wide_universe(preset.id),
+            preset,
+        })
         .collect()
 }
 
@@ -827,6 +863,10 @@ mod tests {
             assert_eq!(json["id"], v.preset.id, "flattened");
             assert_eq!(json["minBudget"].as_f64(), Some(min));
         }
+        let classic = views.iter().find(|v| v.preset.id == "dca_long_classic").unwrap();
+        let w = classic.wide_universe.as_ref().expect("classic was run on the top 30");
+        assert_eq!(w.top_n, 30);
+        assert!(views.iter().filter(|v| v.wide_universe.is_some()).count() == 1, "only measured templates");
     }
 
     #[test]

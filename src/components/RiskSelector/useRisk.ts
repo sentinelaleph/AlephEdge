@@ -7,8 +7,10 @@ import {
   riskSetCloseOnStop,
   riskSetDailyLoss,
   riskSetLevel,
+  riskSetViewThresholds,
   type RiskLevel,
   type RiskState,
+  type ViewThresholds,
 } from "@/lib/ipc/risk/risk";
 
 export interface RiskController {
@@ -23,6 +25,8 @@ export interface RiskController {
   setCloseOnStop: (close: boolean) => Promise<void>;
   /** The user's own daily-loss tolerance; `null` clears it back to the level. */
   setDailyLoss: (pct: number | null) => Promise<void>;
+  /** Portfolio risk view thresholds (Risk page). */
+  setViewThresholds: (t: ViewThresholds) => Promise<void>;
 }
 
 /** Owns the global risk config: level, simulated balance, close-on-stop. */
@@ -80,5 +84,7 @@ export function useRisk(): RiskController {
 
   const setDailyLoss = useCallback((pct: number | null) => run(() => riskSetDailyLoss(pct)), [run]);
 
-  return { state, busy, error, retry, selectLevel, setBalance, setCloseOnStop, setDailyLoss };
+  const setViewThresholds = useCallback((v: ViewThresholds) => run(() => riskSetViewThresholds(v)), [run]);
+
+  return { state, busy, error, retry, selectLevel, setBalance, setCloseOnStop, setDailyLoss, setViewThresholds };
 }

@@ -12,7 +12,9 @@
 
 mod binance_auth;
 pub mod binance_fills;
+pub mod binance_income;
 pub(crate) mod binance_http;
+pub mod binance_sign;
 pub mod binance_parse;
 pub mod binance_requests;
 pub mod binance_rules;

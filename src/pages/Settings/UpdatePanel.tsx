@@ -72,7 +72,7 @@ export function UpdatePanel() {
         ) : null}
       </div>
       <p className="ae-subtle">
-        {u.status === "off" ? t("update.offTestnetNote") : t("update.signedNote")} {v ? t("update.restartNote") : null}
+        {u.status === "off" ? t("update.offTestnetNote") : t("update.signedNote")} {v ? `${t("update.restartNote")} ${t("update.backupNote")}` : null}
       </p>
     </Panel>
   );

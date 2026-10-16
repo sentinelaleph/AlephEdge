@@ -117,7 +117,7 @@
     "withdrawStored": "Retiros habilitados: renueva esta clave con una de solo trading.",
     "keyInUse": "En uso",
     "keyNotUsed": "No se usa: la app firma con «{{label}}». Renueva esa clave o elimina una de las dos.",
-    "tradeOnlyRule": "Solo se aceptan claves de solo trading. Desactiva los retiros de la clave en el exchange.",
+    "tradeOnlyRule": "Solo se aceptan claves de solo trading. Desactiva los retiros y las transferencias de la clave en el exchange.",
     "autoLockHint": "Se bloquea tras {{duration}} sin actividad. Una bóveda sin claves permanece desbloqueada.",
     "changePassword": "Cambiar contraseña",
     "changingPassword": "Cambiando…",
@@ -130,7 +130,33 @@
       "week": "1 semana",
       "month": "1 mes (30 días)"
     },
-    "venueNotDryRun": "El dinero real en {{exchange}} sigue desactivado hasta que su ruta de órdenes supere una prueba de principio a fin en la red de pruebas del propio exchange. La clave puede seguir leyendo la cuenta y cerrando posiciones."
+    "venueNotDryRun": "El dinero real en {{exchange}} sigue desactivado hasta que su ruta de órdenes supere una prueba de principio a fin en la red de pruebas del propio exchange. La clave puede seguir leyendo la cuenta y cerrando posiciones.",
+    "keyType": "Tipo de clave",
+    "keyTypeHmac": "Clave y secreto de Binance",
+    "keyTypeEd25519": "Clave Ed25519 creada aquí",
+    "ed": {
+      "intro": "La app crea el par de claves. Binance solo recibe la clave pública; la clave privada se queda en tu bóveda.",
+      "create": "Crear par de claves",
+      "recreate": "Nuevo par de claves",
+      "creating": "Creando…",
+      "publicKey": "Clave pública (regístrala en Binance)",
+      "copy": "Copiar clave pública",
+      "copied": "Copiada",
+      "copyFailed": "No se pudo copiar. Selecciona la clave y cópiala.",
+      "step1": "En Binance: Gestión de API, Crear API, Self-generated (autogenerada).",
+      "step2": "Pega la clave pública, ponle un nombre y confirma.",
+      "step3": "Activa Futuros. Deja desactivados los retiros y las transferencias. Restringe el acceso a tu IP.",
+      "step4": "Pega en el campo de abajo la clave API que muestra Binance.",
+      "private": "La clave privada va directamente a la bóveda cifrada. Nunca se muestra, se copia ni se exporta. Si bloqueas la bóveda antes de guardar, se descarta."
+    },
+    "ipOpen": "Sin restricción de IP",
+    "ipGuide": "Restringe la clave a tu dirección IP en el exchange.",
+    "ipGuideBinance": "Binance: Gestión de API, Editar restricciones, Restringir el acceso solo a IP de confianza. Las claves con restricción de IP no caducan.",
+    "rotateExchange": "Creada hace {{days}} días: tiene más de 90 días, renuévala (Renovar).",
+    "rotateVault": "En esta bóveda desde hace {{days}} días: tiene más de 90 días, renuévala (Renovar).",
+    "recheck": "Comprobar de nuevo",
+    "recheckDone": "Comprobada con el exchange.",
+    "renewHintEd25519": "Crea un nuevo par de claves, registra su clave pública en Binance y pega la nueva clave API. La clave actual se mantiene hasta que se acepte la nueva."
   },
   "workspace": {
     "loading": "Cargando…"
@@ -185,6 +211,8 @@
     "noSkips": "Nada omitido aún.",
     "manualBadge": "Manual",
     "manualBadgeTooltip": "Abierta a mano desde Execute · filtros del bot omitidos, límites de riesgo aplicados",
+    "ownTradeBadge": "Propia",
+    "ownTradeBadgeTooltip": "Nueva operación · tu take-profit y stop · no es una señal de Sentinel · simulada",
     "skipReasons": {
       "spotLongOnly": "Señal corta · spot solo opera largos",
       "belowConfidence": "Bajo el filtro de puntaje Sentinel ({{detail}})",
@@ -260,7 +288,8 @@
       "restoreConfigInvalid": "Los ajustes guardados del bot no pasan una comprobación ({{detail}}) · corrígelos y guárdalos para iniciar el bot",
       "settledPositionDropped": "Ya cerrada en el Historial · su fila abierta sobrante se eliminó al iniciar",
       "belowExchangeMinimum": "Por debajo de la orden mínima del exchange ({{detail}} USDT, Binance pide unos 5)",
-      "manualOpened": "Abierta a mano desde Execute · simulado"
+      "manualOpened": "Abierta a mano desde Execute · simulado",
+      "userTradeOpened": "Nueva operación abierta · tus niveles · simulada"
     },
     "exchange": "Exchange",
     "signalFilter": "Filtro de señal",
@@ -1102,6 +1131,51 @@
       "range": "Stop → objetivo",
       "rangeTip": "Dónde está el precio entre el stop (izquierda) y el objetivo (derecha). La marca es la entrada.",
       "rangeLabel": "Precio al {{pct}}% del recorrido del stop al objetivo"
+    },
+    "newTrade": {
+      "button": "Nueva operación",
+      "title": "Nueva operación",
+      "previewTitle": "{{symbol}} · {{side}} · bot {{bot}}",
+      "close": "Cerrar",
+      "bot": "Bot",
+      "notSaved": "Sin guardar",
+      "symbol": "Par",
+      "side": "Lado",
+      "size": "Tamaño",
+      "sizeBot": "Tamaño del bot",
+      "notional": "Nocional (USDT)",
+      "takeProfit": "Precio de take-profit",
+      "stopLoss": "Precio de stop-loss",
+      "incomplete": "Introduce par, take-profit y stop-loss",
+      "fill": "Ejecución ahora",
+      "qty": "Cantidad",
+      "notionalFigure": "Nocional",
+      "margin": "Margen",
+      "lossAtStop": "Pérdida en stop {{price}}",
+      "riskValue": "{{amount}} · {{pct}} del capital del bot",
+      "gainAtTarget": "Ganancia en take-profit {{price}}",
+      "rewardRisk": "Beneficio:riesgo",
+      "liquidation": "Liquidación a {{leverage}}x",
+      "fees": "Comisiones, apertura + cierre",
+      "exitLine": "Sale en take-profit o stop · sin límite de tiempo",
+      "open": "Abrir operación simulada",
+      "opened": "Abierta · {{symbol}} a {{price}} · simulada",
+      "refusal": {
+        "manualTakePaperOnly": "Este bot opera con dinero real · Nueva operación solo abre posiciones simuladas",
+        "botNotConfigured": "Guarda primero la configuración de este bot",
+        "marketHeld": "Este bot ya tiene una posición en este par",
+        "stopPassed": "El precio superó el stop",
+        "targetPassedBeforeEntry": "El precio superó el take-profit",
+        "tradeBotKind": "Nueva operación se abre en el bot Futuros o Spot",
+        "tradeSymbolInvalid": "El par debe ser un par USDT, p. ej. BTCUSDT",
+        "tradeSymbolNotListed": "Par no listado en el mercado de este exchange",
+        "tradeLevelsInvalid": "Take-profit y stop-loss deben ser precios mayores que 0",
+        "tradeSizeInvalid": "El tamaño debe ser mayor que 0 USDT",
+        "tradeTargetWrongSide": "Take-profit en el lado equivocado del precio actual",
+        "tradeStopWrongSide": "Stop-loss en el lado equivocado del precio actual",
+        "tradeStopInsideFees": "Stop más cerca que ambas comisiones · necesita más de {{detail}}",
+        "tradeTargetInsideFees": "Take-profit más cerca que ambas comisiones · necesita más de {{detail}}"
+      }
     }
   },
   "history": {
@@ -1179,7 +1253,9 @@
       "preflight": "Preparación para real",
       "summary": "En riesgo ahora",
       "open": "Riesgo abierto",
-      "strategy": "Presupuesto DCA/Grid"
+      "strategy": "Presupuesto DCA/Grid",
+      "portfolio": "Estrés de cartera",
+      "replay": "Repetición de caídas"
     },
     "level": {
       "title": "Nivel de riesgo"
@@ -1278,7 +1354,9 @@
       "notifications": "Notificaciones",
       "devices": "Dispositivos",
       "about": "Acerca de",
-      "keys": "Claves de exchange"
+      "keys": "Claves de exchange",
+      "backup": "Copia de seguridad",
+      "tradingview": "TradingView"
     },
     "language": "Idioma",
     "numberPreview": "Número",
@@ -1319,7 +1397,9 @@
       "notifications": "Qué muestra la campana de alertas",
       "devices": "Control remoto por teléfono",
       "keys": "Claves API, bóveda, conexiones",
-      "about": "Versión, actualizaciones, tus datos"
+      "about": "Versión, actualizaciones, tus datos",
+      "backup": "Copias, archivo de ajustes de bots",
+      "tradingview": "Alertas a operaciones simuladas"
     },
     "navStatus": {
       "alerts": "{{on}} de {{total}} visibles",
@@ -1372,7 +1452,8 @@
         "budget": "Se omitió una señal porque un presupuesto, un límite de posiciones o el tope de capital estaba lleno.",
         "dealClosed": "Operaciones de señales y ciclos DCA/Grid cerrados hoy.",
         "streamDown": "El flujo de señales de Sentinel está caído y sigue reintentando.",
-        "regime": "Sentinel declaró una ruptura de BTC. Los nuevos longs de señales se rechazan mientras dure."
+        "regime": "Sentinel declaró una ruptura de BTC. Los nuevos longs de señales se rechazan mientras dure.",
+        "portfolioRisk": "Se cruzó un umbral de riesgo de cartera de la página Riesgo: un solo lado, una sola moneda o la pérdida con BTC -20%."
       },
       "severity": {
         "danger": "Crítico",
@@ -1452,8 +1533,8 @@
     "keys": {
       "requirementsTitle": "Qué clave agregar",
       "requirements": {
-        "permissions": "Permiso de trading activado, retiros desactivados. En Binance, también el permiso de futuros activado.",
-        "checked": "La app lee los permisos de la clave desde el exchange y rechaza una clave que pueda retirar.",
+        "permissions": "Permiso de trading activado, retiros y transferencias desactivados. En Binance, también el permiso de futuros activado.",
+        "checked": "La app lee los permisos de la clave desde el exchange y rechaza una clave que pueda retirar o transferir fondos.",
         "local": "Las claves se guardan solo en la bóveda cifrada de este equipo y nunca se envían a ribqa.com.",
         "optional": "Los bots simulados no necesitan clave. Una clave te permite ver tu cuenta del exchange y cerrar posiciones en ella."
       },
@@ -1510,6 +1591,122 @@
       "securityTitle": "Informes de seguridad",
       "security": "Escribe a support@ribqa.com con \"security\" en el asunto y danos tiempo para corregir el problema antes de publicarlo.",
       "reportSecurity": "Informar de un problema de seguridad"
+    },
+    "backup": {
+      "listTitle": "Copias de seguridad",
+      "now": "Copiar ahora",
+      "running": "Copiando…",
+      "openFolder": "Abrir carpeta",
+      "col": {
+        "taken": "Hecha",
+        "reason": "Motivo",
+        "size": "Tamaño",
+        "bot": "Bot",
+        "result": "Resultado"
+      },
+      "reasonUpdate": "Antes de actualizar {{from}} → {{to}}",
+      "reasonManual": "Manual",
+      "empty": "Aún no hay copias",
+      "emptyDetail": "Se hace una antes de instalar cada actualización.",
+      "contents": "Cada copia contiene la base de datos (bots, operaciones, ciclos), config.json y la bóveda cifrada. Se conservan las 5 más recientes.",
+      "listFailed": "No se pudo leer la carpeta de copias.",
+      "failed": "La copia de seguridad falló.",
+      "fileTitle": "Archivo de ajustes de bots",
+      "fileHolds": "Los ajustes de los bots de señales y de cada bot DCA / Grid en un solo archivo JSON. Sin claves API, bóveda, token de Telegram ni historial de operaciones.",
+      "importRule": "Importar reemplaza los ajustes de los bots de señales y añade cada bot DCA / Grid como un bot nuevo detenido. Todo lo importado queda en simulación; nunca se activa dinero real.",
+      "export": "Exportar ajustes",
+      "exporting": "Exportando…",
+      "import": "Importar ajustes",
+      "importing": "Importando…",
+      "exported": "Descarga iniciada: {{name}}",
+      "exportFailed": "La exportación falló.",
+      "importFailed": "La importación falló.",
+      "importResult": "Resultado de la importación",
+      "importSummary": "{{ok}} de {{total}} aplicados",
+      "importEmpty": "El archivo no contiene bots.",
+      "created": "Añadido, detenido, simulado",
+      "replaced": "Ajustes reemplazados, simulado",
+      "refused": "Rechazado",
+      "signalBot": "Bot de señales {{kind}}",
+      "unreadableEntry": "Entrada ilegible",
+      "promiseTitle": "Qué conserva una actualización",
+      "promise": {
+        "keeps": "Una actualización conserva en este ordenador los bots, los ajustes, el historial de operaciones y las claves del exchange.",
+        "backup": "Antes de cada instalación se hace una copia de seguridad. Si la copia falla, la actualización no se instala.",
+        "liveBlocks": "Una actualización no empieza mientras haya dinero real en juego: primero cierra las posiciones reales y desactiva el dinero real.",
+        "signal": "Los bots de señales vuelven en simulación tras cualquier reinicio; el dinero real requiere escribir LIVE de nuevo. Los bots de señales simulados que estaban en marcha arrancan de nuevo si pasan las comprobaciones de inicio.",
+        "strategy": "Los bots DCA / Grid simulados que estaban en marcha arrancan de nuevo tras un reinicio si pasan las comprobaciones de inicio. Un bot con dinero real vuelve detenido; su ciclo abierto se sigue gestionando."
+      }
+    },
+    "tv": {
+      "failed": "Falló la solicitud del enlace de TradingView.",
+      "loading": "Cargando…",
+      "urlTitle": "URL del webhook",
+      "state": {
+        "signedOut": "Sesión cerrada",
+        "unknown": "Relé no legible",
+        "none": "Sin URL",
+        "active": "Activa"
+      },
+      "signedOut": "Inicia sesión para usar las alertas de TradingView. Con la sesión cerrada no se lee nada.",
+      "signIn": "Iniciar sesión",
+      "noUrl": "Aún no hay URL de webhook.",
+      "created": "Creada",
+      "lastReceived": "Última alerta recibida",
+      "received24h": "Recibidas, 24 h",
+      "pending": "Sin leer",
+      "never": "Nunca",
+      "create": "Crear URL",
+      "rotate": "Rotar URL",
+      "revoke": "Revocar",
+      "rotateNote": "Rotar crea una URL nueva; la anterior deja de funcionar al instante. Revocar la detiene sin crear otra.",
+      "shownOnce": "Se muestra una vez: la app no la guarda y no puede volver a mostrarla. Si la pierdes, rótala. Rotar detiene la URL anterior.",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "copyFailed": "No se pudo copiar",
+      "alertsTitle": "Alertas",
+      "receive": "Recibir alertas",
+      "receiveDesc": "Lee las alertas del relé cada 5 s y las lista abajo. No se ejecuta nada.",
+      "execute": "Ejecutar alertas como operaciones simuladas",
+      "executeDesc": "Comprar y vender abren una posición simulada con Nueva operación y todas sus comprobaciones. Cerrar cierra tu propia operación abierta en ese par. Las alertas con más de 120 s al leerlas no se ejecutan.",
+      "lastRead": "Última lectura",
+      "lastError": "Último error",
+      "howTitle": "Configurar en TradingView",
+      "step1": "Crea una alerta en un gráfico o en una estrategia.",
+      "step2": "Notificaciones: activa URL del webhook y pega la URL de arriba.",
+      "step3": "Mensaje: pega uno de los mensajes de abajo.",
+      "twoFactor": "TradingView exige 2FA para los webhooks.",
+      "action": {
+        "buy": "Comprar",
+        "sell": "Vender",
+        "close": "Cerrar"
+      },
+      "field": {
+        "action": "action: buy (largo), sell (corto, solo bot de Futuros), close (cierra tu propia operación abierta en el par).",
+        "symbol": "symbol: {{ticker}} o un par. BINANCE:BTCUSDT.P, BTCUSDT.P, BTCUSDTPERP y btcusdt se leen como BTCUSDT. Solo pares USDT.",
+        "levels": "tp o tp_pct, y sl o sl_pct: exactamente uno de cada para comprar y vender. tp y sl son precios.",
+        "pct": "tp_pct y sl_pct son distancias en porcentaje desde el precio en vivo al ejecutar. Largo: tp = precio × (1 + tp_pct/100), sl = precio × (1 − sl_pct/100). Corto: tp = precio × (1 − tp_pct/100), sl = precio × (1 + sl_pct/100).",
+        "bot": "bot: futures (por defecto) o spot. Spot es solo largo.",
+        "size": "size_usdt: nocional opcional en USDT. Sin él se aplica el dimensionamiento del propio bot.",
+        "stale": "Una alerta recibida más de 120 s antes de que la app la lea no se ejecuta. Texto plano u otro JSON se lista como ilegible."
+      },
+      "resultsTitle": "Alertas recientes",
+      "resultsEmpty": "Aún no se ha leído ninguna alerta.",
+      "col": {
+        "time": "Hora",
+        "action": "Acción",
+        "symbol": "Par",
+        "outcome": "Resultado"
+      },
+      "outcome": {
+        "received": "Recibida · no ejecutada (Ejecutar desactivado)",
+        "opened": "Abierta · simulada",
+        "closed": "Cerrada · simulada",
+        "tvExpired": "No ejecutada · tenía más de 120 s al leerla",
+        "tvBadMessage": "Ilegible · no es JSON en el formato de alerta",
+        "tvBadLevels": "Indica uno de tp / tp_pct y uno de sl / sl_pct, mayores que 0",
+        "tvNothingToClose": "Nada que cerrar · no tienes operación abierta en este par y bot"
+      }
     }
   },
   "accountPage": {
@@ -1599,13 +1796,22 @@
       "dealClosed": "Operación cerrada",
       "vaultAutoLock": "Bloqueo automático de la bóveda",
       "streamDown": "Flujo caído",
-      "regime": "Régimen de BTC"
+      "regime": "Régimen de BTC",
+      "portfolioRisk": "Riesgo de cartera"
     },
     "strategyBreaker": "Se activó el cortacircuitos de cartera DCA/Grid",
     "strategyBreakerDetail": "La caída desde el pico de P&L alcanzó el {{pct}}% del presupuesto de los bots cubiertos. Sus ciclos cerrados; sus inicios bloqueados hasta rearmar.",
     "cycleStopsToday": "Ciclos DCA/Grid cerrados por un stop hoy: {{count}}",
     "cyclesClosedToday": "Ciclos DCA/Grid cerrados hoy: {{count}}",
-    "strategyDead": "{{name}} finalizado"
+    "strategyDead": "{{name}} finalizado",
+    "foreignTrades": "Operaciones que esta app no hizo: {{count}}",
+    "portfolioRisk": {
+      "sameDirection": "Exposición en la misma dirección {{value}}% (umbral {{threshold}}%)",
+      "singleCoin": "Una moneda tiene el {{value}}% del capital en bots (umbral {{threshold}}%)",
+      "stress20": "BTC -20% perdería el {{value}}% del capital en bots (umbral {{threshold}}%)",
+      "paper": "Libro en papel",
+      "real": "Libro con dinero real"
+    }
   },
   "statusbar": {
     "label": "Estado",
@@ -1727,6 +1933,9 @@
       "discard": "Descartar cambios",
       "presetFailed": "Esta plantilla no superó sus controles ({{reasons}}). Sus ajustes se mantienen para aprender; pruébalos primero en un backtest.",
       "fromPresetPairChecked": "Del preajuste {{id}}: los ajustes y el par coinciden con su simulación histórica ({{universe}}).",
+      "fromPresetPairInList": "Del preset {{id}}: los ajustes coinciden con su simulación histórica y {{symbol}} está en su lista de pares de {{month}} ({{list}}).",
+      "presetPairOutside": "{{symbol}} no está en la lista de pares de {{month}} del preset {{id}} ({{list}}). Los resultados del preset se midieron solo en esos pares; en otros no se conocen.",
+      "presetPairOutsideWide": "Medidos en los {{n}} pares con más volumen, los mismos ajustes dieron {{train}} (entrenamiento), {{valid}} (validación) y {{test}} (prueba) por bot-mes; el peor bot cayó {{dd}}.",
       "budgetShort": "Presupuesto mínimo {{min}} USDT (cada orden de al menos 5 USDT); {{free}} USDT libres bajo el límite de presupuesto DCA/Grid. Sube el saldo simulado o el nivel de riesgo:",
       "custom": {
         "base": "Ajustes propios: sin simulación histórica.",
@@ -2572,7 +2781,34 @@
     "telegramBadResponse": "Telegram envió una respuesta que esta app no puede leer.",
     "telegramNotLinked": "Primero vincula un chat de Telegram.",
     "telegramNoToken": "Primero guarda un token de bot.",
-    "telegramKeychainFailed": "El llavero del sistema no guardó el token."
+    "telegramKeychainFailed": "El llavero del sistema no guardó el token.",
+    "updateBackupFailed": "La copia de seguridad previa a la actualización falló, así que la actualización no se instaló.",
+    "backupDirFailed": "No se pudo escribir en la carpeta de copias.",
+    "backupDbFailed": "No se pudo copiar la base de datos.",
+    "backupCopyFailed": "No se pudo copiar un archivo en la copia de seguridad.",
+    "backupExists": "Ya existe una copia con esta hora. Inténtalo de nuevo en un segundo.",
+    "backupPathInvalid": "La ruta de la carpeta de datos no sirve para una copia de seguridad.",
+    "importTooLarge": "Este archivo es demasiado grande para ser un archivo de ajustes.",
+    "importUnreadable": "Este archivo no es un JSON legible.",
+    "importNotSettings": "Este no es un archivo de ajustes de bots de Aleph Edge.",
+    "importNewerFormat": "Este archivo lo creó un Aleph Edge más reciente (formato {{detail}}). Actualiza la aplicación primero.",
+    "importEntryUnreadable": "No se pudo leer esta entrada.",
+    "importDuplicateKind": "Este tipo de bot aparece dos veces; se usó la primera entrada.",
+    "importPreview": "No guardado: la vista previa del navegador no tiene carpeta de datos.",
+    "exportConfigUnreadable": "No se pudo leer un ajuste guardado del bot {{detail}}; no se exportó nada.",
+    "tvSignedOut": "Sesión cerrada · inicia sesión para usar las alertas de TradingView",
+    "tvRotateConflict": "Otra rotación se ejecutó al mismo tiempo · inténtalo de nuevo",
+    "tvBadResponse": "Respuesta inesperada del relé de TradingView",
+    "tvForbidden": "El relé de TradingView rechazó esta cuenta",
+    "tvRateLimited": "Demasiadas solicitudes al relé de TradingView · espera un minuto",
+    "tvHttp": "Falló la solicitud al relé de TradingView ({{detail}})",
+    "tvTimeout": "El relé de TradingView no respondió a tiempo",
+    "keyTransferEnabled": "Esta clave puede transferir fondos a otras cuentas (transferencia interna o universal). Desactiva las transferencias en el exchange y vuelve a añadirla.",
+    "keyTypeUnsupported": "Las claves Ed25519 solo funcionan con Binance.",
+    "ed25519NoPendingKey": "No hay ningún par de claves pendiente. Crea un par de claves, registra su clave pública en Binance y pega la clave API.",
+    "viewThresholdSameDirection": "Misma dirección: introduce de 50 a 100%.",
+    "viewThresholdSingleCoin": "Una moneda: introduce de 10 a 100%.",
+    "viewThresholdStress": "Pérdida con BTC -20%: introduce de 1 a 100%."
   },
   "status": {
     "running": "En marcha",
@@ -2626,7 +2862,8 @@
     "scheduleValue": "Al iniciar y luego cada 6 horas",
     "notes": "Novedades",
     "offTestnet": "Desactivado en la compilación testnet",
-    "offTestnetNote": "La compilación testnet no se actualiza sola: el canal de actualizaciones contiene la app normal. Ejecute la compilación testnet desde el código fuente."
+    "offTestnetNote": "La compilación testnet no se actualiza sola: el canal de actualizaciones contiene la app normal. Ejecute la compilación testnet desde el código fuente.",
+    "backupNote": "Se hace una copia de seguridad antes de instalar (Ajustes, Copia de seguridad)."
   },
   "preflight": {
     "title": "Preparación para real",
@@ -2662,7 +2899,9 @@
       "membership": "Membresía",
       "stream": "Flujo de señales Sentinel",
       "liveBots": "Bots reales (señal + DCA/Grid)",
-      "venue": "Ruta de órdenes"
+      "venue": "Ruta de órdenes",
+      "foreignTrades": "Operaciones ajenas",
+      "keySafety": "Restricción de IP y antigüedad de la clave"
     },
     "codes": {
       "buildOff": "Esta versión no opera con dinero real",
@@ -2695,7 +2934,13 @@
       "preflightFailed": "La comprobación falló",
       "venueDryRun": "Probado de principio a fin en la red de pruebas",
       "venueNotDryRun": "Aún no probado en la red de pruebas de {{exchange}}: dinero real desactivado",
-      "venueUnsupported": "No hay ruta de órdenes para este exchange"
+      "venueUnsupported": "No hay ruta de órdenes para este exchange",
+      "foreignTrades": "Ejecuciones que esta app no hizo: ver Operaciones ajenas abajo",
+      "watching": "Se revisa cada minuto",
+      "watchOff": "Vigilancia desactivada",
+      "keyNoIpRestriction": "Sin restricción de IP: restringe la clave a tu IP en {{exchange}}",
+      "keyOld": "Más de 90 días: renueva la clave",
+      "keyNoIpAndOld": "Sin restricción de IP y más de 90 días: restríngela y renuévala"
     },
     "exchange": "Exchange"
   },
@@ -2736,5 +2981,172 @@
     "cycles": "Ciclos abiertos: {{count}}",
     "realizedNote": "Tras comisiones, desde el inicio",
     "totalNote": "Realizado más abierto"
+  },
+  "foreignFill": {
+    "title": "Operaciones ajenas",
+    "desc": "Cada minuto, las ejecuciones de tu cuenta de futuros de Binance se comparan con las órdenes que colocó esta app. Una ejecución que no hizo detiene las nuevas entradas en todos los bots. Las posiciones abiertas no se cierran.",
+    "alarm": "Ejecuciones que esta app no hizo. Se detuvieron las nuevas entradas en todos los bots; las posiciones abiertas no se tocaron. Si no fuiste tú, borra ahora esta clave API en Binance.",
+    "ack": "Fui yo",
+    "ackNote": "Borra la alarma. Los bots siguen detenidos hasta que los inicies.",
+    "switch": "Vigilar operaciones ajenas",
+    "handTrades": "Las operaciones que hagas tú mismo en Binance, también con esta app cerrada, activan esta alarma.",
+    "lastCheck": "Última revisión {{time}}",
+    "checkFailed": "Falló la última revisión: {{reason}}",
+    "actionFailed": "No se pudo guardar",
+    "state": {
+      "watching": "Vigilando",
+      "idle": "Sin revisar: clave bloqueada",
+      "off": "Desactivado",
+      "alarm": "Operación ajena"
+    },
+    "side": {
+      "buy": "Compra",
+      "sell": "Venta"
+    },
+    "col": {
+      "time": "Hora",
+      "symbol": "Símbolo",
+      "side": "Lado",
+      "qty": "Cantidad",
+      "price": "Precio",
+      "trade": "ID de operación"
+    }
+  },
+  "riskview": {
+    "sample": "Datos de ejemplo",
+    "computedAt": "Calculado {{time}}",
+    "refresh": "Recalcular",
+    "loading": "Calculando…",
+    "failed": "No se pudo calcular la vista de riesgo de cartera.",
+    "empty": "Sin exposiciones abiertas",
+    "bookLabel": "Libro",
+    "book": {
+      "paper": "Papel",
+      "real": "Dinero real"
+    },
+    "capital": "Capital en bots",
+    "scenarios": "Shocks de BTC",
+    "excludedNote": "No incluidas, sin beta: {{count}}. Los totales las excluyen.",
+    "unpricedNote": "Aún sin precio, no incluidas: {{count}}",
+    "topFor": "Mayores pérdidas con {{move}}",
+    "noLosses": "Sin pérdidas en este escenario.",
+    "concentration": "Concentración",
+    "sameDirection": "Misma dirección",
+    "topCoin": "Moneda mayor",
+    "avgBeta": "Beta media",
+    "checks": "Umbrales",
+    "checkTitle": "{{level}} · umbral {{threshold}}%",
+    "check": {
+      "sameDirection": "Misma dirección",
+      "singleCoin": "Una moneda",
+      "stress20": "BTC -20%"
+    },
+    "level": {
+      "ok": "OK",
+      "warn": "Cerca",
+      "danger": "Superado",
+      "unavailable": "No disponible"
+    },
+    "exposures": "Exposiciones abiertas",
+    "method": "Beta: {{days}} días de velas horarias de DataHub frente a BTCUSDT, limitada a 0-3. Cada exposición se recorre a lo largo del movimiento: stops, órdenes de seguridad, compras de grid, liquidación al margen. No se simula un ciclo nuevo tras una salida.",
+    "btcShareTip": "De las pérdidas, la parte que explica la dirección de BTC: el R² de cada moneda frente a BTC en 30 días de rendimientos horarios, ponderado por su pérdida.",
+    "betaClamped": "Limitada desde {{raw}}",
+    "noPrice": "Aún sin precio",
+    "col": {
+      "move": "Movimiento de BTC",
+      "result": "Resultado",
+      "pctCapital": "% del capital en bots",
+      "btcShare": "Por dirección de BTC",
+      "excluded": "No incluidas",
+      "symbol": "Moneda",
+      "bot": "Bot",
+      "exit": "Salida en el camino",
+      "capital": "Capital",
+      "mark": "Precio",
+      "stop": "Stop",
+      "liq": "Liquidación",
+      "beta": "Beta",
+      "r2": "R²"
+    },
+    "source": {
+      "signal": "Bot de señales",
+      "manual": "Manual",
+      "dca": "DCA",
+      "grid": "Grid"
+    },
+    "dir": {
+      "long": "long",
+      "short": "short",
+      "neutral": "neutral"
+    },
+    "exit": {
+      "sl": "Stop-loss",
+      "breakeven": "Stop en equilibrio",
+      "tp": "Take-profit",
+      "liq": "Liquidación",
+      "maxLoss": "Tope de pérdida máxima",
+      "horizon": "Límite de tiempo",
+      "stop": "Stop fuera de rango",
+      "trail": "Salida dinámica",
+      "gridTp": "Take-profit del grid",
+      "timeout": "Duración máxima",
+      "ddstop": "Stop por drawdown",
+      "other": "Cerrada",
+      "open": "Sigue abierta"
+    },
+    "errors": {
+      "betaShort": "Menos de 10 días de historial horario en DataHub",
+      "replayBtcShort": "DataHub no sirvió BTC para al menos el 95% de esta ventana",
+      "whatifNoPrice": "Aún no hay precio de referencia",
+      "whatifTradeIncomplete": "La vista previa de la operación está incompleta"
+    },
+    "thresholds": {
+      "title": "Umbrales de alerta",
+      "sameDirectionPct": "Misma dirección por encima de, %",
+      "singleCoinPct": "Una moneda por encima de, %",
+      "stress20Pct": "Pérdida con BTC -20% por encima de, % del capital",
+      "save": "Guardar umbrales",
+      "saved": "Guardado",
+      "hint": "Al cruzar uno aparece una alerta aquí y, si Telegram está vinculado, un mensaje. No se cierra ni se bloquea nada."
+    },
+    "nav": {
+      "ok": "Dentro de los umbrales",
+      "warn": "Cerca de un umbral",
+      "danger": "Umbral superado",
+      "unavailable": "No disponible"
+    },
+    "card": {
+      "stress": "BTC -20%, {{book}}"
+    },
+    "replay": {
+      "run": "Ejecutar repetición",
+      "running": "Leyendo DataHub…",
+      "notRun": "El libro abierto de hoy a través de ventanas de caídas pasadas, por la ruta horaria propia de cada moneda.",
+      "unavailable": "No disponible",
+      "estimated": "estimada (beta)",
+      "noBook": "Sin exposiciones en este libro.",
+      "topFor": "Mayores pérdidas en {{window}}",
+      "method": "Las monedas con menos del {{coverage}}% de las horas de la ventana en DataHub siguen beta × BTC y se marcan como estimadas (beta). Una ventana sin historial de BTC no está disponible.",
+      "col": {
+        "window": "Ventana",
+        "btcMove": "Movimiento de BTC",
+        "btcLow": "Mínimo de BTC",
+        "estimated": "Estimadas (beta)"
+      },
+      "window": {
+        "oct2025": "Caída del 10 oct 2025",
+        "ftx2022": "FTX, 8-10 nov 2022",
+        "luna2022": "LUNA, 9-12 may 2022",
+        "may2021": "19 may 2021",
+        "mar2020": "12 mar 2020"
+      }
+    },
+    "whatif": {
+      "title": "Estrés de cartera",
+      "line": "Estrés de cartera con BTC -20%: antes {{before}} → después {{after}}",
+      "candidate": "Este bot con BTC -20%",
+      "candidateTrade": "Esta operación con BTC -20%",
+      "emptyBook": "sin exposiciones abiertas"
+    }
   }
 }

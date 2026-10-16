@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { isUserTradeId } from "@/lib/ipc/bot/bot";
 import "./Chip.css";
 
 export type ChipTone =
@@ -51,12 +52,17 @@ export function UntestedChip({ title }: { title?: string }) {
   );
 }
 
-/** "Manual": opened by hand on one signal (Execute), not by the bot's loop. */
-export function ManualChip() {
+/**
+ * "Manual": opened by hand on one signal (Execute), not by the bot's loop.
+ * "Own": a New trade on the user's own levels, no Sentinel signal behind it
+ * (told apart by its id, see `isUserTradeId`).
+ */
+export function ManualChip({ signalId }: { signalId?: string }) {
   const { t } = useTranslation();
+  const own = signalId !== undefined && isUserTradeId(signalId);
   return (
-    <Chip tone="accent" title={t("bots.manualBadgeTooltip")}>
-      {t("bots.manualBadge")}
+    <Chip tone="accent" title={t(own ? "bots.ownTradeBadgeTooltip" : "bots.manualBadgeTooltip")}>
+      {t(own ? "bots.ownTradeBadge" : "bots.manualBadge")}
     </Chip>
   );
 }

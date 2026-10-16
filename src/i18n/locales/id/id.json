@@ -117,7 +117,7 @@
     "withdrawStored": "Penarikan aktif: perbarui kunci ini dengan kunci khusus trading.",
     "keyInUse": "Dipakai",
     "keyNotUsed": "Tidak dipakai: aplikasi menandatangani dengan “{{label}}”. Perbarui kunci itu atau hapus salah satunya.",
-    "tradeOnlyRule": "Hanya kunci khusus trading yang diterima. Matikan penarikan kunci di exchange.",
+    "tradeOnlyRule": "Hanya kunci khusus trading yang diterima. Matikan penarikan dan transfer kunci di exchange.",
     "autoLockHint": "Terkunci setelah {{duration}} tanpa aktivitas. Brankas tanpa kunci tetap terbuka.",
     "changePassword": "Ganti kata sandi",
     "changingPassword": "Mengganti…",
@@ -130,7 +130,33 @@
       "week": "1 minggu",
       "month": "1 bulan (30 hari)"
     },
-    "venueNotDryRun": "Uang nyata di {{exchange}} tetap mati sampai jalur order-nya lulus uji dari awal sampai akhir di jaringan uji bursa itu sendiri. Kunci tetap bisa membaca akun dan menutup posisi."
+    "venueNotDryRun": "Uang nyata di {{exchange}} tetap mati sampai jalur order-nya lulus uji dari awal sampai akhir di jaringan uji bursa itu sendiri. Kunci tetap bisa membaca akun dan menutup posisi.",
+    "keyType": "Jenis kunci",
+    "keyTypeHmac": "Kunci dan secret dari Binance",
+    "keyTypeEd25519": "Kunci Ed25519 dibuat di sini",
+    "ed": {
+      "intro": "Aplikasi membuat pasangan kunci. Binance hanya menerima kunci publik; kunci privat tetap di brankas Anda.",
+      "create": "Buat pasangan kunci",
+      "recreate": "Pasangan kunci baru",
+      "creating": "Membuat…",
+      "publicKey": "Kunci publik (daftarkan ini di Binance)",
+      "copy": "Salin kunci publik",
+      "copied": "Tersalin",
+      "copyFailed": "Tidak bisa menyalin. Pilih kunci lalu salin.",
+      "step1": "Di Binance: Manajemen API, Buat API, Self-generated (buatan sendiri).",
+      "step2": "Tempel kunci publik, beri nama kunci, lalu konfirmasi.",
+      "step3": "Aktifkan Futures. Biarkan penarikan dan transfer nonaktif. Batasi akses ke IP Anda.",
+      "step4": "Tempel kunci API yang ditampilkan Binance ke kolom di bawah.",
+      "private": "Kunci privat langsung masuk ke brankas terenkripsi. Tidak pernah ditampilkan, disalin, atau diekspor. Mengunci brankas sebelum menyimpan akan membuangnya."
+    },
+    "ipOpen": "Tanpa pembatasan IP",
+    "ipGuide": "Batasi kunci ke alamat IP Anda di exchange.",
+    "ipGuideBinance": "Binance: Manajemen API, Edit pembatasan, Batasi akses hanya ke IP tepercaya. Kunci dengan pembatasan IP tidak kedaluwarsa.",
+    "rotateExchange": "Dibuat {{days}} hari lalu: lebih dari 90 hari, ganti kunci ini (Perbarui).",
+    "rotateVault": "Di brankas ini selama {{days}} hari: lebih dari 90 hari, ganti kunci ini (Perbarui).",
+    "recheck": "Periksa lagi",
+    "recheckDone": "Sudah diperiksa ke exchange.",
+    "renewHintEd25519": "Buat pasangan kunci baru, daftarkan kunci publiknya di Binance, lalu tempel kunci API baru. Kunci saat ini tetap ada sampai yang baru diterima."
   },
   "workspace": {
     "loading": "Memuat…"
@@ -185,6 +211,8 @@
     "noSkips": "Belum ada yang dilewati.",
     "manualBadge": "Manual",
     "manualBadgeTooltip": "Dibuka manual dari Execute · filter bot dilewati, batas risiko berlaku",
+    "ownTradeBadge": "Sendiri",
+    "ownTradeBadgeTooltip": "Trade baru · take-profit dan stop Anda sendiri · bukan sinyal Sentinel · simulasi",
     "skipReasons": {
       "spotLongOnly": "Sinyal short · spot hanya long",
       "belowConfidence": "Di bawah filter skor Sentinel ({{detail}})",
@@ -260,7 +288,8 @@
       "restoreConfigInvalid": "Pengaturan bot tersimpan gagal pemeriksaan ({{detail}}) · perbaiki dan simpan untuk memulai bot",
       "settledPositionDropped": "Sudah tertutup di Riwayat · baris terbuka yang tersisa dihapus saat mulai",
       "belowExchangeMinimum": "Di bawah order minimum bursa ({{detail}} USDT, Binance perlu sekitar 5)",
-      "manualOpened": "Dibuka manual dari Execute · simulasi"
+      "manualOpened": "Dibuka manual dari Execute · simulasi",
+      "userTradeOpened": "Trade baru dibuka · level Anda · simulasi"
     },
     "exchange": "Bursa",
     "signalFilter": "Filter sinyal",
@@ -1102,6 +1131,51 @@
       "range": "Stop → target",
       "rangeTip": "Letak harga di antara stop (kiri) dan target (kanan). Tanda kecil adalah harga masuk.",
       "rangeLabel": "Harga di {{pct}}% jarak dari stop ke target"
+    },
+    "newTrade": {
+      "button": "Trade baru",
+      "title": "Trade baru",
+      "previewTitle": "{{symbol}} · {{side}} · bot {{bot}}",
+      "close": "Tutup",
+      "bot": "Bot",
+      "notSaved": "Belum disimpan",
+      "symbol": "Pasangan",
+      "side": "Arah",
+      "size": "Ukuran",
+      "sizeBot": "Ukuran bot",
+      "notional": "Nosional (USDT)",
+      "takeProfit": "Harga take-profit",
+      "stopLoss": "Harga stop-loss",
+      "incomplete": "Isi pasangan, take-profit, dan stop-loss",
+      "fill": "Isi sekarang",
+      "qty": "Jumlah",
+      "notionalFigure": "Nosional",
+      "margin": "Margin",
+      "lossAtStop": "Rugi di stop {{price}}",
+      "riskValue": "{{amount}} · {{pct}} dari modal bot",
+      "gainAtTarget": "Untung di take-profit {{price}}",
+      "rewardRisk": "Imbal:risiko",
+      "liquidation": "Likuidasi di {{leverage}}x",
+      "fees": "Biaya, buka + tutup",
+      "exitLine": "Keluar di take-profit atau stop · tanpa batas waktu",
+      "open": "Buka trade simulasi",
+      "opened": "Dibuka · {{symbol}} di {{price}} · simulasi",
+      "refusal": {
+        "manualTakePaperOnly": "Bot ini memakai uang sungguhan · Trade baru hanya membuka posisi simulasi",
+        "botNotConfigured": "Simpan dulu pengaturan bot ini",
+        "marketHeld": "Bot ini sudah memegang posisi pada pasangan ini",
+        "stopPassed": "Harga sudah melewati stop",
+        "targetPassedBeforeEntry": "Harga sudah melewati take-profit",
+        "tradeBotKind": "Trade baru dibuka di bot Futures atau Spot",
+        "tradeSymbolInvalid": "Pasangan harus pasangan USDT, mis. BTCUSDT",
+        "tradeSymbolNotListed": "Pasangan tidak terdaftar di pasar bursa ini",
+        "tradeLevelsInvalid": "Take-profit dan stop-loss harus harga di atas 0",
+        "tradeSizeInvalid": "Ukuran harus di atas 0 USDT",
+        "tradeTargetWrongSide": "Take-profit di sisi yang salah dari harga live",
+        "tradeStopWrongSide": "Stop-loss di sisi yang salah dari harga live",
+        "tradeStopInsideFees": "Stop lebih dekat dari kedua biaya · perlu lebih dari {{detail}}",
+        "tradeTargetInsideFees": "Take-profit lebih dekat dari kedua biaya · perlu lebih dari {{detail}}"
+      }
     }
   },
   "history": {
@@ -1179,7 +1253,9 @@
       "preflight": "Kesiapan live",
       "summary": "Berisiko saat ini",
       "open": "Risiko terbuka",
-      "strategy": "Anggaran DCA/Grid"
+      "strategy": "Anggaran DCA/Grid",
+      "portfolio": "Stres portofolio",
+      "replay": "Putar ulang crash"
     },
     "level": {
       "title": "Tingkat risiko"
@@ -1278,7 +1354,9 @@
       "notifications": "Notifikasi",
       "devices": "Perangkat",
       "about": "Tentang",
-      "keys": "Kunci exchange"
+      "keys": "Kunci exchange",
+      "backup": "Cadangan",
+      "tradingview": "TradingView"
     },
     "language": "Bahasa",
     "numberPreview": "Angka",
@@ -1319,7 +1397,9 @@
       "notifications": "Yang ditampilkan lonceng peringatan",
       "devices": "Kendali jarak jauh dari ponsel",
       "keys": "Kunci API, brankas, koneksi",
-      "about": "Versi, pembaruan, data Anda"
+      "about": "Versi, pembaruan, data Anda",
+      "backup": "Cadangan, file pengaturan bot",
+      "tradingview": "Peringatan jadi trade simulasi"
     },
     "navStatus": {
       "alerts": "{{on}} dari {{total}} ditampilkan",
@@ -1372,7 +1452,8 @@
         "budget": "Sinyal dilewati karena anggaran, batas posisi, atau batas modal sudah penuh.",
         "dealClosed": "Trade sinyal dan siklus DCA/Grid yang ditutup hari ini.",
         "streamDown": "Aliran sinyal Sentinel putus dan masih mencoba lagi.",
-        "regime": "Sentinel menyatakan BTC patah. Long sinyal baru ditolak selama kondisi ini berlangsung."
+        "regime": "Sentinel menyatakan BTC patah. Long sinyal baru ditolak selama kondisi ini berlangsung.",
+        "portfolioRisk": "Ambang risiko portofolio di halaman Risiko terlampaui: satu sisi, satu koin, atau kerugian pada BTC -20%."
       },
       "severity": {
         "danger": "Kritis",
@@ -1452,8 +1533,8 @@
     "keys": {
       "requirementsTitle": "Kunci yang perlu ditambahkan",
       "requirements": {
-        "permissions": "Izin trading aktif, penarikan nonaktif. Di Binance, izin futures juga aktif.",
-        "checked": "Aplikasi membaca izin kunci dari exchange dan menolak kunci yang bisa menarik dana.",
+        "permissions": "Izin trading aktif, penarikan dan transfer nonaktif. Di Binance, izin futures juga aktif.",
+        "checked": "Aplikasi membaca izin kunci dari exchange dan menolak kunci yang bisa menarik atau mentransfer dana.",
         "local": "Kunci hanya disimpan di brankas terenkripsi di komputer ini dan tidak pernah dikirim ke ribqa.com.",
         "optional": "Bot simulasi tidak memerlukan kunci. Dengan kunci, Anda bisa melihat akun exchange dan menutup posisi di sana."
       },
@@ -1510,6 +1591,122 @@
       "securityTitle": "Laporan keamanan",
       "security": "Kirim email ke support@ribqa.com dengan \"security\" di subjek, dan beri kami waktu untuk memperbaiki masalahnya sebelum Anda memublikasikannya.",
       "reportSecurity": "Laporkan masalah keamanan"
+    },
+    "backup": {
+      "listTitle": "Cadangan",
+      "now": "Cadangkan sekarang",
+      "running": "Mencadangkan…",
+      "openFolder": "Buka folder",
+      "col": {
+        "taken": "Dibuat",
+        "reason": "Alasan",
+        "size": "Ukuran",
+        "bot": "Bot",
+        "result": "Hasil"
+      },
+      "reasonUpdate": "Sebelum pembaruan {{from}} → {{to}}",
+      "reasonManual": "Manual",
+      "empty": "Belum ada cadangan",
+      "emptyDetail": "Satu cadangan dibuat sebelum setiap pemasangan pembaruan.",
+      "contents": "Setiap cadangan berisi basis data (bot, transaksi, siklus), config.json, dan brankas terenkripsi. 5 yang terbaru disimpan.",
+      "listFailed": "Folder cadangan tidak dapat dibaca.",
+      "failed": "Pencadangan gagal.",
+      "fileTitle": "File pengaturan bot",
+      "fileHolds": "Pengaturan bot sinyal dan setiap bot DCA / Grid dalam satu file JSON. Tanpa kunci API, brankas, token Telegram, atau riwayat transaksi.",
+      "importRule": "Impor mengganti pengaturan bot sinyal dan menambahkan setiap bot DCA / Grid sebagai bot baru yang berhenti. Semua yang diimpor berjalan tersimulasi; uang nyata tidak pernah diaktifkan.",
+      "export": "Ekspor pengaturan",
+      "exporting": "Mengekspor…",
+      "import": "Impor pengaturan",
+      "importing": "Mengimpor…",
+      "exported": "Unduhan dimulai: {{name}}",
+      "exportFailed": "Ekspor gagal.",
+      "importFailed": "Impor gagal.",
+      "importResult": "Hasil impor",
+      "importSummary": "{{ok}} dari {{total}} diterapkan",
+      "importEmpty": "File tidak berisi bot.",
+      "created": "Ditambahkan, berhenti, tersimulasi",
+      "replaced": "Pengaturan diganti, tersimulasi",
+      "refused": "Ditolak",
+      "signalBot": "Bot sinyal {{kind}}",
+      "unreadableEntry": "Entri tidak terbaca",
+      "promiseTitle": "Yang dipertahankan pembaruan",
+      "promise": {
+        "keeps": "Pembaruan mempertahankan bot, pengaturan, riwayat transaksi, dan kunci bursa di komputer ini.",
+        "backup": "Cadangan dibuat sebelum setiap pemasangan. Jika pencadangan gagal, pembaruan tidak dipasang.",
+        "liveBlocks": "Pembaruan tidak dimulai selama uang nyata digunakan: tutup dulu posisi nyata dan matikan uang nyata.",
+        "signal": "Bot sinyal kembali tersimulasi setelah setiap mulai ulang; uang nyata perlu LIVE diketik lagi. Bot sinyal tersimulasi yang sedang berjalan mulai lagi jika lolos pemeriksaan mulai.",
+        "strategy": "Bot DCA / Grid tersimulasi yang sedang berjalan mulai lagi setelah mulai ulang jika lolos pemeriksaan mulai. Bot dengan uang nyata kembali dalam keadaan berhenti; siklus terbukanya tetap dikelola."
+      }
+    },
+    "tv": {
+      "failed": "Permintaan tautan TradingView gagal.",
+      "loading": "Memuat…",
+      "urlTitle": "URL webhook",
+      "state": {
+        "signedOut": "Belum masuk",
+        "unknown": "Relay tidak terbaca",
+        "none": "Tidak ada URL",
+        "active": "Aktif"
+      },
+      "signedOut": "Masuk untuk memakai peringatan TradingView. Selama belum masuk, tidak ada yang dibaca.",
+      "signIn": "Masuk",
+      "noUrl": "Belum ada URL webhook.",
+      "created": "Dibuat",
+      "lastReceived": "Peringatan terakhir diterima",
+      "received24h": "Diterima, 24 j",
+      "pending": "Belum dibaca",
+      "never": "Belum pernah",
+      "create": "Buat URL",
+      "rotate": "Ganti URL",
+      "revoke": "Cabut",
+      "rotateNote": "Ganti membuat URL baru; yang lama langsung berhenti bekerja. Cabut menghentikannya tanpa URL baru.",
+      "shownOnce": "Ditampilkan sekali: aplikasi tidak menyimpannya dan tidak bisa menampilkannya lagi. Jika hilang, ganti. Mengganti menghentikan URL lama.",
+      "copy": "Salin",
+      "copied": "Disalin",
+      "copyFailed": "Gagal menyalin",
+      "alertsTitle": "Peringatan",
+      "receive": "Terima peringatan",
+      "receiveDesc": "Membaca peringatan dari relay setiap 5 dtk dan mencantumkannya di bawah. Tidak ada yang dieksekusi.",
+      "execute": "Eksekusi peringatan sebagai trade simulasi",
+      "executeDesc": "Beli dan jual membuka satu posisi simulasi lewat Trade baru, dengan semua pemeriksaannya. Tutup menutup trade terbuka milik Anda di pair itu. Peringatan yang lebih tua dari 120 dtk saat dibaca tidak dieksekusi.",
+      "lastRead": "Terakhir dibaca",
+      "lastError": "Galat terakhir",
+      "howTitle": "Atur di TradingView",
+      "step1": "Buat peringatan di grafik atau strategi.",
+      "step2": "Notifikasi: aktifkan Webhook URL dan tempel URL di atas.",
+      "step3": "Pesan: tempel salah satu pesan di bawah.",
+      "twoFactor": "TradingView mewajibkan 2FA untuk webhook.",
+      "action": {
+        "buy": "Beli",
+        "sell": "Jual",
+        "close": "Tutup"
+      },
+      "field": {
+        "action": "action: buy (long), sell (short, hanya bot Futures), close (menutup trade terbuka milik Anda di pair itu).",
+        "symbol": "symbol: {{ticker}} atau sebuah pair. BINANCE:BTCUSDT.P, BTCUSDT.P, BTCUSDTPERP dan btcusdt semuanya dibaca BTCUSDT. Hanya pair USDT.",
+        "levels": "tp atau tp_pct, dan sl atau sl_pct: tepat satu dari masing-masing untuk beli dan jual. tp dan sl adalah harga.",
+        "pct": "tp_pct dan sl_pct adalah jarak persen dari harga live saat eksekusi. Long: tp = harga × (1 + tp_pct/100), sl = harga × (1 − sl_pct/100). Short: tp = harga × (1 − tp_pct/100), sl = harga × (1 + sl_pct/100).",
+        "bot": "bot: futures (bawaan) atau spot. Spot hanya long.",
+        "size": "size_usdt: nosional opsional dalam USDT. Tanpa itu, ukuran dari bot itu sendiri yang berlaku.",
+        "stale": "Peringatan yang diterima lebih dari 120 dtk sebelum dibaca aplikasi tidak dieksekusi. Teks biasa atau JSON lain dicantumkan sebagai tak terbaca."
+      },
+      "resultsTitle": "Peringatan terbaru",
+      "resultsEmpty": "Belum ada peringatan yang dibaca.",
+      "col": {
+        "time": "Waktu",
+        "action": "Aksi",
+        "symbol": "Pair",
+        "outcome": "Hasil"
+      },
+      "outcome": {
+        "received": "Diterima · tidak dieksekusi (Eksekusi mati)",
+        "opened": "Dibuka · simulasi",
+        "closed": "Ditutup · simulasi",
+        "tvExpired": "Tidak dieksekusi · lebih tua dari 120 dtk saat dibaca",
+        "tvBadMessage": "Tak terbaca · bukan JSON dalam format peringatan",
+        "tvBadLevels": "Berikan satu dari tp / tp_pct dan satu dari sl / sl_pct, di atas 0",
+        "tvNothingToClose": "Tidak ada yang ditutup · tidak ada trade terbuka Anda di pair dan bot ini"
+      }
     }
   },
   "accountPage": {
@@ -1599,13 +1796,22 @@
       "dealClosed": "Trade ditutup",
       "vaultAutoLock": "Kunci otomatis brankas",
       "streamDown": "Aliran putus",
-      "regime": "Rezim BTC"
+      "regime": "Rezim BTC",
+      "portfolioRisk": "Risiko portofolio"
     },
     "strategyBreaker": "Pemutus portofolio DCA/Grid aktif",
     "strategyBreakerDetail": "Penurunan dari puncak P&L mencapai {{pct}}% anggaran bot yang tercakup. Siklusnya ditutup; start-nya diblokir sampai diaktifkan ulang.",
     "cycleStopsToday": "Siklus DCA/Grid yang ditutup stop hari ini: {{count}}",
     "cyclesClosedToday": "Siklus DCA/Grid ditutup hari ini: {{count}}",
-    "strategyDead": "{{name}} selesai"
+    "strategyDead": "{{name}} selesai",
+    "foreignTrades": "Transaksi yang tidak dibuat aplikasi ini: {{count}}",
+    "portfolioRisk": {
+      "sameDirection": "Eksposur satu arah {{value}}% (ambang {{threshold}}%)",
+      "singleCoin": "Satu koin memegang {{value}}% modal di bot (ambang {{threshold}}%)",
+      "stress20": "BTC -20% akan merugikan {{value}}% modal di bot (ambang {{threshold}}%)",
+      "paper": "Buku paper",
+      "real": "Buku uang sungguhan"
+    }
   },
   "statusbar": {
     "label": "Status",
@@ -1727,6 +1933,9 @@
       "discard": "Buang perubahan",
       "presetFailed": "Template ini tidak lolos pemeriksaan ({{reasons}}). Pengaturannya untuk belajar; coba dulu di backtest.",
       "fromPresetPairChecked": "Dari preset {{id}}: pengaturan dan pasangan sama dengan simulasi historisnya ({{universe}}).",
+      "fromPresetPairInList": "Dari preset {{id}}: pengaturan sama dengan simulasi historisnya, dan {{symbol}} ada di daftar pair {{month}} ({{list}}).",
+      "presetPairOutside": "{{symbol}} tidak ada di daftar pair {{month}} preset {{id}} ({{list}}). Hasil preset hanya diukur pada pair tersebut; pada pair lain hasilnya tidak diketahui.",
+      "presetPairOutsideWide": "Diukur pada {{n}} pair dengan volume teratas, pengaturan yang sama menghasilkan {{train}} (latih), {{valid}} (validasi) dan {{test}} (uji) per bot-bulan; bot terburuk turun {{dd}}.",
       "budgetShort": "Anggaran minimum {{min}} USDT (setiap order minimal 5 USDT); {{free}} USDT tersedia di bawah batas anggaran DCA/Grid. Naikkan saldo simulasi atau level risiko:",
       "custom": {
         "base": "Pengaturan sendiri: tanpa simulasi historis.",
@@ -2572,7 +2781,34 @@
     "telegramBadResponse": "Telegram mengirim jawaban yang tidak dapat dibaca aplikasi ini.",
     "telegramNotLinked": "Tautkan chat Telegram terlebih dahulu.",
     "telegramNoToken": "Simpan token bot terlebih dahulu.",
-    "telegramKeychainFailed": "Keychain sistem tidak menyimpan token."
+    "telegramKeychainFailed": "Keychain sistem tidak menyimpan token.",
+    "updateBackupFailed": "Cadangan sebelum pembaruan gagal, jadi pembaruan tidak dipasang.",
+    "backupDirFailed": "Folder cadangan tidak dapat ditulis.",
+    "backupDbFailed": "Basis data tidak dapat disalin.",
+    "backupCopyFailed": "Sebuah file tidak dapat disalin ke cadangan.",
+    "backupExists": "Cadangan dengan waktu ini sudah ada. Coba lagi sebentar lagi.",
+    "backupPathInvalid": "Jalur folder data tidak dapat digunakan untuk cadangan.",
+    "importTooLarge": "File ini terlalu besar untuk sebuah file pengaturan.",
+    "importUnreadable": "File ini bukan JSON yang dapat dibaca.",
+    "importNotSettings": "Ini bukan file pengaturan bot Aleph Edge.",
+    "importNewerFormat": "File ini dibuat oleh Aleph Edge yang lebih baru (format {{detail}}). Perbarui aplikasi terlebih dahulu.",
+    "importEntryUnreadable": "Entri ini tidak dapat dibaca.",
+    "importDuplicateKind": "Jenis bot ini tercantum dua kali; entri pertama yang digunakan.",
+    "importPreview": "Tidak disimpan: pratinjau browser tidak memiliki folder data.",
+    "exportConfigUnreadable": "Pengaturan bot {{detail}} yang tersimpan tidak dapat dibaca; tidak ada yang diekspor.",
+    "tvSignedOut": "Belum masuk · masuk untuk memakai peringatan TradingView",
+    "tvRotateConflict": "Penggantian lain berjalan bersamaan · coba lagi",
+    "tvBadResponse": "Balasan tak terduga dari relay TradingView",
+    "tvForbidden": "Relay TradingView menolak akun ini",
+    "tvRateLimited": "Terlalu banyak permintaan ke relay TradingView · tunggu satu menit",
+    "tvHttp": "Permintaan ke relay TradingView gagal ({{detail}})",
+    "tvTimeout": "Relay TradingView tidak menjawab tepat waktu",
+    "keyTransferEnabled": "Kunci ini dapat mentransfer dana ke akun lain (transfer internal atau universal). Matikan transfer di exchange, lalu tambahkan lagi.",
+    "keyTypeUnsupported": "Kunci Ed25519 hanya berfungsi dengan Binance.",
+    "ed25519NoPendingKey": "Tidak ada pasangan kunci yang menunggu. Buat pasangan kunci, daftarkan kunci publiknya di Binance, lalu tempel kunci API.",
+    "viewThresholdSameDirection": "Satu arah: masukkan 50 sampai 100%.",
+    "viewThresholdSingleCoin": "Satu koin: masukkan 10 sampai 100%.",
+    "viewThresholdStress": "Kerugian pada BTC -20%: masukkan 1 sampai 100%."
   },
   "status": {
     "running": "Berjalan",
@@ -2626,7 +2862,8 @@
     "scheduleValue": "Saat dibuka, lalu setiap 6 jam",
     "notes": "Yang baru",
     "offTestnet": "Nonaktif di build testnet",
-    "offTestnetNote": "Build testnet tidak memperbarui dirinya sendiri: kanal pembaruan berisi aplikasi normal. Jalankan build testnet dari kode sumber."
+    "offTestnetNote": "Build testnet tidak memperbarui dirinya sendiri: kanal pembaruan berisi aplikasi normal. Jalankan build testnet dari kode sumber.",
+    "backupNote": "Cadangan dibuat sebelum pemasangan (Pengaturan, Cadangan)."
   },
   "preflight": {
     "title": "Kesiapan live",
@@ -2662,7 +2899,9 @@
       "membership": "Keanggotaan",
       "stream": "Aliran sinyal Sentinel",
       "liveBots": "Bot live (sinyal + DCA/Grid)",
-      "venue": "Jalur order"
+      "venue": "Jalur order",
+      "foreignTrades": "Transaksi asing",
+      "keySafety": "Pembatasan IP dan usia kunci"
     },
     "codes": {
       "buildOff": "Versi ini tidak trading uang nyata",
@@ -2695,7 +2934,13 @@
       "preflightFailed": "Pemeriksaan gagal",
       "venueDryRun": "Diuji dari awal sampai akhir di jaringan uji",
       "venueNotDryRun": "Belum diuji di jaringan uji {{exchange}}: uang nyata mati",
-      "venueUnsupported": "Tidak ada jalur order untuk bursa ini"
+      "venueUnsupported": "Tidak ada jalur order untuk bursa ini",
+      "foreignTrades": "Eksekusi yang tidak dibuat aplikasi ini: lihat Transaksi asing di bawah",
+      "watching": "Diperiksa setiap menit",
+      "watchOff": "Pemantauan dimatikan",
+      "keyNoIpRestriction": "Tanpa pembatasan IP: batasi kunci ke IP Anda di {{exchange}}",
+      "keyOld": "Lebih dari 90 hari: ganti kunci",
+      "keyNoIpAndOld": "Tanpa pembatasan IP dan lebih dari 90 hari: batasi dan ganti"
     },
     "exchange": "Bursa"
   },
@@ -2736,5 +2981,172 @@
     "cycles": "Siklus terbuka: {{count}}",
     "realizedNote": "Setelah biaya, sepanjang waktu",
     "totalNote": "Terealisasi ditambah terbuka"
+  },
+  "foreignFill": {
+    "title": "Transaksi asing",
+    "desc": "Setiap menit, eksekusi di akun futures Binance Anda dicocokkan dengan order yang dipasang aplikasi ini. Eksekusi yang tidak dibuatnya menghentikan entri baru di semua bot. Posisi terbuka tidak ditutup.",
+    "alarm": "Eksekusi yang tidak dibuat aplikasi ini. Entri baru dihentikan di semua bot; posisi terbuka tidak disentuh. Jika ini bukan Anda, hapus API key ini di Binance sekarang.",
+    "ack": "Itu saya",
+    "ackNote": "Menghapus alarm. Bot tetap berhenti sampai Anda menjalankannya.",
+    "switch": "Pantau transaksi asing",
+    "handTrades": "Transaksi yang Anda buat sendiri di Binance, termasuk saat aplikasi ini tertutup, juga memicu alarm ini.",
+    "lastCheck": "Pemeriksaan terakhir {{time}}",
+    "checkFailed": "Pemeriksaan terakhir gagal: {{reason}}",
+    "actionFailed": "Tidak dapat menyimpan",
+    "state": {
+      "watching": "Memantau",
+      "idle": "Tidak memeriksa: key terkunci",
+      "off": "Mati",
+      "alarm": "Transaksi asing"
+    },
+    "side": {
+      "buy": "Beli",
+      "sell": "Jual"
+    },
+    "col": {
+      "time": "Waktu",
+      "symbol": "Simbol",
+      "side": "Sisi",
+      "qty": "Jumlah",
+      "price": "Harga",
+      "trade": "ID transaksi"
+    }
+  },
+  "riskview": {
+    "sample": "Data contoh",
+    "computedAt": "Dihitung {{time}}",
+    "refresh": "Hitung ulang",
+    "loading": "Menghitung…",
+    "failed": "Tampilan risiko portofolio tidak dapat dihitung.",
+    "empty": "Tidak ada eksposur terbuka",
+    "bookLabel": "Buku",
+    "book": {
+      "paper": "Paper",
+      "real": "Uang sungguhan"
+    },
+    "capital": "Modal di bot",
+    "scenarios": "Guncangan BTC",
+    "excludedNote": "Tidak disertakan, tanpa beta: {{count}}. Total tidak memasukkannya.",
+    "unpricedNote": "Harga belum terbaca, tidak disertakan: {{count}}",
+    "topFor": "Kerugian terbesar pada {{move}}",
+    "noLosses": "Tidak ada kerugian dalam skenario ini.",
+    "concentration": "Konsentrasi",
+    "sameDirection": "Satu arah",
+    "topCoin": "Koin terbesar",
+    "avgBeta": "Beta rata-rata",
+    "checks": "Ambang",
+    "checkTitle": "{{level}} · ambang {{threshold}}%",
+    "check": {
+      "sameDirection": "Satu arah",
+      "singleCoin": "Satu koin",
+      "stress20": "BTC -20%"
+    },
+    "level": {
+      "ok": "OK",
+      "warn": "Dekat",
+      "danger": "Terlampaui",
+      "unavailable": "Tidak tersedia"
+    },
+    "exposures": "Eksposur terbuka",
+    "method": "Beta: {{days}} hari candle per jam DataHub terhadap BTCUSDT, dibatasi 0-3. Setiap eksposur dijalankan sepanjang pergerakan: stop, safety order, pembelian grid, likuidasi pada margin. Siklus baru setelah keluar tidak disimulasikan.",
+    "btcShareTip": "Bagian kerugian yang dijelaskan arah BTC: R² tiap koin terhadap BTC pada imbal hasil per jam 30 hari, dibobot dengan kerugiannya.",
+    "betaClamped": "Dibatasi dari {{raw}}",
+    "noPrice": "Belum ada harga",
+    "col": {
+      "move": "Gerak BTC",
+      "result": "Hasil",
+      "pctCapital": "% modal di bot",
+      "btcShare": "Dari arah BTC",
+      "excluded": "Tidak disertakan",
+      "symbol": "Koin",
+      "bot": "Bot",
+      "exit": "Keluar di jalan",
+      "capital": "Modal",
+      "mark": "Harga",
+      "stop": "Stop",
+      "liq": "Likuidasi",
+      "beta": "Beta",
+      "r2": "R²"
+    },
+    "source": {
+      "signal": "Bot sinyal",
+      "manual": "Manual",
+      "dca": "DCA",
+      "grid": "Grid"
+    },
+    "dir": {
+      "long": "long",
+      "short": "short",
+      "neutral": "netral"
+    },
+    "exit": {
+      "sl": "Stop-loss",
+      "breakeven": "Stop impas",
+      "tp": "Take-profit",
+      "liq": "Likuidasi",
+      "maxLoss": "Batas kerugian maksimum",
+      "horizon": "Batas waktu",
+      "stop": "Stop di luar rentang",
+      "trail": "Keluar trailing",
+      "gridTp": "Take-profit grid",
+      "timeout": "Durasi maksimum",
+      "ddstop": "Stop drawdown",
+      "other": "Ditutup",
+      "open": "Masih terbuka"
+    },
+    "errors": {
+      "betaShort": "Riwayat per jam di DataHub kurang dari 10 hari",
+      "replayBtcShort": "DataHub tidak menyajikan BTC untuk setidaknya 95% jendela ini",
+      "whatifNoPrice": "Belum ada harga acuan",
+      "whatifTradeIncomplete": "Pratinjau trade belum lengkap"
+    },
+    "thresholds": {
+      "title": "Ambang peringatan",
+      "sameDirectionPct": "Satu arah di atas, %",
+      "singleCoinPct": "Satu koin di atas, %",
+      "stress20Pct": "Kerugian pada BTC -20% di atas, % modal",
+      "save": "Simpan ambang",
+      "saved": "Tersimpan",
+      "hint": "Saat satu terlampaui, muncul peringatan di sini dan, jika Telegram terhubung, satu pesan. Tidak ada yang ditutup atau diblokir."
+    },
+    "nav": {
+      "ok": "Dalam ambang",
+      "warn": "Dekat ambang",
+      "danger": "Ambang terlampaui",
+      "unavailable": "Tidak tersedia"
+    },
+    "card": {
+      "stress": "BTC -20%, {{book}}"
+    },
+    "replay": {
+      "run": "Jalankan putar ulang",
+      "running": "Membaca DataHub…",
+      "notRun": "Buku terbuka hari ini melalui jendela crash masa lalu, pada jalur per jam milik tiap koin.",
+      "unavailable": "Tidak tersedia",
+      "estimated": "perkiraan (beta)",
+      "noBook": "Tidak ada eksposur di buku ini.",
+      "topFor": "Kerugian terbesar di {{window}}",
+      "method": "Koin dengan kurang dari {{coverage}}% jam jendela di DataHub mengikuti beta × BTC dan ditandai perkiraan (beta). Jendela tanpa riwayat BTC tidak tersedia.",
+      "col": {
+        "window": "Jendela",
+        "btcMove": "Gerak BTC",
+        "btcLow": "Titik terendah BTC",
+        "estimated": "Perkiraan (beta)"
+      },
+      "window": {
+        "oct2025": "Crash 10 Okt 2025",
+        "ftx2022": "FTX, 8-10 Nov 2022",
+        "luna2022": "LUNA, 9-12 Mei 2022",
+        "may2021": "19 Mei 2021",
+        "mar2020": "12 Mar 2020"
+      }
+    },
+    "whatif": {
+      "title": "Stres portofolio",
+      "line": "Stres portofolio pada BTC -20%: sebelum {{before}} → sesudah {{after}}",
+      "candidate": "Bot ini pada BTC -20%",
+      "candidateTrade": "Trade ini pada BTC -20%",
+      "emptyBook": "tidak ada eksposur terbuka"
+    }
   }
 }

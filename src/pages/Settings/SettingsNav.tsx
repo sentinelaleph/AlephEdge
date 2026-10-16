@@ -11,8 +11,10 @@ import { SETTINGS_TABS, type SettingsTab } from "./settingsData";
 const ICONS: Record<SettingsTab, IconName> = {
   general: "sliders",
   notifications: "bell",
+  tradingview: "signal",
   devices: "phone",
   keys: "key",
+  backup: "archive",
   about: "info",
 };
 
@@ -45,8 +47,10 @@ export function SettingsNav({
       text: t("settings.navStatus.alerts", { on, total: ALERT_CATEGORIES.length }),
       attention: on < ALERT_CATEGORIES.length,
     },
+    tradingview: { text: null },
     devices: { text: link ? t(`link.state.${link.state}`) : null },
     keys: { text: t("settings.navStatus.keys", { count: vault.credentials.length }) },
+    backup: { text: null },
     about: updateReady
       ? { text: t("settings.navStatus.updateAvailable", { version: update.available?.version }), attention: true }
       : { text: version ? `v${version}` : null },

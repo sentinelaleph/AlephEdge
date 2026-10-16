@@ -8,6 +8,7 @@ import {
   vaultCreate,
   vaultListCredentials,
   vaultLock,
+  vaultRecheckCredential,
   vaultRemoveCredential,
   vaultRenameCredential,
   vaultReplaceCredential,
@@ -41,6 +42,8 @@ export interface VaultController {
   /** Swaps a stored key for a new one under the same label; the old key stays if this fails. */
   renewKey: (input: AddCredentialInput) => Promise<void>;
   renameKey: (exchangeId: string, label: string, newLabel: string) => Promise<void>;
+  /** Reads the key's permissions, IP restriction and age from the exchange again. */
+  recheckKey: (exchangeId: string, label: string) => Promise<void>;
   changePassword: (current: string, next: string) => Promise<void>;
   setIdleMinutes: (minutes: number) => Promise<void>;
   /** Destroys the vault file + keychain salt so a new one can be created
@@ -162,6 +165,22 @@ export function useVault(): VaultController {
       run(async () => setCredentials(await vaultRenameCredential(exchangeId, label, newLabel))),
     [run],
   );
+  const recheckKey = useCallback(
+    (exchangeId: string, label: string) =>
+      run(async () => {
+        try {
+          setCredentials(await vaultRecheckCredential(exchangeId, label));
+        } catch (e) {
+          // A refused re-check marks the key unverified in Rust: show that
+          // state as well as the reason.
+          const list = await vaultListCredentials().catch(() => null);
+          if (list) setCredentials(list);
+          throw e;
+        }
+      }),
+    [run],
+  );
+
   const changePassword = useCallback(
     (current: string, next: string) => run(async () => setStatus(await vaultChangePassword(current, next))),
     [run],
@@ -193,6 +212,7 @@ export function useVault(): VaultController {
     removeKey,
     renewKey,
     renameKey,
+    recheckKey,
     changePassword,
     setIdleMinutes,
     reset,

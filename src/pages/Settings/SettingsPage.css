@@ -555,3 +555,38 @@
   gap: var(--space-2);
   margin-top: var(--space-3);
 }
+
+/* TradingView tab (TradingViewTab.tsx). */
+.ae-tv__once {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.ae-tv__once .ae-subtle {
+  flex-basis: 100%;
+  margin: 0;
+}
+.ae-tv__url,
+.ae-tv__tpl {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ae-tv__templates {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+}
+.ae-tv__templates li {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ae-tv__tname {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}

@@ -264,6 +264,24 @@ impl StrategyManager {
         self.lock().cycles.values().map(|c| c.notional()).collect()
     }
 
+    /// Every open cycle with its bot and the last closed-bar price of its
+    /// feed (None before the first bar). The portfolio risk view walks
+    /// clones of these; nothing here is mutated.
+    pub fn open_cycle_snapshots(&self) -> Vec<(StrategyBot, CycleState, Option<f64>)> {
+        let g = self.lock();
+        let mut out: Vec<_> = g
+            .cycles
+            .iter()
+            .filter(|(_, c)| c.core.open)
+            .filter_map(|(id, c)| {
+                let b = g.bots.get(id)?;
+                Some((b.clone(), c.clone(), Self::mark_of(&g, b).map(|f| f.last_close)))
+            })
+            .collect();
+        out.sort_by(|a, b| a.0.created_at.cmp(&b.0.created_at).then(a.0.id.cmp(&b.0.id)));
+        out
+    }
+
     /// Kinds of the strategy bots running now (armed, in a cycle or paused),
     /// each once.
     pub fn running_kinds(&self) -> Vec<StrategyKind> {

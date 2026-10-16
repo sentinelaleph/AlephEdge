@@ -491,6 +491,17 @@ export interface Preset {
   history: HistoricalSimulation;
   /** Smallest budget at which every order clears the exchange minimum (Rust validate::min_budget, price-free). */
   minBudget: number | null;
+  /** The same settings on a wider pair list, where measured (Rust presets::wide_universe). */
+  wideUniverse: WideUniverse | null;
+}
+
+/** Mean return per bot-month, %, on the top-N pairs; worst bot's max drawdown over all splits, %. */
+export interface WideUniverse {
+  topN: number;
+  trainMeanPct: number;
+  validMeanPct: number;
+  testMeanPct: number;
+  worstBotDrawdownPct: number;
 }
 
 type Mock = typeof import("./strategy.mock");

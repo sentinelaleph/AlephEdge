@@ -128,7 +128,7 @@ impl ExchangeManager {
 
     pub async fn futures_account(&self, cred: &ExchangeCredential) -> Result<FuturesAccount, E> {
         route!(cred,
-            binance => self.bn_futures_account(&cred.api_key, &cred.api_secret).await,
+            binance => self.bn_futures_account(&cred.api_key, cred.binance_signer()).await,
             ccxt => self.venues.futures_account(cred).await)
     }
 
@@ -137,61 +137,61 @@ impl ExchangeManager {
     /// asked about.
     pub async fn hedge_mode(&self, cred: &ExchangeCredential, symbol: &str) -> Result<bool, E> {
         route!(cred,
-            binance => self.bn_hedge_mode(&cred.api_key, &cred.api_secret).await,
+            binance => self.bn_hedge_mode(&cred.api_key, cred.binance_signer()).await,
             ccxt => self.venues.hedge_mode(cred, symbol).await)
     }
 
     pub async fn set_leverage(&self, cred: &ExchangeCredential, symbol: &str, leverage: u8) -> Result<(), E> {
         route!(cred,
-            binance => self.bn_set_leverage(&cred.api_key, &cred.api_secret, symbol, leverage).await,
+            binance => self.bn_set_leverage(&cred.api_key, cred.binance_signer(), symbol, leverage).await,
             ccxt => self.venues.set_leverage(cred, symbol, leverage).await)
     }
 
     pub async fn set_isolated(&self, cred: &ExchangeCredential, symbol: &str) -> Result<(), E> {
         route!(cred,
-            binance => self.bn_set_isolated(&cred.api_key, &cred.api_secret, symbol).await,
+            binance => self.bn_set_isolated(&cred.api_key, cred.binance_signer(), symbol).await,
             ccxt => self.venues.set_isolated(cred, symbol).await)
     }
 
     pub async fn open_order_count(&self, cred: &ExchangeCredential, symbol: &str) -> Result<usize, E> {
         route!(cred,
-            binance => self.bn_open_order_count(&cred.api_key, &cred.api_secret, symbol).await,
+            binance => self.bn_open_order_count(&cred.api_key, cred.binance_signer(), symbol).await,
             ccxt => self.venues.open_order_count(cred, symbol).await)
     }
 
     pub async fn order_by_client_id(&self, cred: &ExchangeCredential, symbol: &str, client_id: &str) -> Result<OrderState, E> {
         route!(cred,
-            binance => self.bn_order_by_client_id(&cred.api_key, &cred.api_secret, symbol, client_id).await,
+            binance => self.bn_order_by_client_id(&cred.api_key, cred.binance_signer(), symbol, client_id).await,
             ccxt => self.venues.order_by_client_id(cred, symbol, client_id).await)
     }
 
     pub async fn recent_orders(&self, cred: &ExchangeCredential, symbol: &str) -> Result<Vec<RecentOrder>, E> {
         route!(cred,
-            binance => self.bn_recent_orders(&cred.api_key, &cred.api_secret, symbol).await,
+            binance => self.bn_recent_orders(&cred.api_key, cred.binance_signer(), symbol).await,
             ccxt => self.venues.recent_orders(cred, symbol).await)
     }
 
     pub async fn open_market(&self, cred: &ExchangeCredential, symbol: &str, long: bool, qty: f64, client_id: &str) -> Result<OrderFill, E> {
         route!(cred,
-            binance => self.bn_open_market(&cred.api_key, &cred.api_secret, symbol, long, qty, client_id).await,
+            binance => self.bn_open_market(&cred.api_key, cred.binance_signer(), symbol, long, qty, client_id).await,
             ccxt => self.venues.open_market(cred, symbol, long, qty, client_id).await)
     }
 
     pub async fn reduce_market(&self, cred: &ExchangeCredential, symbol: &str, long: bool, qty: f64) -> Result<OrderFill, E> {
         route!(cred,
-            binance => self.bn_reduce_market(&cred.api_key, &cred.api_secret, symbol, long, qty).await,
+            binance => self.bn_reduce_market(&cred.api_key, cred.binance_signer(), symbol, long, qty).await,
             ccxt => self.venues.reduce_market(cred, symbol, long, qty).await)
     }
 
     pub async fn reduce_market_all(&self, cred: &ExchangeCredential, symbol: &str, long: bool, qty: f64) -> Result<OrderFill, E> {
         route!(cred,
-            binance => self.bn_reduce_market_all(&cred.api_key, &cred.api_secret, symbol, long, qty).await,
+            binance => self.bn_reduce_market_all(&cred.api_key, cred.binance_signer(), symbol, long, qty).await,
             ccxt => self.venues.reduce_market_all(cred, symbol, long, qty).await)
     }
 
     pub async fn place_protective(&self, cred: &ExchangeCredential, symbol: &str, long: bool, kind: Protective, trigger: f64) -> Result<i64, E> {
         route!(cred,
-            binance => self.bn_place_protective(&cred.api_key, &cred.api_secret, symbol, long, kind, trigger).await,
+            binance => self.bn_place_protective(&cred.api_key, cred.binance_signer(), symbol, long, kind, trigger).await,
             ccxt => self.venues.place_protective(cred, symbol, long, kind, trigger).await)
     }
 
@@ -199,7 +199,7 @@ impl ExchangeManager {
     /// venues' stops are position-level: they move in place (`move_stop`).
     pub async fn place_reduce_stop(&self, cred: &ExchangeCredential, symbol: &str, long: bool, qty: f64, trigger: f64) -> Result<i64, E> {
         route!(cred,
-            binance => self.bn_place_reduce_stop(&cred.api_key, &cred.api_secret, symbol, long, qty, trigger).await,
+            binance => self.bn_place_reduce_stop(&cred.api_key, cred.binance_signer(), symbol, long, qty, trigger).await,
             ccxt => Err(E::Rejected { code: 0, msg: "quantity stops are Binance only; this venue moves its stop".into() }))
     }
 
@@ -216,19 +216,19 @@ impl ExchangeManager {
     /// cancels by algo id alone.
     pub async fn cancel_algo(&self, cred: &ExchangeCredential, symbol: &str, algo_id: i64) -> Result<(), E> {
         route!(cred,
-            binance => self.bn_cancel_algo(&cred.api_key, &cred.api_secret, algo_id).await,
+            binance => self.bn_cancel_algo(&cred.api_key, cred.binance_signer(), algo_id).await,
             ccxt => self.venues.cancel_protective(cred, symbol, algo_id).await)
     }
 
     pub async fn algo_status(&self, cred: &ExchangeCredential, symbol: &str, algo_id: i64) -> Result<String, E> {
         route!(cred,
-            binance => self.bn_algo_status(&cred.api_key, &cred.api_secret, algo_id).await,
+            binance => self.bn_algo_status(&cred.api_key, cred.binance_signer(), algo_id).await,
             ccxt => self.venues.algo_status(cred, symbol, algo_id).await)
     }
 
     pub async fn cancel_symbol_orders(&self, cred: &ExchangeCredential, symbol: &str) -> Result<(), E> {
         route!(cred,
-            binance => self.bn_cancel_symbol_orders(&cred.api_key, &cred.api_secret, symbol).await,
+            binance => self.bn_cancel_symbol_orders(&cred.api_key, cred.binance_signer(), symbol).await,
             ccxt => self.venues.cancel_symbol_orders(cred, symbol).await)
     }
 
@@ -242,7 +242,7 @@ impl ExchangeManager {
 
     pub async fn user_trades(&self, cred: &ExchangeCredential, symbol: &str, start_ms: u64) -> Result<Vec<UserTrade>, E> {
         route!(cred,
-            binance => self.bn_user_trades(&cred.api_key, &cred.api_secret, symbol, start_ms).await,
+            binance => self.bn_user_trades(&cred.api_key, cred.binance_signer(), symbol, start_ms).await,
             ccxt => self.venues.user_trades(cred, symbol, start_ms).await)
     }
 }

@@ -118,6 +118,7 @@ pub(crate) fn snapshot(app: &AppHandle) -> Result<Snapshot, String> {
         breaker_tripped: strategy.portfolio_tripped(),
         breaker_dd_pct: strategy.risk().portfolio_dd_pct,
         dead,
+        foreign: app.state::<crate::app::foreign_fill::ForeignFillManager>().alarms(),
     })
 }
 

@@ -7,6 +7,20 @@
   scroll-margin-top: var(--space-3);
 }
 
+/* Portfolio stress: threshold chips wrap under the facts. */
+.ae-riskview-checks {
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
+/* The three threshold fields side by side, stacked on a narrow column. */
+.ae-riskview-thresholds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
 /* Inside the limits table the level name is a plain cell, not a heading. */
 .ae-risk-section .ae-dt .ae-risklevel {
   font-size: inherit;

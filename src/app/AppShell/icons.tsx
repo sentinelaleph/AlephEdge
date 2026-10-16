@@ -35,6 +35,7 @@ const paths: Record<string, string> = {
   info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v6M12 7.5h.01",
   external: "M14 4h6v6M20 4l-9 9M18 14v6H4V6h6",
   folder: "M3 6h6l2 2h10v11H3z",
+  archive: "M3 4h18v5H3zM5 9v11h14V9M10 13h4",
   copy: "M9 9h11v11H9zM5 15H4V4h11v1",
   more: "M5 11.2a.8.8 0 1 1 0 1.6a.8.8 0 1 1 0-1.6zM12 11.2a.8.8 0 1 1 0 1.6a.8.8 0 1 1 0-1.6zM19 11.2a.8.8 0 1 1 0 1.6a.8.8 0 1 1 0-1.6z",
 };

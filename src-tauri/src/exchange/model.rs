@@ -87,13 +87,20 @@ impl ExchangeSpec {
 }
 
 /// Real, API-verified permissions for a just-added key — never the user's
-/// self-declared guess: a key with withdrawal permission must be detected,
-/// and is refused.
+/// self-declared guess: a key with withdrawal or transfer permission must be
+/// detected, and is refused.
 #[derive(Debug, Clone, Copy)]
 pub struct BinancePermissions {
     pub withdraw_enabled: bool,
+    /// `enableInternalTransfer` or `permitsUniversalTransfer`: the key can move
+    /// funds to another account without a withdrawal.
+    pub transfer_enabled: bool,
     /// `enableFutures`: false = the key cannot place or close futures orders.
     pub futures_enabled: bool,
+    /// `ipRestrict`; None where Binance did not say (testnet path).
+    pub ip_restricted: Option<bool>,
+    /// `createTime`, UNIX ms; None where Binance did not say.
+    pub created_at: Option<u64>,
 }
 
 /// The connected exchange's USDT-M futures wallet snapshot, fetched with the

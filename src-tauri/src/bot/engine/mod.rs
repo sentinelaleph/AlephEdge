@@ -35,6 +35,7 @@ pub mod reconcile;
 pub mod record;
 pub mod sizing;
 pub mod take_profit;
+pub mod user_trade;
 
 pub(crate) use book::force_close_kinds;
 
@@ -265,3 +266,5 @@ mod take_profit_tests;
 pub(crate) mod test_fixtures;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod user_trade_tests;

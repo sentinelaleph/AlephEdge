@@ -20,6 +20,25 @@ pub enum CredentialPermission {
     Unknown,
 }
 
+/// How requests with this key are signed. Binance only knows both; every
+/// other venue is HMAC. A vault from before 0.3.15 has no field: HMAC.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum KeyType {
+    /// The exchange issued key + secret (Binance "System generated").
+    #[default]
+    Hmac,
+    /// The app generated the keypair; `api_secret` holds the base64 32-byte
+    /// private seed and Binance holds the public key ("Self-generated").
+    Ed25519,
+}
+
+impl KeyType {
+    fn is_hmac(&self) -> bool {
+        *self == KeyType::Hmac
+    }
+}
+
 /// A full exchange credential — secrets included. Lives only in the unlocked
 /// session's memory and in the sealed vault file; it is never serialized to the
 /// UI.
@@ -45,11 +64,23 @@ pub struct ExchangeCredential {
     /// UNIX millis of the last key replacement (Settings, Renew key).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<u64>,
+    /// HMAC (default, and every vault from before 0.3.15) or Ed25519.
+    #[serde(default, skip_serializing_if = "KeyType::is_hmac")]
+    pub key_type: KeyType,
+    /// When the exchange created the key (Binance `createTime`), UNIX ms.
+    /// None where the exchange does not say (Bybit, OKX) or the key was
+    /// stored before 0.3.15 and not checked since.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exchange_created_at: Option<u64>,
+    /// Binance `ipRestrict` at the last check. None = unknown.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ip_restricted: Option<bool>,
 }
 
 impl ExchangeCredential {
-    /// The safe, secret-free projection sent to the UI.
-    pub fn to_meta(&self) -> CredentialMeta {
+    /// The safe, secret-free projection sent to the UI. `now` (UNIX ms) dates
+    /// the key-age warning.
+    pub fn to_meta(&self, now: u64) -> CredentialMeta {
         CredentialMeta {
             exchange_id: self.exchange_id.clone(),
             label: self.label.clone(),
@@ -58,6 +89,28 @@ impl ExchangeCredential {
             added_at: self.added_at,
             updated_at: self.updated_at,
             in_use: false,
+            key_type: self.key_type,
+            exchange_created_at: self.exchange_created_at,
+            ip_restricted: self.ip_restricted,
+            safety: self.safety(now),
+        }
+    }
+
+    /// Age and IP-restriction warnings for this key at `now`.
+    pub fn safety(&self, now: u64) -> super::key_safety::KeySafety {
+        super::key_safety::classify(
+            self.exchange_created_at,
+            self.updated_at.unwrap_or(self.added_at),
+            self.ip_restricted,
+            now,
+        )
+    }
+
+    /// How Binance requests with this key are signed. Borrowed for one call.
+    pub fn binance_signer(&self) -> crate::exchange::BinanceSigner<'_> {
+        match self.key_type {
+            KeyType::Hmac => crate::exchange::BinanceSigner::Hmac(&self.api_secret),
+            KeyType::Ed25519 => crate::exchange::BinanceSigner::Ed25519(&self.api_secret),
         }
     }
 
@@ -83,8 +136,10 @@ impl ExchangeCredential {
 /// What this does NOT reach, and what no `Drop` here could:
 ///   * `reqwest`'s `HeaderValue` copy of the API key for `X-MBX-APIKEY`, and
 ///     whatever the HTTP stack buffers below it.
-///   * `hmac` 0.12's internal key state in `sign_query`. That crate does not
-///     zeroize on drop, so the padded secret blocks are left in freed memory.
+///   * `hmac`'s internal key state in `binance_sign::hmac_hex`. That crate does
+///     not zeroize on drop, so the padded secret blocks are left in freed
+///     memory. (The Ed25519 path decodes the seed into `Zeroizing` buffers and
+///     `ed25519_dalek::SigningKey` wipes itself on drop.)
 ///   * whatever `serde_json` allocated while parsing the IPC payload the key
 ///     arrived in, or the plaintext vault body on unlock — the vault's own
 ///     buffers are `Zeroizing`, the parser's intermediates are not reachable.
@@ -112,6 +167,17 @@ pub struct CredentialMeta {
     /// more, and the others are listed as not in use.
     #[serde(default)]
     pub in_use: bool,
+    #[serde(default)]
+    pub key_type: KeyType,
+    /// Exchange creation date of the key (UNIX ms), when the exchange says.
+    #[serde(default)]
+    pub exchange_created_at: Option<u64>,
+    /// IP restriction at the last check; None = unknown.
+    #[serde(default)]
+    pub ip_restricted: Option<bool>,
+    /// Warnings derived from the two above (never refusals).
+    #[serde(default)]
+    pub safety: super::key_safety::KeySafety,
 }
 
 /// Argon2id cost parameters, stored in the vault header so a file sealed under
@@ -272,6 +338,7 @@ impl std::fmt::Debug for ExchangeCredential {
             .field("passphrase", &self.passphrase.as_ref().map(|_| "<redacted>"))
             .field("permission", &self.permission)
             .field("added_at", &self.added_at)
+            .field("key_type", &self.key_type)
             .finish()
     }
 }
@@ -279,6 +346,41 @@ impl std::fmt::Debug for ExchangeCredential {
 #[cfg(test)]
 mod debug_tests {
     use super::*;
+
+    /// The plaintext vault body as 0.3.14 wrote it: no key type, no exchange
+    /// date, no IP flag.
+    const OLD_VAULT_BODY: &str = r#"[{"exchangeId":"binance","label":"main","apiKey":"k-old","apiSecret":"s-old","permission":"tradeOnly","addedAt":1700000000000},{"exchangeId":"okx","label":"o","apiKey":"k2","apiSecret":"s2","passphrase":"p","permission":"tradeOnly","addedAt":1,"updatedAt":2}]"#;
+
+    #[test]
+    fn a_vault_from_before_the_key_type_loads_as_hmac_and_writes_back_the_same_shape() {
+        let creds: Vec<ExchangeCredential> = serde_json::from_str(OLD_VAULT_BODY).expect("old vault loads");
+        assert_eq!(creds.len(), 2);
+        let c = &creds[0];
+        assert_eq!(c.key_type, KeyType::Hmac);
+        assert_eq!((c.exchange_created_at, c.ip_restricted), (None, None));
+        assert!(matches!(c.binance_signer(), crate::exchange::BinanceSigner::Hmac("s-old")));
+        // An HMAC key without new facts writes back without the new fields,
+        // so a 0.3.14 app reading this vault sees exactly what it wrote.
+        let back = serde_json::to_string(&creds).unwrap();
+        for field in ["keyType", "exchangeCreatedAt", "ipRestricted"] {
+            assert!(!back.contains(field), "{back}");
+        }
+    }
+
+    #[test]
+    fn an_ed25519_key_and_its_facts_round_trip() {
+        let mut creds: Vec<ExchangeCredential> = serde_json::from_str(OLD_VAULT_BODY).unwrap();
+        creds[0].key_type = KeyType::Ed25519;
+        creds[0].exchange_created_at = Some(5);
+        creds[0].ip_restricted = Some(true);
+        let back: Vec<ExchangeCredential> = serde_json::from_str(&serde_json::to_string(&creds).unwrap()).unwrap();
+        assert_eq!(back[0].key_type, KeyType::Ed25519);
+        assert_eq!((back[0].exchange_created_at, back[0].ip_restricted), (Some(5), Some(true)));
+        assert!(matches!(back[0].binance_signer(), crate::exchange::BinanceSigner::Ed25519("s-old")));
+        // The UI projection carries the facts, never the secret.
+        let meta = serde_json::to_string(&back[0].to_meta(10)).unwrap();
+        assert!(meta.contains("\"keyType\":\"ed25519\"") && !meta.contains("s-old") && !meta.contains("k-old"), "{meta}");
+    }
 
     #[test]
     fn debug_output_never_contains_the_secret() {
@@ -291,6 +393,9 @@ mod debug_tests {
             permission: CredentialPermission::TradeOnly,
             added_at: 1,
             updated_at: None,
+            key_type: Default::default(),
+            exchange_created_at: None,
+            ip_restricted: None,
         };
         let out = format!("{c:?}");
         for secret in ["KEY-abc123", "SECRET-xyz789", "PASS-1"] {

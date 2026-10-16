@@ -3,9 +3,9 @@
 //! Subsystems: the local key **vault**, the Sentinel **membership** gate, the
 //! **signal** client (SSE), the **exchange** adapters, the **risk** manager,
 //! Sentinel **market** data (FR/LD/BTC macro), the SQLite **store**, the
-//! **bot** orchestrator, the phone **link** and optional **telegram**
-//! notifications. Real orders compile only with
-//! the `live` cargo feature. Each subsystem owns its own types, logic, and
+//! **bot** orchestrator, the phone **link**, optional **telegram**
+//! notifications and the TradingView alert link (**tvlink**). Real orders
+//! compile only with the `live` cargo feature. Each subsystem owns its own types, logic, and
 //! commands; this file only registers managed state and the command surface,
 //! then runs the app.
 
@@ -16,9 +16,11 @@ mod link;
 mod market;
 mod membership;
 mod risk;
+mod riskview;
 mod signal;
 mod store;
 mod telegram;
+mod tvlink;
 mod vault;
 
 use app::cockpit::{cockpit_exchange, cockpit_sentinel};
@@ -37,7 +39,7 @@ use bot::strategy::backtest_commands::{
 use bot::strategy::StrategyManager;
 use bot::{
     bot_close_position, bot_configure, bot_default_config, bot_end_pilot, bot_preview_take, bot_set_live, bot_start,
-    bot_status, bot_stop, bot_take_signal, BotManager,
+    bot_status, bot_stop, bot_take_signal, bot_open_trade, bot_preview_trade, BotManager,
 };
 use exchange::{
     exchange_account, exchange_close_all, exchange_close_position, exchange_list, exchange_status,
@@ -50,15 +52,17 @@ use membership::{
 };
 use risk::{
     risk_get, risk_set_balance, risk_set_close_on_stop, risk_set_daily_loss, risk_set_level,
-    RiskManager,
+    risk_set_view_thresholds, RiskManager,
 };
+use riskview::{riskview_get, riskview_replay, riskview_whatif, RiskViewManager};
 use signal::{
     combo_catalog, signal_connect, signal_disconnect, signal_health, signal_recent, SignalManager,
 };
 use store::{skips_export_csv, trades_export_csv, trades_list, trades_stats, trades_stats_by_bot, StoreManager};
 use tauri::Manager;
 use vault::{
-    spawn_idle_watchdog, vault_add_credential, vault_create, vault_list_credentials, vault_lock,
+    spawn_idle_watchdog, vault_add_credential, vault_create, vault_ed25519_discard, vault_ed25519_generate,
+    vault_ed25519_pending, vault_list_credentials, vault_lock, vault_recheck_credential,
     vault_remove_credential, vault_set_idle_minutes, vault_change_password, vault_rename_credential, vault_replace_credential, vault_reset, vault_status, vault_touch, vault_unlock, VaultManager,
 };
 
@@ -113,6 +117,9 @@ pub fn run() {
             bot::strategy::engine::restore(app.handle());
             // Real-money state of DCA / Grid bots (bot/strategy_live.rs).
             bot::strategy_live::restore(app.handle());
+            // Live builds: watch the Binance account for fills this app did
+            // not make (a leaked key). Paper builds: nothing.
+            app::foreign_fill::spawn(app.handle());
             // BTC regime from launch, not only once a bot runs.
             bot::engine::spawn_regime_poller(app.handle().clone());
             // Auto-lock the vault once it has been idle for its configured
@@ -124,6 +131,12 @@ pub fn run() {
             // Optional Telegram notifications: idle until the user sets a
             // token and links a chat (Settings, Notifications).
             telegram::spawn(app.handle());
+            // TradingView alerts through Sentinel's relay: idle until the
+            // user turns them on (Settings, TradingView) and while signed out.
+            tvlink::spawn(app.handle());
+            // Portfolio risk view: recomputed every few minutes so a
+            // threshold crossing alerts with no page open.
+            riskview::spawn(app.handle());
             // Signature-verified auto-update (desktop only).
             #[cfg(desktop)]
             app.handle()
@@ -142,6 +155,9 @@ pub fn run() {
         .manage(link::commands::PairingState::new())
         .manage(link::commands::LinkRuntime::new())
         .manage(telegram::TelegramManager::new())
+        .manage(tvlink::TvManager::new())
+        .manage(app::foreign_fill::ForeignFillManager::new())
+        .manage(RiskViewManager::new())
         .invoke_handler(tauri::generate_handler![
             link::commands::link_begin_pairing,
             link::commands::link_pairing_status,
@@ -154,12 +170,22 @@ pub fn run() {
             telegram::commands::telegram_link_code,
             telegram::commands::telegram_set_prefs,
             telegram::commands::telegram_test,
+            tvlink::commands::tv_status,
+            tvlink::commands::tv_create_url,
+            tvlink::commands::tv_revoke,
+            tvlink::commands::tv_set_prefs,
+            tvlink::commands::tv_results,
             get_health_snapshot,
             get_endpoints,
             app_version,
             app::about::app_info,
             app::about::open_help_link,
             app::about::open_data_dir,
+            app::backup::backup_list,
+            app::backup::backup_now,
+            app::backup::backup_open_dir,
+            app::settings_transfer::settings_export,
+            app::settings_transfer::settings_import,
             app_check_update,
             app_install_update,
             vault_status,
@@ -175,6 +201,10 @@ pub fn run() {
             vault_change_password,
             vault_set_idle_minutes,
             vault_reset,
+            vault_recheck_credential,
+            vault_ed25519_generate,
+            vault_ed25519_pending,
+            vault_ed25519_discard,
             membership_login,
             membership_logout,
             membership_status,
@@ -198,6 +228,10 @@ pub fn run() {
             risk_set_balance,
             risk_set_close_on_stop,
             risk_set_daily_loss,
+            risk_set_view_thresholds,
+            riskview_get,
+            riskview_replay,
+            riskview_whatif,
             trades_list,
             trades_stats,
             trades_stats_by_bot,
@@ -213,6 +247,8 @@ pub fn run() {
             bot_close_position,
             bot_take_signal,
             bot_preview_take,
+            bot_open_trade,
+            bot_preview_trade,
             strategy_list,
             strategy_detail,
             strategy_default,
@@ -229,6 +265,9 @@ pub fn run() {
             bot::strategy_live::strategy_end_pilot,
             bot::strategy_live::strategy_live_report,
             app::preflight::live_preflight,
+            app::foreign_fill::foreign_fill_status,
+            app::foreign_fill::foreign_fill_ack,
+            app::foreign_fill::foreign_fill_set_enabled,
             app::market_trend::market_trend,
             app::presets_live::presets_live,
             strategy_archive,

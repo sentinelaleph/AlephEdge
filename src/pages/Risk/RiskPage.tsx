@@ -25,18 +25,25 @@ import { StrategyRiskPanel } from "@/pages/Bots/strategy/StrategyRiskPanel";
 import { Icon, type IconName } from "@/app/AppShell/icons";
 import { formatPnl, formatUsdt } from "@/lib/format";
 import { stopRisk } from "@/lib/riskReadout";
+import { ForeignFillPanel } from "./ForeignFillPanel";
+import { worstLevel } from "@/lib/riskView";
+import { CrashReplay } from "./CrashReplay";
 import { LivePreflight } from "./LivePreflight";
 import { OpenRiskTable } from "./OpenRiskTable";
+import { PortfolioRisk } from "./PortfolioRisk";
+import { PortfolioRiskCard } from "./PortfolioRiskCard";
 import { RiskSummary } from "./RiskSummary";
 import "@/pages/Settings/SettingsPage.css";
 import "./RiskPage.css";
 import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
 
 const KINDS: BotKind[] = ["futures", "spot", "pump"];
-const SECTIONS = ["summary", "preflight", "level", "open", "killSwitch", "regime", "live", "emergency", "strategy"] as const;
+const SECTIONS = ["summary", "preflight", "portfolio", "replay", "level", "open", "killSwitch", "regime", "live", "emergency", "strategy"] as const;
 type SectionId = (typeof SECTIONS)[number];
 const SECTION_ICONS: Record<SectionId, IconName> = {
   summary: "risk",
+  portfolio: "positions",
+  replay: "backtest",
   preflight: "lock",
   level: "sliders",
   open: "positions",
@@ -65,7 +72,7 @@ export function riskSections(liveBuild: boolean): (typeof SECTIONS)[number][] {
 export function RiskPage() {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
-  const { risk, desk, vault, endpoints, strategy, catalog } = useDeskContext();
+  const { risk, desk, vault, endpoints, strategy, catalog, foreignFill, riskView } = useDeskContext();
   const s = desk.status;
   const liveBuild = desk.loaded && s.liveTradingEnabled;
   const [liveError, setLiveError] = useState<string | null>(null);
@@ -113,6 +120,12 @@ export function RiskPage() {
     summary: s.openPositions.length
       ? { text: t("safety.nav.atStops", { value: formatPnl(stops.atStops, locale, { unit: "none" }).text }) }
       : { text: t("safety.summary.noPositions") },
+    preflight: foreignFill?.alarms.length ? { text: t("foreignFill.state.alarm"), attention: true } : undefined,
+    portfolio: riskView.snapshot
+      ? riskView.snapshot.paper.exposures + riskView.snapshot.real.exposures === 0
+        ? { text: t("riskview.empty") }
+        : { text: t(`riskview.nav.${worstLevel(riskView.snapshot) ?? "ok"}`), attention: worstLevel(riskView.snapshot) === "danger" }
+      : undefined,
     level: level ? { text: t(`risk.levels.${level}`) } : undefined,
     open: { text: t("safety.nav.positions", { count: s.openPositions.length }) },
     killSwitch: desk.loaded
@@ -162,6 +175,7 @@ export function RiskPage() {
 
   const right = (
     <>
+      <PortfolioRiskCard />
       <RemoteControlCard />
       <Panel title={t("safety.exposure")}>
         <FactList
@@ -194,8 +208,17 @@ export function RiskPage() {
       {liveBuild ? (
         <section id="risk-preflight" className="ae-risk-section">
           <LivePreflight />
+          <ForeignFillPanel />
         </section>
       ) : null}
+
+      <section id="risk-portfolio" className="ae-risk-section">
+        <PortfolioRisk />
+      </section>
+
+      <section id="risk-replay" className="ae-risk-section">
+        <CrashReplay />
+      </section>
 
       <section id="risk-level" className="ae-risk-section">
         <RiskSelector risk={risk} />

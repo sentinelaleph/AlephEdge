@@ -12,6 +12,7 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
 use crate::bot::model::SkipNote;
+use crate::exchange::foreign_fill::ForeignFill;
 use crate::store::model::TradeRecord;
 use crate::store::strategy::ClosedCycleRow;
 
@@ -68,6 +69,8 @@ pub struct Cursors {
     pub cycle_closed_at: u64,
     /// Newest failure note time reported (UNIX ms).
     pub skip_at_ms: u64,
+    /// Newest foreign-trade alarm reported (`detected_ms`).
+    pub foreign_at_ms: u64,
 }
 
 /// In-memory edge detectors. Seeded from the first snapshot, so a state that
@@ -112,6 +115,8 @@ pub struct Snapshot {
     pub breaker_tripped: bool,
     pub breaker_dd_pct: f64,
     pub dead: Vec<DeadBot>,
+    /// Unacknowledged fills on the Binance account this app did not make.
+    pub foreign: Vec<ForeignFill>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -150,6 +155,7 @@ pub fn reset(s: &Snapshot) -> (Cursors, Watch) {
         trade_id: s.trades.iter().map(|t| t.id).max().unwrap_or(0),
         cycle_closed_at: s.cycles.iter().map(|c| c.closed_at).max().unwrap_or(0),
         skip_at_ms: s.now_ms,
+        foreign_at_ms: s.now_ms,
     };
     let watch = Watch {
         seeded: true,
@@ -207,6 +213,13 @@ pub fn pass(s: &Snapshot, cur: &Cursors, watch: &Watch) -> (Vec<Event>, Cursors,
         });
     }
     w.breaker = s.breaker_tripped;
+
+    // Fills this app did not make: always real money, always loud.
+    let fresh: Vec<&ForeignFill> = s.foreign.iter().filter(|f| f.detected_ms > cur.foreign_at_ms).collect();
+    if let Some(at) = fresh.iter().map(|f| f.detected_ms).max() {
+        next.foreign_at_ms = at;
+        out.push(Event { cats: vec![Category::KillSwitch], live: true, at, text: foreign_text(&fresh) });
+    }
 
     for d in &s.dead {
         if w.dead.insert(d.id.clone()) {
@@ -360,6 +373,41 @@ pub fn trade_text(t: &TradeRecord) -> String {
     )
 }
 
+/// Up to this many foreign fills are listed one per line.
+const FOREIGN_LINES: usize = 5;
+
+pub fn foreign_text(fills: &[&ForeignFill]) -> String {
+    let mut text = format!(
+        "{} on your Binance account that this app did not make.",
+        if fills.len() == 1 { "A trade".to_string() } else { format!("{} trades", fills.len()) }
+    );
+    for f in fills.iter().take(FOREIGN_LINES) {
+        let what = if f.side.is_empty() {
+            String::new()
+        } else {
+            format!(" {} {} @ {}", f.side, num_plain(f.qty), num_plain(f.price))
+        };
+        text.push_str(&format!("
+{}{what} (trade {})", f.symbol, f.trade_id));
+    }
+    if fills.len() > FOREIGN_LINES {
+        text.push_str(&format!("
+… and {} more", fills.len() - FOREIGN_LINES));
+    }
+    text.push_str(
+        "
+New entries stopped on every bot. Open positions untouched.
+Not you: delete this API key on Binance now. You: press \"That was me\" on the Risk page.",
+    );
+    text
+}
+
+/// A quantity or price as Binance writes it (up to 8 decimals, no padding).
+fn num_plain(v: f64) -> String {
+    let s = format!("{v:.8}");
+    s.trim_end_matches('0').trim_end_matches('.').to_string()
+}
+
 pub fn cycle_text(c: &ClosedCycleRow) -> String {
     let why = c.exit_reason.as_deref().map(exit_label).unwrap_or("closed");
     let pct = c.pnl_pct_budget.map(|p| format!(", {}% of budget", signed(p))).unwrap_or_default();
@@ -465,7 +513,7 @@ mod tests {
             ..Default::default()
         };
         let (cur, w) = reset(&s);
-        assert_eq!(cur, Cursors { trade_id: 9, cycle_closed_at: 4_000, skip_at_ms: 5_000 });
+        assert_eq!(cur, Cursors { trade_id: 9, cycle_closed_at: 4_000, skip_at_ms: 5_000, foreign_at_ms: 5_000 });
         let (events, next, _) = pass(&s, &cur, &w);
         assert!(events.is_empty(), "{events:?}");
         assert_eq!(next, cur);
@@ -531,6 +579,37 @@ mod tests {
         s.breaker_tripped = true;
         let (ev, _, _) = pass(&s, &cur, &w);
         assert_eq!(ev[0].text, "Portfolio breaker tripped (drawdown limit 12.5% of budget). DCA/Grid bots stopped.");
+    }
+
+    #[test]
+    fn a_foreign_trade_is_sent_once_as_a_kill_switch_event() {
+        let f = |trade_id, detected_ms| ForeignFill {
+            symbol: "XUSDT".into(),
+            trade_id,
+            order_id: 9,
+            side: "BUY".into(),
+            qty: 50_000.0,
+            price: 0.0123,
+            time_ms: 1,
+            detected_ms,
+        };
+        let mut s = Snapshot { now_ms: 1_000, ..Default::default() };
+        let (cur, w) = reset(&s);
+        s.foreign = vec![f(4, 900)];
+        let (ev, cur, w) = pass(&s, &cur, &w);
+        assert!(ev.is_empty(), "noticed before notifications were on: no backlog");
+        s.foreign.push(f(5, 2_000));
+        let (ev, cur, w) = pass(&s, &cur, &w);
+        assert_eq!(ev.len(), 1);
+        assert_eq!(ev[0].cats, vec![Category::KillSwitch]);
+        assert!(ev[0].live);
+        assert!(ev[0].text.starts_with("A trade on your Binance account that this app did not make."), "{}", ev[0].text);
+        assert!(ev[0].text.contains("XUSDT BUY 50000 @ 0.0123 (trade 5)"), "{}", ev[0].text);
+        assert!(ev[0].text.contains("New entries stopped on every bot. Open positions untouched."));
+        assert!(!ev[0].text.contains("trade 4"));
+        let (ev, _, _) = pass(&s, &cur, &w);
+        assert!(ev.is_empty(), "sent once");
+        assert!(!Categories { kill_switch: false, ..Default::default() }.allows(&[Category::KillSwitch]));
     }
 
     #[test]

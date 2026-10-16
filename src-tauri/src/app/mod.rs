@@ -4,14 +4,17 @@
 //! so the crate root stays at its two entry files (lib.rs, main.rs).
 
 pub mod about;
+pub mod backup;
 pub mod cockpit;
 pub mod commands;
 pub mod endpoints;
+pub mod foreign_fill;
 pub mod health;
 pub mod instance;
 pub mod keychain;
 pub mod market_trend;
 pub mod preflight;
 pub mod presets_live;
+pub mod settings_transfer;
 pub mod update;
 pub mod window;

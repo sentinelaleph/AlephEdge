@@ -8,7 +8,10 @@ import { capitalAboveCap, defaultCapitalWithin } from "@/lib/botLimits";
 import { DEFAULT_RISK_PCT, MAX_RISK_PCT, MIN_RISK_PCT } from "@/lib/sizing";
 import { mock as riskMock } from "../risk/risk.mock";
 import { customPctValid, MAX_CUSTOM_TP_PCT, MIN_CUSTOM_TP_PCT } from "@/lib/takeProfit";
-import { LIVE_CONFIRMATION, type BotConfig, type BotDeskStatus, type BotKind } from "./bot";
+import { LIVE_CONFIRMATION, type BotConfig, type BotDeskStatus, type BotKind, type TradeRequest } from "./bot";
+
+/** Binance's minimum order (Rust `EXCHANGE_MIN_ORDER_USDT`). */
+const MIN_ORDER_USDT = 5;
 
 /** Preview a live build in `npm run dev`: localStorage "ae-mock-live" = "1". */
 function mockLiveBuild(): boolean {
@@ -111,6 +114,37 @@ export const mock = (() => {
       // The preview has no market data: a configured bot cannot price the
       // entry, as bot_take_signal answers without a live quote.
       return Promise.reject(state[configKey[kind]] ? "priceUnavailable" : "botNotConfigured");
+    },
+    trade(r: TradeRequest): Promise<never> {
+      // Like bot_preview_trade / bot_open_trade up to the live price, in the
+      // same order: the checks that need no market data. The preview has no
+      // quote, so a request that passes them ends where Rust would without
+      // one.
+      const cfg = state[configKey[r.kind]];
+      const symbol = r.symbol.trim().toUpperCase();
+      const level = (v: number) => Number.isFinite(v) && v > 0;
+      const refusal = !cfg
+        ? "botNotConfigured"
+        : cfg.live
+          ? "manualTakePaperOnly"
+          : state.killSwitchTripped
+            ? "botDailyLossTripped"
+            : r.kind === "pump"
+              ? "tradeBotKind"
+              : r.kind === "spot" && r.direction === "short"
+                ? "spotLongOnly"
+                : !/^[A-Z0-9]+USDT$/.test(symbol) || symbol === "USDT"
+                  ? "tradeSymbolInvalid"
+                  : !level(r.takeProfit) || !level(r.stopLoss)
+                    ? "tradeLevelsInvalid"
+                    : r.notionalUsdt !== undefined && !level(r.notionalUsdt)
+                      ? "tradeSizeInvalid"
+                      : r.notionalUsdt !== undefined && r.notionalUsdt < MIN_ORDER_USDT
+                        ? `belowExchangeMinimum|${r.notionalUsdt.toFixed(2)}`
+                        : state.openPositions.some((p) => p.botKind === r.kind && p.symbol.toUpperCase() === symbol)
+                          ? "marketHeld"
+                          : "priceUnavailable";
+      return Promise.reject(refusal);
     },
     async defaultConfig(kind: BotKind, exchangeId: string): Promise<BotConfig> {
       const cap = (await riskMock.state()).maxCapitalQuote;
