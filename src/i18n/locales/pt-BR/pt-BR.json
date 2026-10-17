@@ -783,14 +783,10 @@
     "templates": "Presets",
     "templatesNone": "Nenhum nesta versão",
     "yoursLive": "{{n}} LIVE",
-    "templatesPassed": "{{n}} aprovados",
-    "templatesReview": "{{n}} em revisão",
-    "templatesFailed": "{{n}} reprovados",
     "templatesSignal": "Nenhum: segue os sinais do Sentinel",
     "evidence": "Resultado testado",
     "evidenceSignal": "Não testado neste app. Cada sinal do Sentinel e seu resultado após taxas está no registro público, ribqa.com/signals.",
-    "evidenceNone": "Nenhum modelo passou no teste histórico",
-    "evidenceTemplate": "Melhor modelo, TEST histórico: {{mean}} por bot-mês (IC 95% {{lo}} a {{hi}}), pior bot {{dd}}",
+    "evidenceNone": "Nenhum modelo comprovado. Todos os modelos deste tipo são experimentais.",
     "evidenceInfo": "Simulação histórica em candles passados com taxas, julgada uma vez num período TEST reservado. Não é previsão; Modelos lista as verificações de cada um.",
     "realMoney": "Dinheiro real",
     "realFutures": "Futuros na {{venues}}",
@@ -810,7 +806,11 @@
       "liveBots": "Bots com dinheiro real",
       "toRisk": "Risco e segurança",
       "toKeys": "Chaves de corretora"
-    }
+    },
+    "templatesProven": "{{n}} comprovado",
+    "templatesExperimental": "{{n}} experimentais",
+    "evidenceProven": "Modelo comprovado {{name}}, TEST histórico: {{mean}} por bot-mês (IC 95% {{lo}} a {{hi}}), pior bot {{dd}}",
+    "startProven": "Começar com {{name}}"
   },
   "botDetail": {
     "notFound": "Bot não encontrado",
@@ -1504,7 +1504,40 @@
       "commandsDesc": "/status: bots em execução, posições abertas, líquido de hoje. /stop: para novas entradas em todos os bots; as posições abertas continuam abertas e gerenciadas. Só o chat vinculado pode usá-los.",
       "sendTest": "Enviar teste",
       "testSent": "Mensagem de teste enviada.",
-      "remove": "Remover"
+      "remove": "Remover",
+      "mode": {
+        "label": "Bot que envia",
+        "official": "Bot oficial ({{bot}})",
+        "own": "Seu próprio bot"
+      },
+      "officialState": {
+        "signedOut": "Sessão encerrada",
+        "unavailable": "Bot oficial indisponível",
+        "blocked": "Não conectado",
+        "linked": "Vinculado",
+        "waiting": "Aguardando o código",
+        "none": "Não conectado"
+      },
+      "officialLede": "Envia os eventos dos bots deste computador para um chat do Telegram via {{bot}}, também com a janela na bandeja. Não precisa de token de bot. As mensagens são em inglês e indicam Paper ou LIVE.",
+      "privacy": "O texto das notificações passa pelo ribqa.com até o Telegram. Escolha \"Seu próprio bot\" para enviar direto deste computador.",
+      "signedOut": "Sessão encerrada · notificações pausadas. Entre para usar o bot oficial.",
+      "unavailable": "Bot oficial indisponível. As mensagens esperam até 10 minutos e depois são descartadas.",
+      "notConnected": "Não conectado",
+      "linkedAt": "Vinculado em",
+      "queued": "Aguardando envio",
+      "checkError": "Última verificação",
+      "officialExpires": "Válido até {{time}}. Esta página verifica a cada 3 segundos.",
+      "connect": "Conectar {{bot}}",
+      "commandsOfficial": "Só com seu próprio bot. O bot oficial não repassa comandos para este app.",
+      "disconnect": "Desconectar",
+      "codeStep1": "Abra o Telegram e encontre {{bot}}.",
+      "codeStep2": "Envie este código ao bot como mensagem.",
+      "codeStep3": "Este painel se atualiza ao conectar.",
+      "codeLabel": "Código de vínculo",
+      "copyCode": "Copiar código",
+      "codeCopied": "Copiado",
+      "copyFailed": "Não foi possível copiar. Selecione o código e copie.",
+      "openWithCode": "Abrir no Telegram com o código"
     },
     "devices": {
       "canTitle": "O que um celular pareado pode fazer",
@@ -1939,9 +1972,9 @@
       "budgetShort": "Orçamento mínimo {{min}} USDT (cada ordem com pelo menos 5 USDT); {{free}} USDT livres no limite de orçamento DCA/Grid. Aumente o saldo simulado ou o nível de risco:",
       "custom": {
         "base": "Configurações próprias: sem simulação histórica.",
-        "passed": "Configurações personalizadas: sem simulação histórica. Modelos com histórico aprovado, em revisão até 1 nov: {{names}}.",
         "noneDca": "Configurações próprias: sem simulação histórica. 0 de {{total}} modelos DCA passaram nas verificações.",
-        "noneGrid": "Configurações próprias: sem simulação histórica. 0 de {{total}} modelos grid passaram nas verificações."
+        "noneGrid": "Configurações próprias: sem simulação histórica. 0 de {{total}} modelos grid passaram nas verificações.",
+        "proven": "Configurações próprias: sem simulação histórica. Modelo comprovado: {{names}}."
       },
       "presetPairOnly": "O preset {{id}} foi testado só em BTCUSDT e não abre com {{symbol}}."
     },
@@ -2429,6 +2462,19 @@
         "ghostDays": "{{days}} dias",
         "ghostNote": "Desde {{since}}, último {{updated}}",
         "ghostOff": "ribqa.com não respondeu"
+      },
+      "evidence": {
+        "proven": "Comprovado",
+        "provenTip": "O único modelo que passou no teste pré-registrado do laboratório com dados novos, na sua própria lista de moedas principais.",
+        "experimental": "Experimental",
+        "experimentalResult": "Experimental · TEST {{mean}} por bot-mês",
+        "experimentalTip": "Não comprovado: só o DCA Long Classic em moedas principais passou no teste pré-registrado do laboratório.",
+        "noneOfType": "Nenhum modelo deste tipo é comprovado. Todos aqui são experimentais.",
+        "pickTitle": "Recomendado: {{name}} em {{universe}}.",
+        "pickBody": "TEST {{mean}} por bot-mês, {{pos}}/{{months}} meses positivos, pior bot {{dd}}.",
+        "pickWide": "Só moedas principais: nos {{n}} primeiros pares o pior bot caiu {{dd}}.",
+        "pickOthers": "Todos os outros modelos são experimentais.",
+        "pickUse": "Usar {{name}}"
       }
     },
     "notes": {
@@ -2782,6 +2828,20 @@
     "telegramNotLinked": "Vincule um chat do Telegram primeiro.",
     "telegramNoToken": "Salve um token de bot primeiro.",
     "telegramKeychainFailed": "O chaveiro do sistema não salvou o token.",
+    "tgSignedOut": "Sessão encerrada · entre para usar o bot oficial do Telegram",
+    "tgNotLinked": "Nenhum chat está conectado ao bot oficial. Conecte de novo.",
+    "tgBlocked": "O chat bloqueou o bot oficial. Desbloqueie no Telegram e depois envie uma mensagem de teste.",
+    "tgRateLimited": "O bot oficial está limitando as mensagens (20 por minuto, 300 por dia). Aguardando antes da próxima.",
+    "tgUnavailable": "Bot oficial indisponível. Tente mais tarde.",
+    "tgSendFailed": "O bot oficial não conseguiu entregar a mensagem ao Telegram.",
+    "tgBadText": "O servidor recusou o texto de uma mensagem.",
+    "tgQueueDropped": "{{detail}} mensagens em espera foram descartadas (não enviadas).",
+    "tgHttp": "O bot oficial respondeu com um erro ({{detail}}).",
+    "tgBadResponse": "O bot oficial enviou uma resposta que este app não consegue ler.",
+    "tgTimeout": "O ribqa.com não respondeu a tempo.",
+    "tgLinkExpired": "O código expirou. Gere um novo.",
+    "tgOpenFailed": "Não foi possível abrir o Telegram. Envie a mensagem /start manualmente.",
+    "tgNotOfficial": "Escolha primeiro o bot oficial.",
     "updateBackupFailed": "O backup antes da atualização falhou, então a atualização não foi instalada.",
     "backupDirFailed": "Não foi possível gravar na pasta de backups.",
     "backupDbFailed": "Não foi possível copiar o banco de dados.",
@@ -3148,5 +3208,8 @@
       "candidateTrade": "Esta operação com BTC -20%",
       "emptyBook": "sem exposições abertas"
     }
+  },
+  "timeframeCost": {
+    "warning": "{{tf}}: operar a cada candle exige taxa de acerto de {{rate}} para empatar com custo de ida e volta de {{cost}}. Nenhuma configuração testada chegou lá."
   }
 }

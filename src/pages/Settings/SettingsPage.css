@@ -555,6 +555,18 @@
   gap: var(--space-2);
   margin-top: var(--space-3);
 }
+.ae-tg__mode {
+  margin-bottom: var(--space-3);
+}
+.ae-tg__privacy {
+  margin-top: 0;
+  font-size: var(--text-sm);
+}
+.ae-tg__note {
+  margin: var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: var(--warn-text);
+}
 
 /* TradingView tab (TradingViewTab.tsx). */
 .ae-tv__once {
@@ -589,4 +601,20 @@
 .ae-tv__tname {
   font-size: var(--text-sm);
   color: var(--text-muted);
+}
+/* Official bot: the link code is the main path, shown large with Copy. */
+.ae-tg__codebox {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.ae-tg__code--big {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: var(--space-1) var(--space-3);
+}
+.ae-tg__actions--tight {
+  margin-top: 0;
 }

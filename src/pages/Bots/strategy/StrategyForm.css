@@ -144,3 +144,8 @@
 .ae-sform__guide {
   font-size: var(--text-xs);
 }
+
+/* Proven / Experimental badge of the template the form was opened from. */
+.ae-sform__evidence {
+  margin: 0 0 var(--space-1);
+}

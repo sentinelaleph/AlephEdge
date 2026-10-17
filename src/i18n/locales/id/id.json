@@ -783,14 +783,10 @@
     "templates": "Preset",
     "templatesNone": "Tidak ada di versi ini",
     "yoursLive": "{{n}} LIVE",
-    "templatesPassed": "{{n}} lulus",
-    "templatesReview": "{{n}} ditinjau",
-    "templatesFailed": "{{n}} gagal",
     "templatesSignal": "Tidak ada: mengikuti sinyal Sentinel",
     "evidence": "Hasil teruji",
     "evidenceSignal": "Tidak diuji di aplikasi ini. Setiap sinyal Sentinel dan hasilnya setelah biaya ada di buku besar publik, ribqa.com/signals.",
-    "evidenceNone": "Tidak ada templat yang lulus uji historis",
-    "evidenceTemplate": "Templat terbaik, TEST historis: {{mean}} per bot-bulan (CI 95% {{lo}} hingga {{hi}}), bot terburuk {{dd}}",
+    "evidenceNone": "Tidak ada template terbukti. Semua template jenis ini eksperimental.",
     "evidenceInfo": "Simulasi historis pada candle lama dengan biaya, dinilai sekali pada periode TEST yang disisihkan. Bukan ramalan; Templat mencantumkan pemeriksaan tiap templat.",
     "realMoney": "Uang sungguhan",
     "realFutures": "Futures di {{venues}}",
@@ -810,7 +806,11 @@
       "liveBots": "Bot dengan uang sungguhan",
       "toRisk": "Risiko & keamanan",
       "toKeys": "Kunci bursa"
-    }
+    },
+    "templatesProven": "{{n}} terbukti",
+    "templatesExperimental": "{{n}} eksperimental",
+    "evidenceProven": "Template terbukti {{name}}, TEST historis: {{mean}} per bot-bulan (CI 95% {{lo}} hingga {{hi}}), bot terburuk {{dd}}",
+    "startProven": "Mulai dengan {{name}}"
   },
   "botDetail": {
     "notFound": "Bot tidak ditemukan",
@@ -1504,7 +1504,40 @@
       "commandsDesc": "/status: bot yang berjalan, posisi terbuka, hasil bersih hari ini. /stop: menghentikan entri baru di semua bot; posisi terbuka tetap terbuka dan dikelola. Hanya chat tertaut yang dapat memakainya.",
       "sendTest": "Kirim tes",
       "testSent": "Pesan tes terkirim.",
-      "remove": "Hapus"
+      "remove": "Hapus",
+      "mode": {
+        "label": "Bot pengirim",
+        "official": "Bot resmi ({{bot}})",
+        "own": "Bot Anda sendiri"
+      },
+      "officialState": {
+        "signedOut": "Belum masuk",
+        "unavailable": "Bot resmi tidak tersedia",
+        "blocked": "Tidak terhubung",
+        "linked": "Tertaut",
+        "waiting": "Menunggu kode",
+        "none": "Tidak terhubung"
+      },
+      "officialLede": "Mengirim peristiwa bot dari komputer ini ke satu chat Telegram melalui {{bot}}, juga saat jendela ada di tray. Tidak perlu token bot. Pesan dalam bahasa Inggris dan menyebut Paper atau LIVE.",
+      "privacy": "Teks notifikasi melewati ribqa.com menuju Telegram. Pilih \"Bot Anda sendiri\" untuk mengirim langsung dari komputer ini.",
+      "signedOut": "Belum masuk · notifikasi dijeda. Masuk untuk memakai bot resmi.",
+      "unavailable": "Bot resmi tidak tersedia. Pesan menunggu hingga 10 menit, lalu dibuang.",
+      "notConnected": "Tidak terhubung",
+      "linkedAt": "Waktu tertaut",
+      "queued": "Menunggu dikirim",
+      "checkError": "Pemeriksaan terakhir",
+      "officialExpires": "Berlaku sampai {{time}}. Halaman ini memeriksa setiap 3 detik.",
+      "connect": "Hubungkan {{bot}}",
+      "commandsOfficial": "Hanya dengan bot Anda sendiri. Bot resmi tidak meneruskan perintah ke aplikasi ini.",
+      "disconnect": "Putuskan",
+      "codeStep1": "Buka Telegram dan cari {{bot}}.",
+      "codeStep2": "Kirim kode ini ke bot sebagai pesan.",
+      "codeStep3": "Panel ini diperbarui saat terhubung.",
+      "codeLabel": "Kode tautan",
+      "copyCode": "Salin kode",
+      "codeCopied": "Tersalin",
+      "copyFailed": "Gagal menyalin. Pilih kodenya lalu salin.",
+      "openWithCode": "Buka di Telegram dengan kode"
     },
     "devices": {
       "canTitle": "Yang bisa dilakukan ponsel yang dipasangkan",
@@ -1939,9 +1972,9 @@
       "budgetShort": "Anggaran minimum {{min}} USDT (setiap order minimal 5 USDT); {{free}} USDT tersedia di bawah batas anggaran DCA/Grid. Naikkan saldo simulasi atau level risiko:",
       "custom": {
         "base": "Pengaturan sendiri: tanpa simulasi historis.",
-        "passed": "Pengaturan kustom: tanpa simulasi historis. Template dengan riwayat lulus, ditinjau hingga 1 Nov: {{names}}.",
         "noneDca": "Pengaturan sendiri: tanpa simulasi historis. 0 dari {{total}} template DCA lolos pemeriksaan.",
-        "noneGrid": "Pengaturan sendiri: tanpa simulasi historis. 0 dari {{total}} template grid lolos pemeriksaan."
+        "noneGrid": "Pengaturan sendiri: tanpa simulasi historis. 0 dari {{total}} template grid lolos pemeriksaan.",
+        "proven": "Pengaturan kustom: tanpa simulasi historis. Template terbukti: {{names}}."
       },
       "presetPairOnly": "Preset {{id}} hanya diuji pada BTCUSDT dan tidak bisa dibuka dengan {{symbol}}."
     },
@@ -2429,6 +2462,19 @@
         "ghostDays": "{{days}} hari",
         "ghostNote": "Sejak {{since}}, terakhir {{updated}}",
         "ghostOff": "ribqa.com tidak menjawab"
+      },
+      "evidence": {
+        "proven": "Terbukti",
+        "provenTip": "Satu-satunya template yang lulus uji pra-registrasi lab pada data baru, pada daftar koin utamanya sendiri.",
+        "experimental": "Eksperimental",
+        "experimentalResult": "Eksperimental · TEST {{mean}} per bot-bulan",
+        "experimentalTip": "Belum terbukti: hanya DCA Long Classic pada koin utama yang lulus uji pra-registrasi lab.",
+        "noneOfType": "Tidak ada template jenis ini yang terbukti. Semua di sini eksperimental.",
+        "pickTitle": "Disarankan: {{name}} pada {{universe}}.",
+        "pickBody": "TEST {{mean}} per bot-bulan, {{pos}}/{{months}} bulan positif, bot terburuk {{dd}}.",
+        "pickWide": "Hanya koin utama: pada {{n}} pasangan teratas bot terburuk turun {{dd}}.",
+        "pickOthers": "Semua template lain eksperimental.",
+        "pickUse": "Gunakan {{name}}"
       }
     },
     "notes": {
@@ -2782,6 +2828,20 @@
     "telegramNotLinked": "Tautkan chat Telegram terlebih dahulu.",
     "telegramNoToken": "Simpan token bot terlebih dahulu.",
     "telegramKeychainFailed": "Keychain sistem tidak menyimpan token.",
+    "tgSignedOut": "Belum masuk · masuk untuk memakai bot Telegram resmi",
+    "tgNotLinked": "Tidak ada chat yang terhubung ke bot resmi. Hubungkan lagi.",
+    "tgBlocked": "Chat memblokir bot resmi. Buka blokirnya di Telegram, lalu kirim pesan uji.",
+    "tgRateLimited": "Bot resmi membatasi pesan (20 per menit, 300 per hari). Menunggu sebelum pesan berikutnya.",
+    "tgUnavailable": "Bot resmi tidak tersedia. Coba lagi nanti.",
+    "tgSendFailed": "Bot resmi gagal mengantarkan pesan ke Telegram.",
+    "tgBadText": "Server menolak teks sebuah pesan.",
+    "tgQueueDropped": "{{detail}} pesan yang menunggu dibuang (tidak terkirim).",
+    "tgHttp": "Bot resmi menjawab dengan galat ({{detail}}).",
+    "tgBadResponse": "Bot resmi mengirim jawaban yang tidak bisa dibaca aplikasi ini.",
+    "tgTimeout": "ribqa.com tidak menjawab tepat waktu.",
+    "tgLinkExpired": "Kode kedaluwarsa. Minta kode baru.",
+    "tgOpenFailed": "Telegram tidak bisa dibuka. Kirim pesan /start secara manual.",
+    "tgNotOfficial": "Pilih bot resmi terlebih dahulu.",
     "updateBackupFailed": "Cadangan sebelum pembaruan gagal, jadi pembaruan tidak dipasang.",
     "backupDirFailed": "Folder cadangan tidak dapat ditulis.",
     "backupDbFailed": "Basis data tidak dapat disalin.",
@@ -3148,5 +3208,8 @@
       "candidateTrade": "Trade ini pada BTC -20%",
       "emptyBook": "tidak ada eksposur terbuka"
     }
+  },
+  "timeframeCost": {
+    "warning": "{{tf}}: trading di setiap candle butuh hit rate {{rate}} untuk impas dengan biaya pulang-pergi {{cost}}. Tidak ada setelan yang diuji mencapainya."
   }
 }

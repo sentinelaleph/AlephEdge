@@ -164,6 +164,18 @@ describe("Execute on the Signals page", () => {
     expect(buttons(d, "Open with ETHUSDT")).toHaveLength(4);
   });
 
+  it("marks DCA Long Classic Proven and every other template Experimental", async () => {
+    await openFor(signal("ETHUSDT", "long"));
+    const badge = (id: string) => rowOf(id)!.querySelector<HTMLElement>("[data-evidence]");
+    expect(badge("dca_long_classic")?.dataset.evidence).toBe("proven");
+    expect(badge("dca_long_classic")?.textContent).toBe("Proven");
+    for (const id of ["dca_long_bad", "grid_long", "grid_neutral"]) {
+      expect(badge(id)?.dataset.evidence, id).toBe("experimental");
+      // The TEST mean sits beside it in the row: the badge carries no number here.
+      expect(badge(id)?.textContent, id).toBe("Experimental");
+    }
+  });
+
   it("hides a BTC-only template for another pair and shows it for BTCUSDT", async () => {
     await openFor(signal("ETHUSDT", "long"));
     expect(rowOf("dca_long_btc")).toBeNull();

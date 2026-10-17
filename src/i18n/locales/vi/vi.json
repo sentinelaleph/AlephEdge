@@ -783,14 +783,10 @@
     "templates": "Cấu hình mẫu",
     "templatesNone": "Bản này không có",
     "yoursLive": "{{n}} LIVE",
-    "templatesPassed": "{{n}} đạt",
-    "templatesReview": "{{n}} đang xem xét",
-    "templatesFailed": "{{n}} không đạt",
     "templatesSignal": "Không có: theo tín hiệu Sentinel",
     "evidence": "Kết quả đã kiểm định",
     "evidenceSignal": "Chưa kiểm định trong ứng dụng này. Mọi tín hiệu Sentinel và kết quả sau phí đều có trên sổ cái công khai, ribqa.com/signals.",
-    "evidenceNone": "Không mẫu nào qua kiểm định lịch sử",
-    "evidenceTemplate": "Mẫu tốt nhất, TEST lịch sử: {{mean}} mỗi bot-tháng (KTC 95% {{lo}} đến {{hi}}), bot tệ nhất {{dd}}",
+    "evidenceNone": "Không có mẫu đã chứng minh. Mọi mẫu loại này đều là thử nghiệm.",
     "evidenceInfo": "Mô phỏng lịch sử trên nến cũ có phí, đánh giá một lần trên giai đoạn TEST để riêng. Không phải dự báo; trang Mẫu liệt kê các kiểm tra của từng mẫu.",
     "realMoney": "Tiền thật",
     "realFutures": "Futures trên {{venues}}",
@@ -810,7 +806,11 @@
       "liveBots": "Bot dùng tiền thật",
       "toRisk": "Rủi ro & an toàn",
       "toKeys": "Khóa sàn"
-    }
+    },
+    "templatesProven": "{{n}} đã chứng minh",
+    "templatesExperimental": "{{n}} thử nghiệm",
+    "evidenceProven": "Mẫu đã chứng minh {{name}}, TEST lịch sử: {{mean}} mỗi bot-tháng (KTC 95% {{lo}} đến {{hi}}), bot tệ nhất {{dd}}",
+    "startProven": "Bắt đầu với {{name}}"
   },
   "botDetail": {
     "notFound": "Không tìm thấy bot",
@@ -1504,7 +1504,40 @@
       "commandsDesc": "/status: bot đang chạy, vị thế mở, kết quả ròng hôm nay. /stop: dừng vào lệnh mới trên mọi bot; vị thế mở vẫn mở và vẫn được quản lý. Chỉ cuộc trò chuyện đã liên kết mới dùng được.",
       "sendTest": "Gửi thử",
       "testSent": "Đã gửi tin nhắn thử.",
-      "remove": "Gỡ bỏ"
+      "remove": "Gỡ bỏ",
+      "mode": {
+        "label": "Bot gửi",
+        "official": "Bot chính thức ({{bot}})",
+        "own": "Bot của riêng bạn"
+      },
+      "officialState": {
+        "signedOut": "Chưa đăng nhập",
+        "unavailable": "Bot chính thức không khả dụng",
+        "blocked": "Chưa kết nối",
+        "linked": "Đã liên kết",
+        "waiting": "Đang chờ mã",
+        "none": "Chưa kết nối"
+      },
+      "officialLede": "Gửi các sự kiện của bot từ máy tính này đến một cuộc trò chuyện Telegram qua {{bot}}, kể cả khi cửa sổ nằm ở khay hệ thống. Không cần token bot. Tin nhắn bằng tiếng Anh và ghi rõ Paper hoặc LIVE.",
+      "privacy": "Nội dung thông báo đi qua ribqa.com rồi đến Telegram. Chọn \"Bot của riêng bạn\" để gửi trực tiếp từ máy tính này.",
+      "signedOut": "Chưa đăng nhập · thông báo đang tạm dừng. Đăng nhập để dùng bot chính thức.",
+      "unavailable": "Bot chính thức không khả dụng. Tin nhắn chờ tối đa 10 phút rồi bị bỏ.",
+      "notConnected": "Chưa kết nối",
+      "linkedAt": "Thời điểm liên kết",
+      "queued": "Đang chờ gửi",
+      "checkError": "Lần kiểm tra gần nhất",
+      "officialExpires": "Có hiệu lực đến {{time}}. Trang này kiểm tra mỗi 3 giây.",
+      "connect": "Kết nối {{bot}}",
+      "commandsOfficial": "Chỉ với bot của riêng bạn. Bot chính thức không chuyển lệnh về ứng dụng này.",
+      "disconnect": "Ngắt kết nối",
+      "codeStep1": "Mở Telegram và tìm {{bot}}.",
+      "codeStep2": "Gửi mã này cho bot dưới dạng tin nhắn.",
+      "codeStep3": "Bảng này cập nhật khi đã kết nối.",
+      "codeLabel": "Mã liên kết",
+      "copyCode": "Sao chép mã",
+      "codeCopied": "Đã sao chép",
+      "copyFailed": "Không sao chép được. Hãy chọn mã và sao chép.",
+      "openWithCode": "Mở trong Telegram kèm mã"
     },
     "devices": {
       "canTitle": "Điện thoại đã ghép nối có thể làm gì",
@@ -1939,9 +1972,9 @@
       "budgetShort": "Ngân sách tối thiểu {{min}} USDT (mỗi lệnh ít nhất 5 USDT); còn trống {{free}} USDT trong hạn mức ngân sách DCA/Grid. Tăng số dư mô phỏng hoặc mức rủi ro:",
       "custom": {
         "base": "Cài đặt riêng: không có mô phỏng lịch sử.",
-        "passed": "Cài đặt tùy chỉnh: không có mô phỏng lịch sử. Mẫu có lịch sử đạt, đang xem xét đến 1/11: {{names}}.",
         "noneDca": "Cài đặt riêng: không có mô phỏng lịch sử. 0 trên {{total}} mẫu DCA qua kiểm tra.",
-        "noneGrid": "Cài đặt riêng: không có mô phỏng lịch sử. 0 trên {{total}} mẫu grid qua kiểm tra."
+        "noneGrid": "Cài đặt riêng: không có mô phỏng lịch sử. 0 trên {{total}} mẫu grid qua kiểm tra.",
+        "proven": "Cài đặt tùy chỉnh: không có mô phỏng lịch sử. Mẫu đã chứng minh: {{names}}."
       },
       "presetPairOnly": "Cấu hình mẫu {{id}} chỉ được kiểm thử trên BTCUSDT và không mở với {{symbol}}."
     },
@@ -2429,6 +2462,19 @@
         "ghostDays": "{{days}} ngày",
         "ghostNote": "Từ {{since}}, cập nhật {{updated}}",
         "ghostOff": "ribqa.com không phản hồi"
+      },
+      "evidence": {
+        "proven": "Đã chứng minh",
+        "provenTip": "Mẫu duy nhất vượt qua bài kiểm tra đăng ký trước của phòng lab trên dữ liệu mới, với danh sách coin lớn của chính nó.",
+        "experimental": "Thử nghiệm",
+        "experimentalResult": "Thử nghiệm · TEST {{mean}} mỗi bot-tháng",
+        "experimentalTip": "Chưa chứng minh: chỉ DCA Long Classic trên coin lớn vượt qua bài kiểm tra đăng ký trước của phòng lab.",
+        "noneOfType": "Không có mẫu nào thuộc loại này được chứng minh. Tất cả ở đây đều là thử nghiệm.",
+        "pickTitle": "Khuyến nghị: {{name}} trên {{universe}}.",
+        "pickBody": "TEST {{mean}} mỗi bot-tháng, {{pos}}/{{months}} tháng dương, bot tệ nhất {{dd}}.",
+        "pickWide": "Chỉ coin lớn: trên top {{n}} cặp, bot tệ nhất giảm {{dd}}.",
+        "pickOthers": "Mọi mẫu khác đều là thử nghiệm.",
+        "pickUse": "Dùng {{name}}"
       }
     },
     "notes": {
@@ -2782,6 +2828,20 @@
     "telegramNotLinked": "Hãy liên kết một cuộc trò chuyện Telegram trước.",
     "telegramNoToken": "Hãy lưu token bot trước.",
     "telegramKeychainFailed": "Keychain của hệ thống không lưu được token.",
+    "tgSignedOut": "Chưa đăng nhập · đăng nhập để dùng bot Telegram chính thức",
+    "tgNotLinked": "Chưa có cuộc trò chuyện nào kết nối với bot chính thức. Hãy kết nối lại.",
+    "tgBlocked": "Cuộc trò chuyện đã chặn bot chính thức. Bỏ chặn trong Telegram rồi gửi một tin nhắn thử.",
+    "tgRateLimited": "Bot chính thức đang giới hạn tin nhắn (20 mỗi phút, 300 mỗi ngày). Đang chờ trước tin tiếp theo.",
+    "tgUnavailable": "Bot chính thức không khả dụng. Hãy thử lại sau.",
+    "tgSendFailed": "Bot chính thức không chuyển được tin nhắn đến Telegram.",
+    "tgBadText": "Máy chủ từ chối nội dung một tin nhắn.",
+    "tgQueueDropped": "Đã bỏ {{detail}} tin nhắn đang chờ (không được gửi).",
+    "tgHttp": "Bot chính thức trả lời bằng một lỗi ({{detail}}).",
+    "tgBadResponse": "Bot chính thức gửi câu trả lời mà ứng dụng này không đọc được.",
+    "tgTimeout": "ribqa.com không trả lời kịp.",
+    "tgLinkExpired": "Mã đã hết hạn. Hãy lấy mã mới.",
+    "tgOpenFailed": "Không mở được Telegram. Hãy tự gửi tin nhắn /start.",
+    "tgNotOfficial": "Hãy chọn bot chính thức trước.",
     "updateBackupFailed": "Sao lưu trước khi cập nhật thất bại nên bản cập nhật chưa được cài.",
     "backupDirFailed": "Không ghi được vào thư mục sao lưu.",
     "backupDbFailed": "Không sao chép được cơ sở dữ liệu.",
@@ -3148,5 +3208,8 @@
       "candidateTrade": "Giao dịch này khi BTC -20%",
       "emptyBook": "không có vị thế mở"
     }
+  },
+  "timeframeCost": {
+    "warning": "{{tf}}: giao dịch mỗi nến cần tỷ lệ trúng {{rate}} để hòa vốn với chi phí khứ hồi {{cost}}. Chưa thiết lập nào được kiểm tra đạt mức này."
   }
 }

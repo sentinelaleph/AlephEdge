@@ -6,8 +6,9 @@ import { withQuery } from "@/app/router/routes";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { StatusChip } from "@/components/ui/StatusChip/StatusChip";
 import { localeForLanguage } from "@/i18n";
+import { formatSignedPercent } from "@/lib/format";
 import { errorMessage } from "@/lib/ipc/bridge";
-import { strategyPresets, type Preset } from "@/lib/ipc/strategy/strategy";
+import { strategyPresets, type Preset, type StrategyKind } from "@/lib/ipc/strategy/strategy";
 import { presetName, strategyErrorText } from "@/lib/strategyText";
 
 /** "1 Nov" / "1 Kas" from an ISO date; "October 2026" from "2026-10". */
@@ -65,6 +66,55 @@ export function VerdictChip({ p }: { p: Preset }) {
     <StatusChip status="ok" label={t("strategy.preset.verdicts.presetReady")} />
   ) : (
     <StatusChip status="error" label={t("strategy.preset.verdicts.failed")} />
+  );
+}
+
+/**
+ * The one template the lab proved on fresh data (pre-registered, TEST split):
+ * DCA Long Classic on its own majors universe. Every other template is
+ * experimental, whatever its verdict chip says.
+ */
+export const PROVEN_PRESET_ID = "dca_long_classic";
+
+export type Evidence = "proven" | "experimental";
+
+export function presetEvidence(p: Preset): Evidence {
+  return p.id === PROVEN_PRESET_ID && p.verdict === "presetReady" ? "proven" : "experimental";
+}
+
+/** The proven template of a type, or null (Grid has none). */
+export function provenPreset(presets: Preset[], kind?: StrategyKind): Preset | null {
+  return presets.find((p) => presetEvidence(p) === "proven" && (!kind || p.config.params.kind === kind)) ?? null;
+}
+
+/** The proven template first; the rest keep their order. */
+export function provenFirst(presets: Preset[]): Preset[] {
+  return [...presets].sort((a, b) => Number(presetEvidence(b) === "proven") - Number(presetEvidence(a) === "proven"));
+}
+
+/**
+ * "Proven", or "Experimental" with the template's TEST mean per bot-month
+ * when the data has one (`bare` drops the number where it is shown beside).
+ */
+export function EvidenceBadge({ p, bare = false }: { p: Preset; bare?: boolean }) {
+  const { t, i18n } = useTranslation();
+  const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
+  if (presetEvidence(p) === "proven") {
+    return (
+      <span className="ae-evidence" data-evidence="proven">
+        <StatusChip status="ok" label={t("strategy.preset.evidence.proven")} title={t("strategy.preset.evidence.provenTip")} />
+      </span>
+    );
+  }
+  const mean = bare ? undefined : testSplit(p)?.meanPerBotMonthPct;
+  return (
+    <span className="ae-evidence" data-evidence="experimental">
+      <StatusChip
+        status="underReview"
+        label={mean === undefined ? t("strategy.preset.evidence.experimental") : t("strategy.preset.evidence.experimentalResult", { mean: formatSignedPercent(mean, locale) })}
+        title={t("strategy.preset.evidence.experimentalTip")}
+      />
+    </span>
   );
 }
 

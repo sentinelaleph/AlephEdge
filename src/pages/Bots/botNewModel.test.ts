@@ -2,11 +2,12 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Preset, StrategyRiskView } from "@/lib/ipc/strategy/strategy";
-import { bestTemplate, freeStrategyBudget, scopeState, templateCounts } from "./botNewModel";
+import { presetEvidence, provenFirst, provenPreset } from "@/pages/Presets/presetUi";
+import { freeStrategyBudget, scopeState, templateCounts } from "./botNewModel";
 
-const preset = (kind: "dca" | "grid", verdict: string, testMean: number | null, recheck = false, worstDd = -20): Preset =>
+const preset = (kind: "dca" | "grid", verdict: string, testMean: number | null, recheck = false, worstDd = -20, id?: string): Preset =>
   ({
-    id: `${kind}-${verdict}-${testMean}`,
+    id: id ?? `${kind}-${verdict}-${testMean}`,
     verdict,
     config: { params: { kind } },
     history: {
@@ -17,8 +18,8 @@ const preset = (kind: "dca" | "grid", verdict: string, testMean: number | null, 
   }) as unknown as Preset;
 
 const PRESETS = [
-  preset("dca", "presetReady", 1.98, true, -20.7),
-  preset("dca", "presetReady", 1.51, true, -15.8),
+  preset("dca", "presetReady", 1.51, true, -15.8, "dca_long_safe"),
+  preset("dca", "presetReady", 1.98, true, -20.7, "dca_long_classic"),
   preset("dca", "failed", 3.2),
   preset("dca", "failed", -2.9),
   preset("grid", "failed", 1.22),
@@ -26,15 +27,25 @@ const PRESETS = [
 ];
 
 describe("New bot page model", () => {
-  it("counts templates by verdict, so 'under review' is not shown as 'failed'", () => {
-    expect(templateCounts(PRESETS, "dca")).toEqual({ passed: 0, review: 2, failed: 2, total: 4 });
-    expect(templateCounts(PRESETS, "grid")).toEqual({ passed: 0, review: 0, failed: 2, total: 2 });
+  it("counts the proven template apart from the experimental ones", () => {
+    expect(templateCounts(PRESETS, "dca")).toEqual({ proven: 1, experimental: 3, total: 4 });
+    expect(templateCounts(PRESETS, "grid")).toEqual({ proven: 0, experimental: 2, total: 2 });
   });
 
-  it("picks the best non-failed template by TEST mean, never a failed one", () => {
-    expect(bestTemplate(PRESETS, "dca")?.history.testWorstBotDrawdownPct).toBe(-20.7);
-    // A failed template with a higher TEST mean (3.2) is not the evidence.
-    expect(bestTemplate(PRESETS, "grid")).toBeNull();
+  it("only DCA Long Classic is proven: a passed template with another id, or a higher TEST mean, is experimental", () => {
+    expect(PRESETS.map(presetEvidence)).toEqual(["experimental", "proven", "experimental", "experimental", "experimental", "experimental"]);
+    expect(provenPreset(PRESETS, "dca")?.id).toBe("dca_long_classic");
+    expect(provenPreset(PRESETS, "grid")).toBeNull();
+    // A classic that lost its verdict is not called proven.
+    expect(presetEvidence(preset("dca", "failed", 1.9, false, -20, "dca_long_classic"))).toBe("experimental");
+  });
+
+  it("lists the proven template first and keeps the rest in order", () => {
+    expect(provenFirst(PRESETS).map((p) => p.id)).toEqual([
+      "dca_long_classic",
+      "dca_long_safe",
+      ...PRESETS.slice(2).map((p) => p.id),
+    ]);
   });
 
   it("free budget is the form's formula, floored at zero", () => {

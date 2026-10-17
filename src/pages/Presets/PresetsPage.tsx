@@ -16,7 +16,7 @@ import { formatNumber, formatPercent, formatSignedPercent, NO_VALUE, pnlToneAttr
 import { liveRankable, presetsLive, type LiveTemplate, type PresetsLive } from "@/lib/ipc/strategy/presetsLive";
 import type { Preset, StrategyKind } from "@/lib/ipc/strategy/strategy";
 import { presetName, sideText, universeText } from "@/lib/strategyText";
-import { monthName, reasonLines, shortDate, testSplit, usePresets, useTemplateLauncher, VerdictChip, verdictBucket } from "./presetUi";
+import { EvidenceBadge, monthName, provenFirst, provenPreset, reasonLines, shortDate, testSplit, usePresets, useTemplateLauncher, VerdictChip, verdictBucket } from "./presetUi";
 import { InfoTip } from "@/components/ui/InfoTip/InfoTip";
 import { MetaLine } from "@/components/ui/MetaLine/MetaLine";
 import "./Presets.css";
@@ -103,6 +103,38 @@ function LivePanel({ live, failed, id }: { live: PresetsLive | null; failed: boo
   );
 }
 
+/**
+ * The recommendation above the list: the one proven template, on its own
+ * majors universe, with its TEST numbers and, when the data has it, what the
+ * same settings did on a wider pair list.
+ */
+function ProvenPick({ p, onUse }: { p: Preset; onUse: () => void }) {
+  const { t, i18n } = useTranslation();
+  const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
+  const s = testSplit(p);
+  const w = p.wideUniverse;
+  return (
+    <div className="ae-banner ae-preset__pick" data-tone="info" role="note">
+      <p>
+        <strong>{t("strategy.preset.evidence.pickTitle", { name: presetName(t, p), universe: universeText(t, p.universe) })}</strong>{" "}
+        {s
+          ? t("strategy.preset.evidence.pickBody", {
+              mean: formatSignedPercent(s.meanPerBotMonthPct, locale),
+              pos: s.monthsPositive,
+              months: s.months,
+              dd: formatSignedPercent(p.history.testWorstBotDrawdownPct, locale, 1),
+            })
+          : null}{" "}
+        {w ? t("strategy.preset.evidence.pickWide", { n: w.topN, dd: formatSignedPercent(w.worstBotDrawdownPct, locale, 1) }) : null}{" "}
+        {t("strategy.preset.evidence.pickOthers")}
+      </p>
+      <Button size="sm" onClick={onUse}>
+        {t("strategy.preset.evidence.pickUse", { name: presetName(t, p) })}
+      </Button>
+    </div>
+  );
+}
+
 /** Settings of a preset in one line of labels and numbers. */
 function configFacts(t: TFunction, p: Preset, locale: string): Fact[] {
   const c = p.config;
@@ -156,7 +188,8 @@ export function PresetsPage() {
   const { presets, error } = usePresets();
   const type = route.query.get("type");
   const filter = type === "dca" || type === "grid" ? type : null;
-  const rows = presets?.filter((p) => !filter || p.config.params.kind === filter) ?? null;
+  const rows = presets ? provenFirst(presets.filter((p) => !filter || p.config.params.kind === filter)) : null;
+  const proven = rows ? provenPreset(rows) : null;
   const { launch, dialog } = useTemplateLauncher();
   const { live, failed: liveFailed } = usePresetsLive();
   const count = (b: ReturnType<typeof verdictBucket>) => rows?.filter((p) => verdictBucket(p) === b).length ?? 0;
@@ -184,7 +217,8 @@ export function PresetsPage() {
         <>
           <Link to={`/presets/${p.id}`} className="ae-link">
             {presetName(t, p)}
-          </Link>
+          </Link>{" "}
+          <EvidenceBadge p={p} />
           <span className="ae-preset__situation">
             {t(`strategy.preset.situation.${p.situation}`, { defaultValue: p.situation })}
             {p.minBudget !== null ? ` · ${t("strategy.preset.minBudgetShort", { amount: formatNumber(Math.ceil(p.minBudget), locale, { maximumFractionDigits: 0 }) })}` : null}
@@ -298,6 +332,7 @@ export function PresetsPage() {
           />
         }
       />
+      {proven ? <ProvenPick p={proven} onUse={() => launch(proven)} /> : rows && rows.length > 0 ? <p className="ae-subtle">{t("strategy.preset.evidence.noneOfType")}</p> : null}
       {rows && rows.length > 0 ? (
         <KpiGrid minTile={150} label={t("strategy.preset.summary.label")}>
           <KpiTile label={t("strategy.preset.summary.passed")} value={count("passed")} tone={count("passed") > 0 ? "up" : undefined} note={t("strategy.preset.summary.passedNote")} />
@@ -451,7 +486,9 @@ export function PresetDetailPage({ presetId }: { presetId: string }) {
           />
         }
       />
-      <p className="ae-preset__situation-line">{t(`strategy.preset.situation.${p.situation}`, { defaultValue: p.situation })}</p>
+      <p className="ae-preset__situation-line">
+        <EvidenceBadge p={p} /> {t(`strategy.preset.situation.${p.situation}`, { defaultValue: p.situation })}
+      </p>
       <LivePanel live={live} failed={liveFailed} id={p.id} />
       {p.verdict === "failed" ? (
         <div className="ae-banner" data-tone="danger" role="note">

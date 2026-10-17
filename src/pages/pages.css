@@ -311,3 +311,10 @@ button.ae-link {
 .ae-detail-card {
   max-width: 560px;
 }
+
+/* Cost warning under a 15m / 30m timeframe choice (lib/timeframeCost.tsx). */
+.ae-tfcost {
+  display: block;
+  margin-top: 2px;
+  color: var(--warn-text);
+}

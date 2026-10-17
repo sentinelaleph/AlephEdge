@@ -783,14 +783,10 @@
     "templates": "Hazır ayarlar",
     "templatesNone": "Bu sürümde yok",
     "yoursLive": "{{n}} LIVE",
-    "templatesPassed": "{{n}} geçti",
-    "templatesReview": "{{n}} incelemede",
-    "templatesFailed": "{{n}} başarısız",
     "templatesSignal": "Yok: Sentinel sinyallerini izler",
     "evidence": "Test sonucu",
     "evidenceSignal": "Bu uygulamada test edilmedi. Her Sentinel sinyali ve ücretler sonrası sonucu açık defterde: ribqa.com/signals.",
-    "evidenceNone": "Geçmiş testi geçen şablon yok",
-    "evidenceTemplate": "En iyi şablon, geçmiş TEST: bot-ay başına {{mean}} (%95 GA {{lo}} ile {{hi}}), en kötü bot {{dd}}",
+    "evidenceNone": "Kanıtlanmış şablon yok. Bu türdeki tüm şablonlar deneysel.",
     "evidenceInfo": "Geçmiş mumlar üzerinde ücretli simülasyon; ayrılmış bir TEST döneminde bir kez değerlendirildi. Tahmin değildir; her şablonun kontrolleri Şablonlar sayfasında.",
     "realMoney": "Gerçek para",
     "realFutures": "{{venues}} Futures",
@@ -810,7 +806,11 @@
       "liveBots": "Gerçek paradaki botlar",
       "toRisk": "Risk ve güvenlik",
       "toKeys": "Borsa anahtarları"
-    }
+    },
+    "templatesProven": "{{n}} kanıtlanmış",
+    "templatesExperimental": "{{n}} deneysel",
+    "evidenceProven": "Kanıtlanmış şablon {{name}}, geçmiş TEST: bot-ay başına {{mean}} (%95 GA {{lo}} ile {{hi}}), en kötü bot {{dd}}",
+    "startProven": "{{name}} ile başla"
   },
   "botDetail": {
     "notFound": "Bot bulunamadı",
@@ -1504,7 +1504,40 @@
       "commandsDesc": "/status: çalışan botlar, açık pozisyonlar, bugünün neti. /stop: tüm botlarda yeni girişleri durdurur; açık pozisyonlar açık kalır ve yönetilmeye devam eder. Yalnızca bağlı sohbet kullanabilir.",
       "sendTest": "Test gönder",
       "testSent": "Test mesajı gönderildi.",
-      "remove": "Kaldır"
+      "remove": "Kaldır",
+      "mode": {
+        "label": "Gönderen bot",
+        "official": "Resmi bot ({{bot}})",
+        "own": "Kendi botunuz"
+      },
+      "officialState": {
+        "signedOut": "Oturum kapalı",
+        "unavailable": "Resmi bot kullanılamıyor",
+        "blocked": "Bağlı değil",
+        "linked": "Bağlı",
+        "waiting": "Kod bekleniyor",
+        "none": "Bağlı değil"
+      },
+      "officialLede": "Bot olaylarını bu bilgisayardan {{bot}} üzerinden tek bir Telegram sohbetine gönderir, pencere sistem tepsisindeyken de. Bot token gerekmez. Mesajlar İngilizcedir ve Paper ya da LIVE yazar.",
+      "privacy": "Bildirim metni ribqa.com üzerinden Telegram'a geçer. Doğrudan bu bilgisayardan göndermek için \"Kendi botunuz\" seçeneğini seçin.",
+      "signedOut": "Oturum kapalı · bildirimler duraklatıldı. Resmi botu kullanmak için giriş yapın.",
+      "unavailable": "Resmi bot kullanılamıyor. Mesajlar en fazla 10 dakika bekler, sonra atılır.",
+      "notConnected": "Bağlı değil",
+      "linkedAt": "Bağlanma zamanı",
+      "queued": "Gönderilmeyi bekleyen",
+      "checkError": "Son kontrol",
+      "officialExpires": "{{time}} saatine kadar geçerli. Bu sayfa her 3 saniyede bir kontrol eder.",
+      "connect": "{{bot}} bağla",
+      "commandsOfficial": "Yalnızca kendi botunuzla. Resmi bot komutları bu uygulamaya iletmez.",
+      "disconnect": "Bağlantıyı kes",
+      "codeStep1": "Telegram'ı açın ve {{bot}} botunu bulun.",
+      "codeStep2": "Bu kodu bota mesaj olarak gönderin.",
+      "codeStep3": "Bağlantı kurulunca bu panel güncellenir.",
+      "codeLabel": "Bağlantı kodu",
+      "copyCode": "Kodu kopyala",
+      "codeCopied": "Kopyalandı",
+      "copyFailed": "Kopyalanamadı. Kodu seçip kopyalayın.",
+      "openWithCode": "Kodla Telegram'da aç"
     },
     "devices": {
       "canTitle": "Eşlenen telefon neler yapabilir",
@@ -1939,9 +1972,9 @@
       "budgetShort": "Asgari bütçe {{min}} USDT (her emir en az 5 USDT); DCA/Grid bütçe sınırında {{free}} USDT boş. Simüle bakiyeyi ya da risk seviyesini yükseltin:",
       "custom": {
         "base": "Özel ayarlar: tarihsel simülasyon yok.",
-        "passed": "Özel ayarlar: tarihsel simülasyon yok. Geçmişi geçen şablonlar, 1 Kasım'a kadar incelemede: {{names}}.",
         "noneDca": "Özel ayarlar: tarihsel simülasyon yok. {{total}} DCA şablonundan 0'ı kontrolleri geçti.",
-        "noneGrid": "Özel ayarlar: tarihsel simülasyon yok. {{total}} grid şablonundan 0'ı kontrolleri geçti."
+        "noneGrid": "Özel ayarlar: tarihsel simülasyon yok. {{total}} grid şablonundan 0'ı kontrolleri geçti.",
+        "proven": "Özel ayarlar: geçmiş simülasyonu yok. Kanıtlanmış şablon: {{names}}."
       },
       "presetPairOnly": "{{id}} hazır ayarı yalnızca BTCUSDT üzerinde test edildi, {{symbol}} ile açılmaz."
     },
@@ -2429,6 +2462,19 @@
         "ghostDays": "{{days}} gün",
         "ghostNote": "Başlangıç {{since}}, son {{updated}}",
         "ghostOff": "ribqa.com yanıt vermedi"
+      },
+      "evidence": {
+        "proven": "Kanıtlanmış",
+        "provenTip": "Laboratuvarın önceden kayıtlı testini yeni veride geçen tek şablon, kendi büyük coin listesinde.",
+        "experimental": "Deneysel",
+        "experimentalResult": "Deneysel · TEST bot-ay başına {{mean}}",
+        "experimentalTip": "Kanıtlanmadı: laboratuvarın önceden kayıtlı testini yalnızca büyük coinlerde DCA Long Classic geçti.",
+        "noneOfType": "Bu türde kanıtlanmış şablon yok. Buradakilerin hepsi deneysel.",
+        "pickTitle": "Önerilen: {{name}}, {{universe}}.",
+        "pickBody": "TEST bot-ay başına {{mean}}, {{pos}}/{{months}} ay pozitif, en kötü bot {{dd}}.",
+        "pickWide": "Yalnızca büyük coinler: ilk {{n}} çiftte en kötü bot {{dd}} düştü.",
+        "pickOthers": "Diğer tüm şablonlar deneysel.",
+        "pickUse": "{{name}} kullan"
       }
     },
     "notes": {
@@ -2782,6 +2828,20 @@
     "telegramNotLinked": "Önce bir Telegram sohbeti bağlayın.",
     "telegramNoToken": "Önce bir bot token'ı kaydedin.",
     "telegramKeychainFailed": "Sistem anahtar zinciri token'ı kaydedemedi.",
+    "tgSignedOut": "Oturum kapalı · resmi Telegram botunu kullanmak için giriş yapın",
+    "tgNotLinked": "Resmi bota bağlı bir sohbet yok. Yeniden bağlayın.",
+    "tgBlocked": "Sohbet resmi botu engelledi. Telegram'da engeli kaldırın, sonra bir test mesajı gönderin.",
+    "tgRateLimited": "Resmi bot mesajları sınırlıyor (dakikada 20, günde 300). Sonraki mesajdan önce bekleniyor.",
+    "tgUnavailable": "Resmi bot kullanılamıyor. Daha sonra tekrar deneyin.",
+    "tgSendFailed": "Resmi bot mesajı Telegram'a iletemedi.",
+    "tgBadText": "Sunucu bir mesaj metnini reddetti.",
+    "tgQueueDropped": "Bekleyen {{detail}} mesaj atıldı (gönderilmedi).",
+    "tgHttp": "Resmi bot bir hatayla yanıt verdi ({{detail}}).",
+    "tgBadResponse": "Resmi bot bu uygulamanın okuyamadığı bir yanıt gönderdi.",
+    "tgTimeout": "ribqa.com zamanında yanıt vermedi.",
+    "tgLinkExpired": "Kodun süresi doldu. Yeni bir kod alın.",
+    "tgOpenFailed": "Telegram açılamadı. /start mesajını elle gönderin.",
+    "tgNotOfficial": "Önce resmi botu seçin.",
     "updateBackupFailed": "Güncellemeden önceki yedek alınamadı, bu yüzden güncelleme kurulmadı.",
     "backupDirFailed": "Yedek klasörüne yazılamadı.",
     "backupDbFailed": "Veritabanı kopyalanamadı.",
@@ -3148,5 +3208,8 @@
       "candidateTrade": "Bu işlem BTC -%20'de",
       "emptyBook": "açık pozisyon yok"
     }
+  },
+  "timeframeCost": {
+    "warning": "{{tf}}: her mumda işlem yapan bir strateji, {{cost}} gidiş-dönüş maliyetle başa baş için {{rate}} isabet oranı ister. Test edilen hiçbir kurulum buna ulaşmadı."
   }
 }

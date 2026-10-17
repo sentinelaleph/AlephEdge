@@ -54,6 +54,7 @@ import { LeverageRiskDialog, needsLiquidationConfirm } from "@/pages/Bots/strate
 import { StrategyPreviewPanel } from "@/pages/Bots/strategy/StrategyPreviewPanel";
 import { runStore } from "./backtestRunStore";
 import { MetaLine } from "@/components/ui/MetaLine/MetaLine";
+import { TimeframeCostNote } from "@/lib/timeframeCost";
 import "./Backtest.css";
 
 const DAY = 86_400_000;
@@ -372,7 +373,12 @@ export function BacktestPage() {
                 disabled={running}
                 options={BACKTEST_INTERVALS.map((v) => ({ value: v, label: v }))}
                 onChange={setBarInterval}
-                hint={t("backtest.hint.interval")}
+                hint={
+                  <>
+                    {t("backtest.hint.interval")}
+                    <TimeframeCostNote timeframe={interval} />
+                  </>
+                }
               />
               {/* Six short windows: the same segmented control as Interval, wrapped into 3 + 3 when the column is narrow. */}
               <Segmented

@@ -10,8 +10,11 @@ use tauri::{AppHandle, Manager};
 
 use super::api::{Update, LONG_POLL_SECS};
 use super::notify::{self, DeadBot, Snapshot};
-use super::{route, read_token, BotToken, Cmd, Route, TelegramManager, SETTINGS_KEY};
+use super::official::{self, Drained};
+use super::{route, read_token, BotToken, Cmd, Route, Target, TelegramManager, SETTINGS_KEY};
 use crate::app::keychain::OsKeychain;
+use crate::membership::MembershipManager;
+use crate::tvlink::api::{with_session, ApiError};
 use crate::bot::model::LIVE_TRADING_ENABLED;
 use crate::bot::strategy::model::BotRunState;
 use crate::bot::strategy::StrategyManager;
@@ -55,13 +58,17 @@ pub fn spawn(app: &AppHandle) {
 
 fn load(app: &AppHandle) {
     let token = read_token(&OsKeychain);
-    let settings = app
+    let mut settings: super::Settings = app
         .path()
         .app_data_dir()
         .ok()
         .and_then(|dir| app.state::<StoreManager>().get_meta(&dir, SETTINGS_KEY).ok().flatten())
         .and_then(|body| serde_json::from_str(&body).ok())
         .unwrap_or_default();
+    // Rows from before modes: own bot when a token is kept, else official.
+    if settings.migrate(token.is_some()) {
+        let _ = save_settings(app, &settings);
+    }
     let mgr = app.state::<TelegramManager>();
     let mut g = mgr.lock();
     g.token = token;
@@ -162,8 +169,11 @@ pub(crate) async fn send(app: &AppHandle, token: &BotToken, chat: i64, text: &st
 
 async fn notify_pass(app: &AppHandle) {
     let mgr = app.state::<TelegramManager>();
-    let Some((token, chat)) = mgr.lock().active() else {
-        return;
+    let target = mgr.lock().active();
+    let (token, chat) = match target {
+        Some(Target::Own(token, chat)) => (token, chat),
+        Some(Target::Official) => return official_pass(app).await,
+        None => return,
     };
     let snap = match snapshot(app) {
         Ok(s) => s,
@@ -197,6 +207,176 @@ async fn notify_pass(app: &AppHandle) {
     if changed {
         let settings = g.settings.clone();
         drop(g);
+        if let Err(e) = save_settings(app, &settings) {
+            set_error(app, &e, false);
+        }
+    }
+}
+
+/// The official bot's pass: the same events, handed to the outbox. Lines
+/// own their place there, so the cursors move as soon as they are queued.
+/// Signed out pauses the bot; signing in again starts from "now".
+async fn official_pass(app: &AppHandle) {
+    let mgr = app.state::<TelegramManager>();
+    let signed_in = app.state::<MembershipManager>().access_token().is_some();
+    enum Gate {
+        Go,
+        Paused { newly: bool },
+        Resumed(Option<super::Settings>),
+    }
+    let gate = {
+        let mut g = mgr.lock();
+        g.official_signed_in = Some(signed_in);
+        if !signed_in {
+            let newly = !g.official_paused;
+            g.official_paused = true;
+            g.official_queued = 0;
+            Gate::Paused { newly }
+        } else if g.official_paused {
+            g.official_paused = false;
+            // What happened while signed out is not sent as a backlog.
+            match reset_cursors(app, &mut g) {
+                Ok(()) => Gate::Resumed(Some(g.settings.clone())),
+                Err(e) => {
+                    g.last_error = Some((e, false));
+                    Gate::Resumed(None)
+                }
+            }
+        } else {
+            Gate::Go
+        }
+    };
+    match gate {
+        Gate::Go => {}
+        Gate::Paused { newly } => {
+            if newly {
+                let mut ob = mgr.outbox.lock().await;
+                ob.clear();
+                let _ = ob.take_dropped();
+            }
+            return;
+        }
+        Gate::Resumed(settings) => {
+            if let Some(settings) = settings {
+                if let Err(e) = save_settings(app, &settings) {
+                    set_error(app, &e, false);
+                }
+            }
+            return;
+        }
+    }
+    let snap = match snapshot(app) {
+        Ok(s) => s,
+        Err(e) => return set_error(app, &e, false),
+    };
+    let (lines, save) = {
+        let mut g = mgr.lock();
+        let (events, cursors, watch) = notify::pass(&snap, &g.settings.cursors, &g.watch);
+        let categories = g.settings.categories;
+        let wanted: Vec<_> = events.into_iter().filter(|e| categories.allows(&e.cats)).collect();
+        let changed = g.settings.cursors != cursors;
+        g.settings.cursors = cursors;
+        g.watch = watch;
+        (notify::compose(&wanted), changed.then(|| g.settings.clone()))
+    };
+    if let Some(settings) = save {
+        if let Err(e) = save_settings(app, &settings) {
+            set_error(app, &e, false);
+        }
+    }
+    queue_official(app, lines).await;
+}
+
+/// Queues lines for the official bot and sends what can go now.
+pub(crate) async fn queue_official(app: &AppHandle, lines: Vec<String>) {
+    let mgr = app.state::<TelegramManager>();
+    {
+        let mut ob = mgr.outbox.lock().await;
+        for l in lines {
+            ob.push(l, now_ms());
+        }
+    }
+    drain_official(app).await;
+}
+
+/// One relay send: the send gate, the session (one refresh after a 401),
+/// signed out as `tgSignedOut`.
+pub(crate) async fn official_send(mgr: &TelegramManager, membership: &MembershipManager, text: &str) -> Result<(), ApiError> {
+    let base = membership.base_url();
+    let mut last = mgr.send_gate.lock().await;
+    let wait = (*last + MIN_SEND_GAP_MS).saturating_sub(now_ms());
+    if wait > 0 {
+        tokio::time::sleep(Duration::from_millis(wait)).await;
+    }
+    let r = with_session(membership, |token| {
+        let base = base.as_str();
+        async move { mgr.official.send(base, &token, text).await }
+    })
+    .await;
+    *last = now_ms();
+    r.map_err(official_code)
+}
+
+/// The session layer's "signed out" in this module's words.
+pub(crate) fn official_code(e: ApiError) -> ApiError {
+    match e {
+        ApiError::Code(c) if c == crate::tvlink::api::SIGNED_OUT => ApiError::Code(official::SIGNED_OUT.into()),
+        e => e,
+    }
+}
+
+/// Sends the outbox and records the outcome for the panel.
+pub(crate) async fn drain_official(app: &AppHandle) {
+    let mgr = app.state::<TelegramManager>();
+    let membership = app.state::<MembershipManager>();
+    let (m, ms) = (mgr.inner(), membership.inner());
+    let mut ob = mgr.outbox.lock().await;
+    let (end, line_error) = official::drain(&mut ob, now_ms(), |text| async move { official_send(m, ms, &text).await }).await;
+    let dropped = ob.take_dropped();
+    let queued = ob.lines.len();
+    drop(ob);
+    let save = {
+        let mut g = mgr.lock();
+        g.official_queued = queued;
+        let sent = match &end {
+            Drained::Done { sent } | Drained::Held { sent, .. } | Drained::SignedOut { sent } | Drained::Disconnected { sent, .. } => *sent,
+            Drained::Waiting => 0,
+        };
+        if sent > 0 {
+            g.last_sent_at = Some(now_ms());
+            g.official_unavailable = false;
+            if g.last_error.as_ref().is_some_and(|(_, poll)| !poll) {
+                g.last_error = None;
+            }
+        }
+        let mut save = None;
+        let code = match end {
+            Drained::Done { .. } | Drained::Waiting => None,
+            Drained::Held { code, .. } => {
+                g.official_unavailable = code == official::UNAVAILABLE;
+                Some(code)
+            }
+            Drained::SignedOut { .. } => {
+                g.official_paused = true;
+                g.official_signed_in = Some(false);
+                None
+            }
+            Drained::Disconnected { code, .. } => {
+                if code == official::BLOCKED {
+                    g.official_blocked = true;
+                } else {
+                    g.clear_official();
+                    save = Some(g.settings.clone());
+                }
+                Some(code)
+            }
+        };
+        if let Some(c) = code.or(line_error).or(dropped) {
+            g.last_error = Some((c, false));
+        }
+        save
+    };
+    if let Some(settings) = save {
         if let Err(e) = save_settings(app, &settings) {
             set_error(app, &e, false);
         }

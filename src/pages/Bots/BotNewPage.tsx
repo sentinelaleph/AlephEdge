@@ -10,9 +10,10 @@ import { InfoTip } from "@/components/ui/InfoTip/InfoTip";
 import { localeForLanguage } from "@/i18n";
 import { formatSignedPercent, formatUsdt, NO_VALUE } from "@/lib/format";
 import { exchangeName } from "@/lib/ipc/exchange/exchange";
-import { isActive, type StrategyKind } from "@/lib/ipc/strategy/strategy";
-import { testSplit, usePresets } from "@/pages/Presets/presetUi";
-import { bestTemplate, freeStrategyBudget, templateCounts } from "./botNewModel";
+import { isActive, type Preset, type StrategyKind } from "@/lib/ipc/strategy/strategy";
+import { presetName } from "@/lib/strategyText";
+import { presetFormPath, provenPreset, testSplit, usePresets } from "@/pages/Presets/presetUi";
+import { freeStrategyBudget, templateCounts } from "./botNewModel";
 import { signalBotRows } from "./botRows";
 import { useStrategyLive } from "./strategy/useStrategyLive";
 import "./bots.css";
@@ -53,6 +54,17 @@ function Evidence({ fact }: { fact: Fact }) {
       </span>
       <span className="tabular">{fact.value}</span>
     </div>
+  );
+}
+
+/** The card's first button: the proven template's form, when the type has one. */
+function ProvenStart({ p }: { p: Preset | null }) {
+  const { t } = useTranslation();
+  if (!p) return null;
+  return (
+    <Button size="sm" onClick={() => navigate(presetFormPath(p))}>
+      {t("botCreate.startProven", { name: presetName(t, p) })}
+    </Button>
   );
 }
 
@@ -102,23 +114,23 @@ export function BotNewPage() {
     const c = templateCounts(presets, kind);
     if (c.total === 0) return { label: t("botCreate.templates"), value: t("botCreate.templatesNone") };
     const parts = [
-      c.passed ? t("botCreate.templatesPassed", { n: c.passed }) : null,
-      c.review ? t("botCreate.templatesReview", { n: c.review }) : null,
-      c.failed ? t("botCreate.templatesFailed", { n: c.failed }) : null,
+      c.proven ? t("botCreate.templatesProven", { n: c.proven }) : null,
+      c.experimental ? t("botCreate.templatesExperimental", { n: c.experimental }) : null,
     ].filter(Boolean);
-    return { label: t("botCreate.templates"), value: parts.join(" · "), tone: c.passed + c.review === 0 ? "warn" : undefined };
+    return { label: t("botCreate.templates"), value: parts.join(" · "), tone: c.proven === 0 ? "warn" : undefined };
   };
 
   const evidenceFact = (id: TypeCard["id"]): Fact => {
     const label = t("botCreate.evidence");
     if (id === "signal") return { label, value: t("botCreate.evidenceSignal"), tone: "muted" };
     if (!presets) return { label, value: NO_VALUE };
-    const best = bestTemplate(presets, id);
+    const best = provenPreset(presets, id);
     const s = best ? testSplit(best) : null;
     if (!best || !s) return { label, value: t("botCreate.evidenceNone"), tone: "warn" };
     return {
       label,
-      value: t("botCreate.evidenceTemplate", {
+      value: t("botCreate.evidenceProven", {
+        name: presetName(t, best),
         mean: pct(s.meanPerBotMonthPct),
         lo: pct(s.ci95LowPct),
         hi: pct(s.ci95HighPct),
@@ -127,6 +139,9 @@ export function BotNewPage() {
       info: t("botCreate.evidenceInfo"),
     };
   };
+
+  /** The proven template of a strategy type (DCA only today), the card's first button. */
+  const proven = (id: TypeCard["id"]) => (id !== "signal" && presets ? provenPreset(presets, id) : null);
 
   const realFact = (): Fact => ({
     label: t("botCreate.realMoney"),
@@ -254,6 +269,7 @@ export function BotNewPage() {
                 </Button>
               ) : (
                 <>
+                  <ProvenStart p={proven(c.id)} />
                   <Button variant="secondary" size="sm" onClick={() => navigate(`/presets?type=${c.id}`)}>
                     {t("botCreate.fromTemplate")}
                   </Button>

@@ -783,14 +783,10 @@
     "templates": "Presets",
     "templatesNone": "None in this build",
     "yoursLive": "{{n}} LIVE",
-    "templatesPassed": "{{n}} passed",
-    "templatesReview": "{{n}} under review",
-    "templatesFailed": "{{n}} failed",
     "templatesSignal": "None: follows Sentinel signals",
     "evidence": "Tested result",
     "evidenceSignal": "Not tested in this app. Every Sentinel signal and its result after fees is on the public ledger, ribqa.com/signals.",
-    "evidenceNone": "No template passed the historical test",
-    "evidenceTemplate": "Best template, historical TEST: {{mean}} per bot-month (95% CI {{lo}} to {{hi}}), worst bot {{dd}}",
+    "evidenceNone": "No proven template. Every template of this type is experimental.",
     "evidenceInfo": "Historical simulation on past candles with fees, judged once on a held-out TEST period. Not a forecast; Presets lists every template's checks.",
     "realMoney": "Real money",
     "realFutures": "Futures on {{venues}}",
@@ -810,7 +806,11 @@
       "liveBots": "Bots on real money",
       "toRisk": "Risk & safety",
       "toKeys": "Exchange keys"
-    }
+    },
+    "templatesProven": "{{n}} proven",
+    "templatesExperimental": "{{n}} experimental",
+    "evidenceProven": "Proven template {{name}}, historical TEST: {{mean}} per bot-month (95% CI {{lo}} to {{hi}}), worst bot {{dd}}",
+    "startProven": "Start with {{name}}"
   },
   "botDetail": {
     "notFound": "Bot not found",
@@ -1504,7 +1504,40 @@
       "commandsDesc": "/status: bots running, open positions, today's net. /stop: stops new entries on every bot; open positions stay open and managed. Only the linked chat can use them.",
       "sendTest": "Send test",
       "testSent": "Test message sent.",
-      "remove": "Remove"
+      "remove": "Remove",
+      "mode": {
+        "label": "Sending bot",
+        "official": "Official bot ({{bot}})",
+        "own": "Your own bot"
+      },
+      "officialState": {
+        "signedOut": "Signed out",
+        "unavailable": "Official bot unavailable",
+        "blocked": "Not connected",
+        "linked": "Linked",
+        "waiting": "Waiting for the code",
+        "none": "Not connected"
+      },
+      "officialLede": "Sends bot events from this computer to one Telegram chat through {{bot}}, also while the window is in the tray. No bot token needed. Messages are in English and say Paper or LIVE.",
+      "privacy": "Notification text passes through ribqa.com to Telegram. Choose \"Your own bot\" to send directly from this computer.",
+      "signedOut": "Signed out · notifications are paused. Sign in to use the official bot.",
+      "unavailable": "Official bot unavailable. Messages wait up to 10 minutes, then are dropped.",
+      "notConnected": "Not connected",
+      "linkedAt": "Linked at",
+      "queued": "Waiting to send",
+      "checkError": "Last check",
+      "officialExpires": "Valid until {{time}}. This page checks every 3 seconds.",
+      "connect": "Connect {{bot}}",
+      "commandsOfficial": "Only with your own bot. The official bot does not pass commands back to this app.",
+      "disconnect": "Disconnect",
+      "codeStep1": "Open Telegram and find {{bot}}.",
+      "codeStep2": "Send this code to the bot as a message.",
+      "codeStep3": "This panel updates when connected.",
+      "codeLabel": "Link code",
+      "copyCode": "Copy code",
+      "codeCopied": "Copied",
+      "copyFailed": "Copy failed. Select the code and copy it.",
+      "openWithCode": "Open in Telegram with the code"
     },
     "devices": {
       "canTitle": "What a paired phone can do",
@@ -1939,9 +1972,9 @@
       "budgetShort": "Minimum budget {{min}} USDT (every order at least 5 USDT); {{free}} USDT free under the DCA/Grid budget cap. Raise the simulated balance or the risk level:",
       "custom": {
         "base": "Custom settings: no historical simulation.",
-        "passed": "Custom settings: no historical simulation. Templates with a passing history, under review until 1 Nov: {{names}}.",
         "noneDca": "Custom settings: no historical simulation. 0 of {{total}} DCA templates passed their checks.",
-        "noneGrid": "Custom settings: no historical simulation. 0 of {{total}} grid templates passed their checks."
+        "noneGrid": "Custom settings: no historical simulation. 0 of {{total}} grid templates passed their checks.",
+        "proven": "Custom settings: no historical simulation. Proven template: {{names}}."
       },
       "presetPairOnly": "Preset {{id}} was tested on BTCUSDT only and does not open with {{symbol}}."
     },
@@ -2429,6 +2462,19 @@
         "ghostDays": "{{days}} days",
         "ghostNote": "From {{since}}, last {{updated}}",
         "ghostOff": "ribqa.com did not answer"
+      },
+      "evidence": {
+        "proven": "Proven",
+        "provenTip": "The only template that passed the lab's pre-registered test on fresh data, on its own major-coin list.",
+        "experimental": "Experimental",
+        "experimentalResult": "Experimental · TEST {{mean}} per bot-month",
+        "experimentalTip": "Not proven: only DCA Long Classic on major coins passed the lab's pre-registered test.",
+        "noneOfType": "No template of this type is proven. Every one here is experimental.",
+        "pickTitle": "Recommended: {{name}} on {{universe}}.",
+        "pickBody": "TEST {{mean}} per bot-month, {{pos}}/{{months}} months positive, worst bot {{dd}}.",
+        "pickWide": "Majors only: on the top {{n}} pairs the worst bot fell {{dd}}.",
+        "pickOthers": "Every other template is experimental.",
+        "pickUse": "Use {{name}}"
       }
     },
     "notes": {
@@ -2782,6 +2828,20 @@
     "telegramNotLinked": "Link a Telegram chat first.",
     "telegramNoToken": "Save a bot token first.",
     "telegramKeychainFailed": "The system keychain did not save the token.",
+    "tgSignedOut": "Signed out · sign in to use the official Telegram bot",
+    "tgNotLinked": "No chat is connected to the official bot. Connect it again.",
+    "tgBlocked": "The chat blocked the official bot. Unblock it in Telegram, then send a test message.",
+    "tgRateLimited": "The official bot is limiting messages (20 a minute, 300 a day). Waiting before the next one.",
+    "tgUnavailable": "Official bot unavailable. Try again later.",
+    "tgSendFailed": "The official bot could not deliver the message to Telegram.",
+    "tgBadText": "The server refused a message text.",
+    "tgQueueDropped": "{{detail}} waiting messages were dropped (not sent).",
+    "tgHttp": "The official bot answered with an error ({{detail}}).",
+    "tgBadResponse": "The official bot sent an answer this app cannot read.",
+    "tgTimeout": "ribqa.com did not answer in time.",
+    "tgLinkExpired": "The code expired. Get a new one.",
+    "tgOpenFailed": "Telegram could not be opened. Send the /start message by hand.",
+    "tgNotOfficial": "Choose the official bot first.",
     "updateBackupFailed": "The backup before the update failed, so the update was not installed.",
     "backupDirFailed": "The backups folder could not be written.",
     "backupDbFailed": "The database could not be copied.",
@@ -3148,5 +3208,8 @@
       "candidateTrade": "This trade at BTC -20%",
       "emptyBook": "no open exposures"
     }
+  },
+  "timeframeCost": {
+    "warning": "{{tf}}: trading every candle needs a {{rate}} hit rate to break even at {{cost}} round-trip cost. No tested setup reached it."
   }
 }

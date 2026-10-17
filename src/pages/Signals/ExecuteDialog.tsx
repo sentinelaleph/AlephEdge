@@ -10,7 +10,7 @@ import { errorMessage } from "@/lib/ipc/bridge";
 import type { Signal } from "@/lib/ipc/signal/signal";
 import { strategyPresets, type Preset, type StrategyKind } from "@/lib/ipc/strategy/strategy";
 import { presetName, strategyErrorText } from "@/lib/strategyText";
-import { testSplit, useTemplateLauncher, VerdictChip } from "@/pages/Presets/presetUi";
+import { EvidenceBadge, provenFirst, testSplit, useTemplateLauncher, VerdictChip } from "@/pages/Presets/presetUi";
 import { signalBotsFor, TakeNow } from "./TakeNow";
 import "./ExecuteDialog.css";
 
@@ -25,7 +25,7 @@ export function executeTemplates(presets: Preset[], s: SignalSide): Record<Strat
   const fits = (p: Preset) => p.universe.rule !== "btcOnly" || s.symbol === "BTCUSDT";
   const sideFits = (p: Preset) =>
     p.config.params.kind === "dca" ? p.config.side === s.direction : p.config.side === s.direction || (s.direction === "long" && p.config.side === "neutral");
-  const ok = presets.filter((p) => fits(p) && sideFits(p));
+  const ok = provenFirst(presets.filter((p) => fits(p) && sideFits(p)));
   return { dca: ok.filter((p) => p.config.params.kind === "dca"), grid: ok.filter((p) => p.config.params.kind === "grid") };
 }
 
@@ -51,7 +51,9 @@ function TemplateList({ kind, rows, symbol, onOpen }: { kind: StrategyKind; rows
             const mean = testSplit(p)?.meanPerBotMonthPct;
             return (
               <li key={p.id} className="ae-exec__row" data-preset={p.id}>
-                <span className="ae-exec__name">{presetName(t, p)}</span>
+                <span className="ae-exec__name">
+                  {presetName(t, p)} <EvidenceBadge p={p} bare />
+                </span>
                 <VerdictChip p={p} />
                 <span className="ae-exec__mean tabular" data-tone={pnlToneAttr(mean)}>
                   <span className="ae-subtle">{t("strategy.preset.col.testMean")}</span> {mean === undefined ? NO_VALUE : formatSignedPercent(mean, locale)}

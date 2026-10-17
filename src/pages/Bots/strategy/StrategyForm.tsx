@@ -31,6 +31,7 @@ import { StrategyLevelsTable } from "./StrategyPreviewPanel";
 import { GridSuggest } from "./GridSuggest";
 import { pairListText, presetPairCheck } from "./presetPair";
 import { presetsLive, type LiveTemplate } from "@/lib/ipc/strategy/presetsLive";
+import { EvidenceBadge, presetEvidence } from "@/pages/Presets/presetUi";
 import "./StrategyForm.css";
 import { TrendMismatchNote } from "@/components/Desk/MarketTrend";
 
@@ -375,6 +376,11 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
             {t("guide.formLink")}
           </Link>
         </p>
+        {preset ? (
+          <p className="ae-sform__evidence">
+            <EvidenceBadge p={preset} />
+          </p>
+        ) : null}
         {preset ? (
           <p className="ae-banner" data-tone={!presetParity || pair.state === "outside" ? "warn" : "info"}>
             {!presetParity
@@ -895,12 +901,12 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
 function CustomSettingsNote({ kind, templates }: { kind: StrategyKind; templates: Preset[] | null }) {
   const { t } = useTranslation();
   const own = templates?.filter((p) => p.config.params.kind === kind) ?? null;
-  const passed = own?.filter((p) => p.verdict === "presetReady") ?? null;
+  const passed = own?.filter((p) => presetEvidence(p) === "proven") ?? null;
   const text =
     own === null || passed === null
       ? t("strategy.form.custom.base")
       : passed.length > 0
-        ? t("strategy.form.custom.passed", { names: passed.map((p) => presetName(t, p)).join(", ") })
+        ? t("strategy.form.custom.proven", { names: passed.map((p) => `${presetName(t, p)} (${universeText(t, p.universe)})`).join(", ") })
         : t(kind === "grid" ? "strategy.form.custom.noneGrid" : "strategy.form.custom.noneDca", { total: own.length });
   return (
     <p className="ae-banner" data-tone={passed !== null && passed.length === 0 ? "warn" : "info"}>

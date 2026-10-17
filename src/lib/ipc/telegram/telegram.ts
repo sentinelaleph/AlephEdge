@@ -27,7 +27,37 @@ export interface TelegramPrefs {
   categories: TelegramCategories;
 }
 
+/** Which bot sends: Sentinel's official bot, or the user's own. */
+export type TelegramMode = "official" | "own";
+
+/** The official bot (@SentinelAleph_bot), through ribqa.com. */
+export interface TelegramOfficial {
+  /** The bot's @username without the @. */
+  bot: string;
+  /** From the last server read; null before one. */
+  available: boolean | null;
+  /** null until checked. */
+  signedIn: boolean | null;
+  linked: boolean;
+  chatLabel: string | null;
+  linkedAt: number | null;
+  /** A code waiting for `/start <code>`; null when none is live. */
+  linking: { code: string; expiresAtMs: number; bot: string } | null;
+  /** The chat blocked the bot: nothing is sent. */
+  blocked: boolean;
+  /** Signed out: sending is paused. */
+  paused: boolean;
+  /** The last send met "official bot unavailable". */
+  unavailable: boolean;
+  /** Lines waiting to be sent. */
+  queued: number;
+  /** Why the last server read failed (`errors.*` code). */
+  checkError: string | null;
+}
+
 export interface TelegramStatus {
+  mode: TelegramMode;
+  official: TelegramOfficial;
   tokenSet: boolean;
   botUsername: string | null;
   linked: boolean;
@@ -63,4 +93,22 @@ export function telegramSetPrefs(prefs: TelegramPrefs): Promise<TelegramStatus> 
 
 export function telegramTest(): Promise<TelegramStatus> {
   return inTauri() ? invoke<TelegramStatus>("telegram_test") : mock((m) => m.mock.test());
+}
+
+export function telegramSetMode(mode: TelegramMode): Promise<TelegramStatus> {
+  return inTauri() ? invoke<TelegramStatus>("telegram_set_mode", { mode }) : mock((m) => m.mock.setMode(mode));
+}
+
+/** Official bot: a one-time code and its t.me link (kept in Rust). */
+export function telegramOfficialLink(): Promise<TelegramStatus> {
+  return inTauri() ? invoke<TelegramStatus>("telegram_official_link") : mock((m) => m.mock.officialLink());
+}
+
+/** Opens the live code's t.me link outside the app. */
+export function telegramOfficialOpen(): Promise<TelegramStatus> {
+  return inTauri() ? invoke<TelegramStatus>("telegram_official_open") : mock((m) => m.mock.officialOpen());
+}
+
+export function telegramOfficialUnlink(): Promise<TelegramStatus> {
+  return inTauri() ? invoke<TelegramStatus>("telegram_official_unlink") : mock((m) => m.mock.officialUnlink());
 }

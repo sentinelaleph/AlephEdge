@@ -1,28 +1,17 @@
 import type { Preset, StrategyKind, StrategyRiskView } from "@/lib/ipc/strategy/strategy";
-import { testSplit, verdictBucket } from "@/pages/Presets/presetUi";
+import { presetEvidence } from "@/pages/Presets/presetUi";
 
 export interface TemplateCounts {
-  passed: number;
-  review: number;
-  failed: number;
+  proven: number;
+  experimental: number;
   total: number;
 }
 
-/** The templates of one bot type, by verdict bucket (passed / under review / failed). */
+/** The templates of one bot type: the proven one, and every other (experimental). */
 export function templateCounts(presets: Preset[], kind: StrategyKind): TemplateCounts {
   const of = presets.filter((p) => p.config.params.kind === kind);
-  const n = (b: string) => of.filter((p) => verdictBucket(p) === b).length;
-  return { passed: n("passed"), review: n("review"), failed: n("failed"), total: of.length };
-}
-
-/**
- * The best template of a type that did not fail its historical test, by the
- * TEST split's mean per bot-month; null when every template failed.
- */
-export function bestTemplate(presets: Preset[], kind: StrategyKind): Preset | null {
-  const ok = presets.filter((p) => p.config.params.kind === kind && verdictBucket(p) !== "failed" && testSplit(p));
-  if (ok.length === 0) return null;
-  return ok.reduce((a, b) => ((testSplit(b)?.meanPerBotMonthPct ?? -Infinity) > (testSplit(a)?.meanPerBotMonthPct ?? -Infinity) ? b : a));
+  const proven = of.filter((p) => presetEvidence(p) === "proven").length;
+  return { proven, experimental: of.length - proven, total: of.length };
 }
 
 /** Strategy budget still free under the risk level's cap, the form's own formula for a new bot. */

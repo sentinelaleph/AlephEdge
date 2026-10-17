@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "@/i18n";
 import { mock } from "@/lib/ipc/telegram/telegram.mock";
 import { TelegramPanel } from "./TelegramPanel";
@@ -52,7 +52,11 @@ afterEach(async () => {
   host = null;
 });
 
-describe("Settings, Notifications, Telegram panel", () => {
+describe("Settings, Notifications, Telegram panel: own bot", () => {
+  beforeEach(async () => {
+    await mock.setMode("own");
+  });
+
   it("not set up: shows the steps and a password field, and refuses a malformed token", async () => {
     const el = await mount();
     expect(chip(el)).toBe("Not set up");
@@ -125,5 +129,126 @@ describe("Settings, Notifications, Telegram panel", () => {
     await click(el.querySelector("#tg-enabled")!);
     expect((await mock.status()).prefs.enabled).toBe(false);
     expect(el.querySelector<HTMLInputElement>("#tg-killSwitch")!.disabled).toBe(true);
+  });
+});
+
+describe("Settings, Notifications, Telegram panel: official bot", () => {
+  const radio = (el: ParentNode, name: string) =>
+    [...el.querySelectorAll<HTMLButtonElement>('[role="radio"]')].find((b) => b.textContent === name);
+
+  it("is the default: the official choice is selected, no token field, the privacy line is shown", async () => {
+    const el = await mount();
+    expect(radio(el, "Official bot (@SentinelAleph_bot)")!.getAttribute("aria-checked")).toBe("true");
+    expect(radio(el, "Your own bot")!.getAttribute("aria-checked")).toBe("false");
+    expect(chip(el)).toBe("Not connected");
+    expect(el.querySelector(".ae-tg__token")).toBeNull();
+    expect(el.textContent).toContain("Notification text passes through ribqa.com to Telegram.");
+    expect(button(el, "Connect @SentinelAleph_bot")).toBeDefined();
+    expect(button(el, "Send test")).toBeUndefined();
+  });
+
+  it("switching modes shows the own-bot setup and back", async () => {
+    const el = await mount();
+    await click(radio(el, "Your own bot")!);
+    expect((await mock.status()).mode).toBe("own");
+    expect(chip(el)).toBe("Not set up");
+    expect(el.querySelector(".ae-tg__token input")).not.toBeNull();
+    expect(el.textContent).not.toContain("passes through ribqa.com");
+    await click(radio(el, "Official bot (@SentinelAleph_bot)")!);
+    expect((await mock.status()).mode).toBe("official");
+    expect(el.querySelector(".ae-tg__token")).toBeNull();
+  });
+
+  it("connect: the code alone is the main path, shown large with Copy and the three steps; the t.me link is secondary", async () => {
+    const el = await mount();
+    await click(button(el, "Connect @SentinelAleph_bot")!);
+    expect(chip(el)).toBe("Waiting for the code");
+    // The bare code, no "/start": the bot takes the code sent on its own.
+    const code = el.querySelector(".ae-tg__code--big");
+    expect(code?.textContent).toBe("Q4RT8WXM");
+    expect(el.textContent).not.toContain("/start");
+    expect([...el.querySelectorAll(".ae-tg__steps li")].map((li) => li.textContent)).toEqual([
+      "Open Telegram and find @SentinelAleph_bot.",
+      "Send this code to the bot as a message.",
+      "This panel updates when connected.",
+    ]);
+    // Copy is the primary button; opening Telegram is a secondary one.
+    const copy = button(el, "Copy code")!;
+    expect(copy.className).toContain("ae-btn--primary");
+    const open = button(el, "Open in Telegram with the code")!;
+    expect(open.className).toContain("ae-btn--secondary");
+    await click(open);
+    expect(el.querySelector('[role="alert"]')).toBeNull();
+
+    // The user sends the code; the next read sees the link.
+    mock.officialLinked("@ann");
+    await act(async () => root!.unmount());
+    host!.remove();
+    const again = await mount();
+    expect(chip(again)).toBe("Linked");
+    expect(again.textContent).toContain("@ann");
+    expect(again.querySelector(".ae-tg__code")).toBeNull();
+    expect(again.querySelector<HTMLInputElement>("#tg-enabled")!.checked).toBe(true);
+  });
+
+  it("Copy code puts the bare code on the clipboard and says so; a refused copy says to select it", async () => {
+    const writeText = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const el = await mount();
+    await click(button(el, "Connect @SentinelAleph_bot")!);
+    await click(button(el, "Copy code")!);
+    expect(writeText).toHaveBeenCalledWith("Q4RT8WXM");
+    expect(button(el, "Copied")).toBeDefined();
+
+    writeText.mockRejectedValueOnce(new Error("denied"));
+    await click(button(el, "Copied")!);
+    expect(button(el, "Copy failed. Select the code and copy it.")).toBeDefined();
+  });
+
+  it("linked: the commands switch is disabled with its reason; test and disconnect", async () => {
+    mock.officialLinked("@ann");
+    const el = await mount();
+    expect(chip(el)).toBe("Linked");
+    const commands = el.querySelector<HTMLInputElement>("#tg-commands")!;
+    expect(commands.disabled).toBe(true);
+    expect(commands.checked).toBe(false);
+    expect(el.textContent).toContain("Only with your own bot. The official bot does not pass commands back to this app.");
+
+    await click(el.querySelector("#tg-dealClosed")!);
+    expect((await mock.status()).prefs.categories.dealClosed).toBe(false);
+
+    await click(button(el, "Send test")!);
+    expect(el.querySelector('[role="status"]')?.textContent).toBe("Test message sent.");
+
+    await click(button(el, "Disconnect")!);
+    expect(chip(el)).toBe("Not connected");
+    expect((await mock.status()).official.linked).toBe(false);
+    expect(el.querySelector("#tg-enabled")).toBeNull();
+  });
+
+  it("signed out: paused, no connect button", async () => {
+    mock.setOfficial({ signedIn: false });
+    const el = await mount();
+    expect(chip(el)).toBe("Signed out");
+    expect(el.textContent).toContain("Signed out · notifications are paused.");
+    expect(button(el, "Connect @SentinelAleph_bot")).toBeUndefined();
+  });
+
+  it("blocked and unavailable are named, with the last error in the user's language", async () => {
+    mock.officialLinked("@ann");
+    mock.setOfficial({ blocked: true });
+    mock.setError("tgBlocked");
+    const el = await mount();
+    expect(chip(el)).toBe("Not connected");
+    expect(el.textContent).toContain("The chat blocked the official bot.");
+
+    await act(async () => root!.unmount());
+    host!.remove();
+    mock.setOfficial({ blocked: false, unavailable: true, queued: 2 });
+    mock.setError("tgUnavailable");
+    const down = await mount();
+    expect(chip(down)).toBe("Official bot unavailable");
+    expect(down.textContent).toContain("Messages wait up to 10 minutes, then are dropped.");
+    expect(down.textContent).toContain("Waiting to send");
   });
 });
