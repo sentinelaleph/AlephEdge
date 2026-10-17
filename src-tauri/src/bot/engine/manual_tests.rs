@@ -195,7 +195,7 @@ fn the_book_never_holds_a_signal_or_symbol_twice_for_one_bot() {
     assert_eq!(m.open_count(), 2);
 }
 
-// Runner parity: the loop's gate (which the server-side paper runner compiles) is
+// Runner parity: the loop's gate (which the server-side bot farm compiles) is
 // exactly the Auto mode, case for case.
 #[test]
 fn the_loops_gate_is_unchanged() {
@@ -317,7 +317,7 @@ fn the_preview_compares_reward_risk_at_the_fill_with_the_published_one() {
     assert_eq!(reward_risk(90.0, 106.0, 90.0), 0.0, "no risk, no ratio");
 }
 
-// The loop's plan (which the paper runner compiles) is exactly Auto mode.
+// The loop's plan (which the bot farm compiles) is exactly Auto mode.
 #[test]
 fn the_loops_plan_is_unchanged() {
     let c = cfg();

@@ -13,7 +13,7 @@ import {
   SPOT_FEE_RATE,
 } from "./sizing";
 import { customPctValid, MAX_CUSTOM_TP_PCT, MIN_CUSTOM_TP_PCT, signalTpDistances, targetLabel } from "./takeProfit";
-import { capitalAboveCap, DEFAULT_CAPITAL, defaultCapitalWithin, EXCHANGE_MIN_ORDER_USDT, MAX_BOT_POSITIONS } from "./botLimits";
+import { capitalAboveCap, DEFAULT_CAPITAL, defaultCapitalWithin, defaultRiskPctFor, DESK_STOP_CEILING_FRAC, EXCHANGE_MIN_ORDER_USDT, MAX_BOT_POSITIONS } from "./botLimits";
 import type { Signal } from "@/lib/ipc/signal/signal";
 
 /** Rust sources the TS constants must match. */
@@ -35,12 +35,6 @@ const SIZING_RS = "/src-tauri/src/bot/engine/sizing.rs";
 const MODEL_RS = "/src-tauri/src/bot/model.rs";
 const COMMANDS_RS = "/src-tauri/src/bot/commands.rs";
 
-/** A private `const NAME: f64 = …;` (rustConst reads only `pub const`). */
-function rustPrivateConst(file: string, name: string): number {
-  const m = new RegExp(`const ${name}: \\w+ = ([0-9_.]+);`).exec(RUST[file]);
-  expect(m, `${name} not found in ${file}`).not.toBeNull();
-  return Number(m![1].replace(/_/g, ""));
-}
 
 describe("constants match the Rust side", () => {
   it("sizing.rs", () => {
@@ -62,7 +56,22 @@ describe("constants match the Rust side", () => {
   });
 
   it("commands.rs", () => {
-    expect(DEFAULT_CAPITAL).toBe(rustPrivateConst(COMMANDS_RS, "DEFAULT_CAPITAL"));
+    // `default_capital` and its constant moved to bot/model.rs (shared with
+    // the headless bot farm); commands.rs re-exports it.
+    expect(DEFAULT_CAPITAL).toBe(rustConst(MODEL_RS, "DEFAULT_CAPITAL"));
+    expect(RUST[COMMANDS_RS]).toContain("pub use super::model::default_capital;");
+    expect(DESK_STOP_CEILING_FRAC).toBe(rustConst(MODEL_RS, "DESK_STOP_CEILING_FRAC"));
+    expect(RUST[COMMANDS_RS]).toContain("BotConfig::new_tradable_for_desk(kind, &exchange_id");
+  });
+
+  it("the default new bot's risk % lets a 10% stop clear the 5 USDT minimum (mirror of default_risk_pct_for)", () => {
+    expect(defaultRiskPctFor(20)).toBe(2.6);
+    expect(defaultRiskPctFor(100)).toBe(1);
+    expect(defaultRiskPctFor(10)).toBe(5);
+    expect(defaultRiskPctFor(0)).toBe(1);
+    // 20 USDT at 2.6%, 10% stop: just over the minimum; at 1% a 7% stop is not.
+    expect(estimateRiskSize(20, 2, 2.6, 0.1).notional).toBeGreaterThanOrEqual(EXCHANGE_MIN_ORDER_USDT);
+    expect(estimateRiskSize(20, 2, 1, 0.07).notional).toBeLessThan(EXCHANGE_MIN_ORDER_USDT);
   });
 
   it("the cost is fees + funding", () => {

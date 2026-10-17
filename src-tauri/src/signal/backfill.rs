@@ -3,6 +3,7 @@
 //! list. Without it a signal published during a network blip or before app
 //! start is invisible, and the paper book silently diverges from the ledger.
 
+use std::collections::HashSet;
 use std::time::Duration;
 
 use reqwest::Client;
@@ -44,6 +45,30 @@ pub fn chronological(rows: &mut [Row]) {
         Row::Ok(sig) => (1u8, super::time::parse_rfc3339_ms(&sig.created_at).unwrap_or(0)),
         Row::Bad { .. } => (0, 0),
     });
+}
+
+/// What a pending page vouches for (`resolved::PendingSnapshot::update`):
+/// every id it lists (parsed or not), the oldest parsed `created_at`, and
+/// whether it holds every pending signal (Sentinel's `total` <= rows).
+pub fn page_coverage(page: &PendingPage) -> (HashSet<String>, Option<u64>, bool) {
+    let returned = page.rows.len();
+    let complete = page.total.is_some_and(|t| t as usize <= returned);
+    let mut ids = HashSet::with_capacity(returned);
+    let mut oldest: Option<u64> = None;
+    for row in &page.rows {
+        match row {
+            Row::Ok(sig) => {
+                ids.insert(sig.id.clone());
+                if let Some(c) = super::time::parse_rfc3339_ms(&sig.created_at) {
+                    oldest = Some(oldest.map_or(c, |o| o.min(c)));
+                }
+            }
+            Row::Bad { id, .. } => {
+                ids.insert(id.clone());
+            }
+        }
+    }
+    (ids, oldest, complete)
 }
 
 /// GET {base}/api/public/signals/pending?limit=300 (public, no auth).

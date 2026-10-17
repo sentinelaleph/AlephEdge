@@ -287,7 +287,7 @@
       "restoreLiveBlocked": "Gerçek para verisi açılışta okunamadı ({{detail}}) · bot devam ettirilmedi",
       "restoreConfigInvalid": "Kayıtlı bot ayarları bir kontrolden geçmiyor ({{detail}}) · botu başlatmak için düzeltip kaydet",
       "settledPositionDropped": "Geçmiş'te zaten kapalı · artakalan açık satırı açılışta silindi",
-      "belowExchangeMinimum": "Borsanın minimum emrinin altında ({{detail}} USDT, Binance yaklaşık 5 ister)",
+      "belowExchangeMinimum": "Emir {{detail}} USDT olurdu, borsanın 5 USDT minimumunun altında",
       "manualOpened": "Execute ile elle açıldı · simüle",
       "userTradeOpened": "Yeni işlem açıldı · sizin seviyeleriniz · simüle"
     },
@@ -443,7 +443,11 @@
     "minConfidenceHint": "Geçmiş sinyallerde test edildi: puan kazananı kaybedenden ayırmıyor (AUC 0.496)",
     "capitalBelowMinimum": "Binance yaklaşık 5 USDT altındaki emirleri reddeder: bu tutarla bot her sinyali atlar. Bakiyeyi ya da risk seviyesini yükselt.",
     "maxPositionsLevelHint": "Risk seviyen sinyal botu başına en fazla {{max}} pozisyona izin veriyor",
-    "maxPositionsAboveLevel": "Risk seviyen sinyal botu başına {{max}} pozisyona izin veriyor: bu bot en fazla {{max}} tutar. Daha fazlası için Risk ve güvenlik'ten seviyeyi yükselt."
+    "maxPositionsAboveLevel": "Risk seviyen sinyal botu başına {{max}} pozisyona izin veriyor: bu bot en fazla {{max}} tutar. Daha fazlası için Risk ve güvenlik'ten seviyeyi yükselt.",
+    "minimumOrder": {
+      "line": "{{count}} sinyal reddedildi: emir {{symbol}} için {{order}} USDT olurdu (en son), borsanın {{min}} USDT minimumunun altında.",
+      "fix": "Emrin minimuma ulaşması için botun sermayesini veya işlem başına riskini artırın."
+    }
   },
   "pnl": {
     "exportCsv": "CSV dışa aktar",
@@ -620,7 +624,9 @@
       "paperBuild": "Bu sürüm yalnızca simüle işlem yapar: simüle dolum, gerçek emir yok. Gerçek paranın nasıl çalıştığı için tıklayın.",
       "liveAvailable": "Bu sürüm {{venues}} Futures'ta gerçek parayla işlem yapabilir. Şu an hiçbir bot gerçek parada değil: hepsi simülede. Gerçek para bot başına açılır (LIVE yazılarak). Ayrıntı için tıklayın.",
       "live": "{{n}} bot gerçek parayla işlem yapıyor. LIVE bot başına açılır. Ayrıntı için tıklayın."
-    }
+    },
+    "beforeYouTrade": "İşlemden önce",
+    "assistant": "Asistan"
   },
   "page": {
     "botNew": "Yeni bot",
@@ -1974,7 +1980,7 @@
         "base": "Özel ayarlar: tarihsel simülasyon yok.",
         "noneDca": "Özel ayarlar: tarihsel simülasyon yok. {{total}} DCA şablonundan 0'ı kontrolleri geçti.",
         "noneGrid": "Özel ayarlar: tarihsel simülasyon yok. {{total}} grid şablonundan 0'ı kontrolleri geçti.",
-        "proven": "Özel ayarlar: geçmiş simülasyonu yok. Kanıtlanmış şablon: {{names}}."
+        "proven": "Özel ayarlar: geçmiş simülasyonu yok. Kanıtlanmış: {{names}}."
       },
       "presetPairOnly": "{{id}} hazır ayarı yalnızca BTCUSDT üzerinde test edildi, {{symbol}} ile açılmaz."
     },
@@ -2465,15 +2471,17 @@
       },
       "evidence": {
         "proven": "Kanıtlanmış",
-        "provenTip": "Laboratuvarın önceden kayıtlı testini yeni veride geçen tek şablon, kendi büyük coin listesinde.",
+        "provenTip": "Laboratuvarın önceden kayıtlı testini yeni veride, kendi büyük coin listesinde geçti.",
         "experimental": "Deneysel",
         "experimentalResult": "Deneysel · TEST bot-ay başına {{mean}}",
-        "experimentalTip": "Kanıtlanmadı: laboratuvarın önceden kayıtlı testini yalnızca büyük coinlerde DCA Long Classic geçti.",
+        "experimentalTip": "Kanıtlanmadı: laboratuvarın önceden kayıtlı testini yeni veride yalnızca Kanıtlanmış işaretli şablonlar geçti, her biri kendi büyük coin listesinde.",
         "noneOfType": "Bu türde kanıtlanmış şablon yok. Buradakilerin hepsi deneysel.",
         "pickTitle": "Önerilen: {{name}}, {{universe}}.",
         "pickBody": "TEST bot-ay başına {{mean}}, {{pos}}/{{months}} ay pozitif, en kötü bot {{dd}}.",
         "pickWide": "Yalnızca büyük coinler: ilk {{n}} çiftte en kötü bot {{dd}} düştü.",
         "pickOthers": "Diğer tüm şablonlar deneysel.",
+        "pickAlso": "Ayrıca kanıtlanmış: {{names}}. Geri kalan tüm şablonlar deneysel.",
+        "pickAlsoItem": "{{name}}, TEST bot-ay başına {{mean}}, {{pos}}/{{months}} ay pozitif",
         "pickUse": "{{name}} kullan"
       }
     },
@@ -3211,5 +3219,289 @@
   },
   "timeframeCost": {
     "warning": "{{tf}}: her mumda işlem yapan bir strateji, {{cost}} gidiş-dönüş maliyetle başa baş için {{rate}} isabet oranı ister. Test edilen hiçbir kurulum buna ulaşmadı."
+  },
+  "byt": {
+    "asOf": "{{time}} · {{age}} önce",
+    "status": {
+      "ok": "Güncel",
+      "measuring": "Ölçülüyor",
+      "not_started": "Başlamadı",
+      "unavailable": "Mevcut değil"
+    },
+    "noData": "Veri yok",
+    "linkFailed": "Bağlantı açılamadı",
+    "refresh": "Yenile",
+    "refreshing": "Yenileniyor…",
+    "loading": "İşlemden önce yükleniyor…",
+    "unavailableTitle": "İşlemden önce sayfası şu an alınamıyor",
+    "staleLine": "Çevrimdışı kopya, {{age}} önce alındı. Son yenileme başarısız oldu:",
+    "received": "{{age}} önce alındı",
+    "sources": "Bloklar ve verileri",
+    "aboutTitle": "Bu rakamlar hakkında",
+    "errors": {
+      "bytUnavailable": "Sentinel yanıt vermedi. Bağlantıyı kontrol edip yenileyin.",
+      "bytSchema": "Sentinel bu uygulamanın okuyamadığı bir sürüm gönderdi. Uygulamayı güncelleyin.",
+      "bytHttp": "Sentinel hata döndürdü (HTTP {{detail}})."
+    },
+    "market": {
+      "title": "Bugün piyasa",
+      "regime": "BTC rejimi",
+      "price": "BTC fiyatı",
+      "change24h": "24s değişim",
+      "change1h": "1s değişim",
+      "trend": "Trend durumu",
+      "trendValue": "{{state}} (güç 1 üzerinden {{strength}})",
+      "trendStates": {
+        "up": "Yukarı",
+        "down": "Aşağı",
+        "flat": "Yatay"
+      },
+      "volatility": "Oynaklık (1s ATR)",
+      "volStates": {
+        "high": "Yüksek",
+        "low": "Düşük"
+      },
+      "btcSpotShare": "BTC'nin spot hacim payı",
+      "btcMarketCapDominance": "BTC piyasa değeri hakimiyeti",
+      "btcDominanceUnknown": "BTC payı (türü belirtilmemiş)",
+      "dominanceSource": "Kaynak: {{source}}. Etiket öyle demedikçe bu piyasa değeri hakimiyeti değildir.",
+      "altLongRisk": "Altcoin long riski (0-1)",
+      "downDays": "Üst üste düşüş günü",
+      "downDayHalt": "Düşüş günü durdurması",
+      "active": "Etkin",
+      "inactive": "Etkin değil",
+      "newAltLongs": "Yeni altcoin long sinyalleri",
+      "published": "Yayınlanıyor",
+      "blocked": "Yayınlanmıyor",
+      "blockedUntil": "{{time}} saatine kadar yayınlanmıyor"
+    },
+    "chart": {
+      "title": "BTC grafik okuması",
+      "call": "Okuma",
+      "calls": {
+        "higher": "Daha yüksek",
+        "lower": "Daha düşük",
+        "range": "Bant",
+        "none": "—"
+      },
+      "confidence": "Güven (modelin kendi değeri)",
+      "horizons": "4s · 12s · 24s",
+      "horizonLine": "{{h4}} · {{h12}} · {{h24}}",
+      "priceAtRead": "Okuma anındaki fiyat",
+      "support": "Destek",
+      "resistance": "Direnç",
+      "invalidation": "Geçersizlik seviyesi",
+      "model": "Model · istem",
+      "record": "24s isabet kaydı: {{hit}} ({{n}} okumadan {{hits}}, {{days}} gün). Hep-bant karşılaştırması: {{range}}. Süreklilik karşılaştırması: {{persistence}}.",
+      "directional": "Yalnız yüksek/düşük okumalar: {{pct}} (n={{n}}).",
+      "notOk": "Kullanılabilir okuma yok.",
+      "noRecord": "Okuma gösterilmiyor: isabet kaydı veya eşiği eksik.",
+      "noCall": "Okuma bir sonuç belirtmedi.",
+      "latestAttempt": "Son deneme {{time}}: {{status}}. Yukarıdaki okuma en yeni başarılı okumadır."
+    },
+    "vol": {
+      "title": "Oynaklık",
+      "range24h": "24s aralık",
+      "rangeValue": "{{low}} - {{high}} ({{pct}})",
+      "atr": "ATR 14 gün",
+      "atrValue": "{{usd}} USD (kapanışın {{pct}}'i, n={{n}} günlük mum)"
+    },
+    "funding": {
+      "title": "Fonlama",
+      "rate": "Oran",
+      "perInterval": "{{hours}} saatte {{rate}}",
+      "annualized": "Yıllık",
+      "next": "Sonraki",
+      "stale": "DataHub bu fonlama verisini eski olarak işaretliyor."
+    },
+    "models": {
+      "title": "Bot modelleri ve test sonuçları",
+      "template": "Şablon",
+      "proven": "Kanıtlanmış",
+      "experimental": "Deneysel",
+      "universe": "Pariteler",
+      "btcOnly": "Yalnız BTCUSDT",
+      "topN": "En çok işlem gören {{from}}-{{to}}",
+      "test": "Test",
+      "testTip": "Test dilimi (ayrılmış veri): bot-ay başına ortalama ve %95 aralığı. Her ay her parite için yeni 1000 USDT bot, geçmiş simülasyonu.",
+      "testValue": "{{mean}} ({{lo}} / {{hi}})",
+      "months": "Pozitif ay",
+      "monthsValue": "{{n}} aydan {{pos}}",
+      "testBots": "Test botları (n)",
+      "worstDd": "En kötü bot düşüşü",
+      "ghost": "Hayalet takip",
+      "ghostTip": "8 Ekim 2026'dan itibaren ileri simülasyon, kâğıt üzerinde. Erken: 30 günden önce karşılaştırılamaz.",
+      "ghostValue": "{{ret}} ({{bots}} bot, {{cycles}} döngü)",
+      "farm": "Bot çiftliği",
+      "farmTip": "Uygulamanın kendi motoru, kâğıt üzerinde ve simüle dolumlarla; ön kayıtlı eşik geçilene kadar sıralanmaz.",
+      "farmValue": "{{ret}} ({{closed}} kapalı, {{open}} açık)",
+      "open": "Yeni botta aç",
+      "openHint": "Bir şablonu Yeni bot'ta açmak için adına tıklayın. Her ayarı orada siz kontrol edip onaylarsınız."
+    },
+    "ghost": {
+      "title": "Hayalet ileri takip",
+      "measuring": "Ölçülüyor: {{min}} günün {{days}} günü.",
+      "notRanked": "Sıralanmıyor."
+    },
+    "farm": {
+      "title": "Bot çiftliği",
+      "days": "Çalıştığı gün",
+      "daysValue": "{{min}} günün {{days}} günü",
+      "mode": "Mod",
+      "paperSimulated": "Kâğıt üzerinde, simüle dolumlar",
+      "bots": "Bot (n)",
+      "refused": "Başlangıçta reddedilen",
+      "noRanking": "Sıralama yok: çiftliğin ön kayıtlı eşiği geçilmedi."
+    },
+    "similar": {
+      "title": "Bugüne benzer günler"
+    },
+    "news": {
+      "title": "Okuduğumuz haberler",
+      "line": "Özet satırı",
+      "source": "Kaynak",
+      "sourceLink": "Kaynak",
+      "withheldText": "Metin gösterilmiyor (yön ifadesi); bağlantı duruyor.",
+      "count": "{{total}} satırdan {{shown}} gösteriliyor.",
+      "withheld": "{{count}} satır yön ifadesi nedeniyle gösterilmiyor.",
+      "impactTitle": "Ölçülen etki ({{days}} günlük pencere)",
+      "impactMeasured": "{{label}} haberlerinden sonra BTC 24s: medyan {{median}}, yükselen {{up}} (n={{n}}). Rastgele saatler: yükselen {{base}}.",
+      "noDifference": "Ölçülebilir fark yok.",
+      "differs": "Ortalama farkı: {{lo}} / {{hi}} (%95 aralık).",
+      "impactMeasuring": "{{label}}: ölçülüyor, {{needed}} haberden {{n}}.",
+      "impactNone": "{{label}}: veri yok.",
+      "impactUnavailable": "{{label}}: mevcut değil, {{reason}}"
+    },
+    "listings": {
+      "title": "Yeni listelemeler",
+      "upcoming": "Yaklaşan ({{total}} içinden {{shown}})",
+      "recent": "Son ({{total}} içinden {{shown}})",
+      "upcomingLabel": "Yaklaşan listelemeler",
+      "recentLabel": "Son listelemeler",
+      "none": "Bu aralıkta yok",
+      "reaction": "Ölçülen tepki",
+      "pending": "Bekleniyor",
+      "postponed": "ertelendi",
+      "cancelled": "İptal edildi",
+      "markets": {
+        "spot": "Spot",
+        "perp": "Sürekli vadeli",
+        "futures": "Vadeli"
+      },
+      "summary": "Şimdiye kadarki tepki, borsaya göre",
+      "summaryLine": "{{exchange}} {{market}}: {{listings}} listeleme ({{noData}} veri yok, {{pending}} bekleyen).",
+      "horizon": "{{h}} medyan {{median}}, pozitif {{up}} (n={{n}})",
+      "sources": "Kanallar: {{list}}."
+    }
+  },
+  "assistant": {
+    "loading": "Asistan yükleniyor…",
+    "you": "Siz",
+    "assistant": "Asistan",
+    "emptyAnswer": "Model metin döndürmedi.",
+    "tokens": "{{input}} giriş / {{output}} çıkış token",
+    "cost": "Maliyet {{cost}} USD (OpenRouter bildirdi)",
+    "costNotReported": "Maliyet OpenRouter tarafından bildirilmedi",
+    "toolsRead": "Okunan: {{list}}",
+    "toolsRefused": "Reddedilen: {{list}}",
+    "truncated": "Araç çağrısı sınırında durdu",
+    "draft": {
+      "badge": "Taslak",
+      "template": "Şablon",
+      "symbol": "Parite",
+      "note": "Modelin notu",
+      "confirmThere": "Hiçbir şey oluşturulmadı. Taslağı açın, her alanı kontrol edip Yeni bot'ta onaylayın.",
+      "open": "Yeni botta aç",
+      "types": {
+        "dca": "DCA botu",
+        "grid": "Grid botu",
+        "signal_futures": "Vadeli sinyal botu",
+        "signal_spot": "Spot sinyal botu"
+      }
+    },
+    "model": {
+      "title": "Model",
+      "search": "Model ara",
+      "label": "Model (araç desteği olan)",
+      "choose": "{{count}} modelden birini seçin",
+      "loading": "Modeller yükleniyor…",
+      "price": "OpenRouter fiyatı: milyon token başına {{input}} USD giriş / {{output}} USD çıkış"
+    },
+    "key": {
+      "title": "OpenRouter anahtarı",
+      "saved": "Kayıtlı",
+      "none": "Anahtar yok",
+      "where": "Yalnızca bu bilgisayarın anahtar zincirinde tutulur. Yalnızca openrouter.ai'ye gönderilir; ribqa.com'a asla gönderilmez, bir daha gösterilmez.",
+      "label": "API anahtarı",
+      "replace": "Anahtarı değiştir",
+      "save": "Anahtarı kaydet",
+      "remove": "Anahtarı kaldır",
+      "billing": "OpenRouter her mesajı sizin OpenRouter hesabınıza faturalar. Sentinel bunu ödemez ve görmez."
+    },
+    "tools": {
+      "title": "Neleri okuyabilir",
+      "line": "Salt okunur araçlar ve bir bot taslağı. Bot başlatamaz, durduramaz, emir veremez veya iptal edemez: istem ne derse desin böyle bir araç yok.",
+      "names": {
+        "list_bots": "botlar ve durumları",
+        "open_positions": "açık pozisyonlar",
+        "pnl_summary": "K/Z özeti",
+        "risk_summary": "risk görünümü",
+        "before_you_trade": "İşlemden önce",
+        "recent_signals": "son sinyaller",
+        "draft_bot": "bot taslağı (Yeni bot'ta siz onaylarsınız)"
+      }
+    },
+    "prompt": {
+      "title": "Ana istem",
+      "default": "Varsayılan",
+      "edited": "Düzenlendi",
+      "guard": "Önce gönderilen sabit kurallar (düzenlenemez)",
+      "label": "Talimatlarınız",
+      "save": "Sürümü kaydet",
+      "reset": "Varsayılana dön",
+      "cannotUnlock": "İstemi düzenlemek yanıtların nasıl yazıldığını değiştirir, Asistanın neler yapabildiğini değil.",
+      "history": "Kayıtlı sürümler (10'dan {{count}})",
+      "noHistory": "Henüz kayıtlı sürüm yok.",
+      "restore": "Geri yükle"
+    },
+    "clear": "Konuşmayı sil",
+    "clearTitle": "Konuşma silinsin mi?",
+    "clearBody": "{{count}} mesaj bu bilgisayardan silinir. OpenRouter'ın kendi kayıtları etkilenmez.",
+    "empty": {
+      "title": "Asistanı kullanmak için OpenRouter anahtarınızı ekleyin",
+      "detail": "openrouter.ai/keys adresinde bir anahtar oluşturup sol panele yapıştırın. Mesajları OpenRouter size faturalar; uygulama yalnızca kendi verilerinizi okur ve işlem yapamaz.",
+      "getKey": "openrouter.ai/keys sayfasını aç"
+    },
+    "scopeLine": "Yanıtlar, gönderdiğiniz andaki bu masanın verilerini kullanır. Kâğıt ve gerçek rakamlar ayrı tutulur. Tavsiye değildir.",
+    "noMessages": "Mesaj yok",
+    "noMessagesDetail": "Botlarınız, K/Z, risk, sinyaller veya İşlemden önce hakkında sorun.",
+    "messageLabel": "Mesaj",
+    "placeholder": "Ctrl+Enter gönderir",
+    "sendsTo": "OpenRouter üzerinden {{model}} modeline gönderir",
+    "send": "Gönder",
+    "sending": "Yanıt bekleniyor…",
+    "errors": {
+      "loadFailed": "Asistan ayarlarını yükleyemedi.",
+      "assistantNoKey": "Önce OpenRouter anahtarınızı ekleyin.",
+      "assistantNoModel": "Önce bir model seçin.",
+      "assistantBusy": "Bir yanıt hâlâ yolda.",
+      "assistantKeyFormat": "Bu bir OpenRouter anahtarı değil (sk-or- ile başlar).",
+      "assistantKeychainFailed": "Anahtar zinciri anahtarı kaydetmedi.",
+      "assistantModelInvalid": "Bu model kimliği geçerli değil.",
+      "assistantPromptEmpty": "İstem boş.",
+      "assistantPromptTooLong": "İstem {{detail}} karakterden uzun.",
+      "assistantPromptUnknownVersion": "Bu sürüm artık kayıtlı değil.",
+      "assistantMessageEmpty": "Önce bir mesaj yazın.",
+      "assistantMessageTooLong": "Mesaj {{detail}} karakterden uzun.",
+      "orKeyRejected": "OpenRouter anahtarı reddetti (401). openrouter.ai/keys adresinden kontrol edin.",
+      "orNoCredits": "OpenRouter hesabınızda kredi kalmadı (402).",
+      "orForbidden": "OpenRouter bu isteği reddetti (403).",
+      "orRateLimited": "OpenRouter bu anahtarı sınırlıyor (429). Bir dakika sonra tekrar deneyin.",
+      "orTimeout": "Model yanıt vermekte çok gecikti.",
+      "orHttp": "OpenRouter hata döndürdü (HTTP {{detail}}).",
+      "orUnavailable": "OpenRouter'a ulaşılamadı.",
+      "orBadResponse": "OpenRouter bu uygulamanın okuyamadığı bir yanıt gönderdi.",
+      "linkOpenFailed": "Tarayıcı açılamadı."
+    }
   }
 }

@@ -9,6 +9,8 @@
 
 export type RouteId =
   | "dashboard"
+  | "beforeYouTrade"
+  | "assistant"
   | "bots"
   | "botNew"
   | "signalBots"
@@ -41,6 +43,8 @@ export interface RouteDef {
 
 export const ROUTES: RouteDef[] = [
   { id: "dashboard", pattern: "/dashboard", titleKey: "nav.dashboard" },
+  { id: "beforeYouTrade", pattern: "/before-you-trade", titleKey: "nav.beforeYouTrade" },
+  { id: "assistant", pattern: "/assistant", titleKey: "nav.assistant" },
   { id: "botNew", pattern: "/bots/new", titleKey: "page.botNew" },
   { id: "signalBots", pattern: "/bots/signal", titleKey: "nav.signalBots" },
   { id: "dcaNew", pattern: "/bots/dca/new", titleKey: "page.dcaNew" },

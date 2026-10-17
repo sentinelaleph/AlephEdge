@@ -16,7 +16,7 @@ import { formatNumber, formatPercent, formatSignedPercent, NO_VALUE, pnlToneAttr
 import { liveRankable, presetsLive, type LiveTemplate, type PresetsLive } from "@/lib/ipc/strategy/presetsLive";
 import type { Preset, StrategyKind } from "@/lib/ipc/strategy/strategy";
 import { presetName, sideText, universeText } from "@/lib/strategyText";
-import { EvidenceBadge, monthName, provenFirst, provenPreset, reasonLines, shortDate, testSplit, usePresets, useTemplateLauncher, VerdictChip, verdictBucket } from "./presetUi";
+import { EvidenceBadge, monthName, presetEvidence, provenFirst, provenPreset, reasonLines, shortDate, testSplit, usePresets, useTemplateLauncher, VerdictChip, verdictBucket } from "./presetUi";
 import { InfoTip } from "@/components/ui/InfoTip/InfoTip";
 import { MetaLine } from "@/components/ui/MetaLine/MetaLine";
 import "./Presets.css";
@@ -104,11 +104,12 @@ function LivePanel({ live, failed, id }: { live: PresetsLive | null; failed: boo
 }
 
 /**
- * The recommendation above the list: the one proven template, on its own
- * majors universe, with its TEST numbers and, when the data has it, what the
- * same settings did on a wider pair list.
+ * The recommendation above the list: the recommended proven template
+ * (Classic), on its own majors universe, with its TEST numbers and, when the
+ * data has it, what the same settings did on a wider pair list. `also` are the
+ * other proven templates in the list, named with their own TEST numbers.
  */
-function ProvenPick({ p, onUse }: { p: Preset; onUse: () => void }) {
+function ProvenPick({ p, also, onUse }: { p: Preset; also: Preset[]; onUse: () => void }) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const s = testSplit(p);
@@ -126,7 +127,18 @@ function ProvenPick({ p, onUse }: { p: Preset; onUse: () => void }) {
             })
           : null}{" "}
         {w ? t("strategy.preset.evidence.pickWide", { n: w.topN, dd: formatSignedPercent(w.worstBotDrawdownPct, locale, 1) }) : null}{" "}
-        {t("strategy.preset.evidence.pickOthers")}
+        {also.length > 0
+          ? t("strategy.preset.evidence.pickAlso", {
+              names: also
+                .map((o) => {
+                  const os = testSplit(o);
+                  return os
+                    ? t("strategy.preset.evidence.pickAlsoItem", { name: presetName(t, o), mean: formatSignedPercent(os.meanPerBotMonthPct, locale), pos: os.monthsPositive, months: os.months })
+                    : presetName(t, o);
+                })
+                .join("; "),
+            })
+          : t("strategy.preset.evidence.pickOthers")}
       </p>
       <Button size="sm" onClick={onUse}>
         {t("strategy.preset.evidence.pickUse", { name: presetName(t, p) })}
@@ -332,7 +344,7 @@ export function PresetsPage() {
           />
         }
       />
-      {proven ? <ProvenPick p={proven} onUse={() => launch(proven)} /> : rows && rows.length > 0 ? <p className="ae-subtle">{t("strategy.preset.evidence.noneOfType")}</p> : null}
+      {proven ? <ProvenPick p={proven} also={(rows ?? []).filter((r) => r.id !== proven.id && presetEvidence(r) === "proven")} onUse={() => launch(proven)} /> : rows && rows.length > 0 ? <p className="ae-subtle">{t("strategy.preset.evidence.noneOfType")}</p> : null}
       {rows && rows.length > 0 ? (
         <KpiGrid minTile={150} label={t("strategy.preset.summary.label")}>
           <KpiTile label={t("strategy.preset.summary.passed")} value={count("passed")} tone={count("passed") > 0 ? "up" : undefined} note={t("strategy.preset.summary.passedNote")} />

@@ -2,8 +2,8 @@
 //! the planning steps between the live price and the network prechecks
 //! (take-profit resolution, leverage, sizing), plus the position builder.
 //!
-//! Kept apart from `entry.rs` so the headless paper runner
-//! (`crates/aleph-paper-runner`) compiles THIS file — the exact code the
+//! Kept apart from `entry.rs` so the headless bot farm
+//! (`crates/aleph-bot-farm`) compiles THIS file — the exact code the
 //! desktop runs — without Tauri. Nothing here may import Tauri, a manager, or
 //! do I/O; `entry.rs` keeps the orchestration and re-exports these items.
 
@@ -17,6 +17,16 @@ use super::geometry::{self, FillDecision};
 use super::precheck::{self, PrecheckContext, Skip};
 use super::sizing::{self, Size};
 use super::take_profit::{self, TpResolution};
+
+/// Id prefix of a trade the user set up by hand ("New trade",
+/// `user_trade.rs`): never a published signal, so Sentinel has no status
+/// for it and the precheck asks none.
+pub const USER_TRADE_ID_PREFIX: &str = "manual-";
+
+/// Whether `id` names a trade the user set up by hand, not a Sentinel signal.
+pub fn is_user_trade_id(id: &str) -> bool {
+    id.starts_with(USER_TRADE_ID_PREFIX)
+}
 
 /// Everything the pre-price gate needs, gathered so the gate stays pure.
 pub struct GateInput<'a> {
@@ -45,7 +55,7 @@ pub fn signal_age_min(sig: &Signal, now_ms: u64) -> Option<u64> {
 /// rule. Everything else still applies: the market fit (spot is long only),
 /// expiry, invalidation, the regime veto, geometry, the BTC guard, the held
 /// market, and after the gate the fill model, sizing, the liquidation gate
-/// and every risk-budget check. The paper runner only ever uses `Auto`.
+/// and every risk-budget check. The bot farm only ever uses `Auto`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EntryMode {
     Auto,
@@ -53,7 +63,7 @@ pub enum EntryMode {
 }
 
 /// Static and regime checks before any price is fetched. None = pass.
-// The desktop passes its mode (`pre_price_gate_in`); the paper runner calls this.
+// The desktop passes its mode (`pre_price_gate_in`); `Auto` shorthand (tests).
 #[allow(dead_code)]
 pub fn pre_price_gate(i: &GateInput) -> Option<Skip> {
     pre_price_gate_in(i, EntryMode::Auto)
@@ -149,7 +159,7 @@ pub const SKIP_TARGET_PASSED: &str = "targetPassedBeforeEntry";
 /// order: fill model → take-profit resolution → sizing. Ok(None) = stay
 /// pending silently; Err = skip (final or transient, see `precheck::is_final`).
 /// `leverage` is `precheck::effective_leverage(cfg, limits)`.
-// The desktop passes its mode (`plan_entry_in`); the paper runner calls this.
+// The desktop passes its mode (`plan_entry_in`); `Auto` shorthand (tests).
 #[allow(dead_code)]
 pub fn plan_entry(
     cfg: &BotConfig,
@@ -236,7 +246,7 @@ pub fn manual_fill(
 
 /// Below the exchange's minimum order the trade cannot exist, on paper either
 /// (see EXCHANGE_MIN_ORDER_USDT). Called by the app's entry loop only, not by
-/// `plan_entry`: the server-side paper runner compiles this file and its
+/// `plan_entry`: the server-side bot farm compiles this file and its
 /// fixed test arms must keep their sizing rules.
 pub fn exchange_minimum_gate(plan: &PlannedEntry) -> Result<(), Skip> {
     if plan.size.notional < crate::bot::model::EXCHANGE_MIN_ORDER_USDT {

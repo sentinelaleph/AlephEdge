@@ -33,7 +33,7 @@ const noop = () => Promise.resolve();
 
 /** About screen sample: a typical Windows installation, the user folder anonymised. */
 export const SAMPLE_APP_INFO = {
-  version: "0.3.16",
+  version: "0.3.17",
   os: "windows",
   arch: "x86_64",
   tauri: "2.11.5",
@@ -711,7 +711,7 @@ export const SAMPLE_DESK_CONTEXT: DeskContextValue = {
     binanceFuturesBase: "https://fapi.binance.com",
     binanceIsProduction: true,
   },
-  version: "0.3.16",
+  version: "0.3.17",
   keyedExchanges: SAMPLE_EXCHANGES,
   accountExchanges: ["binance"],
   accountExchange: "binance",

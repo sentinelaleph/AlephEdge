@@ -1,13 +1,14 @@
 //! DCA and Grid strategy bots — the paper simulation. Real money is only ever
 //! mirrored from it by `bot::strategy_live`, outside this subtree.
 //!
-//! Not `BotKind` variants: `BotKind` is mounted by the paper runner and is
+//! Not `BotKind` variants: `BotKind` is mounted by the bot farm and is
 //! part of the signed phone protocol. Strategy bots are multi-instance
 //! objects keyed by their own id, in this desktop-only subtree.
 //!
 //! Layout: pure core (`model`, `costs`, `path`, `cycle`, `dca`, `grid`,
-//! `liquidation`, `accounting`, `driver`, `validate`, `limits`, `venue`,
-//! `presets`, `stats`, `backtest`) with no Tauri and no I/O; `engine` (tick phase, I/O)
+//! `liquidation`, `accounting`, `driver`, `walk`, `validate`, `limits`,
+//! `venue`, `presets`, `stats`, `backtest`) with no Tauri and no I/O (the
+//! headless bot farm, `crates/aleph-bot-farm`, compiles these files); `engine` (tick phase, I/O)
 //! and `commands` (Tauri surface). This file holds the managed state and no
 //! Tauri import.
 //!
@@ -34,6 +35,7 @@ pub mod stats;
 pub mod suggest;
 pub mod validate;
 pub mod venue;
+pub mod walk;
 
 use std::collections::{HashMap, VecDeque};
 use std::sync::Mutex;
@@ -48,15 +50,9 @@ use venue::PaperVenue;
 
 const NOTE_CAP: usize = 50;
 
-/// Price-feed state of one (market, symbol).
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct Feed {
-    /// Close time of the last processed closed bar (ms).
-    pub last_close_ms: u64,
-    pub last_close: f64,
-    /// Last successful fetch (ms).
-    pub last_ok_ms: u64,
-}
+/// Price-feed state of one (market, symbol); defined with the tick's pure
+/// rules in `walk`.
+pub use walk::Feed;
 
 /// Strategy risk settings (tighten-only against the defaults).
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, serde::Deserialize)]

@@ -95,7 +95,7 @@ pub fn size_position(
 // The live path refuses an entry whose stop sits beyond the liquidation
 // price, and the paper book must refuse it too: it would book losses no
 // isolated position can make (fixed sizing, 20x, a 7% stop: −140% of capital).
-// One rule for both, here, because the headless paper runner mounts this file.
+// One rule for both, here, because the headless bot farm mounts this file.
 
 /// Skip key (final): at this leverage the position would be liquidated before
 /// price reached the stop. The key predates the paper check, hence `live`.

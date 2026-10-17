@@ -21,9 +21,14 @@ use crate::store::{utc_day_start_ms, StoreManager};
 
 use super::cycle::CycleState;
 use super::driver::{self, EquityPoint};
-use super::limits::{leverage_ceiling, PRICE_STALE_MS};
-use super::model::{Bar, BotId, ExitReason, Fill, MarketKind, StrategyBot};
+use super::limits::PRICE_STALE_MS;
+use super::model::{Bar, BotId, ExitReason, MarketKind, StrategyBot};
 use super::venue::{OrderVenue, PaperVenue};
+// The tick's pure decisions, shared with the headless bot farm.
+pub use super::walk::{walk_bars, Batch, Gates};
+#[cfg(test)]
+pub use super::walk::seq_of;
+use super::walk;
 use super::{Feed, StrategyManager, StrategyRisk};
 
 const META_RISK: &str = "strategy_risk";
@@ -32,7 +37,6 @@ const META_TRIPPED: &str = "strategy_portfolio_tripped_day";
 /// Forced closes still owed, JSON {botId: exitReason}.
 pub const META_PENDING_CLOSE: &str = "strategy_pending_close";
 const EQUITY_KEEP_MINUTE_MS: u64 = 7 * 86_400_000;
-const FUNDING_EVERY_MS: u64 = 8 * 3_600_000;
 
 pub fn now_ms() -> u64 {
     crate::bot::engine::now_ms()
@@ -258,34 +262,8 @@ pub fn save_breaker(app: &AppHandle, mgr: &StrategyManager) {
     set_meta(app, META_TRIPPED, &mgr.tripped_day().to_string());
 }
 
-/// Client ids carry the cycle seq: "ae{bot8}-{seq}-{role}".
-fn seq_of(client_id: &str) -> u32 {
-    client_id.split('-').nth(1).and_then(|s| s.parse().ok()).unwrap_or(0)
-}
-
-/// Everything a bot produced, written in one transaction.
-struct Batch {
-    /// Market orders already filled (manual / kill closes).
-    market_orders: Vec<super::model::SimOrder>,
-    cycles: Vec<CycleState>,
-    fills: Vec<(u32, Fill)>,
-    equity: Vec<EquityPoint>,
-}
-
 fn persist(app: &AppHandle, bot: &StrategyBot, venue: &mut PaperVenue, open: Option<&CycleState>, batch: Batch) {
-    let filled: HashSet<String> = batch
-        .fills
-        .iter()
-        .filter(|(_, f)| f.kind == super::model::FillKind::Fill)
-        .map(|(_, f)| f.client_id.clone())
-        .collect();
-    let desired = open.map(|c| c.open_orders()).unwrap_or_default();
-    let orders: Vec<(u32, super::model::SimOrder)> = venue
-        .sync(desired, &filled)
-        .into_iter()
-        .chain(batch.market_orders)
-        .map(|o| (seq_of(&o.client_id), o))
-        .collect();
+    let orders = walk::sync_orders(venue, open, &batch.fills, batch.market_orders);
     let mut cycles: Vec<&CycleState> = batch.cycles.iter().collect();
     if let Some(c) = open {
         cycles.push(c);
@@ -306,40 +284,14 @@ fn persist(app: &AppHandle, bot: &StrategyBot, venue: &mut PaperVenue, open: Opt
     }
 }
 
-/// Global reasons new cycles are held this tick.
-struct Gates {
-    /// The portfolio breaker is tripped (holds only the bots inside it).
-    portfolio: bool,
-    membership_inactive: bool,
-    btc_break: bool,
-    /// The risk level's leverage ceiling now: a bot above it (the level was
-    /// lowered after Start) opens no new cycle; its open cycle runs on.
-    max_leverage: u8,
-}
-
-impl Gates {
-    fn read(app: &AppHandle, mgr: &StrategyManager) -> Self {
-        let bots = app.state::<BotManager>();
-        Self {
-            portfolio: mgr.portfolio_tripped(),
-            membership_inactive: !app.state::<MembershipManager>().view().active,
-            btc_break: bots.btc_regime() == BtcRegime::Break,
-            max_leverage: app.state::<crate::risk::RiskManager>().limits().max_leverage,
-        }
-    }
-
-    fn for_bot(&self, bot: &StrategyBot) -> Option<&'static str> {
-        if self.portfolio && bot.cfg.portfolio_breaker {
-            Some("portfolioDdTripped")
-        } else if self.membership_inactive {
-            Some("membershipInactive")
-        } else if bot.cfg.leverage > leverage_ceiling(self.max_leverage, bot.cfg.market == MarketKind::Spot) {
-            Some("leverageAboveCeiling")
-        } else if self.btc_break && bot.cfg.pause_on_btc_break {
-            Some("btcBreak")
-        } else {
-            None
-        }
+/// The global gates now (see `walk::Gates`).
+fn read_gates(app: &AppHandle, mgr: &StrategyManager) -> Gates {
+    let bots = app.state::<BotManager>();
+    Gates {
+        portfolio: mgr.portfolio_tripped(),
+        membership_inactive: !app.state::<MembershipManager>().view().active,
+        btc_break: bots.btc_regime() == BtcRegime::Break,
+        max_leverage: app.state::<crate::risk::RiskManager>().limits().max_leverage,
     }
 }
 
@@ -362,30 +314,12 @@ async fn attach_funding(mgr: &StrategyManager, symbol: &str, bars: &mut [Bar]) {
     let (Some(first), Some(last)) = (bars.first(), bars.last()) else {
         return;
     };
-    if !bars.iter().any(|b| b.open_ms % 3_600_000 == 0) {
+    if !walk::needs_funding(bars) {
         return;
     }
     let (start, end) = (first.open_ms, last.close_ms);
-    match klines::fetch_funding(&mgr.client, symbol, start, end).await {
-        Ok(events) => {
-            for (ts, rate) in events {
-                if let Some(b) = bars.iter_mut().find(|b| b.open_ms <= ts && ts <= b.close_ms) {
-                    b.funding_rate = Some(b.funding_rate.unwrap_or(0.0) + rate);
-                }
-            }
-            // Every funding schedule (8h, 4h, 1h) settles at 00/08/16 UTC. A
-            // read that came back without that event (history not yet
-            // published) is not "no funding": flag it, never charge 0 silently.
-            for b in bars.iter_mut().filter(|b| b.open_ms % FUNDING_EVERY_MS == 0 && b.funding_rate.is_none()) {
-                b.funding_unknown = true;
-            }
-        }
-        Err(_) => {
-            for b in bars.iter_mut().filter(|b| b.open_ms % FUNDING_EVERY_MS == 0) {
-                b.funding_unknown = true;
-            }
-        }
-    }
+    let fetched = klines::fetch_funding(&mgr.client, symbol, start, end).await;
+    walk::apply_funding(bars, fetched.as_deref().map_err(|_| ()));
 }
 
 /// One engine pass over every strategy bot.
@@ -475,20 +409,9 @@ async fn run_group(
         .min();
     // A cursor is replayed only when a cycle depends on it; otherwise a
     // fresh start reads from the current minute (no needless backlog).
-    let start_ms = match resume {
-        Some(ms) if feed.last_close_ms == 0 || ms < feed.last_close_ms => ms + 1,
-        _ if feed.last_close_ms > 0 && (any_open || now.saturating_sub(feed.last_close_ms) <= 10 * 60_000) => {
-            feed.last_close_ms + 1
-        }
-        _ => {
-            let min = now - now % 60_000;
-            min.saturating_sub(60_000)
-        }
+    let Some(start_ms) = walk::read_from(&feed, resume, any_open, now) else {
+        return; // nothing new can have closed yet
     };
-    // Nothing new can have closed yet.
-    if feed.last_close_ms > 0 && now < feed.last_close_ms + 1 + 60_000 + 1_500 && start_ms == feed.last_close_ms + 1 {
-        return;
-    }
     let futures = market == MarketKind::Futures;
     let fetch = async {
         let fetched = klines::fetch_closed_klines(&mgr.client, futures, symbol, Some(start_ms), now).await;
@@ -503,8 +426,7 @@ async fn run_group(
             Err(_) => Vec::new(),
         };
         if bars.is_empty() {
-            let stale = feed.last_close_ms == 0 || now.saturating_sub(feed.last_close_ms) > PRICE_STALE_MS;
-            if stale && now.saturating_sub(feed.last_ok_ms.max(feed.last_close_ms)) > PRICE_STALE_MS {
+            if walk::feed_stale(&feed, now) {
                 for b in bots {
                     mgr.set_paused(&b.id, Some("priceStale"));
                 }
@@ -521,7 +443,7 @@ async fn run_group(
     // Commands that move bots or cycles hold the same lock; the walk takes
     // each bot out and puts it back, which must not interleave with them.
     // The gates are read under it, after the fetch (decision time).
-    let Some((bars, gates, _guard)) = fetch_then_gate(&mgr.op_lock, fetch, || Gates::read(app, mgr)).await else {
+    let Some((bars, gates, _guard)) = fetch_then_gate(&mgr.op_lock, fetch, || read_gates(app, mgr)).await else {
         return;
     };
     for b in bots {
@@ -574,8 +496,7 @@ fn walk_bot(
         mgr.clear_last_note(&bot.id);
     }
     let symbol = bot.cfg.symbol.clone();
-    let wrote = !batch.fills.is_empty() || !batch.cycles.is_empty() || !batch.equity.is_empty();
-    if wrote || cycle.is_some() {
+    if batch.wrote() || cycle.is_some() {
         persist(app, &bot, &mut venue, cycle.as_ref(), batch);
     } else {
         save_bot(app, &bot);
@@ -584,51 +505,6 @@ fn walk_bot(
     for (key, detail) in notes {
         mgr.note(id, &symbol, key, detail, now);
     }
-}
-
-type Notes = Vec<(&'static str, Option<String>)>;
-
-/// Pure bar walk of one bot (no store, no Tauri). Every bar after the bot's
-/// own position is offered exactly once: a bot with an open cycle resumes
-/// after the cycle's last walked bar, an idle bot after `seen_until`. When
-/// a lagging cycle closes partway through a replay, the bars after the close
-/// (up to the old cursor) were never offered to this bot: they are walked
-/// for a new start, utilisation and equity like any other bar.
-/// Returns (batch, notes, whether a cycle opened).
-fn walk_bars(
-    bot: &mut StrategyBot,
-    cycle: &mut Option<CycleState>,
-    bars: &[Bar],
-    gate: Option<&'static str>,
-    seen_until: u64,
-) -> (Batch, Notes, bool) {
-    let mut batch = Batch {
-        market_orders: Vec::new(),
-        cycles: Vec::new(),
-        fills: Vec::new(),
-        equity: Vec::new(),
-    };
-    let mut notes = Vec::new();
-    let mut opened = false;
-    // The last bar this bot has already been offered.
-    let mut walked_until = cycle.as_ref().map(|c| c.core.last_bar_close_ms).unwrap_or(seen_until);
-    for bar in bars {
-        if bar.close_ms <= walked_until {
-            continue; // already walked (cursor shared across bots)
-        }
-        walked_until = bar.close_ms;
-        let out = driver::on_bar(bot, cycle, bar, gate);
-        opened |= out.opened.is_some();
-        batch.fills.extend(out.events);
-        if let Some(c) = out.closed {
-            batch.cycles.push(c);
-        }
-        if let Some(e) = out.equity {
-            batch.equity.push(e);
-        }
-        notes.extend(out.notes);
-    }
-    (batch, notes, opened)
 }
 
 /// Waits for the network read, then takes `op_lock` and only then reads the

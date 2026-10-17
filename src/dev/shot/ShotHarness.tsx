@@ -10,7 +10,7 @@
  * mounted. Every screen carries a "Sample data" label so a screenshot is never
  * mistaken for a real account or a track record.
  *
- *   ?shot=dashboard | bots | bot-new | bot-detail | signal-bots | dca | grid |
+ *   ?shot=dashboard | before-you-trade | assistant | bots | bot-new | bot-detail | signal-bots | dca | grid |
  *         dca-new | grid-new | dca-preset | dca-detail | grid-detail | dca-settings |
  *         signals | presets | preset | backtest |
  *         backtest-report | positions | positions-exchange | history |
@@ -31,6 +31,8 @@ import "./ShotHarness.css";
 
 const SHOT_ROUTES = {
   dashboard: "/dashboard",
+  "before-you-trade": "/before-you-trade",
+  assistant: "/assistant",
   bots: "/bots",
   "bot-new": "/bots/new",
   "bot-detail": "/bots/signal-futures",

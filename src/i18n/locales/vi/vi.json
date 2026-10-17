@@ -287,7 +287,7 @@
       "restoreLiveBlocked": "Không đọc được dữ liệu tiền thật khi khởi động ({{detail}}) · bot không được tiếp tục",
       "restoreConfigInvalid": "Cài đặt đã lưu của bot không qua một bước kiểm tra ({{detail}}) · hãy sửa và lưu để khởi động bot",
       "settledPositionDropped": "Đã đóng trong Lịch sử · dòng mở còn sót đã được xóa khi khởi động",
-      "belowExchangeMinimum": "Dưới lệnh tối thiểu của sàn ({{detail}} USDT, Binance cần khoảng 5)",
+      "belowExchangeMinimum": "Lệnh sẽ là {{detail}} USDT, dưới mức tối thiểu 5 USDT của sàn",
       "manualOpened": "Mở thủ công từ Execute · mô phỏng",
       "userTradeOpened": "Đã mở lệnh mới · mức của bạn · mô phỏng"
     },
@@ -443,7 +443,11 @@
     "minConfidenceHint": "Đã kiểm định trên tín hiệu cũ: điểm này không phân biệt lệnh thắng với lệnh thua (AUC 0.496)",
     "capitalBelowMinimum": "Binance từ chối lệnh dưới khoảng 5 USDT: với mức này bot bỏ qua mọi tín hiệu. Hãy tăng số dư hoặc mức rủi ro.",
     "maxPositionsLevelHint": "Mức rủi ro của bạn cho phép tối đa {{max}} mỗi bot tín hiệu",
-    "maxPositionsAboveLevel": "Mức rủi ro của bạn cho phép {{max}} mỗi bot tín hiệu: bot này giữ tối đa {{max}}. Nâng mức trong Rủi ro & an toàn để có thêm."
+    "maxPositionsAboveLevel": "Mức rủi ro của bạn cho phép {{max}} mỗi bot tín hiệu: bot này giữ tối đa {{max}}. Nâng mức trong Rủi ro & an toàn để có thêm.",
+    "minimumOrder": {
+      "line": "{{count}} tín hiệu bị từ chối: lệnh sẽ là {{order}} USDT trên {{symbol}} (gần nhất), dưới mức tối thiểu {{min}} USDT của sàn.",
+      "fix": "Tăng vốn của bot hoặc rủi ro mỗi lệnh để lệnh đạt mức tối thiểu."
+    }
   },
   "pnl": {
     "exportCsv": "Xuất CSV",
@@ -620,7 +624,9 @@
       "paperBuild": "Bản này chỉ giao dịch mô phỏng: khớp lệnh mô phỏng, không lệnh thật. Nhấn để xem tiền thật hoạt động thế nào.",
       "liveAvailable": "Bản này có thể giao dịch tiền thật trên Futures của {{venues}}. Hiện không bot nào làm vậy: tất cả ở mô phỏng. Tiền thật được bật theo từng bot (gõ LIVE). Nhấn để xem chi tiết.",
       "live": "{{n}} bot giao dịch bằng tiền thật. LIVE được bật theo từng bot. Nhấn để xem chi tiết."
-    }
+    },
+    "beforeYouTrade": "Trước khi giao dịch",
+    "assistant": "Trợ lý"
   },
   "page": {
     "botNew": "Bot mới",
@@ -1974,7 +1980,7 @@
         "base": "Cài đặt riêng: không có mô phỏng lịch sử.",
         "noneDca": "Cài đặt riêng: không có mô phỏng lịch sử. 0 trên {{total}} mẫu DCA qua kiểm tra.",
         "noneGrid": "Cài đặt riêng: không có mô phỏng lịch sử. 0 trên {{total}} mẫu grid qua kiểm tra.",
-        "proven": "Cài đặt tùy chỉnh: không có mô phỏng lịch sử. Mẫu đã chứng minh: {{names}}."
+        "proven": "Cài đặt tùy chỉnh: không có mô phỏng lịch sử. Đã chứng minh: {{names}}."
       },
       "presetPairOnly": "Cấu hình mẫu {{id}} chỉ được kiểm thử trên BTCUSDT và không mở với {{symbol}}."
     },
@@ -2465,15 +2471,17 @@
       },
       "evidence": {
         "proven": "Đã chứng minh",
-        "provenTip": "Mẫu duy nhất vượt qua bài kiểm tra đăng ký trước của phòng lab trên dữ liệu mới, với danh sách coin lớn của chính nó.",
+        "provenTip": "Đã vượt qua bài kiểm tra đăng ký trước của phòng lab trên dữ liệu mới, với danh sách coin lớn của chính nó.",
         "experimental": "Thử nghiệm",
         "experimentalResult": "Thử nghiệm · TEST {{mean}} mỗi bot-tháng",
-        "experimentalTip": "Chưa chứng minh: chỉ DCA Long Classic trên coin lớn vượt qua bài kiểm tra đăng ký trước của phòng lab.",
+        "experimentalTip": "Chưa chứng minh: chỉ các mẫu gắn nhãn Đã chứng minh vượt qua bài kiểm tra đăng ký trước của phòng lab trên dữ liệu mới, mỗi mẫu với danh sách coin lớn của chính nó.",
         "noneOfType": "Không có mẫu nào thuộc loại này được chứng minh. Tất cả ở đây đều là thử nghiệm.",
         "pickTitle": "Khuyến nghị: {{name}} trên {{universe}}.",
         "pickBody": "TEST {{mean}} mỗi bot-tháng, {{pos}}/{{months}} tháng dương, bot tệ nhất {{dd}}.",
         "pickWide": "Chỉ coin lớn: trên top {{n}} cặp, bot tệ nhất giảm {{dd}}.",
         "pickOthers": "Mọi mẫu khác đều là thử nghiệm.",
+        "pickAlso": "Cũng đã chứng minh: {{names}}. Mọi mẫu khác đều là thử nghiệm.",
+        "pickAlsoItem": "{{name}}, TEST {{mean}} mỗi bot-tháng, {{pos}}/{{months}} tháng dương",
         "pickUse": "Dùng {{name}}"
       }
     },
@@ -3211,5 +3219,289 @@
   },
   "timeframeCost": {
     "warning": "{{tf}}: giao dịch mỗi nến cần tỷ lệ trúng {{rate}} để hòa vốn với chi phí khứ hồi {{cost}}. Chưa thiết lập nào được kiểm tra đạt mức này."
+  },
+  "byt": {
+    "asOf": "{{time}} · {{age}} trước",
+    "status": {
+      "ok": "Hiện tại",
+      "measuring": "Đang đo",
+      "not_started": "Chưa bắt đầu",
+      "unavailable": "Không có"
+    },
+    "noData": "Không có dữ liệu",
+    "linkFailed": "Không mở được liên kết",
+    "refresh": "Làm mới",
+    "refreshing": "Đang làm mới…",
+    "loading": "Đang tải Trước khi giao dịch…",
+    "unavailableTitle": "Trước khi giao dịch hiện không có",
+    "staleLine": "Bản ngoại tuyến, nhận {{age}} trước. Lần làm mới gần nhất thất bại:",
+    "received": "Đã nhận {{age}} trước",
+    "sources": "Các khối và dữ liệu",
+    "aboutTitle": "Về các số liệu này",
+    "errors": {
+      "bytUnavailable": "Sentinel không phản hồi. Kiểm tra kết nối rồi làm mới.",
+      "bytSchema": "Sentinel gửi phiên bản ứng dụng này không đọc được. Hãy cập nhật ứng dụng.",
+      "bytHttp": "Sentinel trả về lỗi (HTTP {{detail}})."
+    },
+    "market": {
+      "title": "Thị trường hôm nay",
+      "regime": "Chế độ BTC",
+      "price": "Giá BTC",
+      "change24h": "Thay đổi 24 giờ",
+      "change1h": "Thay đổi 1 giờ",
+      "trend": "Trạng thái xu hướng",
+      "trendValue": "{{state}} (độ mạnh {{strength}} trên 1)",
+      "trendStates": {
+        "up": "Lên",
+        "down": "Xuống",
+        "flat": "Đi ngang"
+      },
+      "volatility": "Biến động (ATR 1 giờ)",
+      "volStates": {
+        "high": "Cao",
+        "low": "Thấp"
+      },
+      "btcSpotShare": "Tỷ trọng BTC trong khối lượng spot",
+      "btcMarketCapDominance": "Tỷ lệ thống trị vốn hóa BTC",
+      "btcDominanceUnknown": "Tỷ trọng BTC (chưa nêu loại)",
+      "dominanceSource": "Nguồn: {{source}}. Đây không phải tỷ lệ thống trị vốn hóa trừ khi nhãn ghi vậy.",
+      "altLongRisk": "Rủi ro long altcoin (0 đến 1)",
+      "downDays": "Số ngày giảm liên tiếp",
+      "downDayHalt": "Tạm dừng do ngày giảm",
+      "active": "Đang bật",
+      "inactive": "Không bật",
+      "newAltLongs": "Tín hiệu long altcoin mới",
+      "published": "Được phát hành",
+      "blocked": "Không phát hành",
+      "blockedUntil": "Không phát hành đến {{time}}"
+    },
+    "chart": {
+      "title": "Đọc biểu đồ BTC",
+      "call": "Nhận định",
+      "calls": {
+        "higher": "Cao hơn",
+        "lower": "Thấp hơn",
+        "range": "Đi ngang",
+        "none": "—"
+      },
+      "confidence": "Độ tin cậy (của mô hình)",
+      "horizons": "4 giờ · 12 giờ · 24 giờ",
+      "horizonLine": "{{h4}} · {{h12}} · {{h24}}",
+      "priceAtRead": "Giá lúc nhận định",
+      "support": "Hỗ trợ",
+      "resistance": "Kháng cự",
+      "invalidation": "Mức vô hiệu",
+      "model": "Mô hình · prompt",
+      "record": "Tỷ lệ đúng 24 giờ: {{hit}} ({{hits}}/{{n}} lần, {{days}} ngày). Mốc luôn-đi-ngang: {{range}}. Mốc giữ nguyên: {{persistence}}.",
+      "directional": "Chỉ các nhận định cao hơn/thấp hơn: {{pct}} (n={{n}}).",
+      "notOk": "Không có nhận định dùng được.",
+      "noRecord": "Không hiển thị nhận định: thiếu tỷ lệ đúng hoặc ngưỡng.",
+      "noCall": "Nhận định không đưa ra kết luận.",
+      "latestAttempt": "Lần thử gần nhất {{time}}: {{status}}. Nhận định ở trên là lần thành công mới nhất."
+    },
+    "vol": {
+      "title": "Biến động",
+      "range24h": "Biên độ 24 giờ",
+      "rangeValue": "{{low}} đến {{high}} ({{pct}})",
+      "atr": "ATR 14 ngày",
+      "atrValue": "{{usd}} USD ({{pct}} giá đóng cửa, n={{n}} nến ngày)"
+    },
+    "funding": {
+      "title": "Funding",
+      "rate": "Mức",
+      "perInterval": "{{rate}} mỗi {{hours}} giờ",
+      "annualized": "Theo năm",
+      "next": "Kế tiếp",
+      "stale": "DataHub đánh dấu dữ liệu funding này là cũ."
+    },
+    "models": {
+      "title": "Mẫu bot và kết quả kiểm thử",
+      "template": "Mẫu",
+      "proven": "Đã kiểm chứng",
+      "experimental": "Thử nghiệm",
+      "universe": "Cặp",
+      "btcOnly": "Chỉ BTCUSDT",
+      "topN": "Giao dịch nhiều nhất {{from}} đến {{to}}",
+      "test": "Kiểm thử",
+      "testTip": "Phần kiểm thử (giữ riêng): trung bình mỗi bot-tháng với khoảng 95%. Mỗi tháng một bot mới 1000 USDT cho mỗi cặp, mô phỏng lịch sử.",
+      "testValue": "{{mean}} ({{lo}} đến {{hi}})",
+      "months": "Tháng +",
+      "monthsValue": "{{pos}}/{{n}}",
+      "testBots": "Bot kiểm thử (n)",
+      "worstDd": "DD bot tệ nhất",
+      "ghost": "Theo dõi bóng",
+      "ghostTip": "Mô phỏng tiến từ 8/10/2026, giấy. Còn sớm: chưa so sánh được trước 30 ngày.",
+      "ghostValue": "{{ret}} ({{bots}} bot, {{cycles}} chu kỳ)",
+      "farm": "Trại bot",
+      "farmTip": "Công cụ của chính ứng dụng trên giấy với khớp lệnh mô phỏng, không xếp hạng cho đến khi qua ngưỡng đăng ký trước.",
+      "farmValue": "{{ret}} ({{closed}} đóng, {{open}} mở)",
+      "open": "Mở trong Bot mới",
+      "openHint": "Bấm vào tên mẫu để mở trong Bot mới. Bạn kiểm tra và xác nhận từng cài đặt ở đó."
+    },
+    "ghost": {
+      "title": "Theo dõi bóng tiến",
+      "measuring": "Đang đo: {{days}}/{{min}} ngày.",
+      "notRanked": "Không xếp hạng."
+    },
+    "farm": {
+      "title": "Trại bot",
+      "days": "Số ngày chạy",
+      "daysValue": "{{days}}/{{min}}",
+      "mode": "Chế độ",
+      "paperSimulated": "Giấy, khớp lệnh mô phỏng",
+      "bots": "Bot (n)",
+      "refused": "Bị từ chối khi khởi động",
+      "noRanking": "Không xếp hạng: chưa qua ngưỡng đăng ký trước của trại."
+    },
+    "similar": {
+      "title": "Những ngày giống hôm nay"
+    },
+    "news": {
+      "title": "Tin chúng tôi đọc",
+      "line": "Dòng tóm tắt",
+      "source": "Nguồn",
+      "sourceLink": "Nguồn",
+      "withheldText": "Ẩn văn bản (từ ngữ về hướng); liên kết vẫn giữ.",
+      "count": "Hiển thị {{shown}}/{{total}} dòng.",
+      "withheld": "{{count}} dòng bị ẩn vì từ ngữ về hướng.",
+      "impactTitle": "Tác động đo được (cửa sổ {{days}} ngày)",
+      "impactMeasured": "Sau tin {{label}}, BTC 24 giờ: trung vị {{median}}, tăng {{up}} (n={{n}}). Giờ ngẫu nhiên: tăng {{base}}.",
+      "noDifference": "Không có khác biệt đo được.",
+      "differs": "Chênh lệch trung bình: {{lo}} đến {{hi}} (khoảng 95%).",
+      "impactMeasuring": "{{label}}: đang đo, {{n}}/{{needed}} tin.",
+      "impactNone": "{{label}}: không có dữ liệu.",
+      "impactUnavailable": "{{label}}: không có, {{reason}}"
+    },
+    "listings": {
+      "title": "Niêm yết mới",
+      "upcoming": "Sắp tới ({{shown}}/{{total}})",
+      "recent": "Gần đây ({{shown}}/{{total}})",
+      "upcomingLabel": "Niêm yết sắp tới",
+      "recentLabel": "Niêm yết gần đây",
+      "none": "Không có trong khoảng này",
+      "reaction": "Phản ứng đo được",
+      "pending": "Đang chờ",
+      "postponed": "bị hoãn",
+      "cancelled": "Đã hủy",
+      "markets": {
+        "spot": "Spot",
+        "perp": "Vĩnh cửu",
+        "futures": "Hợp đồng tương lai"
+      },
+      "summary": "Phản ứng đến nay, theo sàn",
+      "summaryLine": "{{exchange}} {{market}}: {{listings}} niêm yết ({{noData}} không dữ liệu, {{pending}} đang chờ).",
+      "horizon": "{{h}} trung vị {{median}}, dương {{up}} (n={{n}})",
+      "sources": "Kênh: {{list}}."
+    }
+  },
+  "assistant": {
+    "loading": "Đang tải Trợ lý…",
+    "you": "Bạn",
+    "assistant": "Trợ lý",
+    "emptyAnswer": "Mô hình không trả về văn bản.",
+    "tokens": "{{input}} token vào / {{output}} ra",
+    "cost": "Chi phí {{cost}} USD (OpenRouter báo)",
+    "costNotReported": "OpenRouter không báo chi phí",
+    "toolsRead": "Đã đọc: {{list}}",
+    "toolsRefused": "Bị từ chối: {{list}}",
+    "truncated": "Dừng ở giới hạn gọi công cụ",
+    "draft": {
+      "badge": "Bản nháp",
+      "template": "Mẫu",
+      "symbol": "Cặp",
+      "note": "Ghi chú của mô hình",
+      "confirmThere": "Chưa tạo gì. Mở bản nháp, kiểm tra từng trường và xác nhận trong Bot mới.",
+      "open": "Mở trong Bot mới",
+      "types": {
+        "dca": "Bot DCA",
+        "grid": "Bot lưới",
+        "signal_futures": "Bot tín hiệu futures",
+        "signal_spot": "Bot tín hiệu spot"
+      }
+    },
+    "model": {
+      "title": "Mô hình",
+      "search": "Tìm mô hình",
+      "label": "Mô hình (hỗ trợ công cụ)",
+      "choose": "Chọn một trong {{count}}",
+      "loading": "Đang tải mô hình…",
+      "price": "Giá OpenRouter: {{input}} USD vào / {{output}} USD ra mỗi triệu token"
+    },
+    "key": {
+      "title": "Khóa OpenRouter",
+      "saved": "Đã lưu",
+      "none": "Chưa có khóa",
+      "where": "Chỉ lưu trong keychain của máy này. Chỉ gửi tới openrouter.ai, không bao giờ tới ribqa.com, không hiển thị lại.",
+      "label": "Khóa API",
+      "replace": "Thay khóa",
+      "save": "Lưu khóa",
+      "remove": "Xóa khóa",
+      "billing": "OpenRouter tính phí mỗi tin nhắn vào tài khoản OpenRouter của bạn. Sentinel không trả và không thấy."
+    },
+    "tools": {
+      "title": "Có thể đọc gì",
+      "line": "Công cụ chỉ đọc cùng bản nháp bot. Không thể chạy hay dừng bot, đặt hay hủy lệnh: không có công cụ đó, dù prompt nói gì.",
+      "names": {
+        "list_bots": "bot và trạng thái",
+        "open_positions": "vị thế mở",
+        "pnl_summary": "tóm tắt lãi/lỗ",
+        "risk_summary": "góc nhìn rủi ro",
+        "before_you_trade": "Trước khi giao dịch",
+        "recent_signals": "tín hiệu gần đây",
+        "draft_bot": "bản nháp bot (bạn xác nhận trong Bot mới)"
+      }
+    },
+    "prompt": {
+      "title": "Prompt chính",
+      "default": "Mặc định",
+      "edited": "Đã sửa",
+      "guard": "Quy tắc cố định gửi trước (không sửa được)",
+      "label": "Hướng dẫn của bạn",
+      "save": "Lưu phiên bản",
+      "reset": "Về mặc định",
+      "cannotUnlock": "Sửa prompt chỉ thay đổi cách viết câu trả lời, không thay đổi việc Trợ lý làm được.",
+      "history": "Phiên bản đã lưu ({{count}}/10)",
+      "noHistory": "Chưa có phiên bản nào được lưu.",
+      "restore": "Khôi phục"
+    },
+    "clear": "Xóa cuộc trò chuyện",
+    "clearTitle": "Xóa cuộc trò chuyện?",
+    "clearBody": "{{count}} tin nhắn sẽ bị xóa khỏi máy này. Nhật ký riêng của OpenRouter không bị ảnh hưởng.",
+    "empty": {
+      "title": "Thêm khóa OpenRouter để dùng Trợ lý",
+      "detail": "Tạo khóa tại openrouter.ai/keys và dán vào bảng bên trái. OpenRouter tính phí tin nhắn cho bạn; ứng dụng chỉ đọc dữ liệu của bạn và không thể giao dịch.",
+      "getKey": "Mở openrouter.ai/keys"
+    },
+    "scopeLine": "Câu trả lời dùng dữ liệu của bàn này tại lúc gửi. Số liệu giấy và thật được tách riêng. Không phải lời khuyên.",
+    "noMessages": "Chưa có tin nhắn",
+    "noMessagesDetail": "Hỏi về bot, lãi/lỗ, rủi ro, tín hiệu hoặc Trước khi giao dịch.",
+    "messageLabel": "Tin nhắn",
+    "placeholder": "Ctrl+Enter để gửi",
+    "sendsTo": "Gửi tới {{model}} qua OpenRouter",
+    "send": "Gửi",
+    "sending": "Đang chờ câu trả lời…",
+    "errors": {
+      "loadFailed": "Trợ lý không tải được cài đặt.",
+      "assistantNoKey": "Hãy thêm khóa OpenRouter trước.",
+      "assistantNoModel": "Hãy chọn mô hình trước.",
+      "assistantBusy": "Câu trả lời vẫn đang tới.",
+      "assistantKeyFormat": "Đó không phải khóa OpenRouter (bắt đầu bằng sk-or-).",
+      "assistantKeychainFailed": "Keychain từ chối lưu khóa.",
+      "assistantModelInvalid": "Mã mô hình không hợp lệ.",
+      "assistantPromptEmpty": "Prompt đang trống.",
+      "assistantPromptTooLong": "Prompt dài hơn {{detail}} ký tự.",
+      "assistantPromptUnknownVersion": "Phiên bản đó không còn được lưu.",
+      "assistantMessageEmpty": "Hãy viết tin nhắn trước.",
+      "assistantMessageTooLong": "Tin nhắn dài hơn {{detail}} ký tự.",
+      "orKeyRejected": "OpenRouter từ chối khóa (401). Kiểm tra tại openrouter.ai/keys.",
+      "orNoCredits": "Tài khoản OpenRouter của bạn đã hết tín dụng (402).",
+      "orForbidden": "OpenRouter từ chối yêu cầu này (403).",
+      "orRateLimited": "OpenRouter đang giới hạn khóa này (429). Thử lại sau một phút.",
+      "orTimeout": "Mô hình trả lời quá lâu.",
+      "orHttp": "OpenRouter trả về lỗi (HTTP {{detail}}).",
+      "orUnavailable": "Không kết nối được OpenRouter.",
+      "orBadResponse": "OpenRouter gửi câu trả lời ứng dụng không đọc được.",
+      "linkOpenFailed": "Không mở được trình duyệt."
+    }
   }
 }

@@ -63,3 +63,28 @@ export function isBotFailure(reason: string): boolean {
     reason === "restoreConfigInvalid"
   );
 }
+
+export interface MinimumOrderNotice {
+  /** Notes refused because the sized order was under the exchange minimum. */
+  count: number;
+  /** The newest such note: its order size (USDT, as Rust formatted it) and pair. */
+  orderUsdt: string;
+  symbol: string;
+}
+
+/**
+ * Signals refused with `belowExchangeMinimum` (the order the bot sized was
+ * under the 5 USDT exchange minimum), so a bot that only skips says why in
+ * one plain line instead of a reason buried in its log. Null when none.
+ */
+export function minimumOrderNotice(notes: SkipNote[]): MinimumOrderNotice | null {
+  let count = 0;
+  let latest: SkipNote | null = null;
+  for (const n of notes) {
+    if (n.reason !== "belowExchangeMinimum") continue;
+    count += 1;
+    if (!latest || n.atMs > latest.atMs) latest = n;
+  }
+  if (!latest) return null;
+  return { count, orderUsdt: latest.detail ?? "", symbol: latest.symbol };
+}

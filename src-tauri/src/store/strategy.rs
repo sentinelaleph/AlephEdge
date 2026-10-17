@@ -1,11 +1,10 @@
-//! Strategy-bot (DCA / Grid, paper) tables. Desktop-only: the paper runner's
-//! store mounts only model/positions/trades, and `migrate` here runs only from
-//! the desktop `StoreManager`. DCA/Grid never write to `trades` or
+//! Strategy-bot (DCA / Grid, paper) tables. Tauri-free: the headless bot farm
+//! (`crates/aleph-bot-farm`) mounts this file and writes the same schema; on
+//! the desktop `migrate` runs from `StoreManager` (whose `strategy` accessor
+//! lives in `store/mod.rs`). DCA/Grid never write to `trades` or
 //! `open_positions`, so signal-bot stats, the judge seed and CSV stay intact.
 //!
 //! Archive, never delete: `archived_at` hides a bot; its history stays.
-
-use std::path::Path;
 
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::Serialize;
@@ -16,8 +15,6 @@ use crate::bot::strategy::model::{
     BotRunState, ExitReason, Fill, OrderRole, OrderSide, OrderState, OrderType, SimOrder,
     StrategyBot, StrategyConfig, Utilisation,
 };
-
-use super::StoreManager;
 
 pub fn migrate(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(
@@ -779,14 +776,6 @@ pub fn export_csv(conn: &Connection) -> Result<(String, String), String> {
         fills.push_str(&r.map_err(err)?);
     }
     Ok((cycles, fills))
-}
-
-// ------------------------------------------------------- manager wrappers
-
-impl StoreManager {
-    pub fn strategy<T>(&self, dir: &Path, f: impl FnOnce(&Connection) -> Result<T, String>) -> Result<T, String> {
-        self.with_conn(dir, f)
-    }
 }
 
 #[cfg(test)]

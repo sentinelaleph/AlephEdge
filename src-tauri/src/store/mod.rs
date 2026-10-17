@@ -28,6 +28,15 @@ pub struct StoreManager {
 }
 
 impl StoreManager {
+    /// The strategy (DCA / Grid) tables of `edge.db`. The table code itself
+    /// (`strategy.rs`) is Tauri- and manager-free so the headless bot farm can
+    /// compile it; only this accessor ties it to the desktop's connection.
+    pub fn strategy<T>(&self, dir: &Path, f: impl FnOnce(&Connection) -> Result<T, String>) -> Result<T, String> {
+        self.with_conn(dir, f)
+    }
+}
+
+impl StoreManager {
     pub fn new() -> Self {
         Self {
             conn: Mutex::new(None),

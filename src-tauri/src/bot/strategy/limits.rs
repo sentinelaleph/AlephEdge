@@ -1,5 +1,5 @@
 //! Strategy-bot caps, kept out of the shared `risk/model.rs` on purpose (the
-//! paper runner mounts that file). Pure; the risk level enters as its table
+//! bot farm mounts that file). Pure; the risk level enters as its table
 //! values so this file never imports the risk module.
 
 /// No venue inside this subtree trades real money (the real-money mirror is

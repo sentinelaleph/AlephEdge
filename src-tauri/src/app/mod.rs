@@ -5,6 +5,7 @@
 
 pub mod about;
 pub mod backup;
+pub mod before_you_trade;
 pub mod cockpit;
 pub mod commands;
 pub mod endpoints;

@@ -287,7 +287,7 @@
       "restoreLiveBlocked": "Dados de dinheiro real ilegíveis na inicialização ({{detail}}) · bot não retomado",
       "restoreConfigInvalid": "As configurações salvas do bot não passam numa verificação ({{detail}}) · corrija e salve para iniciar o bot",
       "settledPositionDropped": "Já fechada no Histórico · a linha aberta que sobrou foi removida na inicialização",
-      "belowExchangeMinimum": "Abaixo da ordem mínima da corretora ({{detail}} USDT, a Binance exige cerca de 5)",
+      "belowExchangeMinimum": "A ordem seria de {{detail}} USDT, abaixo do mínimo da corretora de 5 USDT",
       "manualOpened": "Aberta à mão pelo Execute · simulado",
       "userTradeOpened": "Nova operação aberta · seus níveis · simulada"
     },
@@ -443,7 +443,11 @@
     "minConfidenceHint": "Testada em sinais passados: a pontuação não separa vencedores de perdedores (AUC 0.496)",
     "capitalBelowMinimum": "A Binance recusa ordens abaixo de cerca de 5 USDT: com esse valor o bot pula todos os sinais. Aumente o saldo ou o nível de risco.",
     "maxPositionsLevelHint": "Seu nível de risco permite até {{max}} por bot de sinais",
-    "maxPositionsAboveLevel": "Seu nível de risco permite {{max}} por bot de sinais: este bot mantém no máximo {{max}}. Aumente o nível em Risco e segurança para mais."
+    "maxPositionsAboveLevel": "Seu nível de risco permite {{max}} por bot de sinais: este bot mantém no máximo {{max}}. Aumente o nível em Risco e segurança para mais.",
+    "minimumOrder": {
+      "line": "{{count}} sinal(is) recusado(s): a ordem seria de {{order}} USDT em {{symbol}} (o mais recente), abaixo do mínimo da corretora de {{min}} USDT.",
+      "fix": "Aumente o capital do bot ou o risco por operação para que a ordem alcance o mínimo."
+    }
   },
   "pnl": {
     "exportCsv": "Exportar CSV",
@@ -620,7 +624,9 @@
       "paperBuild": "Esta versão opera só em modo simulado: execuções simuladas, sem ordens reais. Clique para ver como funciona o dinheiro real.",
       "liveAvailable": "Esta versão pode operar com dinheiro real em Futuros da {{venues}}. Nenhum bot opera agora: todos estão em modo simulado. O dinheiro real é ativado por bot (digitando LIVE). Clique para detalhes.",
       "live": "{{n}} bots operam com dinheiro real. LIVE é ativado por bot. Clique para detalhes."
-    }
+    },
+    "beforeYouTrade": "Antes de operar",
+    "assistant": "Assistente"
   },
   "page": {
     "botNew": "Novo bot",
@@ -1974,7 +1980,7 @@
         "base": "Configurações próprias: sem simulação histórica.",
         "noneDca": "Configurações próprias: sem simulação histórica. 0 de {{total}} modelos DCA passaram nas verificações.",
         "noneGrid": "Configurações próprias: sem simulação histórica. 0 de {{total}} modelos grid passaram nas verificações.",
-        "proven": "Configurações próprias: sem simulação histórica. Modelo comprovado: {{names}}."
+        "proven": "Configurações próprias: sem simulação histórica. Comprovados: {{names}}."
       },
       "presetPairOnly": "O preset {{id}} foi testado só em BTCUSDT e não abre com {{symbol}}."
     },
@@ -2465,15 +2471,17 @@
       },
       "evidence": {
         "proven": "Comprovado",
-        "provenTip": "O único modelo que passou no teste pré-registrado do laboratório com dados novos, na sua própria lista de moedas principais.",
+        "provenTip": "Passou no teste pré-registrado do laboratório com dados novos, na sua própria lista de moedas principais.",
         "experimental": "Experimental",
         "experimentalResult": "Experimental · TEST {{mean}} por bot-mês",
-        "experimentalTip": "Não comprovado: só o DCA Long Classic em moedas principais passou no teste pré-registrado do laboratório.",
+        "experimentalTip": "Não comprovado: só os modelos marcados como Comprovado passaram no teste pré-registrado do laboratório com dados novos, cada um na sua própria lista de moedas principais.",
         "noneOfType": "Nenhum modelo deste tipo é comprovado. Todos aqui são experimentais.",
         "pickTitle": "Recomendado: {{name}} em {{universe}}.",
         "pickBody": "TEST {{mean}} por bot-mês, {{pos}}/{{months}} meses positivos, pior bot {{dd}}.",
         "pickWide": "Só moedas principais: nos {{n}} primeiros pares o pior bot caiu {{dd}}.",
         "pickOthers": "Todos os outros modelos são experimentais.",
+        "pickAlso": "Também comprovado: {{names}}. Todos os outros modelos são experimentais.",
+        "pickAlsoItem": "{{name}}, TEST {{mean}} por bot-mês, {{pos}}/{{months}} meses positivos",
         "pickUse": "Usar {{name}}"
       }
     },
@@ -3211,5 +3219,289 @@
   },
   "timeframeCost": {
     "warning": "{{tf}}: operar a cada candle exige taxa de acerto de {{rate}} para empatar com custo de ida e volta de {{cost}}. Nenhuma configuração testada chegou lá."
+  },
+  "byt": {
+    "asOf": "{{time}} · há {{age}}",
+    "status": {
+      "ok": "Atual",
+      "measuring": "Medindo",
+      "not_started": "Não iniciado",
+      "unavailable": "Indisponível"
+    },
+    "noData": "Sem dados",
+    "linkFailed": "Não foi possível abrir o link",
+    "refresh": "Atualizar",
+    "refreshing": "Atualizando…",
+    "loading": "Carregando Antes de operar…",
+    "unavailableTitle": "Antes de operar não está disponível",
+    "staleLine": "Cópia offline, recebida há {{age}}. A última atualização falhou:",
+    "received": "Recebido há {{age}}",
+    "sources": "Blocos e seus dados",
+    "aboutTitle": "Sobre estes números",
+    "errors": {
+      "bytUnavailable": "O Sentinel não respondeu. Verifique a conexão e atualize.",
+      "bytSchema": "O Sentinel enviou uma versão que este app não lê. Atualize o app.",
+      "bytHttp": "O Sentinel respondeu com erro (HTTP {{detail}})."
+    },
+    "market": {
+      "title": "Mercado hoje",
+      "regime": "Regime do BTC",
+      "price": "Preço do BTC",
+      "change24h": "Variação 24 h",
+      "change1h": "Variação 1 h",
+      "trend": "Estado da tendência",
+      "trendValue": "{{state}} (força {{strength}} de 1)",
+      "trendStates": {
+        "up": "Para cima",
+        "down": "Para baixo",
+        "flat": "Lateral"
+      },
+      "volatility": "Volatilidade (ATR 1 h)",
+      "volStates": {
+        "high": "Alta",
+        "low": "Baixa"
+      },
+      "btcSpotShare": "Participação do BTC no volume spot",
+      "btcMarketCapDominance": "Dominância do BTC por capitalização",
+      "btcDominanceUnknown": "Participação do BTC (tipo não informado)",
+      "dominanceSource": "Fonte: {{source}}. Não é dominância por capitalização, a menos que o rótulo diga.",
+      "altLongRisk": "Risco de long em alts (0 a 1)",
+      "downDays": "Dias de queda seguidos",
+      "downDayHalt": "Pausa por dias de queda",
+      "active": "Ativa",
+      "inactive": "Inativa",
+      "newAltLongs": "Novos sinais long em alts",
+      "published": "Publicados",
+      "blocked": "Não publicados",
+      "blockedUntil": "Não publicados até {{time}}"
+    },
+    "chart": {
+      "title": "Leitura do gráfico do BTC",
+      "call": "Leitura",
+      "calls": {
+        "higher": "Mais alto",
+        "lower": "Mais baixo",
+        "range": "Faixa",
+        "none": "—"
+      },
+      "confidence": "Confiança (do próprio modelo)",
+      "horizons": "4 h · 12 h · 24 h",
+      "horizonLine": "{{h4}} · {{h12}} · {{h24}}",
+      "priceAtRead": "Preço na leitura",
+      "support": "Suporte",
+      "resistance": "Resistência",
+      "invalidation": "Invalidação",
+      "model": "Modelo · prompt",
+      "record": "Acerto em 24 h: {{hit}} ({{hits}} de {{n}} leituras, {{days}} dias). Referência sempre-faixa: {{range}}. Referência de persistência: {{persistence}}.",
+      "directional": "Só leituras mais alto/mais baixo: {{pct}} (n={{n}}).",
+      "notOk": "Sem leitura utilizável.",
+      "noRecord": "A leitura não é exibida: falta o registro de acertos ou o critério.",
+      "noCall": "A leitura não indicou nada.",
+      "latestAttempt": "Última tentativa {{time}}: {{status}}. A leitura acima é a mais recente bem-sucedida."
+    },
+    "vol": {
+      "title": "Volatilidade",
+      "range24h": "Faixa 24 h",
+      "rangeValue": "{{low}} a {{high}} ({{pct}})",
+      "atr": "ATR 14 dias",
+      "atrValue": "{{usd}} USD ({{pct}} do fechamento, n={{n}} barras diárias)"
+    },
+    "funding": {
+      "title": "Funding",
+      "rate": "Taxa",
+      "perInterval": "{{rate}} a cada {{hours}} h",
+      "annualized": "Anualizada",
+      "next": "Próximo",
+      "stale": "O DataHub marca este retrato de funding como desatualizado."
+    },
+    "models": {
+      "title": "Modelos de bot e seus resultados de teste",
+      "template": "Modelo",
+      "proven": "Comprovado",
+      "experimental": "Experimental",
+      "universe": "Pares",
+      "btcOnly": "Só BTCUSDT",
+      "topN": "Mais negociados {{from}} a {{to}}",
+      "test": "Teste",
+      "testTip": "Parte de teste (reservada): média por bot-mês com intervalo de 95%. Um bot novo de 1000 USDT por par a cada mês, simulação histórica.",
+      "testValue": "{{mean}} ({{lo}} a {{hi}})",
+      "months": "Meses +",
+      "monthsValue": "{{pos}} de {{n}}",
+      "testBots": "Bots de teste (n)",
+      "worstDd": "Pior queda de bot",
+      "ghost": "Rastreio fantasma",
+      "ghostTip": "Simulação para a frente desde 8 out 2026, em papel. Cedo: não comparável antes de 30 dias.",
+      "ghostValue": "{{ret}} ({{bots}} bots, {{cycles}} ciclos)",
+      "farm": "Fazenda de bots",
+      "farmTip": "O motor do próprio app em papel com execuções simuladas, sem ranking até passar o critério pré-registrado.",
+      "farmValue": "{{ret}} ({{closed}} fechados, {{open}} abertos)",
+      "open": "Abrir em Novo bot",
+      "openHint": "Clique no nome de um modelo para abri-lo em Novo bot. Lá você confere e confirma cada ajuste."
+    },
+    "ghost": {
+      "title": "Rastreio fantasma para a frente",
+      "measuring": "Medindo: {{days}} de {{min}} dias.",
+      "notRanked": "Sem ranking."
+    },
+    "farm": {
+      "title": "Fazenda de bots",
+      "days": "Dias em execução",
+      "daysValue": "{{days}} de {{min}}",
+      "mode": "Modo",
+      "paperSimulated": "Papel, execuções simuladas",
+      "bots": "Bots (n)",
+      "refused": "Recusados no início",
+      "noRanking": "Sem ranking: o critério pré-registrado da fazenda não foi atingido."
+    },
+    "similar": {
+      "title": "Dias como hoje"
+    },
+    "news": {
+      "title": "Notícias que lemos",
+      "line": "Linha do resumo",
+      "source": "Fonte",
+      "sourceLink": "Fonte",
+      "withheldText": "Texto retido (linguagem direcional); o link permanece.",
+      "count": "{{shown}} de {{total}} linhas exibidas.",
+      "withheld": "{{count}} retidas por linguagem direcional.",
+      "impactTitle": "Impacto medido (janela de {{days}} dias)",
+      "impactMeasured": "Após notícias de {{label}}, BTC em 24 h: mediana {{median}}, em alta {{up}} (n={{n}}). Horas aleatórias: em alta {{base}}.",
+      "noDifference": "Sem diferença mensurável.",
+      "differs": "Diferença na média: {{lo}} a {{hi}} (intervalo de 95%).",
+      "impactMeasuring": "{{label}}: medindo, {{n}} de {{needed}} notícias.",
+      "impactNone": "{{label}}: sem dados.",
+      "impactUnavailable": "{{label}}: indisponível, {{reason}}"
+    },
+    "listings": {
+      "title": "Novas listagens",
+      "upcoming": "Próximas ({{shown}} de {{total}})",
+      "recent": "Recentes ({{shown}} de {{total}})",
+      "upcomingLabel": "Próximas listagens",
+      "recentLabel": "Listagens recentes",
+      "none": "Nenhuma neste período",
+      "reaction": "Reação medida",
+      "pending": "Pendente",
+      "postponed": "adiado",
+      "cancelled": "Cancelado",
+      "markets": {
+        "spot": "Spot",
+        "perp": "Perpétuo",
+        "futures": "Futuros"
+      },
+      "summary": "Reação até agora, por corretora",
+      "summaryLine": "{{exchange}} {{market}}: {{listings}} listagens ({{noData}} sem dados, {{pending}} pendentes).",
+      "horizon": "{{h}} mediana {{median}}, positivos {{up}} (n={{n}})",
+      "sources": "Canais: {{list}}."
+    }
+  },
+  "assistant": {
+    "loading": "Carregando o assistente…",
+    "you": "Você",
+    "assistant": "Assistente",
+    "emptyAnswer": "O modelo não retornou texto.",
+    "tokens": "{{input}} tokens de entrada / {{output}} de saída",
+    "cost": "Custo {{cost}} USD (informado pelo OpenRouter)",
+    "costNotReported": "Custo não informado pelo OpenRouter",
+    "toolsRead": "Lido: {{list}}",
+    "toolsRefused": "Recusado: {{list}}",
+    "truncated": "Parou no limite de chamadas",
+    "draft": {
+      "badge": "Rascunho",
+      "template": "Modelo",
+      "symbol": "Par",
+      "note": "Nota do modelo",
+      "confirmThere": "Nada foi criado. Abra o rascunho, confira cada campo e confirme em Novo bot.",
+      "open": "Abrir em Novo bot",
+      "types": {
+        "dca": "Bot DCA",
+        "grid": "Bot de grid",
+        "signal_futures": "Bot de sinais de futuros",
+        "signal_spot": "Bot de sinais spot"
+      }
+    },
+    "model": {
+      "title": "Modelo",
+      "search": "Buscar modelos",
+      "label": "Modelo (com ferramentas)",
+      "choose": "Escolha um de {{count}}",
+      "loading": "Carregando modelos…",
+      "price": "Preço do OpenRouter: {{input}} USD entrada / {{output}} USD saída por milhão de tokens"
+    },
+    "key": {
+      "title": "Chave do OpenRouter",
+      "saved": "Salva",
+      "none": "Sem chave",
+      "where": "Guardada só no chaveiro deste computador. Enviada só ao openrouter.ai, nunca ao ribqa.com, e não é mostrada de novo.",
+      "label": "Chave de API",
+      "replace": "Substituir a chave",
+      "save": "Salvar chave",
+      "remove": "Remover chave",
+      "billing": "O OpenRouter cobra cada mensagem na sua própria conta do OpenRouter. O Sentinel não paga e não vê."
+    },
+    "tools": {
+      "title": "O que ele pode ler",
+      "line": "Ferramentas só de leitura mais um rascunho de bot. Não pode iniciar ou parar bots nem criar ou cancelar ordens: essa ferramenta não existe, diga o que disser o prompt.",
+      "names": {
+        "list_bots": "bots e seu estado",
+        "open_positions": "posições abertas",
+        "pnl_summary": "resumo de P&L",
+        "risk_summary": "visão de risco",
+        "before_you_trade": "Antes de operar",
+        "recent_signals": "sinais recentes",
+        "draft_bot": "rascunho de bot (você confirma em Novo bot)"
+      }
+    },
+    "prompt": {
+      "title": "Prompt principal",
+      "default": "Padrão",
+      "edited": "Editado",
+      "guard": "Regras fixas enviadas primeiro (não editáveis)",
+      "label": "Suas instruções",
+      "save": "Salvar versão",
+      "reset": "Restaurar padrão",
+      "cannotUnlock": "Editar o prompt muda como as respostas são escritas, não o que o assistente pode fazer.",
+      "history": "Versões salvas ({{count}} de 10)",
+      "noHistory": "Ainda não há versões salvas.",
+      "restore": "Restaurar"
+    },
+    "clear": "Excluir conversa",
+    "clearTitle": "Excluir a conversa?",
+    "clearBody": "{{count}} mensagens são removidas deste computador. Os registros do próprio OpenRouter não são afetados.",
+    "empty": {
+      "title": "Adicione sua chave do OpenRouter para usar o assistente",
+      "detail": "Crie uma chave em openrouter.ai/keys e cole no painel esquerdo. O OpenRouter cobra as mensagens de você; o app lê seus próprios dados e não pode operar.",
+      "getKey": "Abrir openrouter.ai/keys"
+    },
+    "scopeLine": "As respostas usam os dados desta mesa no momento do envio. Papel e real ficam separados. Não é recomendação.",
+    "noMessages": "Sem mensagens",
+    "noMessagesDetail": "Pergunte sobre seus bots, P&L, risco, sinais ou Antes de operar.",
+    "messageLabel": "Mensagem",
+    "placeholder": "Ctrl+Enter envia",
+    "sendsTo": "Envia para {{model}} pelo OpenRouter",
+    "send": "Enviar",
+    "sending": "Aguardando a resposta…",
+    "errors": {
+      "loadFailed": "O assistente não conseguiu carregar as configurações.",
+      "assistantNoKey": "Primeiro adicione sua chave do OpenRouter.",
+      "assistantNoModel": "Primeiro escolha um modelo.",
+      "assistantBusy": "Uma resposta ainda está a caminho.",
+      "assistantKeyFormat": "Isso não é uma chave do OpenRouter (começa com sk-or-).",
+      "assistantKeychainFailed": "O chaveiro recusou guardar a chave.",
+      "assistantModelInvalid": "Esse id de modelo não é válido.",
+      "assistantPromptEmpty": "O prompt está vazio.",
+      "assistantPromptTooLong": "O prompt tem mais de {{detail}} caracteres.",
+      "assistantPromptUnknownVersion": "Essa versão não está mais salva.",
+      "assistantMessageEmpty": "Escreva uma mensagem primeiro.",
+      "assistantMessageTooLong": "A mensagem tem mais de {{detail}} caracteres.",
+      "orKeyRejected": "O OpenRouter rejeitou a chave (401). Verifique em openrouter.ai/keys.",
+      "orNoCredits": "Sua conta do OpenRouter está sem créditos (402).",
+      "orForbidden": "O OpenRouter recusou esta solicitação (403).",
+      "orRateLimited": "O OpenRouter está limitando esta chave (429). Tente de novo em um minuto.",
+      "orTimeout": "O modelo demorou demais para responder.",
+      "orHttp": "O OpenRouter respondeu com erro (HTTP {{detail}}).",
+      "orUnavailable": "Não foi possível acessar o OpenRouter.",
+      "orBadResponse": "O OpenRouter enviou uma resposta que este app não conseguiu ler.",
+      "linkOpenFailed": "Não foi possível abrir o navegador."
+    }
   }
 }

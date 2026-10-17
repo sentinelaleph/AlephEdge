@@ -4,7 +4,7 @@
  * this module. It never trades anything and invents no position or skip.
  */
 
-import { capitalAboveCap, defaultCapitalWithin } from "@/lib/botLimits";
+import { capitalAboveCap, defaultCapitalWithin, defaultRiskPctFor } from "@/lib/botLimits";
 import { DEFAULT_RISK_PCT, MAX_RISK_PCT, MIN_RISK_PCT } from "@/lib/sizing";
 import { mock as riskMock } from "../risk/risk.mock";
 import { customPctValid, MAX_CUSTOM_TP_PCT, MIN_CUSTOM_TP_PCT } from "@/lib/takeProfit";
@@ -148,17 +148,18 @@ export const mock = (() => {
     },
     async defaultConfig(kind: BotKind, exchangeId: string): Promise<BotConfig> {
       const cap = (await riskMock.state()).maxCapitalQuote;
+      const capital = defaultCapitalWithin(cap);
       return Promise.resolve({
         kind,
         exchangeId,
         maxPositions: 3,
-        capital: defaultCapitalWithin(cap),
+        capital,
         leverage: kind === "spot" ? 1 : 3,
         symbols: [],
         combos: [],
         engines: [],
         sizing: "risk",
-        riskPerTradePct: DEFAULT_RISK_PCT,
+        riskPerTradePct: defaultRiskPctFor(capital),
         takeProfit: { kind: "tp1" },
         takeProfitOverrides: {},
         maxSignalAgeMin: 240,

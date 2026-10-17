@@ -107,10 +107,9 @@ pub async fn fetch_closed_klines(
 /// than a minute ago, it may still be forming and is held for the next
 /// tick (where it reappears before a newer bar if it really closed).
 pub fn drop_forming_tail(mut bars: Vec<Kline>, raw_len: usize, limit: u16, now_ms: u64) -> Vec<Kline> {
-    if raw_len < usize::from(limit)
-        && raw_len == bars.len()
-        && bars.last().is_some_and(|k| k.close_ms + 60_000 > now_ms)
-    {
+    // The rule itself is shared with the headless bot farm (DataHub candles).
+    let last = bars.last().map(|k| k.close_ms);
+    if crate::bot::strategy::walk::hold_forming_tail(raw_len, bars.len(), usize::from(limit), last, now_ms) {
         bars.pop();
     }
     bars

@@ -393,7 +393,7 @@ fn horizon_and_max_loss_keep_the_polled_price_on_paper() {
     assert_eq!((exit.reason, exit.price), ("max_loss", 99.0));
 }
 
-// `Fill::Polled` books the polled price (live positions, paper runner).
+// `Fill::Polled` books the polled price (live positions).
 #[test]
 fn polled_fill_is_unchanged() {
     let mut p = position(&signal("long", 100.0, 110.0, 95.0), None);

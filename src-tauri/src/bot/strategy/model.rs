@@ -4,7 +4,7 @@
 //! backtest or the headless runner can `#[path]`-mount this file unchanged.
 //!
 //! DCA and Grid are deliberately NOT `BotKind` variants: `BotKind` is mounted
-//! by the paper runner and mirrored in the signed phone protocol. Strategy
+//! by the bot farm and mirrored in the signed phone protocol. Strategy
 //! bots are separate, multi-instance objects keyed by their own `BotId`.
 
 use serde::{Deserialize, Serialize};

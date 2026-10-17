@@ -19,7 +19,7 @@ pub use catalog::combo_catalog;
 pub(crate) use veto::veto_note_reason;
 pub use commands::{signal_connect, signal_disconnect, signal_health, signal_recent};
 
-use std::collections::{HashSet, VecDeque};
+use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
@@ -217,23 +217,7 @@ impl SignalManager {
     /// Buffers the page's signals, then drops buffered signals the page
     /// covers but no longer lists: Sentinel has recorded their outcome.
     fn apply_pending(&self, page: PendingPage, asof_ms: u64) {
-        let returned = page.rows.len();
-        let complete = page.total.is_some_and(|t| t as usize <= returned);
-        let mut ids = HashSet::with_capacity(returned);
-        let mut oldest: Option<u64> = None;
-        for row in &page.rows {
-            match row {
-                Row::Ok(sig) => {
-                    ids.insert(sig.id.clone());
-                    if let Some(c) = time::parse_rfc3339_ms(&sig.created_at) {
-                        oldest = Some(oldest.map_or(c, |o| o.min(c)));
-                    }
-                }
-                Row::Bad { id, .. } => {
-                    ids.insert(id.clone());
-                }
-            }
-        }
+        let (ids, oldest, complete) = backfill::page_coverage(&page);
         // Publication order (oldest first): the list arrives newest first.
         let mut rows = page.rows;
         backfill::chronological(&mut rows);

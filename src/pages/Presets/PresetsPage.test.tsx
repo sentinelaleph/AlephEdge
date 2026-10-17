@@ -55,29 +55,33 @@ afterEach(async () => {
   host = null;
 });
 
-describe("Presets page: only DCA Long Classic on majors is recommended", () => {
-  it("lists the proven template first with a Proven badge; every other one is Experimental with its TEST mean", async () => {
+describe("Presets page: DCA Long Classic recommended, DCA Long Safe also proven", () => {
+  it("lists Classic then Safe with a Proven badge; every other one is Experimental with its TEST mean", async () => {
     const el = await mount(<PresetsPage />);
     const badges = [...el.querySelectorAll<HTMLElement>("tbody [data-evidence]")];
-    // The dev mock serves three of the twelve templates: classic, a failed DCA short and a failed grid.
-    expect(badges.length).toBe(3);
-    expect(badges[0].dataset.evidence).toBe("proven");
-    expect(badges[0].textContent).toBe("Proven");
+    // The dev mock serves four of the twelve templates: classic, safe, a failed DCA short and a failed grid.
+    expect(badges.length).toBe(4);
+    for (const b of badges.slice(0, 2)) {
+      expect(b.dataset.evidence).toBe("proven");
+      expect(b.textContent).toBe("Proven");
+    }
     expect(badges[0].closest("tr")?.textContent).toContain("DCA Long Classic");
-    for (const b of badges.slice(1)) {
+    expect(badges[1].closest("tr")?.textContent).toContain("DCA Long Safe");
+    for (const b of badges.slice(2)) {
       expect(b.dataset.evidence).toBe("experimental");
       expect(b.textContent).toMatch(/^Experimental · TEST [+-]\d+\.\d{2}% per bot-month$/);
     }
-    expect(badges.map((b) => b.textContent).slice(1).sort()).toEqual(["Experimental · TEST -2.43% per bot-month", "Experimental · TEST -8.61% per bot-month"]);
+    expect(badges.map((b) => b.textContent).slice(2).sort()).toEqual(["Experimental · TEST -2.43% per bot-month", "Experimental · TEST -8.61% per bot-month"]);
   });
 
-  it("recommends the proven template on its majors list, with its numbers from the data, and opens its form", async () => {
+  it("recommends Classic on its majors list, names Safe as also proven with its numbers from the data, and opens Classic's form", async () => {
     const el = await mount(<PresetsPage />);
     const pick = el.querySelector<HTMLElement>(".ae-preset__pick")!;
     expect(pick.textContent).toContain("Recommended: DCA Long Classic");
     expect(pick.textContent).toContain("TEST +1.90% per bot-month, 8/8 months positive, worst bot -20.7%.");
     expect(pick.textContent).toContain("on the top 30 pairs the worst bot fell -97.7%");
-    expect(pick.textContent).toContain("Every other template is experimental.");
+    expect(pick.textContent).toContain("Also proven: DCA Long Safe, TEST +1.45% per bot-month, 8/8 months positive. Every other template is experimental.");
+    expect(buttons(pick, "Use DCA Long Safe")).toHaveLength(0);
     await click(buttons(pick, "Use DCA Long Classic")[0]);
     expect(window.location.hash).toBe("#/bots/dca/new?preset=dca_long_classic");
   });
@@ -98,7 +102,8 @@ describe("New bot page: the proven template is the first choice", () => {
     const start = buttons(el, "Start with DCA Long Classic");
     expect(start).toHaveLength(1);
     expect(start[0].className).toContain("ae-btn--primary");
-    expect(el.textContent).toContain("Presets1 proven · 1 experimental");
+    expect(el.textContent).toContain("Presets2 proven · 1 experimental");
+    expect(buttons(el, "Start with DCA Long Safe")).toHaveLength(0);
     expect(el.textContent).toContain("Presets1 experimental");
     expect(el.textContent).not.toContain("0 proven");
     expect(el.textContent).toContain("Proven template DCA Long Classic, historical TEST: +1.90% per bot-month");

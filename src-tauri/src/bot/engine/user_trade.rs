@@ -37,7 +37,7 @@ use super::manual::{outcome_usdt, reward_risk, skip_code, PAPER_ONLY};
 use super::{book, entry_rules, live_price, now_ms, precheck, sizing};
 
 /// Every synthetic signal id starts with this; Sentinel's ids never do.
-pub const ID_PREFIX: &str = "manual-";
+pub use super::entry_rules::USER_TRADE_ID_PREFIX as ID_PREFIX;
 /// Feed note on a new trade.
 pub const FEED_KEY: &str = "userTradeOpened";
 /// The synthetic signal's `mode`.
@@ -67,10 +67,9 @@ pub const STOP_INSIDE_FEES: &str = "tradeStopInsideFees";
 /// Take-profit closer than both fees: reaching it books a loss.
 pub const TARGET_INSIDE_FEES: &str = "tradeTargetInsideFees";
 
-/// Whether `id` names a trade the user set up by hand, not a Sentinel signal.
-pub fn is_user_trade_id(id: &str) -> bool {
-    id.starts_with(ID_PREFIX)
-}
+/// Whether `id` names a trade the user set up by hand, not a Sentinel
+/// signal (defined with the pure entry rules, which the precheck reads).
+pub use super::entry_rules::is_user_trade_id;
 
 /// What the "New trade" form sends.
 #[derive(Debug, Clone, Deserialize, PartialEq)]

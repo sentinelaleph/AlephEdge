@@ -1,5 +1,5 @@
 //! Small key/value table for engine state that must survive a restart (the
-//! kill-switch trip day). Desktop-only; the paper runner has its own.
+//! kill-switch trip day). The bot farm mounts it too.
 
 use rusqlite::{params, Connection, OptionalExtension};
 

@@ -27,20 +27,29 @@ const PRESETS = [
 ];
 
 describe("New bot page model", () => {
-  it("counts the proven template apart from the experimental ones", () => {
-    expect(templateCounts(PRESETS, "dca")).toEqual({ proven: 1, experimental: 3, total: 4 });
+  it("counts the proven templates apart from the experimental ones", () => {
+    expect(templateCounts(PRESETS, "dca")).toEqual({ proven: 2, experimental: 2, total: 4 });
     expect(templateCounts(PRESETS, "grid")).toEqual({ proven: 0, experimental: 2, total: 2 });
   });
 
-  it("only DCA Long Classic is proven: a passed template with another id, or a higher TEST mean, is experimental", () => {
-    expect(PRESETS.map(presetEvidence)).toEqual(["experimental", "proven", "experimental", "experimental", "experimental", "experimental"]);
-    expect(provenPreset(PRESETS, "dca")?.id).toBe("dca_long_classic");
+  it("DCA Long Classic and DCA Long Safe are proven: a passed template with another id, or a higher TEST mean, is experimental", () => {
+    expect(PRESETS.map(presetEvidence)).toEqual(["proven", "proven", "experimental", "experimental", "experimental", "experimental"]);
+    expect(presetEvidence(preset("dca", "presetReady", 3.5, false, -20, "dca_long_quick"))).toBe("experimental");
     expect(provenPreset(PRESETS, "grid")).toBeNull();
-    // A classic that lost its verdict is not called proven.
+    // A proven id that lost its verdict is not called proven.
     expect(presetEvidence(preset("dca", "failed", 1.9, false, -20, "dca_long_classic"))).toBe("experimental");
+    expect(presetEvidence(preset("dca", "failed", 1.4, false, -15, "dca_long_safe"))).toBe("experimental");
   });
 
-  it("lists the proven template first and keeps the rest in order", () => {
+  it("Classic stays the recommended template even when Safe comes first in the data", () => {
+    expect(provenPreset(PRESETS, "dca")?.id).toBe("dca_long_classic");
+    expect(provenPreset(PRESETS)?.id).toBe("dca_long_classic");
+    // Without a proven Classic, Safe is the recommended one.
+    const noClassic = PRESETS.filter((p) => p.id !== "dca_long_classic");
+    expect(provenPreset(noClassic, "dca")?.id).toBe("dca_long_safe");
+  });
+
+  it("lists Classic first, then Safe, and keeps the rest in order", () => {
     expect(provenFirst(PRESETS).map((p) => p.id)).toEqual([
       "dca_long_classic",
       "dca_long_safe",

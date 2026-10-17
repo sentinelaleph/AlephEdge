@@ -411,6 +411,38 @@ export const notes = (): Promise<StrategyNote[]> => ok([]);
 export function presets(): Promise<Preset[]> {
   return classicPreset().then((c): Preset[] => [
     c,
+    // The second proven template (presets.rs dca_long_safe).
+    {
+      ...c,
+      id: "dca_long_safe",
+      situation: "uncertainMajors",
+      config: {
+        ...c.config,
+        name: "DCA Long Safe",
+        presetId: "dca_long_safe",
+        params: { ...(c.config.params as Extract<Preset["config"]["params"], { kind: "dca" }>), maxSo: 10, stepScale: 1.2, volumeScale: 1.3, tpPct: 1.5 },
+      },
+      history: {
+        ...c.history,
+        splits: [
+          { split: "train", meanPerBotMonthPct: 2.19, ci95LowPct: 1.74, ci95HighPct: 2.57, monthsPositive: 7, months: 7, oneBotReturnPerDayPct: null },
+          { split: "valid", meanPerBotMonthPct: 1.69, ci95LowPct: 1.24, ci95HighPct: 2.17, monthsPositive: 7, months: 7, oneBotReturnPerDayPct: null },
+          { split: "test", meanPerBotMonthPct: 1.45, ci95LowPct: 1.08, ci95HighPct: 1.84, monthsPositive: 8, months: 8, oneBotReturnPerDayPct: null },
+        ],
+        testShareBotsPositive: 1,
+        testWorstBotDrawdownPct: -15.8,
+        testMeanAtTaker010Pct: null,
+        testSignTestP: 0.0039,
+        bonferroniBar: 0.00417,
+        oneBotWorstDrawdownPct: null,
+        oneBotMedianDrawdownPct: null,
+        maxDealDays: 330,
+        openDealsAtDataEnd: 3,
+        liquidations: 0,
+        stoppedDeals: 0,
+        recheck: c.history.recheck && { ...c.history.recheck, partialMonthMeanPct: -0.14 },
+      },
+    },
     // One failed template so the dev preview shows the verdict and the ask.
     {
       ...c,

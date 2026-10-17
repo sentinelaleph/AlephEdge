@@ -10,11 +10,11 @@
 //! (breakeven/partial on the exchange), `live_close` (real-fill settlement),
 //! `reconcile` (exits the exchange made while the app was away).
 //!
-//! Tauri-free core: `entry_rules`, `precheck_rules` and `record`
+//! Tauri-free core: `entry_rules`, `pipeline`, `precheck_rules` and `record`
 //! hold the open phase's decisions, the precheck verdicts and the trade
 //! records; together with `geometry`, `management`, `pnl`, `sizing`,
 //! `take_profit`, `filters` and `btc_break` they import no Tauri and do no
-//! I/O. The headless paper runner (`crates/aleph-paper-runner`) compiles
+//! I/O. The headless bot farm (`crates/aleph-bot-farm`) compiles
 //! exactly these files — keep them free of Tauri, managers and I/O.
 
 pub mod book;
@@ -29,6 +29,7 @@ pub mod live_manage;
 pub mod management;
 pub mod manual;
 pub mod pnl;
+pub mod pipeline;
 pub mod precheck;
 pub mod precheck_rules;
 pub mod reconcile;

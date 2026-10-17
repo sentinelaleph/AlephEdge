@@ -287,7 +287,7 @@
       "restoreLiveBlocked": "Data uang nyata tidak terbaca saat mulai ({{detail}}) · bot tidak dilanjutkan",
       "restoreConfigInvalid": "Pengaturan bot tersimpan gagal pemeriksaan ({{detail}}) · perbaiki dan simpan untuk memulai bot",
       "settledPositionDropped": "Sudah tertutup di Riwayat · baris terbuka yang tersisa dihapus saat mulai",
-      "belowExchangeMinimum": "Di bawah order minimum bursa ({{detail}} USDT, Binance perlu sekitar 5)",
+      "belowExchangeMinimum": "Order akan sebesar {{detail}} USDT, di bawah minimum bursa 5 USDT",
       "manualOpened": "Dibuka manual dari Execute · simulasi",
       "userTradeOpened": "Trade baru dibuka · level Anda · simulasi"
     },
@@ -443,7 +443,11 @@
     "minConfidenceHint": "Diuji pada sinyal lampau: skor tidak memisahkan yang menang dari yang kalah (AUC 0.496)",
     "capitalBelowMinimum": "Binance menolak order di bawah sekitar 5 USDT: dengan ukuran ini bot melewatkan semua sinyal. Naikkan saldo atau tingkat risiko.",
     "maxPositionsLevelHint": "Tingkat risikomu mengizinkan hingga {{max}} per bot sinyal",
-    "maxPositionsAboveLevel": "Tingkat risikomu mengizinkan {{max}} per bot sinyal: bot ini memegang paling banyak {{max}}. Naikkan tingkat di Risiko & keamanan untuk lebih."
+    "maxPositionsAboveLevel": "Tingkat risikomu mengizinkan {{max}} per bot sinyal: bot ini memegang paling banyak {{max}}. Naikkan tingkat di Risiko & keamanan untuk lebih.",
+    "minimumOrder": {
+      "line": "{{count}} sinyal ditolak: order akan sebesar {{order}} USDT pada {{symbol}} (terbaru), di bawah minimum bursa {{min}} USDT.",
+      "fix": "Naikkan modal bot atau risikonya per trade agar order mencapai minimum."
+    }
   },
   "pnl": {
     "exportCsv": "Ekspor CSV",
@@ -620,7 +624,9 @@
       "paperBuild": "Versi ini hanya berdagang dalam simulasi: pengisian simulasi, tanpa order nyata. Klik untuk cara kerja uang sungguhan.",
       "liveAvailable": "Versi ini bisa berdagang dengan uang sungguhan di Futures {{venues}}. Saat ini tidak ada bot yang melakukannya: semua dalam simulasi. Uang sungguhan dinyalakan per bot (ketik LIVE). Klik untuk detail.",
       "live": "{{n}} bot berdagang dengan uang sungguhan. LIVE dinyalakan per bot. Klik untuk detail."
-    }
+    },
+    "beforeYouTrade": "Sebelum trading",
+    "assistant": "Asisten"
   },
   "page": {
     "botNew": "Bot baru",
@@ -1974,7 +1980,7 @@
         "base": "Pengaturan sendiri: tanpa simulasi historis.",
         "noneDca": "Pengaturan sendiri: tanpa simulasi historis. 0 dari {{total}} template DCA lolos pemeriksaan.",
         "noneGrid": "Pengaturan sendiri: tanpa simulasi historis. 0 dari {{total}} template grid lolos pemeriksaan.",
-        "proven": "Pengaturan kustom: tanpa simulasi historis. Template terbukti: {{names}}."
+        "proven": "Pengaturan kustom: tanpa simulasi historis. Terbukti: {{names}}."
       },
       "presetPairOnly": "Preset {{id}} hanya diuji pada BTCUSDT dan tidak bisa dibuka dengan {{symbol}}."
     },
@@ -2465,15 +2471,17 @@
       },
       "evidence": {
         "proven": "Terbukti",
-        "provenTip": "Satu-satunya template yang lulus uji pra-registrasi lab pada data baru, pada daftar koin utamanya sendiri.",
+        "provenTip": "Lulus uji pra-registrasi lab pada data baru, pada daftar koin utamanya sendiri.",
         "experimental": "Eksperimental",
         "experimentalResult": "Eksperimental · TEST {{mean}} per bot-bulan",
-        "experimentalTip": "Belum terbukti: hanya DCA Long Classic pada koin utama yang lulus uji pra-registrasi lab.",
+        "experimentalTip": "Belum terbukti: hanya template bertanda Terbukti yang lulus uji pra-registrasi lab pada data baru, masing-masing pada daftar koin utamanya sendiri.",
         "noneOfType": "Tidak ada template jenis ini yang terbukti. Semua di sini eksperimental.",
         "pickTitle": "Disarankan: {{name}} pada {{universe}}.",
         "pickBody": "TEST {{mean}} per bot-bulan, {{pos}}/{{months}} bulan positif, bot terburuk {{dd}}.",
         "pickWide": "Hanya koin utama: pada {{n}} pasangan teratas bot terburuk turun {{dd}}.",
         "pickOthers": "Semua template lain eksperimental.",
+        "pickAlso": "Juga terbukti: {{names}}. Semua template lain eksperimental.",
+        "pickAlsoItem": "{{name}}, TEST {{mean}} per bot-bulan, {{pos}}/{{months}} bulan positif",
         "pickUse": "Gunakan {{name}}"
       }
     },
@@ -3211,5 +3219,289 @@
   },
   "timeframeCost": {
     "warning": "{{tf}}: trading di setiap candle butuh hit rate {{rate}} untuk impas dengan biaya pulang-pergi {{cost}}. Tidak ada setelan yang diuji mencapainya."
+  },
+  "byt": {
+    "asOf": "{{time}} · {{age}} lalu",
+    "status": {
+      "ok": "Terkini",
+      "measuring": "Sedang diukur",
+      "not_started": "Belum dimulai",
+      "unavailable": "Tidak tersedia"
+    },
+    "noData": "Tidak ada data",
+    "linkFailed": "Tautan tidak dapat dibuka",
+    "refresh": "Muat ulang",
+    "refreshing": "Memuat ulang…",
+    "loading": "Memuat Sebelum trading…",
+    "unavailableTitle": "Sebelum trading tidak tersedia",
+    "staleLine": "Salinan offline, diterima {{age}} lalu. Muat ulang terakhir gagal:",
+    "received": "Diterima {{age}} lalu",
+    "sources": "Blok dan datanya",
+    "aboutTitle": "Tentang angka-angka ini",
+    "errors": {
+      "bytUnavailable": "Sentinel tidak menjawab. Periksa koneksi lalu muat ulang.",
+      "bytSchema": "Sentinel mengirim versi yang tidak dibaca aplikasi ini. Perbarui aplikasi.",
+      "bytHttp": "Sentinel menjawab dengan galat (HTTP {{detail}})."
+    },
+    "market": {
+      "title": "Pasar hari ini",
+      "regime": "Rezim BTC",
+      "price": "Harga BTC",
+      "change24h": "Perubahan 24 j",
+      "change1h": "Perubahan 1 j",
+      "trend": "Status tren",
+      "trendValue": "{{state}} (kekuatan {{strength}} dari 1)",
+      "trendStates": {
+        "up": "Naik",
+        "down": "Turun",
+        "flat": "Datar"
+      },
+      "volatility": "Volatilitas (ATR 1 j)",
+      "volStates": {
+        "high": "Tinggi",
+        "low": "Rendah"
+      },
+      "btcSpotShare": "Porsi BTC dari volume spot",
+      "btcMarketCapDominance": "Dominasi kapitalisasi pasar BTC",
+      "btcDominanceUnknown": "Porsi BTC (jenis tidak disebut)",
+      "dominanceSource": "Sumber: {{source}}. Ini bukan dominasi kapitalisasi kecuali labelnya menyebut begitu.",
+      "altLongRisk": "Risiko long altcoin (0 sampai 1)",
+      "downDays": "Hari turun berturut-turut",
+      "downDayHalt": "Jeda hari turun",
+      "active": "Aktif",
+      "inactive": "Tidak aktif",
+      "newAltLongs": "Sinyal long altcoin baru",
+      "published": "Diterbitkan",
+      "blocked": "Tidak diterbitkan",
+      "blockedUntil": "Tidak diterbitkan sampai {{time}}"
+    },
+    "chart": {
+      "title": "Bacaan grafik BTC",
+      "call": "Bacaan",
+      "calls": {
+        "higher": "Lebih tinggi",
+        "lower": "Lebih rendah",
+        "range": "Rentang",
+        "none": "—"
+      },
+      "confidence": "Keyakinan (milik model)",
+      "horizons": "4 j · 12 j · 24 j",
+      "horizonLine": "{{h4}} · {{h12}} · {{h24}}",
+      "priceAtRead": "Harga saat bacaan",
+      "support": "Support",
+      "resistance": "Resistance",
+      "invalidation": "Invalidasi",
+      "model": "Model · prompt",
+      "record": "Catatan tepat 24 j: {{hit}} ({{hits}} dari {{n}} bacaan, {{days}} hari). Pembanding selalu-rentang: {{range}}. Pembanding persistensi: {{persistence}}.",
+      "directional": "Hanya bacaan lebih tinggi/rendah: {{pct}} (n={{n}}).",
+      "notOk": "Tidak ada bacaan yang bisa dipakai.",
+      "noRecord": "Bacaan tidak ditampilkan: catatan tepat atau ambangnya tidak ada.",
+      "noCall": "Bacaan tidak memberi hasil.",
+      "latestAttempt": "Percobaan terakhir {{time}}: {{status}}. Bacaan di atas adalah yang terbaru yang berhasil."
+    },
+    "vol": {
+      "title": "Volatilitas",
+      "range24h": "Rentang 24 j",
+      "rangeValue": "{{low}} sampai {{high}} ({{pct}})",
+      "atr": "ATR 14 hari",
+      "atrValue": "{{usd}} USD ({{pct}} dari penutupan, n={{n}} bar harian)"
+    },
+    "funding": {
+      "title": "Funding",
+      "rate": "Tarif",
+      "perInterval": "{{rate}} per {{hours}} j",
+      "annualized": "Disetahunkan",
+      "next": "Berikutnya",
+      "stale": "DataHub menandai snapshot funding ini sebagai usang."
+    },
+    "models": {
+      "title": "Model bot dan hasil ujinya",
+      "template": "Templat",
+      "proven": "Terbukti",
+      "experimental": "Eksperimental",
+      "universe": "Pasangan",
+      "btcOnly": "Hanya BTCUSDT",
+      "topN": "Paling banyak diperdagangkan {{from}} sampai {{to}}",
+      "test": "Uji",
+      "testTip": "Bagian uji (disisihkan): rata-rata per bot-bulan dengan interval 95%. Satu bot baru 1000 USDT per pasangan tiap bulan, simulasi historis.",
+      "testValue": "{{mean}} ({{lo}} sampai {{hi}})",
+      "months": "Bulan +",
+      "monthsValue": "{{pos}} dari {{n}}",
+      "testBots": "Bot uji (n)",
+      "worstDd": "DD bot terburuk",
+      "ghost": "Jejak bayangan",
+      "ghostTip": "Simulasi maju sejak 8 Okt 2026, kertas. Masih awal: tidak dapat dibandingkan sebelum 30 hari.",
+      "ghostValue": "{{ret}} ({{bots}} bot, {{cycles}} siklus)",
+      "farm": "Peternakan bot",
+      "farmTip": "Mesin aplikasi sendiri di kertas dengan eksekusi simulasi, tanpa peringkat sampai ambang pra-registrasinya lolos.",
+      "farmValue": "{{ret}} ({{closed}} tutup, {{open}} buka)",
+      "open": "Buka di Bot baru",
+      "openHint": "Klik nama templat untuk membukanya di Bot baru. Anda memeriksa dan mengonfirmasi setiap pengaturan di sana."
+    },
+    "ghost": {
+      "title": "Jejak maju bayangan",
+      "measuring": "Sedang diukur: {{days}} dari {{min}} hari.",
+      "notRanked": "Tanpa peringkat."
+    },
+    "farm": {
+      "title": "Peternakan bot",
+      "days": "Hari berjalan",
+      "daysValue": "{{days}} dari {{min}}",
+      "mode": "Mode",
+      "paperSimulated": "Kertas, eksekusi simulasi",
+      "bots": "Bot (n)",
+      "refused": "Ditolak saat mulai",
+      "noRanking": "Tanpa peringkat: ambang pra-registrasi peternakan belum lolos."
+    },
+    "similar": {
+      "title": "Hari seperti hari ini"
+    },
+    "news": {
+      "title": "Berita yang kami baca",
+      "line": "Baris ringkasan",
+      "source": "Sumber",
+      "sourceLink": "Sumber",
+      "withheldText": "Teks ditahan (kata arah); tautan tetap ada.",
+      "count": "{{shown}} dari {{total}} baris ditampilkan.",
+      "withheld": "{{count}} ditahan karena kata arah.",
+      "impactTitle": "Dampak terukur (jendela {{days}} hari)",
+      "impactMeasured": "Setelah berita {{label}}, BTC 24 j: median {{median}}, naik {{up}} (n={{n}}). Jam acak: naik {{base}}.",
+      "noDifference": "Tidak ada perbedaan terukur.",
+      "differs": "Selisih rata-rata: {{lo}} sampai {{hi}} (interval 95%).",
+      "impactMeasuring": "{{label}}: sedang diukur, {{n}} dari {{needed}} berita.",
+      "impactNone": "{{label}}: tidak ada data.",
+      "impactUnavailable": "{{label}}: tidak tersedia, {{reason}}"
+    },
+    "listings": {
+      "title": "Listing baru",
+      "upcoming": "Mendatang ({{shown}} dari {{total}})",
+      "recent": "Terbaru ({{shown}} dari {{total}})",
+      "upcomingLabel": "Listing mendatang",
+      "recentLabel": "Listing terbaru",
+      "none": "Tidak ada di jendela ini",
+      "reaction": "Reaksi terukur",
+      "pending": "Menunggu",
+      "postponed": "ditunda",
+      "cancelled": "Dibatalkan",
+      "markets": {
+        "spot": "Spot",
+        "perp": "Perpetual",
+        "futures": "Berjangka"
+      },
+      "summary": "Reaksi sejauh ini, per bursa",
+      "summaryLine": "{{exchange}} {{market}}: {{listings}} listing ({{noData}} tanpa data, {{pending}} menunggu).",
+      "horizon": "{{h}} median {{median}}, positif {{up}} (n={{n}})",
+      "sources": "Kanal: {{list}}."
+    }
+  },
+  "assistant": {
+    "loading": "Memuat Asisten…",
+    "you": "Anda",
+    "assistant": "Asisten",
+    "emptyAnswer": "Model tidak mengembalikan teks.",
+    "tokens": "{{input}} token masuk / {{output}} keluar",
+    "cost": "Biaya {{cost}} USD (dilaporkan OpenRouter)",
+    "costNotReported": "Biaya tidak dilaporkan OpenRouter",
+    "toolsRead": "Dibaca: {{list}}",
+    "toolsRefused": "Ditolak: {{list}}",
+    "truncated": "Berhenti di batas panggilan alat",
+    "draft": {
+      "badge": "Draf",
+      "template": "Templat",
+      "symbol": "Pasangan",
+      "note": "Catatan model",
+      "confirmThere": "Tidak ada yang dibuat. Buka draf, periksa setiap kolom, dan konfirmasi di Bot baru.",
+      "open": "Buka di Bot baru",
+      "types": {
+        "dca": "Bot DCA",
+        "grid": "Bot grid",
+        "signal_futures": "Bot sinyal berjangka",
+        "signal_spot": "Bot sinyal spot"
+      }
+    },
+    "model": {
+      "title": "Model",
+      "search": "Cari model",
+      "label": "Model (mendukung alat)",
+      "choose": "Pilih satu dari {{count}}",
+      "loading": "Memuat model…",
+      "price": "Harga OpenRouter: {{input}} USD masuk / {{output}} USD keluar per juta token"
+    },
+    "key": {
+      "title": "Kunci OpenRouter",
+      "saved": "Tersimpan",
+      "none": "Tidak ada kunci",
+      "where": "Hanya disimpan di keychain komputer ini. Hanya dikirim ke openrouter.ai, tidak pernah ke ribqa.com, tidak ditampilkan lagi.",
+      "label": "Kunci API",
+      "replace": "Ganti kunci",
+      "save": "Simpan kunci",
+      "remove": "Hapus kunci",
+      "billing": "OpenRouter menagih setiap pesan ke akun OpenRouter Anda sendiri. Sentinel tidak membayarnya dan tidak melihatnya."
+    },
+    "tools": {
+      "title": "Apa yang bisa dibaca",
+      "line": "Alat baca-saja ditambah draf bot. Tidak bisa memulai atau menghentikan bot, atau membuat atau membatalkan order: alat itu tidak ada, apa pun kata prompt.",
+      "names": {
+        "list_bots": "bot dan statusnya",
+        "open_positions": "posisi terbuka",
+        "pnl_summary": "ringkasan P&L",
+        "risk_summary": "tampilan risiko",
+        "before_you_trade": "Sebelum trading",
+        "recent_signals": "sinyal terbaru",
+        "draft_bot": "draf bot (Anda konfirmasi di Bot baru)"
+      }
+    },
+    "prompt": {
+      "title": "Prompt utama",
+      "default": "Bawaan",
+      "edited": "Diubah",
+      "guard": "Aturan tetap yang dikirim lebih dulu (tidak bisa diubah)",
+      "label": "Instruksi Anda",
+      "save": "Simpan versi",
+      "reset": "Kembalikan ke bawaan",
+      "cannotUnlock": "Mengubah prompt mengubah cara jawaban ditulis, bukan apa yang bisa dilakukan Asisten.",
+      "history": "Versi tersimpan ({{count}} dari 10)",
+      "noHistory": "Belum ada versi tersimpan.",
+      "restore": "Pulihkan"
+    },
+    "clear": "Hapus percakapan",
+    "clearTitle": "Hapus percakapan?",
+    "clearBody": "{{count}} pesan dihapus dari komputer ini. Log milik OpenRouter tidak terpengaruh.",
+    "empty": {
+      "title": "Tambahkan kunci OpenRouter Anda untuk memakai Asisten",
+      "detail": "Buat kunci di openrouter.ai/keys lalu tempel di panel kiri. OpenRouter menagih pesan ke Anda; aplikasi membaca data Anda sendiri dan tidak bisa trading.",
+      "getKey": "Buka openrouter.ai/keys"
+    },
+    "scopeLine": "Jawaban memakai data meja ini saat Anda mengirim. Angka kertas dan live dipisahkan. Bukan saran.",
+    "noMessages": "Tidak ada pesan",
+    "noMessagesDetail": "Tanyakan tentang bot, P&L, risiko, sinyal, atau Sebelum trading.",
+    "messageLabel": "Pesan",
+    "placeholder": "Ctrl+Enter mengirim",
+    "sendsTo": "Mengirim ke {{model}} melalui OpenRouter",
+    "send": "Kirim",
+    "sending": "Menunggu jawaban…",
+    "errors": {
+      "loadFailed": "Asisten tidak dapat memuat pengaturannya.",
+      "assistantNoKey": "Tambahkan kunci OpenRouter Anda dulu.",
+      "assistantNoModel": "Pilih model dulu.",
+      "assistantBusy": "Jawaban masih dalam proses.",
+      "assistantKeyFormat": "Itu bukan kunci OpenRouter (diawali sk-or-).",
+      "assistantKeychainFailed": "Keychain menolak menyimpan kunci.",
+      "assistantModelInvalid": "ID model itu tidak valid.",
+      "assistantPromptEmpty": "Prompt kosong.",
+      "assistantPromptTooLong": "Prompt lebih dari {{detail}} karakter.",
+      "assistantPromptUnknownVersion": "Versi itu tidak tersimpan lagi.",
+      "assistantMessageEmpty": "Tulis pesan dulu.",
+      "assistantMessageTooLong": "Pesan lebih dari {{detail}} karakter.",
+      "orKeyRejected": "OpenRouter menolak kunci (401). Periksa di openrouter.ai/keys.",
+      "orNoCredits": "Akun OpenRouter Anda kehabisan kredit (402).",
+      "orForbidden": "OpenRouter menolak permintaan ini (403).",
+      "orRateLimited": "OpenRouter membatasi kunci ini (429). Coba lagi semenit lagi.",
+      "orTimeout": "Model terlalu lama menjawab.",
+      "orHttp": "OpenRouter menjawab dengan galat (HTTP {{detail}}).",
+      "orUnavailable": "OpenRouter tidak dapat dihubungi.",
+      "orBadResponse": "OpenRouter mengirim jawaban yang tidak bisa dibaca aplikasi ini.",
+      "linkOpenFailed": "Peramban tidak dapat dibuka."
+    }
   }
 }

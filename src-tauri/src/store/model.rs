@@ -103,7 +103,7 @@ pub struct TradeRecord {
     pub tp_fallback_from: Option<String>,
     /// The position was opened by the user on one signal (Execute), not by
     /// the bot's loop. Kept in the desktop's own `manual_trades` table (see
-    /// `store::manual`), not in `trades`: the paper runner shares that schema.
+    /// `store::manual`), not in `trades`: the bot farm shares that schema.
     /// Left out of the JSON when false.
     #[serde(default, skip_serializing_if = "is_false")]
     pub manual: bool,

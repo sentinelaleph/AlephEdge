@@ -8,7 +8,7 @@
 //! signal's entry has passed (Execute often comes long after publication). A
 //! configured bot takes it whether it
 //! runs or not; the engine loop is started so the position is managed.
-//! Desktop only: the paper runner never compiles this file.
+//! Desktop only: the bot farm never compiles this file.
 
 use serde::Serialize;
 use tauri::{AppHandle, Manager};

@@ -19,9 +19,11 @@ export function inTauri(): boolean {
  *
  * Some previews are fail-open by design (the vault opens for any password,
  * membership answers "active, aleph"), so dev mocks must not be in the release
- * bundle. `import.meta.env.DEV` is substituted at build time: the released
- * bundle keeps the rejection and drops both the dynamic import and the module
- * behind it, so the mocks are absent there, not merely unreachable.
+ * bundle. `import.meta.env.DEV` makes the released bundle reject here, but the
+ * bundler cannot see that `load` is then never called, so on its own every
+ * mock was still emitted as an unused chunk. The `aleph:strip-dev-mocks` plugin
+ * (vite.config.ts) replaces each `import("./x.mock")` in a build, and
+ * scripts/check-no-dev-mocks.cjs fails `npm run build` if a mock reaches dist/.
  */
 export async function devMock<M, T>(load: () => Promise<M>, run: (mock: M) => Promise<T>): Promise<T> {
   if (!import.meta.env.DEV) {

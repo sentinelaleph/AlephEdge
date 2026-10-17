@@ -174,7 +174,7 @@ describe("New trade form", () => {
       ["tradeStopInsideFees|0.10%", "Stop closer than both fees · needs more than 0.10%"],
       ["tradeTargetWrongSide", "Take-profit on the wrong side of the live price"],
       ["manualTakePaperOnly", "This bot trades real money · New trade opens paper positions only"],
-      ["belowExchangeMinimum|4.00", "Below the exchange minimum order (4.00 USDT, Binance needs about 5)"],
+      ["belowExchangeMinimum|4.00", "Order would be 4.00 USDT, under the exchange minimum of 5 USDT"],
       ["btcGuardUnknown", "BTC regime unknown · entry refused"],
     ];
     for (const [code, text] of cases) {

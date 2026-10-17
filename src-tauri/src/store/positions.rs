@@ -60,7 +60,7 @@ pub fn load_all_keyed(conn: &Connection) -> Result<Vec<(String, String, String)>
 }
 
 /// All persisted position bodies, oldest update first.
-// The desktop restores through `load_all_keyed`; the paper runner reads this.
+// The desktop restores through `load_all_keyed`; the bot farm's export reads this.
 #[allow(dead_code)]
 pub fn load_all(conn: &Connection) -> Result<Vec<String>, String> {
     let mut stmt = conn

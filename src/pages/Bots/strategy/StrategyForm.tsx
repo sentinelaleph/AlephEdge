@@ -31,7 +31,7 @@ import { StrategyLevelsTable } from "./StrategyPreviewPanel";
 import { GridSuggest } from "./GridSuggest";
 import { pairListText, presetPairCheck } from "./presetPair";
 import { presetsLive, type LiveTemplate } from "@/lib/ipc/strategy/presetsLive";
-import { EvidenceBadge, presetEvidence } from "@/pages/Presets/presetUi";
+import { EvidenceBadge, presetEvidence, provenFirst } from "@/pages/Presets/presetUi";
 import "./StrategyForm.css";
 import { TrendMismatchNote } from "@/components/Desk/MarketTrend";
 
@@ -901,7 +901,7 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
 function CustomSettingsNote({ kind, templates }: { kind: StrategyKind; templates: Preset[] | null }) {
   const { t } = useTranslation();
   const own = templates?.filter((p) => p.config.params.kind === kind) ?? null;
-  const passed = own?.filter((p) => presetEvidence(p) === "proven") ?? null;
+  const passed = own ? provenFirst(own).filter((p) => presetEvidence(p) === "proven") : null;
   const text =
     own === null || passed === null
       ? t("strategy.form.custom.base")

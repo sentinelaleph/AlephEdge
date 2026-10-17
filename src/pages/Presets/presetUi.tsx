@@ -70,26 +70,33 @@ export function VerdictChip({ p }: { p: Preset }) {
 }
 
 /**
- * The one template the lab proved on fresh data (pre-registered, TEST split):
- * DCA Long Classic on its own majors universe. Every other template is
- * experimental, whatever its verdict chip says.
+ * The templates the lab proved on fresh data (pre-registered TRAIN, VALID and
+ * TEST splits), each on its own majors universe: DCA Long Classic and DCA Long
+ * Safe. Every other template is experimental, whatever its verdict chip says.
+ * Classic stays the recommended one: first in the set, first in the list and
+ * the template `provenPreset` returns for DCA.
  */
-export const PROVEN_PRESET_ID = "dca_long_classic";
+export const PROVEN_PRESET_IDS: readonly string[] = ["dca_long_classic", "dca_long_safe"];
 
 export type Evidence = "proven" | "experimental";
 
 export function presetEvidence(p: Preset): Evidence {
-  return p.id === PROVEN_PRESET_ID && p.verdict === "presetReady" ? "proven" : "experimental";
+  return PROVEN_PRESET_IDS.includes(p.id) && p.verdict === "presetReady" ? "proven" : "experimental";
 }
 
-/** The proven template of a type, or null (Grid has none). */
+/** Sort rank: a proven template by its place in the set (Classic 0), everything else after. */
+function provenRank(p: Preset): number {
+  return presetEvidence(p) === "proven" ? PROVEN_PRESET_IDS.indexOf(p.id) : PROVEN_PRESET_IDS.length;
+}
+
+/** The recommended proven template of a type (Classic for DCA), or null (Grid has none). */
 export function provenPreset(presets: Preset[], kind?: StrategyKind): Preset | null {
-  return presets.find((p) => presetEvidence(p) === "proven" && (!kind || p.config.params.kind === kind)) ?? null;
+  return provenFirst(presets).find((p) => presetEvidence(p) === "proven" && (!kind || p.config.params.kind === kind)) ?? null;
 }
 
-/** The proven template first; the rest keep their order. */
+/** Proven templates first, Classic before Safe; the rest keep their order. */
 export function provenFirst(presets: Preset[]): Preset[] {
-  return [...presets].sort((a, b) => Number(presetEvidence(b) === "proven") - Number(presetEvidence(a) === "proven"));
+  return [...presets].sort((a, b) => provenRank(a) - provenRank(b));
 }
 
 /**

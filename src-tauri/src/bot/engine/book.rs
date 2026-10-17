@@ -18,7 +18,7 @@ use super::record::stamp_veto_reason;
 use super::{close_price, live_close, live_manage, live_price, management, now_ms};
 
 // The trade records are pure and live in `record.rs` (shared with the
-// headless paper runner); re-exported so `book::trade_record` keeps its path.
+// headless bot farm); re-exported so `book::trade_record` keeps its path.
 pub use super::record::{trade_record, veto_trade_record};
 
 /// Runs the management plan for every open position at the live price.

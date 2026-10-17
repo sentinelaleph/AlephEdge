@@ -20,6 +20,7 @@ import { formatUsdt, NO_VALUE } from "@/lib/format";
 import type { BotKind } from "@/lib/ipc/bot/bot";
 import { exchangeName } from "@/lib/ipc/exchange/exchange";
 import { groupSkips, skipParams } from "@/lib/skipNotes";
+import { MinimumOrderBanner } from "@/components/BotDesk/MinimumOrderBanner/MinimumOrderBanner";
 import { signalBotRows, type BotRow } from "./botRows";
 import { BotStateChip, SignalRowAction } from "./BotsTable";
 import { SignalBotForm } from "./signal/SignalBotForm";
@@ -174,6 +175,7 @@ export function SignalBotsPage() {
 
   return (
     <PageShell title={t("nav.signalBots")} crumbs={[{ label: t("nav.groups.bots"), to: "/bots" }]} left={left} right={right}>
+      <MinimumOrderBanner notes={s.recentSkips} />
       {feed.loaded && !feed.health.connected ? (
         <div className="ae-banner" data-tone="warn" role="status">
           <span>{t("signalBots.streamDown")}</span>

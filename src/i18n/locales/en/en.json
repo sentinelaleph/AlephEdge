@@ -323,7 +323,7 @@
       "restoreLiveBlocked": "Real-money data could not be read at startup ({{detail}}) · bot not resumed",
       "restoreConfigInvalid": "Saved bot settings fail a check ({{detail}}) · fix and save them to start the bot",
       "settledPositionDropped": "Already closed in History · its leftover open row was removed at startup",
-      "belowExchangeMinimum": "Below the exchange minimum order ({{detail}} USDT, Binance needs about 5)",
+      "belowExchangeMinimum": "Order would be {{detail}} USDT, under the exchange minimum of 5 USDT",
       "manualOpened": "Opened by hand from Execute · paper",
       "userTradeOpened": "New trade opened · your levels · paper"
     },
@@ -465,7 +465,11 @@
     "minConfidenceHint": "Tested on past signals: the score does not separate winners from losers (AUC 0.496)",
     "capitalBelowMinimum": "Binance refuses orders under about 5 USDT: at this size the bot skips every signal. Raise the balance or the risk level.",
     "maxPositionsLevelHint": "Your risk level allows up to {{max}} per signal bot",
-    "maxPositionsAboveLevel": "Your risk level allows {{max}} per signal bot: this bot holds at most {{max}}. Raise the level on Risk & safety for more."
+    "maxPositionsAboveLevel": "Your risk level allows {{max}} per signal bot: this bot holds at most {{max}}. Raise the level on Risk & safety for more.",
+    "minimumOrder": {
+      "line": "{{count}} signal(s) refused: the order would be {{order}} USDT on {{symbol}} (latest), under the exchange minimum of {{min}} USDT.",
+      "fix": "Raise the bot's capital or its risk per trade so the order reaches the minimum."
+    }
   },
   "pnl": {
     "exportCsv": "Export CSV",
@@ -620,7 +624,9 @@
       "paperBuild": "This build trades on paper only: simulated fills, no real orders. Click for how real money works.",
       "liveAvailable": "This build can trade real money on {{venues}} Futures. No bot does now: all are on paper. Real money is switched per bot (type LIVE). Click for details.",
       "live": "{{n}} bots trade real money. LIVE is switched per bot. Click for details."
-    }
+    },
+    "beforeYouTrade": "Before you trade",
+    "assistant": "Assistant"
   },
   "page": {
     "botNew": "New bot",
@@ -1974,7 +1980,7 @@
         "base": "Custom settings: no historical simulation.",
         "noneDca": "Custom settings: no historical simulation. 0 of {{total}} DCA templates passed their checks.",
         "noneGrid": "Custom settings: no historical simulation. 0 of {{total}} grid templates passed their checks.",
-        "proven": "Custom settings: no historical simulation. Proven template: {{names}}."
+        "proven": "Custom settings: no historical simulation. Proven: {{names}}."
       },
       "presetPairOnly": "Preset {{id}} was tested on BTCUSDT only and does not open with {{symbol}}."
     },
@@ -2465,15 +2471,17 @@
       },
       "evidence": {
         "proven": "Proven",
-        "provenTip": "The only template that passed the lab's pre-registered test on fresh data, on its own major-coin list.",
+        "provenTip": "Passed the lab's pre-registered test on fresh data, on its own major-coin list.",
         "experimental": "Experimental",
         "experimentalResult": "Experimental · TEST {{mean}} per bot-month",
-        "experimentalTip": "Not proven: only DCA Long Classic on major coins passed the lab's pre-registered test.",
+        "experimentalTip": "Not proven: only the templates marked Proven passed the lab's pre-registered test on fresh data, each on its own major-coin list.",
         "noneOfType": "No template of this type is proven. Every one here is experimental.",
         "pickTitle": "Recommended: {{name}} on {{universe}}.",
         "pickBody": "TEST {{mean}} per bot-month, {{pos}}/{{months}} months positive, worst bot {{dd}}.",
         "pickWide": "Majors only: on the top {{n}} pairs the worst bot fell {{dd}}.",
         "pickOthers": "Every other template is experimental.",
+        "pickAlso": "Also proven: {{names}}. Every other template is experimental.",
+        "pickAlsoItem": "{{name}}, TEST {{mean}} per bot-month, {{pos}}/{{months}} months positive",
         "pickUse": "Use {{name}}"
       }
     },
@@ -3211,5 +3219,289 @@
   },
   "timeframeCost": {
     "warning": "{{tf}}: trading every candle needs a {{rate}} hit rate to break even at {{cost}} round-trip cost. No tested setup reached it."
+  },
+  "byt": {
+    "asOf": "{{time}} · {{age}} ago",
+    "status": {
+      "ok": "Current",
+      "measuring": "Measuring",
+      "not_started": "Not started",
+      "unavailable": "Unavailable"
+    },
+    "noData": "No data",
+    "linkFailed": "The link could not be opened",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing…",
+    "loading": "Loading Before you trade…",
+    "unavailableTitle": "Before you trade is not available",
+    "staleLine": "Offline copy, received {{age}} ago. The last refresh failed:",
+    "received": "Received {{age}} ago",
+    "sources": "Blocks and their data",
+    "aboutTitle": "About these figures",
+    "errors": {
+      "bytUnavailable": "Sentinel did not answer. Check the connection and refresh.",
+      "bytSchema": "Sentinel sent a version this app does not read. Update the app.",
+      "bytHttp": "Sentinel answered with an error (HTTP {{detail}})."
+    },
+    "market": {
+      "title": "Market today",
+      "regime": "BTC regime",
+      "price": "BTC price",
+      "change24h": "Change 24h",
+      "change1h": "Change 1h",
+      "trend": "Trend state",
+      "trendValue": "{{state}} (strength {{strength}} of 1)",
+      "trendStates": {
+        "up": "Up",
+        "down": "Down",
+        "flat": "Flat"
+      },
+      "volatility": "Volatility (1h ATR)",
+      "volStates": {
+        "high": "High",
+        "low": "Low"
+      },
+      "btcSpotShare": "BTC share of spot volume",
+      "btcMarketCapDominance": "BTC market-cap dominance",
+      "btcDominanceUnknown": "BTC share (kind not stated)",
+      "dominanceSource": "Source: {{source}}. This is not market-cap dominance unless the label says so.",
+      "altLongRisk": "Alt long risk (0 to 1)",
+      "downDays": "Down days in a row",
+      "downDayHalt": "Down-day halt",
+      "active": "Active",
+      "inactive": "Not active",
+      "newAltLongs": "New alt long signals",
+      "published": "Published",
+      "blocked": "Not published",
+      "blockedUntil": "Not published until {{time}}"
+    },
+    "chart": {
+      "title": "BTC chart read",
+      "call": "Read",
+      "calls": {
+        "higher": "Higher",
+        "lower": "Lower",
+        "range": "Range",
+        "none": "—"
+      },
+      "confidence": "Confidence (model's own)",
+      "horizons": "4h · 12h · 24h",
+      "horizonLine": "{{h4}} · {{h12}} · {{h24}}",
+      "priceAtRead": "Price at the read",
+      "support": "Support",
+      "resistance": "Resistance",
+      "invalidation": "Invalidation",
+      "model": "Model · prompt",
+      "record": "24h hit record: {{hit}} ({{hits}} of {{n}} reads, {{days}} days). Always-range baseline: {{range}}. Persistence baseline: {{persistence}}.",
+      "directional": "Higher/lower reads only: {{pct}} (n={{n}}).",
+      "notOk": "No usable read.",
+      "noRecord": "The read is not shown: its hit record or bar is missing.",
+      "noCall": "The read made no call.",
+      "latestAttempt": "Latest attempt {{time}}: {{status}}. The read above is the newest successful one."
+    },
+    "vol": {
+      "title": "Volatility",
+      "range24h": "24h range",
+      "rangeValue": "{{low}} to {{high}} ({{pct}})",
+      "atr": "ATR 14 days",
+      "atrValue": "{{usd}} USD ({{pct}} of close, n={{n}} daily bars)"
+    },
+    "funding": {
+      "title": "Funding",
+      "rate": "Rate",
+      "perInterval": "{{rate}} per {{hours}}h",
+      "annualized": "Annualized",
+      "next": "Next",
+      "stale": "DataHub marks this funding snapshot as stale."
+    },
+    "models": {
+      "title": "Bot models and their test results",
+      "template": "Template",
+      "proven": "Proven",
+      "experimental": "Experimental",
+      "universe": "Pairs",
+      "btcOnly": "BTCUSDT only",
+      "topN": "Most traded {{from}} to {{to}}",
+      "test": "Test",
+      "testTip": "Test split (held out): mean per bot-month with its 95% interval. One new 1000 USDT bot per pair each month, historical simulation.",
+      "testValue": "{{mean}} ({{lo}} to {{hi}})",
+      "months": "Months +",
+      "monthsValue": "{{pos}} of {{n}}",
+      "testBots": "Test bots (n)",
+      "worstDd": "Worst bot DD",
+      "ghost": "Ghost track",
+      "ghostTip": "Forward simulation from 8 Oct 2026, paper. Early: not comparable before 30 days.",
+      "ghostValue": "{{ret}} ({{bots}} bots, {{cycles}} cycles)",
+      "farm": "Bot farm",
+      "farmTip": "The app's own engine on paper with simulated fills, unranked until its pre-registered gate passes.",
+      "farmValue": "{{ret}} ({{closed}} closed, {{open}} open)",
+      "open": "Open in New bot",
+      "openHint": "Click a template's name to open it in New bot. You check and confirm every setting there."
+    },
+    "ghost": {
+      "title": "Ghost forward track",
+      "measuring": "Measuring: {{days}} of {{min}} days.",
+      "notRanked": "Not ranked."
+    },
+    "farm": {
+      "title": "Bot farm",
+      "days": "Days running",
+      "daysValue": "{{days}} of {{min}}",
+      "mode": "Mode",
+      "paperSimulated": "Paper, simulated fills",
+      "bots": "Bots (n)",
+      "refused": "Refused at start",
+      "noRanking": "No ranking: the farm's pre-registered gate is not passed."
+    },
+    "similar": {
+      "title": "Days like today"
+    },
+    "news": {
+      "title": "News we read",
+      "line": "Digest line",
+      "source": "Source",
+      "sourceLink": "Source",
+      "withheldText": "Text withheld (direction wording); the link stays.",
+      "count": "{{shown}} of {{total}} lines shown.",
+      "withheld": "{{count}} withheld for direction wording.",
+      "impactTitle": "Measured impact ({{days}}-day window)",
+      "impactMeasured": "After {{label}} news, BTC 24h: median {{median}}, up {{up}} (n={{n}}). Random hours: up {{base}}.",
+      "noDifference": "No measurable difference.",
+      "differs": "Difference in mean: {{lo}} to {{hi}} (95% interval).",
+      "impactMeasuring": "{{label}}: measuring, {{n}} of {{needed}} stories.",
+      "impactNone": "{{label}}: no data.",
+      "impactUnavailable": "{{label}}: unavailable, {{reason}}"
+    },
+    "listings": {
+      "title": "New listings",
+      "upcoming": "Upcoming ({{shown}} of {{total}})",
+      "recent": "Recent ({{shown}} of {{total}})",
+      "upcomingLabel": "Upcoming listings",
+      "recentLabel": "Recent listings",
+      "none": "None in this window",
+      "reaction": "Measured reaction",
+      "pending": "Pending",
+      "postponed": "postponed",
+      "cancelled": "Cancelled",
+      "markets": {
+        "spot": "Spot",
+        "perp": "Perpetual",
+        "futures": "Futures"
+      },
+      "summary": "Reaction so far, by venue",
+      "summaryLine": "{{exchange}} {{market}}: {{listings}} listings ({{noData}} no data, {{pending}} pending).",
+      "horizon": "{{h}} median {{median}}, positive {{up}} (n={{n}})",
+      "sources": "Channels: {{list}}."
+    }
+  },
+  "assistant": {
+    "loading": "Loading the Assistant…",
+    "you": "You",
+    "assistant": "Assistant",
+    "emptyAnswer": "The model returned no text.",
+    "tokens": "{{input}} in / {{output}} out tokens",
+    "cost": "Cost {{cost}} USD (reported by OpenRouter)",
+    "costNotReported": "Cost not reported by OpenRouter",
+    "toolsRead": "Read: {{list}}",
+    "toolsRefused": "Refused: {{list}}",
+    "truncated": "Stopped at the tool-call limit",
+    "draft": {
+      "badge": "Draft",
+      "template": "Template",
+      "symbol": "Pair",
+      "note": "Model's note",
+      "confirmThere": "Nothing was created. Open the draft, check every field and confirm it in New bot.",
+      "open": "Open in New bot",
+      "types": {
+        "dca": "DCA bot",
+        "grid": "Grid bot",
+        "signal_futures": "Futures signal bot",
+        "signal_spot": "Spot signal bot"
+      }
+    },
+    "model": {
+      "title": "Model",
+      "search": "Search models",
+      "label": "Model (with tool support)",
+      "choose": "Choose one of {{count}}",
+      "loading": "Loading models…",
+      "price": "OpenRouter price: {{input}} USD in / {{output}} USD out per million tokens"
+    },
+    "key": {
+      "title": "OpenRouter key",
+      "saved": "Saved",
+      "none": "No key",
+      "where": "Kept only in this computer's keychain. Sent only to openrouter.ai, never to ribqa.com, never shown again.",
+      "label": "API key",
+      "replace": "Replace the key",
+      "save": "Save key",
+      "remove": "Remove key",
+      "billing": "OpenRouter bills every message to your own OpenRouter account. Sentinel does not pay for it and does not see it."
+    },
+    "tools": {
+      "title": "What it can read",
+      "line": "Read-only tools plus a bot draft. It cannot start or stop bots or place or cancel orders: no such tool exists, whatever the prompt says.",
+      "names": {
+        "list_bots": "bots and their state",
+        "open_positions": "open positions",
+        "pnl_summary": "P&L summary",
+        "risk_summary": "risk view",
+        "before_you_trade": "Before you trade",
+        "recent_signals": "recent signals",
+        "draft_bot": "bot draft (you confirm in New bot)"
+      }
+    },
+    "prompt": {
+      "title": "Master prompt",
+      "default": "Default",
+      "edited": "Edited",
+      "guard": "Fixed rules sent first (not editable)",
+      "label": "Your instructions",
+      "save": "Save version",
+      "reset": "Reset to default",
+      "cannotUnlock": "Editing the prompt changes how answers are written, not what the Assistant can do.",
+      "history": "Saved versions ({{count}} of 10)",
+      "noHistory": "No saved versions yet.",
+      "restore": "Restore"
+    },
+    "clear": "Delete conversation",
+    "clearTitle": "Delete the conversation?",
+    "clearBody": "{{count}} messages are removed from this computer. OpenRouter's own logs are not affected.",
+    "empty": {
+      "title": "Add your OpenRouter key to use the Assistant",
+      "detail": "Create a key at openrouter.ai/keys and paste it in the left panel. OpenRouter bills the messages to you; the app reads your own data and cannot trade.",
+      "getKey": "Open openrouter.ai/keys"
+    },
+    "scopeLine": "Answers use this desk's data at the moment you send. Paper and live figures are kept apart. Not advice.",
+    "noMessages": "No messages",
+    "noMessagesDetail": "Ask about your bots, P&L, risk, signals or Before you trade.",
+    "messageLabel": "Message",
+    "placeholder": "Ctrl+Enter sends",
+    "sendsTo": "Sends to {{model}} through OpenRouter",
+    "send": "Send",
+    "sending": "Waiting for the answer…",
+    "errors": {
+      "loadFailed": "The Assistant could not load its settings.",
+      "assistantNoKey": "Add your OpenRouter key first.",
+      "assistantNoModel": "Choose a model first.",
+      "assistantBusy": "An answer is still on its way.",
+      "assistantKeyFormat": "That is not an OpenRouter key (it starts with sk-or-).",
+      "assistantKeychainFailed": "The keychain refused to store the key.",
+      "assistantModelInvalid": "That model id is not valid.",
+      "assistantPromptEmpty": "The prompt is empty.",
+      "assistantPromptTooLong": "The prompt is longer than {{detail}} characters.",
+      "assistantPromptUnknownVersion": "That version is no longer saved.",
+      "assistantMessageEmpty": "Write a message first.",
+      "assistantMessageTooLong": "The message is longer than {{detail}} characters.",
+      "orKeyRejected": "OpenRouter rejected the key (401). Check it at openrouter.ai/keys.",
+      "orNoCredits": "Your OpenRouter account has no credits left (402).",
+      "orForbidden": "OpenRouter refused this request (403).",
+      "orRateLimited": "OpenRouter is rate limiting this key (429). Try again in a minute.",
+      "orTimeout": "The model took too long to answer.",
+      "orHttp": "OpenRouter answered with an error (HTTP {{detail}}).",
+      "orUnavailable": "OpenRouter could not be reached.",
+      "orBadResponse": "OpenRouter sent an answer this app could not read.",
+      "linkOpenFailed": "The browser could not be opened."
+    }
   }
 }

@@ -17,8 +17,15 @@ use super::super::judged::JudgeLedger;
 use super::super::model::{BotConfig, BotKind};
 use super::super::BotManager;
 use super::btc_break::BtcRegime;
-use super::precheck::{self, PrecheckContext, Skip};
+use super::pipeline::{self, EntryFeeds};
+use super::precheck::{self, Skip};
 use super::{book, entry_rules, live, live_price, now_ms};
+
+// The sequence itself is `pipeline.rs` (shared with the headless bot farm);
+// this file supplies the desktop's managers as its data source.
+pub use super::pipeline::Prepared;
+#[cfg(test)]
+pub use super::pipeline::market_mismatch;
 
 // The pure decisions live in `entry_rules.rs` (shared with the headless paper
 // runner); re-exported so every existing `entry::` path keeps working (some
@@ -40,20 +47,75 @@ pub fn settle_skip(ledger: &mut JudgeLedger, kind: BotKind, sig_id: &str, skip: 
     }
 }
 
-/// The signal was published for the other Binance market: futures bots
-/// (Futures, Pump) take futures signals, the Spot bot spot ones. A signal
-/// without a market (older payloads) passes.
-pub fn market_mismatch(kind: BotKind, sig: &Signal) -> Option<Skip> {
-    let market = sig.market_type.as_deref()?.trim().to_ascii_lowercase();
-    let wanted = if kind.uses_futures_market() { "futures" } else { "spot" };
-    (market != wanted && (market == "spot" || market == "futures")).then(|| Skip::with("signalOtherMarket", market))
+/// The desktop's managers as the entry pipeline's data source. The Sentinel
+/// session token is read at most once per entry, at the first feed that
+/// needs it (funding or depth), as the precheck always did.
+struct DeskFeeds<'a> {
+    signals: &'a SignalManager,
+    exchange: &'a ExchangeManager,
+    membership: &'a MembershipManager,
+    market: &'a MarketManager,
+    bots: &'a BotManager,
+    token: tokio::sync::OnceCell<Option<String>>,
 }
 
-/// A signal ready to open: the plan at the live price and the precheck's
-/// captured context.
-pub struct Prepared {
-    pub plan: PlannedEntry,
-    pub ctx: PrecheckContext,
+impl DeskFeeds<'_> {
+    /// Both market feeds sit behind the API's session check, so no token
+    /// means no data at all -- the same condition as an unreachable feed.
+    async fn token(&self) -> Option<&str> {
+        self.token
+            .get_or_init(|| self.membership.fresh_access_token())
+            .await
+            .as_deref()
+    }
+}
+
+impl EntryFeeds for DeskFeeds<'_> {
+    fn is_invalidated(&self, signal_id: &str) -> bool {
+        self.signals.is_invalidated(signal_id)
+    }
+    fn is_regime_vetoed(&self, signal_id: &str) -> bool {
+        self.signals.is_regime_vetoed(signal_id)
+    }
+    fn open_status(&self, sig: &Signal, now_ms: u64) -> crate::signal::model::OpenStatus {
+        self.signals.open_status(sig, now_ms)
+    }
+    fn futures_supported(&self, exchange_id: &str) -> bool {
+        self.exchange.supports_futures(exchange_id)
+    }
+    fn membership_active(&self) -> bool {
+        self.membership.view().active
+    }
+    fn open_count_for(&self, kind: BotKind) -> usize {
+        self.bots.open_count_for(kind)
+    }
+    async fn live_price(&self, exchange_id: &str, symbol: &str, kind: BotKind) -> Option<f64> {
+        live_price(self.exchange, exchange_id, symbol, kind).await
+    }
+    async fn funding(&self, symbol: &str) -> Result<Option<f64>, ()> {
+        let base = self.membership.base_url();
+        match self.token().await {
+            Some(token) => self
+                .market
+                .funding_for(&base, token, symbol)
+                .await
+                .map(|rate| rate.map(|r| r.rate))
+                .map_err(|_| ()),
+            None => Err(()),
+        }
+    }
+    async fn depth(&self, symbol: &str) -> Result<(f64, f64), ()> {
+        let base = self.membership.base_url();
+        match self.token().await {
+            Some(token) => self
+                .market
+                .depth(&base, token, symbol)
+                .await
+                .map(|d| (d.bid_depth_usd, d.ask_depth_usd))
+                .map_err(|_| ()),
+            None => Err(()),
+        }
+    }
 }
 
 /// Everything between a buffered signal and its opening, shared by the
@@ -73,56 +135,26 @@ pub async fn prepare_entry(
     holds_market: bool,
     now: u64,
 ) -> Result<Option<Prepared>, Skip> {
-    // A bot takes only signals published for its own market. A spot signal's
-    // levels and its graded outcome come from spot candles; traded on a perp it
-    // is a different instrument.
-    if let Some(skip) = market_mismatch(cfg.kind, sig) {
-        return Err(skip);
-    }
-    let signals = app.state::<SignalManager>();
-    let exchange = app.state::<ExchangeManager>();
     let risk = app.state::<RiskManager>();
     let (limits, balance) = (risk.limits(), risk.balance());
-    let bots = app.state::<BotManager>();
-    let input = GateInput {
-        cfg,
-        sig,
-        regime,
-        now_ms: now,
-        invalidated: signals.is_invalidated(&sig.id),
-        regime_vetoed: signals.is_regime_vetoed(&sig.id),
-        // Pump is not unlocked by the global risk level any more
-        // (risk/model.rs); it trades paper only, labelled untested.
-        pump_allowed: true,
-        futures_supported: exchange.supports_futures(&cfg.exchange_id),
-        holds_market,
+    let feeds = DeskFeeds {
+        signals: &app.state::<SignalManager>(),
+        exchange: &app.state::<ExchangeManager>(),
+        membership: &app.state::<MembershipManager>(),
+        market: &app.state::<MarketManager>(),
+        bots: &app.state::<BotManager>(),
+        token: tokio::sync::OnceCell::new(),
     };
-    if let Some(skip) = entry_rules::pre_price_gate_in(&input, mode) {
-        return Err(skip);
-    }
-    let price = live_price(&exchange, &cfg.exchange_id, &sig.symbol, cfg.kind).await;
-    // Fill model → the user's take-profit target resolved at this
-    // fill → size (before the prechecks: the depth check needs the
-    // real notional, and paper and live use this one size).
-    let leverage = precheck::effective_leverage(cfg, &limits);
-    let Some(plan) = entry_rules::plan_entry_in(cfg, sig, price, now, leverage, mode)? else {
-        return Ok(None);
-    };
-    entry_rules::exchange_minimum_gate(&plan)?;
-    let budget = signal_bot_budget(&bots, cfg.kind, balance, plan.size.notional);
-    let membership = app.state::<MembershipManager>();
-    let market = app.state::<MarketManager>();
-    let ctx = precheck::run(&membership, &signals, &market, &limits, cfg, sig, &budget, now).await?;
-    Ok(Some(Prepared { plan, ctx }))
+    pipeline::prepare_entry_with(&feeds, cfg, sig, regime, mode, holds_market, &limits, balance, now).await
 }
 
 /// The risk level's position limit applies per signal bot: Spot, Futures and
 /// Pump are separate categories, so Spot holding 5
 /// must not stop Futures. judge_budget's "global" ceiling therefore counts
-/// this bot only here; the paper runner (one bot per arm) is unchanged.
+/// this bot only here (the bot farm runs each bot as its own account).
+#[cfg(test)]
 pub(crate) fn signal_bot_budget(bots: &BotManager, kind: BotKind, balance: f64, notional: f64) -> precheck::Budget {
-    let open = bots.open_count_for(kind);
-    precheck::Budget { global_open: open, bot_open: open, balance, notional }
+    pipeline::signal_bot_budget(bots.open_count_for(kind), balance, notional)
 }
 
 pub async fn open_phase(app: &AppHandle, regime: BtcRegime) {

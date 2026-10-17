@@ -10,6 +10,7 @@
 //! then runs the app.
 
 mod app;
+mod assistant;
 mod bot;
 mod exchange;
 mod link;
@@ -158,6 +159,7 @@ pub fn run() {
         .manage(tvlink::TvManager::new())
         .manage(app::foreign_fill::ForeignFillManager::new())
         .manage(RiskViewManager::new())
+        .manage(assistant::AssistantManager::new())
         .invoke_handler(tauri::generate_handler![
             link::commands::link_begin_pairing,
             link::commands::link_pairing_status,
@@ -274,6 +276,19 @@ pub fn run() {
             app::foreign_fill::foreign_fill_set_enabled,
             app::market_trend::market_trend,
             app::presets_live::presets_live,
+            app::before_you_trade::before_you_trade,
+            app::before_you_trade::byt_open_link,
+            assistant::commands::assistant_status,
+            assistant::commands::assistant_set_key,
+            assistant::commands::assistant_remove_key,
+            assistant::commands::assistant_models,
+            assistant::commands::assistant_set_model,
+            assistant::commands::assistant_save_prompt,
+            assistant::commands::assistant_reset_prompt,
+            assistant::commands::assistant_restore_prompt,
+            assistant::commands::assistant_clear_conversation,
+            assistant::commands::assistant_open_keys_page,
+            assistant::commands::assistant_send,
             strategy_archive,
             strategy_cycles,
             strategy_orders,

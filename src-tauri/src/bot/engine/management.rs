@@ -23,8 +23,8 @@
 //! its level, as the resting exchange orders of a live position and
 //! Sentinel's ledger do. Booking the polled price (about every 8 s) charged
 //! every stop the move during the polling gap and credited every target its
-//! overshoot. The paper runner keeps the polled price so its fixed test arms
-//! do not shift.
+//! overshoot. `Fill::Polled` keeps the polled price (live positions, whose
+//! real fills are recorded from the exchange).
 
 use crate::signal::model::Direction;
 
@@ -49,7 +49,7 @@ pub struct Exit {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Fill {
     /// At the price this evaluation saw. Live positions (their real fills
-    /// are recorded from the exchange) and the paper runner's arms.
+    /// are recorded from the exchange); the bot farm books like desktop paper.
     Polled,
     /// Desktop paper. Targets and the partial at their level. The stop at
     /// its level when `watched` (this position was evaluated moments ago on
@@ -89,7 +89,7 @@ fn favourable(long: bool, price: f64, level: f64) -> bool {
 
 /// Evaluates `pos` at `price`, mutating its management state; every exit at
 /// the polled price (`Fill::Polled`).
-// The desktop calls `close_step_with`; the paper runner calls this.
+// The desktop calls `close_step_with`; this is the `Polled` shorthand (tests).
 #[allow(dead_code)]
 pub fn close_step(
     pos: &mut OpenPosition,

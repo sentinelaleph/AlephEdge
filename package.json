@@ -1,12 +1,13 @@
 {
   "name": "aleph-edge",
-  "version": "0.3.16",
+  "version": "0.3.17",
   "description": "Aleph Edge — Sentinel Aleph automated trading bot (Tauri desktop)",
   "type": "module",
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node scripts/check-no-dev-mocks.cjs",
+    "build:check": "node scripts/check-no-dev-mocks.cjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "check:i18n": "node scripts/check-locale-parity.cjs",

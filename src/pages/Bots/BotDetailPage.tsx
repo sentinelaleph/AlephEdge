@@ -16,6 +16,7 @@ import type { OpenPosition, SkipNote } from "@/lib/ipc/bot/bot";
 import { exchangeName } from "@/lib/ipc/exchange/exchange";
 import type { TradeRecord } from "@/lib/ipc/trades/trades";
 import { skipParams } from "@/lib/skipNotes";
+import { MinimumOrderBanner } from "@/components/BotDesk/MinimumOrderBanner/MinimumOrderBanner";
 import { PositionsTable } from "@/pages/Positions/PositionsTable";
 import { isStrategyBotId } from "@/lib/ipc/strategy/strategy";
 import { kindForBotId, signalBotRows } from "./botRows";
@@ -344,6 +345,7 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
           )
         ) : (
           <>
+            <MinimumOrderBanner notes={s.recentSkips} />
             <p className="ae-muted">{t("botDetail.logScope")}</p>
             <DataTable
               label={t("botDetail.tabs.log")}

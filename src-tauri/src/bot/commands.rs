@@ -8,8 +8,6 @@ use crate::risk::RiskManager;
 use crate::signal::model::StreamNoteKind;
 use crate::signal::SignalManager;
 
-/// Capital a NEW bot starts with when the risk level allows it.
-const DEFAULT_CAPITAL: f64 = 100.0;
 
 /// Refuses a config whose capital per position is above the risk level's
 /// per-position cap (`balance × max_capital_pct`). The engine skips every
@@ -31,19 +29,10 @@ fn cap_text(cap: f64) -> String {
     }
 }
 
-/// A new bot's capital: the default, lowered to the per-position cap of the
-/// current risk level and balance so the defaults can actually trade.
-pub fn default_capital(max_capital_quote: f64) -> f64 {
-    if !(max_capital_quote.is_finite() && max_capital_quote > 0.0) {
-        return DEFAULT_CAPITAL;
-    }
-    let cap = if max_capital_quote >= 1.0 {
-        max_capital_quote.floor()
-    } else {
-        (max_capital_quote * 100.0).floor() / 100.0
-    };
-    DEFAULT_CAPITAL.min(cap)
-}
+// A new bot's capital (the default, lowered to the per-position cap); defined
+// with the bot model so the headless bot farm makes the same new bot.
+#[cfg(test)]
+pub use super::model::default_capital;
 
 /// Rejects an out-of-bounds risk % (Err reaches the UI as a rejected invoke)
 /// rather than clamping what the user typed.
@@ -228,14 +217,13 @@ pub fn bot_end_pilot(bots: State<BotManager>, kind: BotKind) -> BotDeskStatus {
     bots.status()
 }
 
-/// Defaults for a NEW bot (risk sizing, 1% per trade), so the UI never
-/// re-declares them. Saved configs keep whatever they carry. The capital is
-/// fitted under the current per-position cap (see `default_capital`).
+/// Defaults for a NEW bot (risk sizing), so the UI never re-declares them.
+/// Saved configs keep whatever they carry. The capital is fitted under the
+/// current per-position cap (`default_capital`) and the risk % raised so a
+/// typical stop still clears the exchange minimum (`default_risk_pct_for`).
 #[tauri::command]
 pub fn bot_default_config(risk: State<RiskManager>, kind: BotKind, exchange_id: String) -> BotConfig {
-    let mut cfg = BotConfig::new_default(kind, &exchange_id);
-    cfg.capital = default_capital(risk.state().max_capital_quote);
-    cfg
+    BotConfig::new_tradable_for_desk(kind, &exchange_id, risk.state().max_capital_quote)
 }
 
 #[tauri::command]
@@ -472,6 +460,39 @@ mod tests {
         assert_eq!(cfg.capital, 20.0);
         assert!(judge_budget(&limits, &cfg, &budget).is_ok());
         assert!(check_capital_cap(&cfg, cap).is_ok(), "at the cap is allowed");
+    }
+
+    // 0.3.17: the fresh-install new bot (20 USDT at Cautious / 1000) sized
+    // every 7% stop at ~2.8 USDT, under the 5 USDT minimum, and only skipped.
+    #[test]
+    fn the_default_new_bot_can_place_an_order_on_a_typical_stop() {
+        use crate::bot::engine::sizing::size_position;
+        use crate::bot::model::{default_risk_pct_for, EXCHANGE_MIN_ORDER_USDT};
+        use crate::risk::model::{RiskConfig, RiskState};
+        let risk = RiskConfig::default();
+        let cap = RiskState::from_config(&risk).max_capital_quote;
+        for kind in [BotKind::Futures, BotKind::Spot] {
+            let old = BotConfig::new_for_desk(kind, "binance", cap);
+            let new = BotConfig::new_tradable_for_desk(kind, "binance", cap);
+            assert_eq!((old.capital, new.capital), (20.0, 20.0), "capital stays at the cap");
+            assert_eq!(old.risk_per_trade_pct, 1.0, "the farm's builder is unchanged");
+            assert_eq!(new.risk_per_trade_pct, 2.6);
+            assert!(new.validate().is_ok());
+            assert!(check_capital_cap(&new, cap).is_ok());
+            let lev = if kind == BotKind::Spot { 1 } else { 2 };
+            // Entry 100: stops at 7% (median of the 17 Oct pending signals) and 10%.
+            let at = |c: &BotConfig, sl: f64| size_position(c, lev, 100.0, sl).unwrap().notional;
+            assert!(at(&old, 93.0) < EXCHANGE_MIN_ORDER_USDT, "1% at 20 USDT: {}", at(&old, 93.0));
+            assert!(at(&new, 93.0) >= EXCHANGE_MIN_ORDER_USDT, "7% stop: {}", at(&new, 93.0));
+            assert!(at(&new, 90.0) >= EXCHANGE_MIN_ORDER_USDT, "10% stop: {}", at(&new, 90.0));
+            // At risk: 2.6% of 20 = 0.52 USDT = 0.052% of the 1000 USDT balance.
+            assert!((new.capital * new.risk_per_trade_pct / 100.0 - 0.52).abs() < 1e-9);
+        }
+        assert_eq!(default_risk_pct_for(100.0), 1.0, "a 100 USDT bot keeps 1%");
+        assert_eq!(default_risk_pct_for(10.0), 5.0, "capped at the 5% ceiling");
+        assert_eq!(default_risk_pct_for(2.0), 5.0);
+        assert_eq!(default_risk_pct_for(0.0), 1.0);
+        assert_eq!(default_risk_pct_for(f64::NAN), 1.0);
     }
 
     #[test]

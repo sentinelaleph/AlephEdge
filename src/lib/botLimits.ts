@@ -7,7 +7,7 @@
 /** Upper bound on a bot's max concurrent positions (`MAX_BOT_POSITIONS` in bot/model.rs). */
 export const MAX_BOT_POSITIONS = 20;
 
-/** A new bot's capital when the risk level allows it (`DEFAULT_CAPITAL` in bot/commands.rs). */
+/** A new bot's capital when the risk level allows it (`DEFAULT_CAPITAL` in bot/model.rs). */
 export const DEFAULT_CAPITAL = 100;
 
 /**
@@ -20,7 +20,7 @@ export function capitalAboveCap(capital: number, maxCapitalQuote: number | null 
   return maxCapitalQuote != null && maxCapitalQuote > 0 && capital > maxCapitalQuote;
 }
 
-/** Mirrors `default_capital` in bot/commands.rs: the default, lowered to the cap. */
+/** Mirrors `default_capital` in bot/model.rs: the default, lowered to the cap. */
 export function defaultCapitalWithin(maxCapitalQuote: number | null | undefined): number {
   if (maxCapitalQuote == null || !Number.isFinite(maxCapitalQuote) || maxCapitalQuote <= 0) return DEFAULT_CAPITAL;
   const cap = maxCapitalQuote >= 1 ? Math.floor(maxCapitalQuote) : Math.floor(maxCapitalQuote * 100) / 100;
@@ -29,3 +29,17 @@ export function defaultCapitalWithin(maxCapitalQuote: number | null | undefined)
 
 /** Smallest order Binance accepts on most pairs, USDT; mirrors Rust EXCHANGE_MIN_ORDER_USDT. */
 export const EXCHANGE_MIN_ORDER_USDT = 5;
+
+/** Widest stop a new desk bot's default risk % is fitted for; mirrors Rust DESK_STOP_CEILING_FRAC. */
+export const DESK_STOP_CEILING_FRAC = 0.1;
+
+/**
+ * Mirrors `default_risk_pct_for` in bot/model.rs: 1%, raised to the smallest
+ * 0.1 step at which a 10% stop still sizes at the 5 USDT minimum, at most 5%.
+ */
+export function defaultRiskPctFor(capital: number, roundTripCostFrac = 0.0012, minPct = 1, maxPct = 5): number {
+  if (!Number.isFinite(capital) || capital <= 0) return minPct;
+  const needed = ((EXCHANGE_MIN_ORDER_USDT * (DESK_STOP_CEILING_FRAC + roundTripCostFrac)) / capital) * 100;
+  const stepped = Math.ceil(needed * 10 - 1e-9) / 10;
+  return Math.min(maxPct, Math.max(minPct, stepped));
+}

@@ -46,6 +46,10 @@ const PresetsPage = lazy(() => import("@/pages/Presets/PresetsPage").then((m) =>
 const PresetDetailPage = lazy(() =>
   import("@/pages/Presets/PresetsPage").then((m) => ({ default: m.PresetDetailPage })),
 );
+const BeforeYouTradePage = lazy(() =>
+  import("@/pages/BeforeYouTrade/BeforeYouTradePage").then((m) => ({ default: m.BeforeYouTradePage })),
+);
+const AssistantPage = lazy(() => import("@/pages/Assistant/AssistantPage").then((m) => ({ default: m.AssistantPage })));
 const GuidePage = lazy(() => import("@/pages/Guide/GuidePage").then((m) => ({ default: m.GuidePage })));
 const FaqPage = lazy(() => import("@/pages/Faq/FaqPage").then((m) => ({ default: m.FaqPage })));
 const BacktestPage = lazy(() => import("@/pages/Backtest/BacktestPage").then((m) => ({ default: m.BacktestPage })));
@@ -94,6 +98,10 @@ export function renderRoute(route: ParsedRoute): ReactNode {
   switch (route.id) {
     case "dashboard":
       return <DashboardPage />;
+    case "beforeYouTrade":
+      return <BeforeYouTradePage />;
+    case "assistant":
+      return <AssistantPage />;
     case "bots":
       return <BotsPage />;
     case "botNew":

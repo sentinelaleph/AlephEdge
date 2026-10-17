@@ -19,8 +19,10 @@ CHECKPOINT.md
 
 # Internal notes stay local.
 docs/
+
+# crates/aleph-bot-farm (server-side paper farm) is tracked on the private
+# branches only and DROPPED from every public squash, like the retired
+# paper runner was.
 PRD.md
 
-# Server-side paper runner: research tooling, kept out of the public repo.
-crates/aleph-paper-runner/
 release-live/

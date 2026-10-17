@@ -1,6 +1,6 @@
 //! Closed-trade records, pure: the NET record a close persists and the
 //! veto-stamped variant. Kept apart from `book.rs` so the headless
-//! paper runner writes byte-for-byte the same `trades` rows as the desktop.
+//! bot farm writes byte-for-byte the same `trades` rows as the desktop.
 
 use crate::signal::model::RegimeVetoEvent;
 use crate::store::model::TradeRecord;

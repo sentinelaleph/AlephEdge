@@ -3,6 +3,8 @@ import type { IconName } from "./icons";
 
 export type NavItemId =
   | "dashboard"
+  | "beforeYouTrade"
+  | "assistant"
   | "bots"
   | "signalBots"
   | "dcaBots"
@@ -40,7 +42,11 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "overview",
     labelKey: "nav.groups.overview",
     collapsible: false,
-    items: [{ id: "dashboard", path: "/dashboard", labelKey: "nav.dashboard", icon: "dashboard" }],
+    items: [
+      { id: "dashboard", path: "/dashboard", labelKey: "nav.dashboard", icon: "dashboard" },
+      { id: "beforeYouTrade", path: "/before-you-trade", labelKey: "nav.beforeYouTrade", icon: "checklist" },
+      { id: "assistant", path: "/assistant", labelKey: "nav.assistant", icon: "chat" },
+    ],
   },
   {
     id: "bots",
@@ -91,6 +97,8 @@ export const NAV_GROUPS: NavGroup[] = [
 
 const DIRECT: Partial<Record<RouteId, NavItemId>> = {
   dashboard: "dashboard",
+  beforeYouTrade: "beforeYouTrade",
+  assistant: "assistant",
   bots: "bots",
   botNew: "botNew",
   signalBots: "signalBots",

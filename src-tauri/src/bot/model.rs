@@ -11,7 +11,7 @@ use crate::signal::model::{Direction, ManagementPlan};
 /// (off by default, so the public build is simulation-only); a live build is a
 /// deliberate `--features live`. While false, fills are simulated at the live
 /// market price — the full pipeline (prechecks, risk limits, management plan,
-/// persistence) is real. The paper runner compiles this file too and has no
+/// persistence) is real. The bot farm compiles this file too and has no
 /// such feature: it is never live.
 pub const LIVE_TRADING_ENABLED: bool = cfg!(feature = "live");
 
@@ -29,6 +29,47 @@ pub const SPOT_FEE_RATE: f64 = 0.001;
 /// sits under it (100 USDT at Cautious = 2 USDT) would otherwise see a paper
 /// book of trades the exchange can never fill.
 pub const EXCHANGE_MIN_ORDER_USDT: f64 = 5.0;
+
+/// Capital a NEW bot starts with when the risk level allows it.
+pub const DEFAULT_CAPITAL: f64 = 100.0;
+
+/// A new bot's capital: the default, lowered to the per-position cap of the
+/// current risk level and balance so the defaults can actually trade.
+pub fn default_capital(max_capital_quote: f64) -> f64 {
+    if !(max_capital_quote.is_finite() && max_capital_quote > 0.0) {
+        return DEFAULT_CAPITAL;
+    }
+    let cap = if max_capital_quote >= 1.0 {
+        max_capital_quote.floor()
+    } else {
+        (max_capital_quote * 100.0).floor() / 100.0
+    };
+    DEFAULT_CAPITAL.min(cap)
+}
+
+/// Widest stop (fraction of entry) a NEW desk bot's default risk % is fitted
+/// for. Sentinel's stops are 2.5 x ATR: on the 19 pending signals of
+/// 17 Oct 2026 the median was 7.1% and the widest 7.8%, so 10% leaves room.
+pub const DESK_STOP_CEILING_FRAC: f64 = 0.10;
+
+/// A new desk bot's risk % for `capital`: the 1% default, raised to the
+/// smallest 0.1 step at which a stop of `DESK_STOP_CEILING_FRAC` (plus the
+/// round-trip cost) still sizes at the exchange minimum, never above the 5%
+/// ceiling. At 100 USDT capital this stays 1%; at the fresh-install 20 USDT
+/// (Cautious, 1000 USDT balance) it is 2.6%: 0.52 USDT at risk per trade,
+/// 0.05% of the balance. Below ~10 USDT even 5% cannot clear the minimum on a
+/// wide stop; those signals are refused with `belowExchangeMinimum`, which the
+/// bot's notes name.
+pub fn default_risk_pct_for(capital: f64) -> f64 {
+    use crate::bot::engine::sizing::{DEFAULT_RISK_PCT, MAX_RISK_PCT, ROUND_TRIP_COST_FRAC};
+    if !(capital.is_finite() && capital > 0.0) {
+        return DEFAULT_RISK_PCT;
+    }
+    let needed = EXCHANGE_MIN_ORDER_USDT * (DESK_STOP_CEILING_FRAC + ROUND_TRIP_COST_FRAC) / capital * 100.0;
+    // Round UP to 0.1 (a tiny epsilon keeps 2.53 from becoming 2.6000000001 -> 2.7).
+    let stepped = ((needed * 10.0) - 1e-9).ceil() / 10.0;
+    stepped.clamp(DEFAULT_RISK_PCT, MAX_RISK_PCT)
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -205,6 +246,26 @@ pub struct BotConfig {
 impl BotConfig {
     /// A NEW bot's defaults: risk sizing at 1% per trade. (Saved configs
     /// without the field stay `fixed` — see `SizingMode`.)
+    /// A NEW bot as the desk makes it (`bot_default_config`): the defaults,
+    /// with the capital fitted under the risk level's per-position cap
+    /// (`RiskState::max_capital_quote`) so the defaults can actually trade.
+    pub fn new_for_desk(kind: BotKind, exchange_id: &str, max_capital_quote: f64) -> Self {
+        let mut cfg = Self::new_default(kind, exchange_id);
+        cfg.capital = default_capital(max_capital_quote);
+        cfg
+    }
+
+    /// The new signal bot the desk OFFERS (`bot_default_config`, 0.3.17):
+    /// `new_for_desk` plus a risk % large enough that a stop up to
+    /// `DESK_STOP_CEILING_FRAC` from entry still sizes at or above the
+    /// exchange minimum (`default_risk_pct_for`). `new_for_desk` itself is
+    /// unchanged: the bot farm's pre-registered signal bots are built from it.
+    pub fn new_tradable_for_desk(kind: BotKind, exchange_id: &str, max_capital_quote: f64) -> Self {
+        let mut cfg = Self::new_for_desk(kind, exchange_id, max_capital_quote);
+        cfg.risk_per_trade_pct = default_risk_pct_for(cfg.capital);
+        cfg
+    }
+
     pub fn new_default(kind: BotKind, exchange_id: &str) -> Self {
         Self {
             kind,
@@ -241,7 +302,7 @@ impl BotConfig {
     pub fn validate(&self) -> Result<(), String> {
         use crate::bot::engine::sizing::{MAX_RISK_PCT, MIN_RISK_PCT};
         // The desktop's upper bound (MAX_BOT_POSITIONS) is checked in
-        // `bot_configure`; the paper runner's mirror arms run 60 by design.
+        // `bot_configure`, not here.
         if self.max_positions == 0 {
             return Err("botMaxPositionsMin".to_string());
         }
@@ -396,7 +457,7 @@ pub struct OpenPosition {
     /// Opened by the user on one signal (Execute, "Open position"), not by
     /// the bot's own loop: the bot's signal filters were skipped, its risk
     /// limits were not. Paper only. Left out of the JSON when false, so every
-    /// other row (and the paper runner's) is written byte for byte as before.
+    /// other row (and the bot farm's) is written byte for byte as before.
     #[serde(default, skip_serializing_if = "is_false")]
     pub manual: bool,
 }
