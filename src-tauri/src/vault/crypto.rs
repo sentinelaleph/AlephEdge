@@ -54,12 +54,15 @@ pub fn derive_key(
 /// (which embeds the GCM auth tag).
 pub fn seal(key: &[u8; KEY_LEN], plaintext: &[u8]) -> Result<(Vec<u8>, Vec<u8>), String> {
     let cipher = Aes256Gcm::new(key.into());
-    let mut nonce = [0u8; NONCE_LEN];
-    OsRng.fill_bytes(&mut nonce);
+    let nonce_bytes = random_bytes(NONCE_LEN);
+    let nonce: [u8; NONCE_LEN] = nonce_bytes
+        .as_slice()
+        .try_into()
+        .map_err(|_| "vaultEncryptFailed".to_string())?;
     let ciphertext = cipher
         .encrypt(&nonce.into(), plaintext)
         .map_err(|_| "vaultEncryptFailed".to_string())?;
-    Ok((nonce.to_vec(), ciphertext))
+    Ok((nonce_bytes, ciphertext))
 }
 
 /// Open ciphertext under the key. Fails on a wrong key or any tampering.
