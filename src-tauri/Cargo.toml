@@ -32,7 +32,7 @@ serde_json = { version = "1", features = ["float_roundtrip"] }
 
 # Vault crypto — key material never leaves the device.
 argon2 = "0.6"
-aes-gcm = "0.10"
+aes-gcm = "0.11"
 rand = "0.8"
 zeroize = "1"
 base64 = "0.22"
