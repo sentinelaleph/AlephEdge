@@ -131,6 +131,24 @@ describe("Assistant page", () => {
     expect(el.textContent).toContain("Default");
   });
 
+  it("in Turkish the fixed rules are said in Turkish; the English text sent to the model is one click further", async () => {
+    reset(true);
+    await i18n.changeLanguage("tr");
+    try {
+      const el = await mount();
+      const rules = el.querySelector('[data-testid="assistant-guard-rules"]')!;
+      expect(rules.querySelectorAll("li")).toHaveLength(5);
+      expect(rules.textContent).toContain("Taslak yalnız bir öneridir");
+      expect(rules.textContent).not.toMatch(/(the|cannot|never)/);
+      const exact = el.querySelector(".ae-assist__guardexact")!;
+      expect(exact.querySelector("summary")!.textContent).toBe("Modele gönderilen tam metin (İngilizce)");
+      expect(exact.querySelector("pre")!.getAttribute("lang")).toBe("en");
+      expect(el.textContent).toContain("Varsayılan talimatlar modele İngilizce gönderilir");
+    } finally {
+      await i18n.changeLanguage("en");
+    }
+  });
+
   it("deletes the conversation after a confirmation", async () => {
     reset(true);
     const el = await mount();

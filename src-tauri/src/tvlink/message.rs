@@ -17,6 +17,10 @@
 //! - `bot` defaults to futures; no `size_usdt` = the bot's own sizing.
 //! - Numbers may be JSON numbers or numeric strings ("65000.5"): a
 //!   TradingView placeholder inside quotes still works.
+//! - A test alert (the relay's `"test":true` on the event, from Settings'
+//!   "Send test alert", or `"test":true` in the message itself) is only
+//!   recorded, as `tvTestOnly`: never opened, closed or priced, paper or
+//!   live, whatever the switches say.
 
 use serde_json::{Map, Value};
 
@@ -36,6 +40,8 @@ pub const EXPIRED: &str = "tvExpired";
 pub const NOTHING_TO_CLOSE: &str = "tvNothingToClose";
 /// Recorded only: "Execute alerts" is off.
 pub const RECEIVED: &str = "received";
+/// Recorded only: a test alert. Never executed.
+pub const TEST_ONLY: &str = "tvTestOnly";
 pub const OPENED: &str = "opened";
 pub const CLOSED: &str = "closed";
 /// The spot bot is long-only: the existing code of the entry pipeline.
@@ -271,11 +277,26 @@ pub fn is_stale(received_at_ms: Option<u64>, now_ms: u64) -> bool {
     }
 }
 
-/// The decision for one event body. Execute off records `received` (or why
-/// the message could not be read, so a template can be fixed before
-/// execution is turned on); an old event is `tvExpired`, never run.
-pub fn decide(body: &str, received_at_ms: Option<u64>, execute: bool, now_ms: u64) -> Decision {
-    let alert = match parse(body) {
+/// `"test": true` in the message itself.
+pub fn marks_test(body: &str) -> bool {
+    matches!(serde_json::from_str::<Value>(body.trim()), Ok(Value::Object(o)) if o.get("test") == Some(&Value::Bool(true)))
+}
+
+/// The decision for one event. A test event (`test`, or `"test":true` in
+/// the body) is checked first and only ever recorded as `tvTestOnly`.
+/// Execute off records `received` (or why the message could not be read,
+/// so a template can be fixed before execution is turned on); an old event
+/// is `tvExpired`, never run.
+pub fn decide(body: &str, received_at_ms: Option<u64>, test: bool, execute: bool, now_ms: u64) -> Decision {
+    let parsed = parse(body);
+    if test || marks_test(body) {
+        let seen = match parsed {
+            Ok(a) => Partial { action: Some(a.action), symbol: Some(a.symbol), bot: Some(a.bot) },
+            Err(r) => r.seen,
+        };
+        return Decision::Record { code: TEST_ONLY.to_string(), seen };
+    }
+    let alert = match parsed {
         Ok(a) => a,
         Err(r) => return Decision::Record { code: r.code, seen: r.seen },
     };
@@ -429,24 +450,24 @@ mod tests {
         assert!(is_stale(None, NOW));
 
         let buy = r#"{"action":"buy","symbol":"BTCUSDT","tp_pct":2,"sl_pct":1}"#;
-        match decide(buy, Some(NOW - 600_000), true, NOW) {
+        match decide(buy, Some(NOW - 600_000), false, true, NOW) {
             Decision::Record { code, seen } => {
                 assert_eq!(code, EXPIRED);
                 assert_eq!(seen.symbol.as_deref(), Some("BTCUSDT"));
             }
             d => panic!("{d:?}"),
         }
-        assert!(matches!(decide(buy, Some(NOW - 1_000), true, NOW), Decision::Open(_)));
+        assert!(matches!(decide(buy, Some(NOW - 1_000), false, true, NOW), Decision::Open(_)));
         let close = r#"{"action":"close","symbol":"BTCUSDT"}"#;
-        assert!(matches!(decide(close, Some(NOW - 1_000), true, NOW), Decision::Close(_)));
-        assert!(matches!(decide(close, Some(NOW - 600_000), true, NOW), Decision::Record { ref code, .. } if code == EXPIRED));
+        assert!(matches!(decide(close, Some(NOW - 1_000), false, true, NOW), Decision::Close(_)));
+        assert!(matches!(decide(close, Some(NOW - 600_000), false, true, NOW), Decision::Record { ref code, .. } if code == EXPIRED));
     }
 
     #[test]
     fn execute_off_records_and_never_runs() {
         let buy = r#"{"action":"buy","symbol":"BTCUSDT","tp_pct":2,"sl_pct":1}"#;
         for at in [Some(NOW), Some(NOW - 600_000), None] {
-            match decide(buy, at, false, NOW) {
+            match decide(buy, at, false, false, NOW) {
                 Decision::Record { code, seen } => {
                     assert_eq!(code, RECEIVED);
                     assert_eq!(seen.action, Some(Action::Buy));
@@ -454,10 +475,56 @@ mod tests {
                 d => panic!("{d:?}"),
             }
         }
-        assert!(matches!(decide(r#"{"action":"close","symbol":"BTCUSDT"}"#, Some(NOW), false, NOW), Decision::Record { ref code, .. } if code == RECEIVED));
+        assert!(matches!(decide(r#"{"action":"close","symbol":"BTCUSDT"}"#, Some(NOW), false, false, NOW), Decision::Record { ref code, .. } if code == RECEIVED));
         // A message that cannot be read says so either way (never executed).
-        assert!(matches!(decide("hello", Some(NOW), false, NOW), Decision::Record { ref code, .. } if code == BAD_MESSAGE));
-        assert!(matches!(decide("hello", Some(NOW), true, NOW), Decision::Record { ref code, .. } if code == BAD_MESSAGE));
+        assert!(matches!(decide("hello", Some(NOW), false, false, NOW), Decision::Record { ref code, .. } if code == BAD_MESSAGE));
+        assert!(matches!(decide("hello", Some(NOW), false, true, NOW), Decision::Record { ref code, .. } if code == BAD_MESSAGE));
+    }
+
+    /// The relay's test body (`TVWebhookTestBody` on the server).
+    const SERVER_TEST_BODY: &str = r#"{"action":"buy","symbol":"BTCUSDT","tp_pct":3,"sl_pct":1.5,"bot":"futures","test":true}"#;
+
+    #[test]
+    fn a_test_alert_is_only_ever_recorded() {
+        let bodies = [
+            SERVER_TEST_BODY,
+            r#"{"action":"buy","symbol":"BTCUSDT","tp_pct":2,"sl_pct":1}"#,
+            r#"{"action":"sell","symbol":"ETHUSDT","tp":1,"sl":2,"bot":"futures"}"#,
+            r#"{"action":"close","symbol":"BTCUSDT","bot":"spot"}"#,
+            "hello",
+        ];
+        for body in bodies {
+            for execute in [true, false] {
+                for at in [Some(NOW), Some(NOW - 1_000), Some(NOW - 600_000), None] {
+                    match decide(body, at, true, execute, NOW) {
+                        Decision::Record { code, .. } => assert_eq!(code, TEST_ONLY, "{body}"),
+                        d => panic!("test alert reached {d:?} ({body}, execute {execute})"),
+                    }
+                }
+            }
+        }
+        // What could be read is still shown.
+        match decide(SERVER_TEST_BODY, Some(NOW), true, true, NOW) {
+            Decision::Record { seen, .. } => {
+                assert_eq!(seen, Partial { action: Some(Action::Buy), symbol: Some("BTCUSDT".into()), bot: Some(BotKind::Futures) });
+            }
+            d => panic!("{d:?}"),
+        }
+    }
+
+    #[test]
+    fn test_true_in_the_message_is_a_test_even_without_the_relay_flag() {
+        // Execute on, fresh, readable: would open, but the body says test.
+        assert!(matches!(decide(SERVER_TEST_BODY, Some(NOW), false, true, NOW), Decision::Record { ref code, .. } if code == TEST_ONLY));
+        let close = r#"{"action":"close","symbol":"BTCUSDT","test":true}"#;
+        assert!(matches!(decide(close, Some(NOW), false, true, NOW), Decision::Record { ref code, .. } if code == TEST_ONLY));
+        assert!(marks_test(SERVER_TEST_BODY));
+        // Only the JSON boolean true.
+        for body in [r#"{"action":"buy","test":"true"}"#, r#"{"action":"buy","test":false}"#, r#"{"action":"buy"}"#, "test", "[true]"] {
+            assert!(!marks_test(body), "{body}");
+        }
+        let fresh_buy = r#"{"action":"buy","symbol":"BTCUSDT","tp_pct":2,"sl_pct":1,"test":false}"#;
+        assert!(matches!(decide(fresh_buy, Some(NOW), false, true, NOW), Decision::Open(_)));
     }
 
     #[test]

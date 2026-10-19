@@ -250,6 +250,8 @@ pub fn now_ms() -> u64 {
 #[cfg(test)]
 mod age_gate_tests;
 #[cfg(test)]
+mod depth_market_tests;
+#[cfg(test)]
 mod entry_tests;
 #[cfg(test)]
 mod filter_tests;

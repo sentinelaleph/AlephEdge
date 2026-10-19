@@ -11,6 +11,7 @@ import type {
   LabTemplate,
   LeafStatus,
   ListingRow,
+  NewsLine,
   Presets,
 } from "@/lib/ipc/beforeYouTrade/beforeYouTrade";
 
@@ -113,4 +114,16 @@ export function ageSecs(iso: string | null | undefined, now: number): number | n
   if (!iso) return null;
   const t = Date.parse(iso);
   return Number.isFinite(t) ? Math.max(0, (now - t) / 1000) : null;
+}
+
+/**
+ * The translation of a digest line to show in `lang`, or null: English
+ * readers, a line without one for this locale, or a withheld line get the
+ * English original. Only the server's checked translations are used; the app
+ * never translates a line itself.
+ */
+export function newsTranslation(line: NewsLine, lang: string): string | null {
+  if (!line.text || (line.source_lang ?? "en") === lang || lang === "en") return null;
+  const tr = line.translations?.[lang];
+  return typeof tr === "string" && tr.trim() ? tr : null;
 }

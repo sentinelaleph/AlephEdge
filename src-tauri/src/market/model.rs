@@ -30,8 +30,34 @@ pub struct FundingRatesResponse {
     pub stale: bool,
 }
 
-/// USD resting within ±1% of mid on each side of the Binance USDT-M futures
-/// book, from `/api/v1/market/depth/{symbol}` (DataHub).
+/// Which Binance book a depth check reads: the bot's own market (spot for the
+/// Spot signal bot, USDT-M futures for Futures and Pump; see
+/// `bot::engine::pipeline::depth_market`). DataHub's `market=` values.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DepthMarket {
+    Spot,
+    Futures,
+}
+
+impl DepthMarket {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            DepthMarket::Spot => "spot",
+            DepthMarket::Futures => "futures",
+        }
+    }
+
+    /// Whether a depth body is from this market's book. DataHub names it in
+    /// `source` (`datahub.binance.spot.depth` / `datahub.binance.futures.depth`);
+    /// a body without a source (older payloads) is taken as it is.
+    pub fn matches_source(self, source: &str) -> bool {
+        source.is_empty() || source.contains(&format!(".{}.", self.as_str()))
+    }
+}
+
+/// USD resting within ±1% of mid on each side of a Binance book (USDT-M
+/// futures by default, spot with `market=spot`), from
+/// `/api/v1/market/depth/{symbol}` (DataHub).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DepthAnalysis {
     pub symbol: String,
@@ -45,6 +71,9 @@ pub struct DepthAnalysis {
     /// are a lower bound.
     #[serde(default)]
     pub truncated: bool,
+    /// The book DataHub read, e.g. `datahub.binance.spot.depth`.
+    #[serde(default)]
+    pub source: String,
 }
 
 /// BTC macro pulse from `/api/v1/market/btc-macro`.

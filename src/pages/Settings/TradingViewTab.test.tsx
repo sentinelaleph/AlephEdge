@@ -34,6 +34,7 @@ function row(over: Partial<TvAlertResult>): TvAlertResult {
     bot: "futures",
     outcome: "opened",
     positionId: "manual-1-0000000a",
+    test: false,
     ...over,
   };
 }
@@ -123,6 +124,42 @@ describe("TradingViewTab", () => {
     expect(text).toContain("BTCUSDT · Futures");
   });
 
+  it("says webhooks need a paid TradingView plan, and the test needs a URL and Receive on", async () => {
+    const el = await mount();
+    const note = "TradingView sends webhooks only on paid plans; the test button checks the rest of the chain.";
+    expect(el.textContent).toContain(note);
+    expect(button(el, "Send test alert")).toBeUndefined();
+    await click(button(el, "Create URL")!);
+    expect(button(el, "Send test alert")!.disabled).toBe(true);
+    expect(el.textContent).toContain("Turn on Receive alerts to read the test alert.");
+    await click(sw(el, "tv-receive"));
+    expect(button(el, "Send test alert")!.disabled).toBe(false);
+    expect(el.textContent).not.toContain("Turn on Receive alerts to read the test alert.");
+  });
+
+  it("a test alert is listed with a TEST chip and no order, even with Execute on", async () => {
+    const el = await mount();
+    await click(button(el, "Create URL")!);
+    await click(sw(el, "tv-execute"));
+    await click(button(el, "Send test alert")!);
+    const text = el.textContent ?? "";
+    expect(text).toContain("Test alert sent.");
+    expect(text).toContain("Test only · no order");
+    expect(el.querySelector('.ae-chip[data-tone="warn"]')?.textContent).toBe("Test");
+    expect(text).not.toContain("Opened · paper");
+    expect(text).toContain("BTCUSDT · Futures");
+  });
+
+  it("the sixth test in an hour is refused in words", async () => {
+    const el = await mount();
+    await click(button(el, "Create URL")!);
+    await click(sw(el, "tv-receive"));
+    for (let i = 0; i < 5; i++) await click(button(el, "Send test alert")!);
+    await click(button(el, "Send test alert")!);
+    expect(el.querySelector('[role="alert"]')?.textContent).toBe("Test limit reached · 5 test alerts an hour");
+    expect(el.querySelectorAll('.ae-chip[data-tone="warn"]').length).toBe(5);
+  });
+
   it("offers the three message templates with TradingView's ticker placeholder", async () => {
     const el = await mount();
     for (const tpl of Object.values(TV_TEMPLATES)) expect(el.textContent).toContain(tpl);
@@ -138,6 +175,7 @@ describe("tvOutcomeText", () => {
   it("reads this panel's codes, then New trade's and the shared ones", () => {
     expect(tvOutcomeText(t, exists, "received")).toBe("Received · not executed (Execute off)");
     expect(tvOutcomeText(t, exists, "closed")).toBe("Closed · paper");
+    expect(tvOutcomeText(t, exists, "tvTestOnly")).toBe("Test only · no order");
     expect(tvOutcomeText(t, exists, "tradeStopInsideFees|0.10%")).toBe("Stop closer than both fees · needs more than 0.10%");
     expect(tvOutcomeText(t, exists, "manualTakePaperOnly")).toBe("This bot trades real money · New trade opens paper positions only");
     expect(tvOutcomeText(t, exists, "spotLongOnly")).toContain("long-only");

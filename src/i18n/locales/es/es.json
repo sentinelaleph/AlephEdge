@@ -1699,6 +1699,11 @@
       "rotate": "Rotar URL",
       "revoke": "Revocar",
       "rotateNote": "Rotar crea una URL nueva; la anterior deja de funcionar al instante. Revocar la detiene sin crear otra.",
+      "sendTest": "Enviar alerta de prueba",
+      "testSent": "Alerta de prueba enviada. Aparece abajo cuando se lee.",
+      "testNeedsReceive": "Activa Recibir alertas para leer la alerta de prueba.",
+      "paidPlan": "TradingView envía webhooks solo en planes de pago; el botón de prueba comprueba el resto de la cadena.",
+      "testChip": "Prueba",
       "shownOnce": "Se muestra una vez: la app no la guarda y no puede volver a mostrarla. Si la pierdes, rótala. Rotar detiene la URL anterior.",
       "copy": "Copiar",
       "copied": "Copiado",
@@ -1744,7 +1749,8 @@
         "tvExpired": "No ejecutada · tenía más de 120 s al leerla",
         "tvBadMessage": "Ilegible · no es JSON en el formato de alerta",
         "tvBadLevels": "Indica uno de tp / tp_pct y uno de sl / sl_pct, mayores que 0",
-        "tvNothingToClose": "Nada que cerrar · no tienes operación abierta en este par y bot"
+        "tvNothingToClose": "Nada que cerrar · no tienes operación abierta en este par y bot",
+        "tvTestOnly": "Solo prueba · sin orden"
       }
     }
   },
@@ -2869,6 +2875,8 @@
     "tvBadResponse": "Respuesta inesperada del relé de TradingView",
     "tvForbidden": "El relé de TradingView rechazó esta cuenta",
     "tvRateLimited": "Demasiadas solicitudes al relé de TradingView · espera un minuto",
+    "tvTestRateLimited": "Límite de pruebas alcanzado · 5 alertas de prueba por hora",
+    "tvNoUrl": "No hay URL de webhook activa · crea una primero",
     "tvHttp": "Falló la solicitud al relé de TradingView ({{detail}})",
     "tvTimeout": "El relé de TradingView no respondió a tiempo",
     "keyTransferEnabled": "Esta clave puede transferir fondos a otras cuentas (transferencia interna o universal). Desactiva las transferencias en el exchange y vuelve a añadirla.",
@@ -3226,7 +3234,8 @@
       "ok": "Actual",
       "measuring": "Midiendo",
       "not_started": "No iniciado",
-      "unavailable": "No disponible"
+      "unavailable": "No disponible",
+      "unknown": "Desconocido"
     },
     "noData": "Sin datos",
     "linkFailed": "No se pudo abrir el enlace",
@@ -3241,7 +3250,8 @@
     "errors": {
       "bytUnavailable": "Sentinel no respondió. Revisa la conexión y actualiza.",
       "bytSchema": "Sentinel envió una versión que esta app no lee. Actualiza la app.",
-      "bytHttp": "Sentinel respondió con un error (HTTP {{detail}})."
+      "bytHttp": "Sentinel respondió con un error (HTTP {{detail}}).",
+      "unknown": "Sentinel respondió de una forma que esta versión de la app no puede leer."
     },
     "market": {
       "title": "Mercado hoy",
@@ -3297,7 +3307,20 @@
       "notOk": "No hay lectura utilizable.",
       "noRecord": "La lectura no se muestra: falta su registro de aciertos o su umbral.",
       "noCall": "La lectura no dio una indicación.",
-      "latestAttempt": "Último intento {{time}}: {{status}}. La lectura de arriba es la última correcta."
+      "latestAttempt": "Último intento {{time}}: {{status}}. La lectura de arriba es la última correcta.",
+      "confidenceLevels": {
+        "low": "Baja",
+        "medium": "Media",
+        "high": "Alta",
+        "unknown": "No indicada"
+      },
+      "attemptStatus": {
+        "error": "fallido",
+        "timeout": "tiempo agotado",
+        "skipped": "omitido",
+        "invalid": "respuesta inutilizable",
+        "other": "sin éxito"
+      }
     },
     "vol": {
       "title": "Volatilidad",
@@ -3351,7 +3374,39 @@
       "paperSimulated": "En papel, ejecuciones simuladas",
       "bots": "Bots (n)",
       "refused": "Rechazados al iniciar",
-      "noRanking": "Sin ranking: no se ha pasado el umbral prerregistrado de la granja."
+      "noRanking": "Sin ranking: no se ha pasado el umbral prerregistrado de la granja.",
+      "signal": {
+        "title": "Bots de señales",
+        "market": "Mercado",
+        "trades": "Operaciones",
+        "tradesTip": "Operaciones cerradas / aún abiertas.",
+        "tradesValue": "{{closed}} cerradas / {{open}} abiertas",
+        "pnl": "Realizado",
+        "pnlTip": "P&L neto de las operaciones cerradas en USDT, tras comisiones.",
+        "ret": "Rendimiento",
+        "retTip": "P&L realizado más abierto, en porcentaje del capital asignado al bot.",
+        "capital": "Capital",
+        "dd": "Caída máxima",
+        "worst": "Peor operación",
+        "worstTip": "La peor operación cerrada, en porcentaje del capital asignado; ninguna antes del primer cierre.",
+        "refusals": "Señales rechazadas",
+        "refusalsNotReported": "La granja aún no lo informa",
+        "refusalsNone": "Ninguna",
+        "refusal": "{{reason}}: {{n}}",
+        "refusalUnknown": "Otro motivo: {{n}}",
+        "markets": {
+          "spot": "Spot",
+          "futures": "Futuros",
+          "other": "Otro mercado"
+        },
+        "states": {
+          "running": "En marcha",
+          "dailyStop": "Parada diaria",
+          "stopped": "Detenido",
+          "dead": "Detenido por un error",
+          "other": "Otro estado"
+        }
+      }
     },
     "similar": {
       "title": "Días como hoy"
@@ -3370,7 +3425,10 @@
       "differs": "Diferencia en la media: {{lo}} a {{hi}} (intervalo del 95%).",
       "impactMeasuring": "{{label}}: midiendo, {{n}} de {{needed}} noticias.",
       "impactNone": "{{label}}: sin datos.",
-      "impactUnavailable": "{{label}}: no disponible, {{reason}}"
+      "impactUnavailable": "{{label}}: no disponible, {{reason}}",
+      "sourceLanguage": "Las líneas del resumen se muestran en su idioma de origen.",
+      "translated": "traducción",
+      "showOriginal": "Mostrar el original (inglés)"
     },
     "listings": {
       "title": "Nuevos listados",
@@ -3391,7 +3449,145 @@
       "summary": "Reacción hasta ahora, por exchange",
       "summaryLine": "{{exchange}} {{market}}: {{listings}} listados ({{noData}} sin datos, {{pending}} pendientes).",
       "horizon": "{{h}} mediana {{median}}, positivos {{up}} (n={{n}})",
-      "sources": "Canales: {{list}}."
+      "sources": "Canales: {{list}}.",
+      "announcement": "Anuncio de {{exchange}}",
+      "feedStatus": {
+        "baseline": "primera lectura",
+        "http_error": "error HTTP",
+        "never_run": "nunca ejecutado",
+        "parse_error": "respuesta ilegible",
+        "other": "falló la última ejecución"
+      }
+    },
+    "reason": {
+      "unknown": "El motivo no está disponible en esta versión de la app.",
+      "not_wired": "Esta fuente no está conectada en el servidor.",
+      "store_unavailable": "El servidor no pudo leer esta fuente.",
+      "macro_warming_up": "El servicio de régimen de BTC está arrancando o fallando.",
+      "macro_stale": "Los datos del régimen de BTC son demasiado antiguos para mostrarlos.",
+      "range_high_low_missing": "Faltan el máximo y el mínimo de 24 h.",
+      "datahub_not_configured": "DataHub no está configurado en el servidor.",
+      "datahub_candles_unavailable": "Las velas diarias de DataHub no están disponibles.",
+      "datahub_too_few_candles": "DataHub devolvió {{got}} velas diarias cerradas; ATR(14) necesita {{need}}.",
+      "funding_unavailable": "La instantánea de funding de DataHub no está disponible.",
+      "funding_stale": "La instantánea de funding de DataHub es demasiado antigua.",
+      "funding_no_rows": "La instantánea de funding no tiene fila de BTCUSDT ni de ETHUSDT.",
+      "funding_partial": "Falta BTCUSDT o ETHUSDT en la instantánea de funding.",
+      "chart_no_successful_read": "No hay ninguna lectura de gráfico correcta guardada.",
+      "chart_read_too_old": "Ninguna lectura de gráfico correcta en las últimas {{max_age_h}} h (la más reciente: {{newest}}).",
+      "ghost_path_not_configured": "El archivo del seguimiento fantasma no está configurado en el servidor.",
+      "ghost_file_not_found": "No se encontró el archivo del seguimiento fantasma.",
+      "ghost_file_unreadable": "No se pudo leer el archivo del seguimiento fantasma.",
+      "ghost_invalid_json": "El archivo del seguimiento fantasma está dañado.",
+      "ghost_version_unknown": "El archivo del seguimiento fantasma tiene la versión {{version}}, que el servidor no lee.",
+      "ghost_no_updated_at": "El archivo del seguimiento fantasma no tiene hora de actualización.",
+      "ghost_stale": "El seguimiento fantasma se actualizó por última vez el {{updated_at}}, hace más de {{max_age_h}} h.",
+      "ghost_no_templates": "El seguimiento fantasma no incluye ninguna de las doce plantillas.",
+      "ghost_younger_than_min": "El seguimiento hacia adelante tiene menos de su mínimo de {{min_days}} días: las cifras son tempranas y no comparables.",
+      "farm_not_started": "La granja de bots aún no ha empezado.",
+      "farm_unreadable": "No se pudo leer la exportación de la granja de bots.",
+      "farm_invalid_json": "La exportación de la granja de bots está dañada.",
+      "farm_schema_unknown": "La exportación de la granja de bots tiene un formato que el servidor no lee ({{schema}}).",
+      "farm_no_generated_at": "La exportación de la granja de bots no tiene una hora válida.",
+      "farm_stale": "La exportación de la granja se escribió por última vez el {{written_at}}, hace más de {{max_age_min}} min (¿se detuvo la granja?).",
+      "farm_gate_not_passed": "Aún no se supera el umbral de clasificación prerregistrado de la granja: las cifras por plantilla se muestran en orden fijo, sin clasificar.",
+      "similar_days_not_computed_v1": "No calculado. Relacionar resultados pasados con la tendencia y la volatilidad actuales de BTC requeriría una investigación nueva que no está en ningún resultado guardado, y una prueba prerregistrada de elegir plantillas según el régimen de mercado falló. Una tabla de 'cómo fue en días como hoy' sugeriría una elección que la evidencia no respalda.",
+      "news_collector_off": "El recolector de noticias está apagado.",
+      "news_no_digest": "Aún no hay ningún resumen de noticias guardado.",
+      "news_digest_failed": "La última ejecución del resumen no produjo resumen (estado {{status}}).",
+      "news_digest_old": "El último resumen tiene más de {{max_age_h}} h.",
+      "news_no_showable_line": "El último resumen no tiene ninguna línea que se pueda mostrar.",
+      "impact_job_off": "El proceso de impacto de noticias está apagado.",
+      "impact_not_run": "El proceso de impacto de noticias aún no se ha ejecutado.",
+      "impact_stale": "El resumen de impacto de noticias tiene más de {{max_age_h}} h.",
+      "impact_no_line_to_match": "No hay ninguna línea del resumen con la que comparar.",
+      "impact_price_wrap_not_measured": "los titulares sobre un movimiento de precio ya ocurrido se cuentan pero nunca se miden: el movimiento llegó primero.",
+      "impact_type_not_in_summary": "este tipo no está en el resumen guardado.",
+      "impact_no_horizon": "no hay ningún horizonte guardado.",
+      "impact_excluded": "este tipo queda fuera de la medición.",
+      "listings_collector_off": "El recolector de listados está apagado.",
+      "listings_no_channel_read": "Aún no se ha leído correctamente ningún canal de exchange.",
+      "listings_channels_never_read": "Nunca se leyeron correctamente, por eso faltan aquí: {{channels}}.",
+      "listings_channel_failed": "Al menos un canal de exchange falló en su última ejecución; pueden faltar sus anuncios más recientes.",
+      "reaction_listing_cancelled": "listado cancelado",
+      "reaction_no_venue_candles": "DataHub no tiene velas de {{exchange}}",
+      "reaction_tokenized_spot": "los pares spot de valores tokenizados no están en DataHub",
+      "reaction_no_usd_pair": "no se indica ningún par USDT, USDC o USD1",
+      "reaction_market_no_klines": "DataHub no tiene velas del mercado {{market}}",
+      "reaction_no_listing_time": "el anuncio no indica hora de listado",
+      "reaction_datahub_not_set": "DataHub no está configurado",
+      "reaction_symbol_unknown": "DataHub no conoce {{symbol}} ({{market}})",
+      "reaction_traded_before_listing": "{{symbol}} cotizaba antes de la hora de listado indicada (no es un listado nuevo)",
+      "reaction_no_candle_15m": "ninguna vela en los 15 min posteriores a la hora de listado indicada",
+      "reaction_no_candle_yet": "aún ninguna vela en los 15 min posteriores a la hora de listado indicada",
+      "reaction_datahub_error": "DataHub devolvió un error",
+      "reaction_candles_missing": "faltan velas en todos los horizontes",
+      "reaction_some_horizons_missing": "algunos horizontes no tenían vela",
+      "reaction_other": "motivo no disponible en esta versión de la app",
+      "farm_rank_days_below_min": "{{days}} de {{min_days}} días desde T0",
+      "farm_rank_data_gap": "un hueco de datos de {{hours}} h (límite 24 h)",
+      "farm_rank_engine_check_pending": "aún no se supera la comparación entre motor y simulador",
+      "farm_rank_mixed_engines": "los resultados vienen de más de una versión del motor",
+      "farm_rank_too_few_units": "{{units}} unidad(es) cumplen el mínimo de ciclos cerrados; una clasificación necesita dos",
+      "farm_rank_other": "una condición del umbral que esta versión de la app no sabe nombrar"
+    },
+    "text": {
+      "unknown": "Esta explicación no está disponible en esta versión de la app.",
+      "listJoin": " y ",
+      "proven_majors_v1": "Probado = solo {{names}} en el universo de majors (los {{top}} perpetuos USDT con más volumen en 90 días). Todas las demás plantillas son experimentales, sea cual sea su veredicto de laboratorio. No se sugiere ninguna plantilla para hoy.",
+      "top30_worst_bot_v1": "{{name}} se midió en los cinco perpetuos USDT más negociados. Los mismos ajustes en los {{top}} primeros, por bot-mes: entrenamiento {{train}}, validación {{valid}}, prueba {{test}}; el peor bot cayó {{dd}}.",
+      "fixed_template_order_v1": "Las plantillas se listan en el orden fijo T01 a T12 en todas las fuentes y nunca se ordenan por resultado.",
+      "partial_month_open_v1": "La repetición de octubre añadió un mes parcial ({{month}}, {{days}} días) en el que todas las operaciones seguían abiertas y la media era negativa, así que 'todos los meses de prueba positivos' no se cumplió; los controles se vuelven a leer con un mes completo ({{next}}).",
+      "alt_long_guard_v1": "No se publican nuevas señales long de altcoins mientras la lectura fiable de BTC es bajista junto con una de estas: un movimiento de 24 h en el extremo bajo, dominancia de BTC al alza, riesgo long de altcoins de 0,60 o más, fuerza de tendencia de 0,35 o más. Tras una lectura así, el bloqueo se mantiene durante su ventana salvo que la tendencia gire al alza. Se muestra aquí sin cambiarlo.",
+      "btcd_shield_48h_v1": "Código de tendencia del escudo BTCD de math-core sobre 48 velas de 1 h de BTCUSDT.",
+      "ema9_21_48h_v1": "EMA9 frente a EMA21 sobre 48 velas de 1 h de BTCUSDT; plana dentro de una banda del 0,3 %.",
+      "atr14_1h_over_1_5pct_v1": "ATR(14) en velas de 1 h de BTCUSDT sobre el cierre medio; alta por encima del 1,5 %.",
+      "atr14_1d_closed_v1": "Rango verdadero medio de las últimas 14 velas diarias cerradas, como porcentaje del último cierre.",
+      "ghost_botsim_forward_v1": "Simulador de laboratorio (botsim) ejecutado hacia adelante desde T0 con los parámetros de cada plantilla: 1000 por bot, 1x, listas de pares mensuales, ciclos abiertos valorados al último cierre, comisión del 0,05 % más 0,02 % de deslizamiento por orden de mercado, funding incluido.",
+      "farm_paper_simulated_v1": "Trading en papel con ejecuciones simuladas en el motor de Aleph Edge. No son resultados reales: las ejecuciones reales, el deslizamiento, las comisiones y las caídas difieren y se espera que sean peores.",
+      "farm_funding_settled_v1": "A los ciclos DCA y Grid de futuros se les cobra el funding liquidado de DataHub.",
+      "farm_funding_not_charged_v1": "Aún no se cobra funding a los ciclos DCA y Grid de futuros: DataHub no tiene historial de funding liquidado.",
+      "news_third_party_v1": "Información de terceros, no una medición de Sentinel. No se usa en ninguna señal, veto ni tasa de acierto.",
+      "news_impact_v1": "Historial medido tras noticias pasadas, no un pronóstico: el movimiento de BTC spot tras noticias pasadas de un tipo, comparado con las mismas horas del día en la misma ventana. Los titulares se clasifican con reglas fijas de palabras clave; los titulares que resumen el precio se cuentan pero nunca se miden. No se usa en ninguna señal, veto ni tasa de acierto.",
+      "listings_v1": "Las horas y los pares de listado son los anuncios de los propios exchanges, enlazados. Las reacciones se miden con velas de DataHub donde existen; si no hay datos, se indica sin datos. No es una señal.",
+      "listing_reaction_1m_v1": "Referencia = apertura de la primera vela de 1 minuto en o después de la hora de listado indicada; el cambio en cada horizonte es el cierre de la vela de 1 minuto que termina entonces, frente a la referencia. Solo spot y perpetuos USDT-M de Binance (DataHub no tiene velas de otros exchanges).",
+      "chart_info_only_bar_not_met": "Solo informativo: la lectura no se usa en ningún veto porque no alcanzó su umbral prerregistrado.",
+      "chart_bar_met": "La lectura alcanzó su umbral prerregistrado.",
+      "chart_info_only_bar_open": "Solo informativo: el umbral prerregistrado de la lectura sigue abierto.",
+      "farm_signal_bots_paper_v1": "Los bots de señales siguen las señales publicadas con la configuración predeterminada de la app. Operación en papel con ejecuciones simuladas; sin clasificación.",
+      "news_machine_translated_v1": "Las líneas traducidas son traducciones automáticas de la línea en inglés; sus cifras y tickers se comprobaron con ella.",
+      "news_newer_run_failed_v1": "La ejecución más reciente del resumen ({{time}}) no produjo resumen; se muestra el resumen anterior."
+    },
+    "bar": {
+      "notMet": "Umbral de veto no alcanzado: {{hit}} con n={{n}} (se necesitaba {{needed}} y {{margin}} pp sobre ambas referencias).",
+      "notMetNoFigure": "Umbral de veto no alcanzado con n={{n}}.",
+      "met": "Umbral de veto alcanzado: {{hit}} con n={{n}} ({{rule}} pp sobre la regla, {{persist}} pp sobre la persistencia).",
+      "metNoFigure": "Umbral de veto alcanzado con n={{n}}.",
+      "open": "Umbral de veto abierto: {{graded}} de {{min}} lecturas de 24 h calificadas.",
+      "unavailable": "Umbral de veto: evaluación no disponible."
+    },
+    "about": {
+      "notAdvice": "Historial medido e información de terceros: no es un consejo ni un pronóstico.",
+      "simulations": "Las cifras de laboratorio son simulaciones históricas; el seguimiento fantasma y la granja de bots son simulaciones en papel. Ninguna es un historial real.",
+      "proven": "Solo {{names}} en los {{top}} perpetuos USDT más negociados se consideran probadas.",
+      "wide": "En los {{top}} más negociados, los mismos ajustes perdieron dinero en {{losing}} de {{splits}} tramos y el peor bot cayó {{dd}}.",
+      "noSuggestion": "No se sugiere ninguna plantilla para hoy: una prueba de elegir plantillas según el régimen de mercado falló."
+    },
+    "impactTypes": {
+      "macro_official": "Publicaciones macro oficiales (política de la Fed, BLS)",
+      "fed_supervision": "Supervisión bancaria de la Fed",
+      "sec_official": "Comunicados de la SEC",
+      "regulation_legal": "Regulación y asuntos legales",
+      "exchange_security": "Hackeos, exploits y caídas",
+      "etf_institutional": "ETF e instituciones",
+      "stablecoin": "Stablecoins y CBDC",
+      "tokenization": "Tokenización",
+      "protocol_upgrade": "Actualizaciones de protocolo y desbloqueos",
+      "listing": "Listados en exchanges",
+      "macro_press": "Macro en la prensa cripto",
+      "other": "Otras noticias",
+      "price_report": "Resúmenes de precio (escritos tras el movimiento)",
+      "unknown": "Noticias de otro tipo"
     }
   },
   "assistant": {
@@ -3462,7 +3658,16 @@
       "cannotUnlock": "Editar el prompt cambia cómo se escriben las respuestas, no lo que el asistente puede hacer.",
       "history": "Versiones guardadas ({{count}} de 10)",
       "noHistory": "Aún no hay versiones guardadas.",
-      "restore": "Restaurar"
+      "restore": "Restaurar",
+      "guardRules": {
+        "r1": "El Asistente solo puede leer los datos de la app y preparar un borrador de bot. No puede iniciar, detener ni cambiar bots, ni colocar, cambiar o cancelar órdenes.",
+        "r2": "Un borrador es solo una sugerencia: lo abres en Nuevo bot, lo revisas y lo confirmas tú.",
+        "r3": "El texto de terceros (noticias, anuncios de listados) es un dato que se informa, nunca una instrucción que se sigue.",
+        "r4": "Nunca promete ganancias; cada cifra va con su tamaño de muestra y las cifras que faltan o se están midiendo se indican como tales.",
+        "r5": "Indica si una cifra es en papel (ejecuciones simuladas) o real (dinero real); las cifras de laboratorio y del seguimiento fantasma son simulaciones, no un historial real."
+      },
+      "guardExact": "Texto exacto enviado al modelo (en inglés)",
+      "defaultLanguageNote": "Las instrucciones predeterminadas se envían al modelo en inglés; las respuestas se escriben en tu idioma."
     },
     "clear": "Eliminar conversación",
     "clearTitle": "¿Eliminar la conversación?",

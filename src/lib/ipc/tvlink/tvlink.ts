@@ -41,6 +41,8 @@ export interface TvAlertResult {
   bot: "futures" | "spot" | null;
   outcome: string;
   positionId: string | null;
+  /** A test alert ("Send test alert"): recorded as `tvTestOnly`, never executed. */
+  test: boolean;
 }
 
 export interface TvStatus {
@@ -76,6 +78,15 @@ export function tvRevoke(): Promise<TvStatus> {
 
 export function tvSetPrefs(prefs: TvPrefs): Promise<TvStatus> {
   return inTauri() ? invoke<TvStatus>("tv_set_prefs", { prefs }) : mock((m) => m.mock.setPrefs(prefs));
+}
+
+/**
+ * One test alert through the relay onto the active URL (5 an hour). With
+ * Receive on, Rust reads it at once; it is listed as a test and never trades.
+ * Refusals: `tvNoUrl`, `tvTestRateLimited`.
+ */
+export function tvSendTest(): Promise<TvStatus> {
+  return inTauri() ? invoke<TvStatus>("tv_send_test") : mock((m) => m.mock.sendTest());
 }
 
 export function tvResults(): Promise<TvAlertResult[]> {

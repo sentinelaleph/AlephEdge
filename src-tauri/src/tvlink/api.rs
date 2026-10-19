@@ -5,6 +5,8 @@
 //! - `GET    /api/edge/tv-webhook`         status
 //! - `DELETE /api/edge/tv-webhook`         revokes it
 //! - `GET    /api/edge/tv-webhook/events`  `?after=<id>&limit=<1..50>`
+//! - `POST   /api/edge/tv-webhook/test`    one test alert on the active URL
+//!   (5 an hour); it arrives through the events read with `"test":true`
 //!
 //! The base is the membership's (`MembershipManager::base_url`, itself
 //! `app::endpoints::api_base()`); tests pass their own local base. The
@@ -80,6 +82,8 @@ pub struct Event {
     pub id: String,
     pub received_at: Option<u64>,
     pub body: String,
+    /// The relay's `"test": true` (a test alert). Only a JSON `true` counts.
+    pub test: bool,
 }
 
 /// A time field: RFC3339 text, or UNIX seconds / ms as a number.
@@ -143,7 +147,8 @@ pub fn parse_events(body: &str) -> Result<Vec<Event>, ApiError> {
                 // A server that stored the JSON itself: its text.
                 Some(other) => other.to_string(),
             };
-            Some(Event { id, received_at: time_ms(e.get("receivedAt")), body })
+            let test = e.get("test") == Some(&Value::Bool(true));
+            Some(Event { id, received_at: time_ms(e.get("receivedAt")), body, test })
         })
         .collect())
 }
@@ -214,6 +219,30 @@ impl Api {
         let body = self.send(self.http.delete(format!("{base}{PATH}")).bearer_auth(token)).await?;
         let v: Value = serde_json::from_str(&body).map_err(|_| bad())?;
         Ok(v.get("revoked").and_then(Value::as_bool).unwrap_or(false))
+    }
+
+    /// One test alert onto the account's active URL. 404: no active URL
+    /// (`tvNoUrl`); 429: the test limit (`tvTestRateLimited`).
+    pub async fn send_test(&self, base: &str, token: &str) -> Result<(), ApiError> {
+        let req = self
+            .http
+            .post(format!("{base}{PATH}/test"))
+            .bearer_auth(token)
+            .header("Content-Type", "application/json")
+            .body("{}");
+        match self.send(req).await {
+            Ok(body) => {
+                let v: Value = serde_json::from_str(&body).map_err(|_| bad())?;
+                if v.get("test") == Some(&Value::Bool(true)) {
+                    Ok(())
+                } else {
+                    Err(bad())
+                }
+            }
+            Err(ApiError::Code(c)) if c == "tvHttp|404" => Err(ApiError::Code("tvNoUrl".into())),
+            Err(ApiError::Code(c)) if c == "tvRateLimited" => Err(ApiError::Code("tvTestRateLimited".into())),
+            Err(e) => Err(e),
+        }
     }
 
     /// Events after `after` (none: from the oldest kept), oldest first.
@@ -378,8 +407,8 @@ mod tests {
                 ),
                 ("GET", "/api/edge/tv-webhook/events") => (
                     200,
-                    r#"{"events":[{"id":7,"receivedAt":"2026-10-16T09:00:01Z","contentType":"text/plain","body":"hello"},
-                                  {"id":"8","receivedAt":1760605202,"contentType":"application/json","body":{"action":"close"}},
+                    r#"{"events":[{"id":7,"receivedAt":"2026-10-16T09:00:01Z","contentType":"text/plain","body":"hello","test":false},
+                                  {"id":"8","receivedAt":1760605202,"contentType":"application/json","body":{"action":"close"},"test":true},
                                   {"receivedAt":"x","body":"no id: dropped"}]}"#
                         .into(),
                 ),
@@ -392,8 +421,9 @@ mod tests {
         assert_eq!(st, ServerStatus { active: true, created_at: Some(1_792_130_400_500), last_received_at: None, received_24h: 4, pending: 1 });
         let ev = run(api.events(&base, "acc", Some("6"))).unwrap();
         assert_eq!(ev.len(), 2);
-        assert_eq!(ev[0], Event { id: "7".into(), received_at: Some(1_792_141_201_000), body: "hello".into() });
+        assert_eq!(ev[0], Event { id: "7".into(), received_at: Some(1_792_141_201_000), body: "hello".into(), test: false });
         assert_eq!(ev[1].id, "8");
+        assert!(ev[1].test, "the relay's test flag is read");
         assert_eq!(ev[1].received_at, Some(1_760_605_202_000), "UNIX seconds read as such");
         assert_eq!(ev[1].body, r#"{"action":"close"}"#);
         assert!(run(api.revoke(&base, "acc")).unwrap());
@@ -403,6 +433,31 @@ mod tests {
         drop(log);
         run(api.events(&base, "acc", None)).unwrap();
         assert!(seen.lock().unwrap().iter().any(|l| l == "GET /api/edge/tv-webhook/events?limit=50"));
+    }
+
+    #[test]
+    fn send_test_posts_json_and_maps_its_refusals() {
+        let replies = Arc::new(Mutex::new(vec![
+            (200u16, r#"{"ok":true,"test":true}"#),
+            (404, r#"{"error":"no active webhook"}"#),
+            (429, r#"{"error":"test limit: 5 an hour"}"#),
+            (200, r#"{"ok":true}"#),
+        ]));
+        let r = replies.clone();
+        let base = serve(Arc::new(move |m, p, bearer, ct| {
+            assert_eq!((m, p, bearer, ct), ("POST", "/api/edge/tv-webhook/test", "acc", "application/json"));
+            let (s, b) = r.lock().unwrap().remove(0);
+            (s, b.to_string())
+        }));
+        let api = Api::new();
+        assert_eq!(run(api.send_test(&base, "acc")), Ok(()));
+        assert_eq!(run(api.send_test(&base, "acc")).unwrap_err().code(), "tvNoUrl");
+        assert_eq!(run(api.send_test(&base, "acc")).unwrap_err().code(), "tvTestRateLimited");
+        // A reply that does not confirm a test is not taken as one.
+        assert_eq!(run(api.send_test(&base, "acc")).unwrap_err().code(), "tvBadResponse");
+        // "test" must be the JSON true.
+        let evs = parse_events(r#"{"events":[{"id":1,"body":"x","test":"true"},{"id":2,"body":"x"}]}"#).unwrap();
+        assert!(evs.iter().all(|e| !e.test));
     }
 
     #[test]

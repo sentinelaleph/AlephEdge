@@ -5,7 +5,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
 
 use super::api::{with_session, ApiError, CreatedUrl, ServerStatus, SIGNED_OUT};
-use super::tasks::save;
+use super::tasks::{pass, save};
 use super::{AlertResult, Prefs, TvManager};
 use crate::membership::MembershipManager;
 
@@ -78,6 +78,24 @@ pub async fn tv_revoke(mgr: State<'_, TvManager>, membership: State<'_, Membersh
     })
     .await
     .map_err(|e| e.code())?;
+    Ok(status(&mgr, &membership).await)
+}
+
+/// One test alert through the relay (TradingView sends webhooks only on
+/// paid plans). With "Receive alerts" on it is read at once and listed as a
+/// test; it never trades.
+#[tauri::command]
+pub async fn tv_send_test(app: AppHandle, mgr: State<'_, TvManager>, membership: State<'_, MembershipManager>) -> Result<TvStatus, String> {
+    let base = membership.base_url();
+    with_session(membership.inner(), |token| {
+        let (api, base) = (&mgr.api, base.clone());
+        async move { api.send_test(&base, &token).await }
+    })
+    .await
+    .map_err(|e| e.code())?;
+    if mgr.lock().stored.active() {
+        pass(&app).await;
+    }
     Ok(status(&mgr, &membership).await)
 }
 

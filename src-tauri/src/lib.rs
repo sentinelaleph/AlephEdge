@@ -180,6 +180,7 @@ pub fn run() {
             tvlink::commands::tv_create_url,
             tvlink::commands::tv_revoke,
             tvlink::commands::tv_set_prefs,
+            tvlink::commands::tv_send_test,
             tvlink::commands::tv_results,
             get_health_snapshot,
             get_endpoints,

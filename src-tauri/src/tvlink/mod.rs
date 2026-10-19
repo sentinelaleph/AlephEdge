@@ -7,6 +7,8 @@
 //! for each one:
 //!
 //! - reads the message (`message::parse`; format in `message.rs`),
+//! - a test alert (Settings, "Send test alert": `test` on the event) is
+//!   recorded as `tvTestOnly` and nothing else, paper or live,
 //! - with "Execute alerts" off records it as `received` and does nothing,
 //! - refuses anything received more than 120 s earlier (`tvExpired`),
 //! - opens a paper position through New trade (`bot::engine::user_trade`),
@@ -55,6 +57,8 @@ pub struct AlertResult {
     pub outcome: String,
     /// The paper position opened or closed (`manual-...`).
     pub position_id: Option<String>,
+    /// A test alert (never executed).
+    pub test: bool,
 }
 
 /// The user's two switches. Execute implies receive.
@@ -135,11 +139,13 @@ pub(crate) struct Inner {
 pub struct TvManager {
     pub(crate) inner: Mutex<Inner>,
     pub(crate) api: api::Api,
+    /// One read pass at a time: the background loop and "Send test alert".
+    pub(crate) pass_lock: tokio::sync::Mutex<()>,
 }
 
 impl TvManager {
     pub fn new() -> Self {
-        Self { inner: Mutex::new(Inner::default()), api: api::Api::new() }
+        Self { inner: Mutex::new(Inner::default()), api: api::Api::new(), pass_lock: tokio::sync::Mutex::new(()) }
     }
 
     pub(crate) fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {

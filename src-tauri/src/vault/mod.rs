@@ -723,10 +723,22 @@ mod tests {
     fn unlocked(m: &VaultManager, labels: &[&str]) {
         *m.use_session() = Some(Session {
             salt_check: None,
-            key: Zeroizing::new([3u8; 32]),
+            key: Zeroizing::new(test_key()),
             params: KdfParams::default(),
             creds: labels.iter().map(|l| cred(l)).collect(),
         });
+    }
+
+    /// A fresh random key per test, from the OS CSPRNG as production's.
+    fn test_key() -> [u8; 32] {
+        crypto::random_bytes(32).try_into().expect("32 bytes")
+    }
+
+    /// The key of the unlocked test session (what `persist` sealed with).
+    fn session_key(m: &VaultManager) -> [u8; 32] {
+        let guard = m.use_session();
+        let key: &[u8; 32] = &guard.as_ref().expect("unlocked").key;
+        *key
     }
 
     fn cred(label: &str) -> ExchangeCredential {
@@ -781,7 +793,7 @@ mod tests {
         };
         set(Some(false), Some(77), CredentialPermission::TradeOnly).unwrap();
         set(None, None, CredentialPermission::Unknown).unwrap();
-        let back = read_back(&path, &[3u8; 32]);
+        let back = read_back(&path, &session_key(&m));
         assert_eq!(back[0].ip_restricted, Some(false));
         assert_eq!(back[0].exchange_created_at, Some(77));
         assert_eq!(back[0].permission, CredentialPermission::Unknown);
@@ -944,7 +956,7 @@ mod tests {
             vec!["main".to_string(), "second".to_string()],
             "the session must still match the file"
         );
-        assert_eq!(read_back(&path, &[3u8; 32]).len(), 2);
+        assert_eq!(read_back(&path, &session_key(&m)).len(), 2);
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -956,7 +968,7 @@ mod tests {
         // opens a half-written vault.
         let dir = std::env::temp_dir().join(format!("aleph-vault-{}", uuid::Uuid::new_v4()));
         let path = dir.join("vault.edge");
-        let key = [7u8; 32];
+        let key = test_key();
         let params = KdfParams::default();
 
         persist(&path, &key, &params, &[cred("main")], None).expect("first seal");
@@ -1002,7 +1014,7 @@ mod tests {
         new.api_key = "key-new".into();
         new.updated_at = Some(99);
         m.replace(&path, new).expect("renew");
-        let back = read_back(&path, &[3u8; 32]);
+        let back = read_back(&path, &session_key(&m));
         assert_eq!(back.len(), 1);
         assert_eq!(back[0].api_key, "key-new");
         assert_eq!((back[0].added_at, back[0].updated_at), (42, Some(99)));
@@ -1022,7 +1034,7 @@ mod tests {
         new.api_key = "key-new".into();
         assert_eq!(m.replace(&path, new).unwrap_err(), "vaultWriteFailed");
         assert_eq!(m.credential("binance").unwrap().api_key, "key-main");
-        assert_eq!(read_back(&path, &[3u8; 32])[0].api_key, "key-main");
+        assert_eq!(read_back(&path, &session_key(&m))[0].api_key, "key-main");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -1059,7 +1071,7 @@ mod tests {
         assert!(m.rename(&path, "binance", "main", "  ").unwrap_err().starts_with("credentialLabelInvalid"));
         assert_eq!(m.rename(&path, "binance", "nope", "x").unwrap_err(), "credentialNotFound");
         m.rename(&path, "binance", "main", " primary ").expect("rename");
-        let labels: Vec<String> = read_back(&path, &[3u8; 32]).iter().map(|c| c.label.clone()).collect();
+        let labels: Vec<String> = read_back(&path, &session_key(&m)).iter().map(|c| c.label.clone()).collect();
         assert_eq!(labels, vec!["primary".to_string(), "second".to_string()]);
         let _ = std::fs::remove_dir_all(&dir);
     }

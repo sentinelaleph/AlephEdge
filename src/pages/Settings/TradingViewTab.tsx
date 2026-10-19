@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { navigate } from "@/app/router/router";
 import { Button } from "@/components/ui/Button/Button";
-import { PaperChip } from "@/components/ui/Chip/Chip";
+import { Chip, PaperChip } from "@/components/ui/Chip/Chip";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState/EmptyState";
 import { FactList, Panel } from "@/components/ui/Panel/Panel";
@@ -15,6 +15,7 @@ import {
   TV_TEMPLATES,
   tvCreateUrl,
   tvRevoke,
+  tvSendTest,
   tvSetPrefs,
   tvStatus,
   type TvAlertResult,
@@ -38,7 +39,7 @@ function phaseOf(s: TvStatus): Phase {
 
 const CHIP: Record<Phase, StatusKind> = { signedOut: "notConfigured", unknown: "error", none: "needsSetup", active: "connected" };
 
-const DONE = new Set(["received", "opened", "closed"]);
+const DONE = new Set(["received", "opened", "closed", "tvTestOnly"]);
 
 /** An alert's outcome in the user's language: this panel's own codes first, then New trade's chain. */
 export function tvOutcomeText(t: TFunction, i18nExists: (key: string) => boolean, raw: string): string {
@@ -63,6 +64,7 @@ export function TradingViewTab() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<Copied>(null);
+  const [testSent, setTestSent] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -81,6 +83,7 @@ export function TradingViewTab() {
   const run = async (call: () => Promise<void>) => {
     setBusy(true);
     setError(null);
+    setTestSent(false);
     try {
       await call();
     } catch (e) {
@@ -100,6 +103,11 @@ export function TradingViewTab() {
     run(async () => {
       setCreated(null);
       setSt(await tvRevoke());
+    });
+  const sendTest = () =>
+    run(async () => {
+      setSt(await tvSendTest());
+      setTestSent(true);
     });
   const setPrefs = (p: TvPrefs) =>
     run(async () => {
@@ -142,7 +150,21 @@ export function TradingViewTab() {
       cell: (r) => formatTableTime(r.receivedAt ?? r.handledAt, locale),
       keep: true,
     },
-    { id: "action", header: t("settings.tv.col.action"), cell: (r) => (r.action ? t(`settings.tv.action.${r.action}`) : "—") },
+    {
+      id: "action",
+      header: t("settings.tv.col.action"),
+      cell: (r) => (
+        <>
+          {r.action ? t(`settings.tv.action.${r.action}`) : "—"}
+          {r.test ? (
+            <>
+              {" "}
+              <Chip tone="warn">{t("settings.tv.testChip")}</Chip>
+            </>
+          ) : null}
+        </>
+      ),
+    },
     {
       id: "symbol",
       header: t("settings.tv.col.symbol"),
@@ -214,6 +236,22 @@ export function TradingViewTab() {
               ) : null}
             </div>
             {server?.active ? <p className="ae-subtle">{t("settings.tv.rotateNote")}</p> : null}
+            {server?.active ? (
+              <>
+                <div className="ae-tg__actions">
+                  <Button size="sm" variant="secondary" disabled={busy || !st.prefs.receive} onClick={() => void sendTest()}>
+                    {t("settings.tv.sendTest")}
+                  </Button>
+                </div>
+                {!st.prefs.receive ? <p className="ae-subtle">{t("settings.tv.testNeedsReceive")}</p> : null}
+                {testSent ? (
+                  <p className="ae-subtle" role="status">
+                    {t("settings.tv.testSent")}
+                  </p>
+                ) : null}
+              </>
+            ) : null}
+            <p className="ae-subtle">{t("settings.tv.paidPlan")}</p>
           </>
         )}
         {error ? (

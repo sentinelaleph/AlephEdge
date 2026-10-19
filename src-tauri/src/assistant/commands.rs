@@ -252,7 +252,8 @@ fn unavailable(code: &str) -> Value {
 
 impl AppTools {
     pub async fn gather(app: &AppHandle) -> Self {
-        let byt = match crate::app::before_you_trade::current(app, false).await {
+        // "en": the English lines, without every locale's translations.
+        let byt = match crate::app::before_you_trade::current(app, false, Some("en")).await {
             Ok(v) => json!({ "fetched_at_ms": v.fetched_at_ms, "stale": v.stale, "fetch_error": v.error, "payload": v.payload }),
             Err(e) => unavailable(&e),
         };

@@ -7,6 +7,7 @@
 use tauri::{AppHandle, Manager};
 
 use crate::exchange::ExchangeManager;
+use crate::market::model::DepthMarket;
 use crate::market::MarketManager;
 use crate::membership::MembershipManager;
 use crate::risk::RiskManager;
@@ -104,12 +105,12 @@ impl EntryFeeds for DeskFeeds<'_> {
             None => Err(()),
         }
     }
-    async fn depth(&self, symbol: &str) -> Result<(f64, f64), ()> {
+    async fn depth(&self, symbol: &str, market: DepthMarket) -> Result<(f64, f64), ()> {
         let base = self.membership.base_url();
         match self.token().await {
             Some(token) => self
                 .market
-                .depth(&base, token, symbol)
+                .depth(&base, token, symbol, market)
                 .await
                 .map(|d| (d.bid_depth_usd, d.ask_depth_usd))
                 .map_err(|_| ()),

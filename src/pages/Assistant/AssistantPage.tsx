@@ -252,12 +252,22 @@ export function AssistantPage() {
     <Panel title={t("assistant.prompt.title")} aside={<Chip>{t(st.promptIsDefault ? "assistant.prompt.default" : "assistant.prompt.edited")}</Chip>}>
       <details className="ae-assist__guard">
         <summary>{t("assistant.prompt.guard")}</summary>
-        <pre>{st.guard}</pre>
+        {/* The rules in the reader's language; the exact English text the model gets stays one click away. */}
+        <ol className="ae-assist__rules" data-testid="assistant-guard-rules">
+          {(["r1", "r2", "r3", "r4", "r5"] as const).map((r) => (
+            <li key={r}>{t(`assistant.prompt.guardRules.${r}`)}</li>
+          ))}
+        </ol>
+        <details className="ae-assist__guardexact">
+          <summary>{t("assistant.prompt.guardExact")}</summary>
+          <pre lang="en">{st.guard}</pre>
+        </details>
       </details>
       <label className="ae-field">
         <span className="ae-field__label">{t("assistant.prompt.label")}</span>
         <textarea className="ae-field__input ae-assist__prompt" rows={12} value={promptText} onChange={(e) => setPromptText(e.target.value)} spellCheck={false} />
       </label>
+      {st.promptIsDefault ? <p className="ae-subtle">{t("assistant.prompt.defaultLanguageNote")}</p> : null}
       <div className="ae-toolbar">
         <Button
           size="sm"

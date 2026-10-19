@@ -217,9 +217,10 @@ pub fn trade_config(cfg: &BotConfig, req: &TradeRequest, leverage_cap: u8) -> Bo
     c
 }
 
-/// A unique synthetic id: `manual-<ms>-<8 hex>`.
-pub fn new_id(now_ms: u64, salt: u32) -> String {
-    format!("{ID_PREFIX}{now_ms}-{salt:08x}")
+/// A unique synthetic id: `manual-<ms>-<8 hex>`; `seq` tells apart ids made
+/// in the same millisecond (a random number in production).
+pub fn new_id(now_ms: u64, seq: u32) -> String {
+    format!("{ID_PREFIX}{now_ms}-{seq:08x}")
 }
 
 /// UTC RFC3339 with millis ("2026-10-16T09:30:00.123Z") of UNIX `ms`.

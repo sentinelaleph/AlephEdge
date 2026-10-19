@@ -9,6 +9,7 @@
 //! implements it over Sentinel's DataHub. Both therefore run this exact
 //! sequence and these exact rules.
 
+use crate::market::model::DepthMarket;
 use crate::risk::model::RiskLimits;
 use crate::signal::model::{OpenStatus, Signal};
 
@@ -36,8 +37,21 @@ pub trait EntryFeeds {
     async fn live_price(&self, exchange_id: &str, symbol: &str, kind: BotKind) -> Option<f64>;
     /// Funding, % per interval. Ok(None) = feed healthy, symbol not covered.
     async fn funding(&self, symbol: &str) -> Result<Option<f64>, ()>;
-    /// ±1% book depth (bid USD, ask USD).
-    async fn depth(&self, symbol: &str) -> Result<(f64, f64), ()>;
+    /// ±1% book depth (bid USD, ask USD) on `market`'s book (see
+    /// `depth_market`), no cross-market fallback.
+    async fn depth(&self, symbol: &str, market: DepthMarket) -> Result<(f64, f64), ()>;
+}
+
+/// The book a signal bot's depth check reads: its own market, like its live
+/// price. Spot reads the spot book, Futures and Pump the USDT-M futures book.
+/// Until Aleph Edge 0.3.18 every kind read the futures book, so a spot-only
+/// pair (no perp) was "depth unavailable" for the Spot bot.
+pub fn depth_market(kind: BotKind) -> DepthMarket {
+    if kind.uses_futures_market() {
+        DepthMarket::Futures
+    } else {
+        DepthMarket::Spot
+    }
 }
 
 /// A signal ready to open: the plan at the live price and the precheck's
@@ -161,8 +175,8 @@ pub async fn precheck_with<F: EntryFeeds>(
         fr_at_open = precheck::judge_funding_with(limits, strict, sig.direction, fetched)?;
     }
 
-    // 4. Liquidity depth.
-    let fetched = feeds.depth(&sig.symbol).await;
+    // 4. Liquidity depth, on the bot's own market's book.
+    let fetched = feeds.depth(&sig.symbol, depth_market(cfg.kind)).await;
     let ld_at_open = precheck::judge_depth_with(limits, strict, budget.notional, fetched)?;
 
     // 5. Risk budget.

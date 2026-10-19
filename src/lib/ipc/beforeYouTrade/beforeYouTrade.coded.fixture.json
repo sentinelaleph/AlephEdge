@@ -1,0 +1,2105 @@
+{
+  "schema": "before-you-trade/1",
+  "generated_at": "2026-10-17T02:54:56.799585144Z",
+  "cache_ttl_seconds": 300,
+  "disclosure": "Measured history and third-party reporting, not advice and not a forecast. Lab figures are historical simulations; the ghost track and the bot farm are paper simulations; none is a track record. Only dca_long_classic on the five most traded USDT perpetuals is treated as proven; on the 30 most traded the same settings lost money in two of three splits and the worst bot drew down 97.7%. No template is suggested for today: a test of choosing presets by market regime failed.",
+  "market": {
+    "generated_at": "2026-10-17T02:54:56.799585144Z",
+    "btc_regime": {
+      "status": "ok",
+      "as_of": "2026-10-17T02:54:40.50922271Z",
+      "source": "btcmacro service (DataHub BTCUSDT spot 24h ticker and 1h candles, math-core BTCD shield when available)",
+      "price": 81486.01,
+      "change_24h_pct": -0.627,
+      "change_1h_pct": -0.105,
+      "trend_state": "flat",
+      "trend_rule": "trend code of the math-core BTCD shield on 48 BTCUSDT 1h candles",
+      "trend_strength": 0.115,
+      "volatility_regime": "low",
+      "volatility_rule": "ATR(14) on BTCUSDT 1h over the mean close; high above 1.5%",
+      "btc_dominance_pct": 14.41,
+      "dominance_kind": "spot_volume_share",
+      "dominance_source": "datahub-volume-share+btcdomusdt-slope",
+      "alt_long_risk": 0.525,
+      "down_day_streak": 1,
+      "down_day_halt_active": false,
+      "scanner_guard": {
+        "trusted": true,
+        "new_alt_longs_blocked": false,
+        "blocked_by_current_read": false,
+        "sticky_until": null,
+        "rule": "New alt long signals are not published while the trusted BTC read has trend_state down together with one of: a 24h pulse at the low extreme, rising BTC dominance, alt_long_risk >= 0.60, trend_strength >= 0.35; after such a read the block holds for the sticky window unless trend_state turns up. Read here without changing it.",
+        "rule_code": "alt_long_guard_v1"
+      },
+      "trend_rule_code": "btcd_shield_48h_v1",
+      "volatility_rule_code": "atr14_1h_over_1_5pct_v1"
+    },
+    "chart_read": {
+      "status": "ok",
+      "as_of": "2026-10-16T18:02:00.000101Z",
+      "source": "BTC chart read (btc_chart_reads, GET /api/public/market/btc-chart-read)",
+      "latest_attempt_at": "2026-10-16T22:02:00.001025Z",
+      "latest_attempt_status": "error",
+      "prompt_version": "cr-v4-smc",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "price_at_read": 81217.13,
+      "call": "lower",
+      "confidence": "medium",
+      "horizon_view": {
+        "h4": "lower",
+        "h12": "lower",
+        "h24": "range"
+      },
+      "support": [
+        80809,
+        80000,
+        79800
+      ],
+      "resistance": [
+        81688,
+        81993,
+        82634
+      ],
+      "invalidation_level": 82050,
+      "hit_record_24h": {
+        "prompt_version": "cr-v4-smc",
+        "n": 124,
+        "days": 27,
+        "hits": 59,
+        "hit_pct": 47.6,
+        "always_range_pct": 58.9,
+        "persistence_pct": 45.2,
+        "rule_pct": 47.6,
+        "directional_n": 60,
+        "directional_pct": 35
+      },
+      "bar": {
+        "status": "not_met",
+        "verdict": "Veto bar not met: 56.7% at n=60 (needed 60% and +5 pp over both baselines)",
+        "min_n": 60,
+        "code": "veto_bar_not_met",
+        "graded_n": 124,
+        "hit_pct": 56.7,
+        "needed_pct": 60,
+        "margin_pp": 5,
+        "margin_rule_pp": 5,
+        "margin_persist_pp": 8.3
+      },
+      "use": "Information only: the read is not wired into any veto because its pre-registered bar was not met.",
+      "use_code": "chart_info_only_bar_not_met"
+    },
+    "volatility": {
+      "range_24h": {
+        "status": "ok",
+        "as_of": "2026-10-17T02:54:40.50922271Z",
+        "source": "btcmacro service: DataHub BTCUSDT spot 24h ticker high/low",
+        "high": 82940.81,
+        "low": 80809.25,
+        "range_pct": 2.62
+      },
+      "atr14_1d": {
+        "status": "ok",
+        "as_of": "2026-10-17T00:00:00Z",
+        "source": "DataHub /api/v1/market/candles/history BTCUSDT spot 1d",
+        "atr_usd": 2110.13,
+        "atr_pct": 2.59,
+        "last_close": 81615.64,
+        "bars_used": 14,
+        "last_bar_end": "2026-10-17T00:00:00Z",
+        "method": "mean true range of the last 14 closed daily candles; pct of the last close",
+        "method_code": "atr14_1d_closed_v1"
+      }
+    },
+    "funding": {
+      "status": "ok",
+      "as_of": "2026-10-17T02:54:56.800390371Z",
+      "source": "DataHub /api/v1/market/funding-rates (Binance USDT-M premiumIndex, current period)",
+      "datahub_stale": false,
+      "rows": [
+        {
+          "symbol": "BTCUSDT",
+          "rate_pct": 0.01,
+          "interval_hours": 8,
+          "annualized_pct": 10.95,
+          "next_funding": "2026-10-17T08:00:00Z",
+          "mark_price": 81452.5
+        },
+        {
+          "symbol": "ETHUSDT",
+          "rate_pct": 0.003946,
+          "interval_hours": 8,
+          "annualized_pct": 4.3209,
+          "next_funding": "2026-10-17T08:00:00Z",
+          "mark_price": 2420.8
+        }
+      ]
+    }
+  },
+  "presets": {
+    "generated_at": "2026-10-17T02:54:56.799585144Z",
+    "claim_rule": "proven = dca_long_classic on the majors universe (top 5 USDT perpetuals by 90-day quote volume) only; every other template is experimental, whatever its lab verdict. No template is suggested for today.",
+    "order": "Templates are listed in fixed T01..T12 order in every source and never sorted by a result.",
+    "lab": {
+      "status": "ok",
+      "as_of": "2026-10-09T00:00:00Z",
+      "source": "Aleph Edge app template evidence (src-tauri/src/bot/strategy/presets.rs): pre-registered lab botsim replay, one new 1000 USDT bot per (pair, month)",
+      "source_sha256": "bf90349427e20fc8bb27e1cc8dea60bce1ffb97f4fc3530b47fd72d200ed5adc",
+      "capital_model": "botPerSymbolMonth",
+      "cost_model": {
+        "simulator": "botsim",
+        "bar_interval": "1h",
+        "maker_fee_pct": 0.02,
+        "taker_fee_pct": 0.05,
+        "slippage_pct": 0.02,
+        "fill_rule": "conservativeIntrabar"
+      },
+      "majors_caveat": {
+        "template_id": "T01",
+        "text": "dca_long_classic was measured on the five most traded USDT perpetuals. The same settings on the 30 most traded lost money in TRAIN and VALID, and its worst bot drew down 97.7%.",
+        "top_n": 30,
+        "train_mean_pct": -0.44,
+        "valid_mean_pct": -0.79,
+        "test_mean_pct": 0.62,
+        "worst_bot_drawdown_pct": -97.7,
+        "code": "top30_worst_bot_v1"
+      },
+      "recheck": {
+        "run_on": "2026-10-09",
+        "test_window_end": "2026-09-27",
+        "partial_month": "2026-10",
+        "partial_month_days": 8.5,
+        "next_read": "2026-11-01",
+        "text": "The October re-run added a partial month in which every deal was still open and the mean was negative, so 'every test month positive' did not hold; the checks are read again on a full month.",
+        "code": "partial_month_open_v1"
+      },
+      "templates": [
+        {
+          "template_id": "T01",
+          "preset_id": "dca_long_classic",
+          "kind": "dca",
+          "side": "long",
+          "universe": {
+            "rule": "topUsdtPerpsByQuoteVolume",
+            "rank_from": 1,
+            "top_n": 5
+          },
+          "claim": "proven",
+          "app_verdict": "presetReady",
+          "fail_reasons": [],
+          "splits": [
+            {
+              "split": "train",
+              "mean_per_bot_month_pct": 2.93,
+              "ci95_pct": [
+                2.34,
+                3.44
+              ],
+              "months_positive": 7,
+              "months": 7
+            },
+            {
+              "split": "valid",
+              "mean_per_bot_month_pct": 1.86,
+              "ci95_pct": [
+                0.82,
+                2.96
+              ],
+              "months_positive": 7,
+              "months": 7
+            },
+            {
+              "split": "test",
+              "mean_per_bot_month_pct": 1.9,
+              "ci95_pct": [
+                1.38,
+                2.44
+              ],
+              "months_positive": 8,
+              "months": 8
+            }
+          ],
+          "test_bots": 40,
+          "test_share_bots_positive": 1,
+          "test_worst_bot_drawdown_pct": -20.7,
+          "one_bot_worst_drawdown_pct": -46.8,
+          "one_bot_median_drawdown_pct": -16.6,
+          "test_sign_test_p": 0.0039,
+          "bonferroni_bar": 0.00625,
+          "liquidations": 0,
+          "stopped_deals": 0,
+          "max_deal_days": 329,
+          "open_deals_at_data_end": 5,
+          "recheck_partial_month_mean_pct": -0.44
+        },
+        {
+          "template_id": "T02",
+          "preset_id": "dca_long_safe",
+          "kind": "dca",
+          "side": "long",
+          "universe": {
+            "rule": "topUsdtPerpsByQuoteVolume",
+            "rank_from": 1,
+            "top_n": 5
+          },
+          "claim": "experimental",
+          "app_verdict": "presetReady",
+          "fail_reasons": [],
+          "splits": [
+            {
+              "split": "train",
+              "mean_per_bot_month_pct": 2.19,
+              "ci95_pct": [
+                1.74,
+                2.57
+              ],
+              "months_positive": 7,
+              "months": 7
+            },
+            {
+              "split": "valid",
+              "mean_per_bot_month_pct": 1.69,
+              "ci95_pct": [
+                1.24,
+                2.17
+              ],
+              "months_positive": 7,
+              "months": 7
+            },
+            {
+              "split": "test",
+              "mean_per_bot_month_pct": 1.45,
+              "ci95_pct": [
+                1.08,
+                1.84
+              ],
+              "months_positive": 8,
+              "months": 8
+            }
+          ],
+          "test_bots": 40,
+          "test_share_bots_positive": 1,
+          "test_worst_bot_drawdown_pct": -15.8,
+          "one_bot_worst_drawdown_pct": null,
+          "one_bot_median_drawdown_pct": null,
+          "test_sign_test_p": 0.0039,
+          "bonferroni_bar": 0.00417,
+          "liquidations": 0,
+          "stopped_deals": 0,
+          "max_deal_days": 330,
+          "open_deals_at_data_end": 3,
+          "recheck_partial_month_mean_pct": -0.14
+        },
+        {
+          "template_id": "T03",
+          "preset_id": "dca_long_quick",
+          "kind": "dca",
+          "side": "long",
+          "universe": {
+            "rule": "topUsdtPerpsByQuoteVolume",
+            "rank_from": 1,
+            "top_n": 5
+          },
+          "claim": "experimental",
+          "app_verdict": "failed",
+          "fail_reasons": [
+            "negativeSplit"
+          ],
+          "splits": [
+            {
+              "split": "train",
+              "mean_per_bot_month_pct": -0.24,
+              "ci95_pct": [
+                -5.93,
+                5.32
+              ],
+              "months_positive": 4,
+              "months": 7
+            },
+            {
+              "split": "valid",
+              "mean_per_bot_month_pct": -6.84,
+              "ci95_pct": [
+                -21.01,
+                3.16
+              ],
+              "months_positive": 3,
+              "months": 7
+            },
+            {
+              "split": "test",
+              "mean_per_bot_month_pct": 5.63,
+              "ci95_pct": [
+                4.28,
+                7.01
+              ],
+              "months_positive": 8,
+              "months": 8
+            }
+          ],
+          "test_bots": 40,
+          "test_share_bots_positive": 0.975,
+          "test_worst_bot_drawdown_pct": -38.2,
+          "one_bot_worst_drawdown_pct": null,
+          "one_bot_median_drawdown_pct": null,
+          "test_sign_test_p": 0.0039,
+          "bonferroni_bar": 0.00417,
+          "liquidations": 0,
+          "stopped_deals": 0,
+          "max_deal_days": 654,
+          "open_deals_at_data_end": 17,
+          "recheck_partial_month_mean_pct": null
+        },
+        {
+          "template_id": "T04",
+          "preset_id": "dca_long_btc",
+          "kind": "dca",
+          "side": "long",
+          "universe": {
+            "rule": "btcOnly",
+            "rank_from": 1,
+            "top_n": 1
+          },
+          "claim": "experimental",
+          "app_verdict": "failed",
+          "fail_reasons": [
+            "negativeSplit"
+          ],
+          "splits": [
+            {
+              "split": "train",
+              "mean_per_bot_month_pct": 3.04,
+              "ci95_pct": [
+                2.26,
+                3.86
+              ],
+              "months_positive": 7,
+              "months": 7
+            },
+            {
+              "split": "valid",
+              "mean_per_bot_month_pct": -0.58,
+              "ci95_pct": [
+                -4.99,
+                1.89
+              ],
+              "months_positive": 6,
+              "months": 7
+            },
+            {
+              "split": "test",
+              "mean_per_bot_month_pct": 1.94,
+              "ci95_pct": [
+                1.33,
+                2.55
+              ],
+              "months_positive": 8,
+              "months": 8
+            }
+          ],
+          "test_bots": 8,
+          "test_share_bots_positive": 1,
+          "test_worst_bot_drawdown_pct": -16,
+          "one_bot_worst_drawdown_pct": null,
+          "one_bot_median_drawdown_pct": null,
+          "test_sign_test_p": 0.0039,
+          "bonferroni_bar": 0.00417,
+          "liquidations": 0,
+          "stopped_deals": 0,
+          "max_deal_days": 339,
+          "open_deals_at_data_end": 2,
+          "recheck_partial_month_mean_pct": null
+        },
+        {
+          "template_id": "T05",
+          "preset_id": "dca_long_alts",
+          "kind": "dca",
+          "side": "long",
+          "universe": {
+            "rule": "topUsdtPerpsByQuoteVolume",
+            "rank_from": 6,
+            "top_n": 15
+          },
+          "claim": "experimental",
+          "app_verdict": "failed",
+          "fail_reasons": [
+            "negativeSplit",
+            "ciIncludesZero",
+            "monthsNotAllPositive"
+          ],
+          "splits": [
+            {
+              "split": "train",
+              "mean_per_bot_month_pct": 1.28,
+              "ci95_pct": [
+                -5.61,
+                5.18
+              ],
+              "months_positive": 6,
+              "months": 7
+            },
+            {
+              "split": "valid",
+              "mean_per_bot_month_pct": 0.16,
+              "ci95_pct": [
+                -3.87,
+                3.4
+              ],
+              "months_positive": 5,
+              "months": 7
+            },
+            {
+              "split": "test",
+              "mean_per_bot_month_pct": -2.89,
+              "ci95_pct": [
+                -6.38,
+                0.47
+              ],
+              "months_positive": 2,
+              "months": 8
+            }
+          ],
+          "test_bots": 80,
+          "test_share_bots_positive": 0.887,
+          "test_worst_bot_drawdown_pct": -97.2,
+          "one_bot_worst_drawdown_pct": null,
+          "one_bot_median_drawdown_pct": null,
+          "test_sign_test_p": 0.9648,
+          "bonferroni_bar": 0.00417,
+          "liquidations": 0,
+          "stopped_deals": 0,
+          "max_deal_days": 663,
+          "open_deals_at_data_end": 26,
+          "recheck_partial_month_mean_pct": null
+        },
+        {
+          "template_id": "T06",
+          "preset_id": "dca_long_stop",
+          "kind": "dca",
+          "side": "long",
+          "universe": {
+            "rule": "topUsdtPerpsByQuoteVolume",
+            "rank_from": 1,
+            "top_n": 5
+          },
+          "claim": "experimental",
+          "app_verdict": "failed",
+          "fail_reasons": [
+            "negativeSplit",
+            "monthsNotAllPositive"
+          ],
+          "splits": [
+            {
+              "split": "train",
+              "mean_per_bot_month_pct": 2.82,
+              "ci95_pct": [
+                0.27,
+                5.27
+              ],
+              "months_positive": 6,
+              "months": 7
+            },
+            {
+              "split": "valid",
+              "mean_per_bot_month_pct": -2.87,
+              "ci95_pct": [
+                -10.18,
+                3.31
+              ],
+              "months_positive": 4,
+              "months": 7
+            },
+            {
+              "split": "test",
+              "mean_per_bot_month_pct": 2.06,
+              "ci95_pct": [
+                0.12,
+                3.7
+              ],
+              "months_positive": 6,
+              "months": 8
+            }
+          ],
+          "test_bots": 40,
+          "test_share_bots_positive": 0.925,
+          "test_worst_bot_drawdown_pct": -26.9,
+          "one_bot_worst_drawdown_pct": null,
+          "one_bot_median_drawdown_pct": null,
+          "test_sign_test_p": 0.1445,
+          "bonferroni_bar": 0.00417,
+          "liquidations": 0,
+          "stopped_deals": 16,
+          "max_deal_days": 106,
+          "open_deals_at_data_end": 4,
+          "recheck_partial_month_mean_pct": null
+        },
+        {
+          "template_id": "T07",
+          "preset_id": "dca_short_classic",
+          "kind": "dca",
+          "side": "short",
+          "universe": {
+            "rule": "topUsdtPerpsByQuoteVolume",
+            "rank_from": 1,
+            "top_n": 5
+          },
+          "claim": "experimental",
+          "app_verdict": "failed",
+          "fail_reasons": [
+            "negativeSplit",
+            "ciIncludesZero",
+            "monthsNotAllPositive",
+            "liquidations"
+          ],
+          "splits": [
+            {
+              "split": "train",
+              "mean_per_bot_month_pct": 1.7,
+              "ci95_pct": [
+                -6.58,
+                8.8
+              ],
+              "months_positive": 5,
+              "months": 7
+            },
+            {
+              "split": "valid",
+              "mean_per_bot_month_pct": 4.75,
+              "ci95_pct": [
+                4.07,
+                5.48
+              ],
+              "months_positive": 7,
+              "months": 7
+            },
+            {
+              "split": "test",
+              "mean_per_bot_month_pct": -8.61,
+              "ci95_pct": [
+                -20.47,
+                0.87
+              ],
+              "months_positive": 3,
+              "months": 8
+            }
+          ],
+          "test_bots": 40,
+          "test_share_bots_positive": 0.675,
+          "test_worst_bot_drawdown_pct": -100.4,
+          "one_bot_worst_drawdown_pct": null,
+          "one_bot_median_drawdown_pct": null,
+          "test_sign_test_p": 0.8555,
+          "bonferroni_bar": 0.00417,
+          "liquidations": 4,
+          "stopped_deals": 0,
+          "max_deal_days": 226,
+          "open_deals_at_data_end": 11,
+          "recheck_partial_month_mean_pct": null
+        },
+        {
+          "template_id": "T08",
+          "preset_id": "dca_short_safe",
+          "kind": "dca",
+          "side": "short",
+          "universe": {
+            "rule": "topUsdtPerpsByQuoteVolume",
+            "rank_from": 1,
+            "top_n": 5
+          },
+          "claim": "experimental",
+          "app_verdict": "failed",
+          "fail_reasons": [
+            "negativeSplit",
+            "ciIncludesZero",
+            "monthsNotAllPositive",
+            "liquidations"
+          ],
+          "splits": [
+            {
+              "split": "train",
+              "mean_per_bot_month_pct": 3.07,
+              "ci95_pct": [
+                2.33,
+                3.69
+              ],
+              "months_positive": 7,
+              "months": 7
+            },
+            {
+              "split": "valid",
+              "mean_per_bot_month_pct": 2.06,
+              "ci95_pct": [
+                1.73,
+                2.46
+              ],
+              "months_positive": 7,
+              "months": 7
+            },
+            {
+              "split": "test",
+              "mean_per_bot_month_pct": -6.72,
+              "ci95_pct": [
+                -15.03,
+                -0.14
+              ],
+              "months_positive": 3,
+              "months": 8
+            }
+          ],
+          "test_bots": 40,
+          "test_share_bots_positive": 0.625,
+          "test_worst_bot_drawdown_pct": -100,
+          "one_bot_worst_drawdown_pct": null,
+          "one_bot_median_drawdown_pct": null,
+          "test_sign_test_p": 0.8555,
+          "bonferroni_bar": 0.00417,
+          "liquidations": 2,
+          "stopped_deals": 0,
+          "max_deal_days": 220,
+          "open_deals_at_data_end": 13,
+          "recheck_partial_month_mean_pct": null
+        },
+        {
+          "template_id": "T09",
+          "preset_id": "grid_neutral",
+          "kind": "grid",
+          "side": "neutral",
+          "universe": {
+            "rule": "topUsdtPerpsByQuoteVolume",
+            "rank_from": 1,
+            "top_n": 5
+          },
+          "claim": "experimental",
+          "app_verdict": "failed",
+          "fail_reasons": [
+            "negativeSplit",
+            "ciIncludesZero",
+            "monthsNotAllPositive"
+          ],
+          "splits": [
+            {
+              "split": "train",
+              "mean_per_bot_month_pct": -3,
+              "ci95_pct": [
+                -5.7,
+                -0.48
+              ],
+              "months_positive": 2,
+              "months": 7
+            },
+            {
+              "split": "valid",
+              "mean_per_bot_month_pct": -2.62,
+              "ci95_pct": [
+                -5.56,
+                0.21
+              ],
+              "months_positive": 2,
+              "months": 7
+            },
+            {
+              "split": "test",
+              "mean_per_bot_month_pct": -2.43,
+              "ci95_pct": [
+                -5.92,
+                0.85
+              ],
+              "months_positive": 4,
+              "months": 8
+            }
+          ],
+          "test_bots": 40,
+          "test_share_bots_positive": 0.475,
+          "test_worst_bot_drawdown_pct": -34.1,
+          "one_bot_worst_drawdown_pct": null,
+          "one_bot_median_drawdown_pct": null,
+          "test_sign_test_p": 0.6367,
+          "bonferroni_bar": 0.00417,
+          "liquidations": 0,
+          "stopped_deals": 264,
+          "max_deal_days": 14,
+          "open_deals_at_data_end": 3,
+          "recheck_partial_month_mean_pct": null
+        },
+        {
+          "template_id": "T10",
+          "preset_id": "grid_neutral_tight",
+          "kind": "grid",
+          "side": "neutral",
+          "universe": {
+            "rule": "topUsdtPerpsByQuoteVolume",
+            "rank_from": 1,
+            "top_n": 5
+          },
+          "claim": "experimental",
+          "app_verdict": "failed",
+          "fail_reasons": [
+            "negativeSplit",
+            "ciIncludesZero",
+            "monthsNotAllPositive"
+          ],
+          "splits": [
+            {
+              "split": "train",
+              "mean_per_bot_month_pct": -12.13,
+              "ci95_pct": [
+                -16.41,
+                -7.99
+              ],
+              "months_positive": 0,
+              "months": 7
+            },
+            {
+              "split": "valid",
+              "mean_per_bot_month_pct": -8.68,
+              "ci95_pct": [
+                -10.65,
+                -6.83
+              ],
+              "months_positive": 0,
+              "months": 7
+            },
+            {
+              "split": "test",
+              "mean_per_bot_month_pct": -6.26,
+              "ci95_pct": [
+                -10.32,
+                -2.72
+              ],
+              "months_positive": 0,
+              "months": 8
+            }
+          ],
+          "test_bots": 40,
+          "test_share_bots_positive": 0.325,
+          "test_worst_bot_drawdown_pct": -50.2,
+          "one_bot_worst_drawdown_pct": null,
+          "one_bot_median_drawdown_pct": null,
+          "test_sign_test_p": 1,
+          "bonferroni_bar": 0.00417,
+          "liquidations": 0,
+          "stopped_deals": 891,
+          "max_deal_days": 7,
+          "open_deals_at_data_end": 0,
+          "recheck_partial_month_mean_pct": null
+        },
+        {
+          "template_id": "T11",
+          "preset_id": "grid_long_trail",
+          "kind": "grid",
+          "side": "long",
+          "universe": {
+            "rule": "topUsdtPerpsByQuoteVolume",
+            "rank_from": 1,
+            "top_n": 5
+          },
+          "claim": "experimental",
+          "app_verdict": "failed",
+          "fail_reasons": [
+            "negativeSplit",
+            "ciIncludesZero",
+            "monthsNotAllPositive"
+          ],
+          "splits": [
+            {
+              "split": "train",
+              "mean_per_bot_month_pct": -5.38,
+              "ci95_pct": [
+                -13.09,
+                0.11
+              ],
+              "months_positive": 3,
+              "months": 7
+            },
+            {
+              "split": "valid",
+              "mean_per_bot_month_pct": -5.01,
+              "ci95_pct": [
+                -12.32,
+                2.09
+              ],
+              "months_positive": 2,
+              "months": 7
+            },
+            {
+              "split": "test",
+              "mean_per_bot_month_pct": 1.22,
+              "ci95_pct": [
+                -6.64,
+                8.17
+              ],
+              "months_positive": 5,
+              "months": 8
+            }
+          ],
+          "test_bots": 40,
+          "test_share_bots_positive": 0.6,
+          "test_worst_bot_drawdown_pct": -40.1,
+          "one_bot_worst_drawdown_pct": null,
+          "one_bot_median_drawdown_pct": null,
+          "test_sign_test_p": 0.3633,
+          "bonferroni_bar": 0.00417,
+          "liquidations": 0,
+          "stopped_deals": 98,
+          "max_deal_days": 30,
+          "open_deals_at_data_end": 4,
+          "recheck_partial_month_mean_pct": null
+        },
+        {
+          "template_id": "T12",
+          "preset_id": "grid_short",
+          "kind": "grid",
+          "side": "short",
+          "universe": {
+            "rule": "topUsdtPerpsByQuoteVolume",
+            "rank_from": 1,
+            "top_n": 5
+          },
+          "claim": "experimental",
+          "app_verdict": "failed",
+          "fail_reasons": [
+            "negativeSplit",
+            "ciIncludesZero",
+            "monthsNotAllPositive"
+          ],
+          "splits": [
+            {
+              "split": "train",
+              "mean_per_bot_month_pct": -1.26,
+              "ci95_pct": [
+                -5.04,
+                3.3
+              ],
+              "months_positive": 2,
+              "months": 7
+            },
+            {
+              "split": "valid",
+              "mean_per_bot_month_pct": -0.33,
+              "ci95_pct": [
+                -7.25,
+                6.06
+              ],
+              "months_positive": 4,
+              "months": 7
+            },
+            {
+              "split": "test",
+              "mean_per_bot_month_pct": -5.05,
+              "ci95_pct": [
+                -11.38,
+                0.09
+              ],
+              "months_positive": 2,
+              "months": 8
+            }
+          ],
+          "test_bots": 40,
+          "test_share_bots_positive": 0.375,
+          "test_worst_bot_drawdown_pct": -48.4,
+          "one_bot_worst_drawdown_pct": null,
+          "one_bot_median_drawdown_pct": null,
+          "test_sign_test_p": 0.9648,
+          "bonferroni_bar": 0.00417,
+          "liquidations": 0,
+          "stopped_deals": 264,
+          "max_deal_days": 14,
+          "open_deals_at_data_end": 3,
+          "recheck_partial_month_mean_pct": null
+        }
+      ]
+    },
+    "ghost": {
+      "status": "measuring",
+      "as_of": "2026-10-16T22:10:12.017145Z",
+      "source": "ghost forward track (/opt/ghost, lab botsim forward from T0, cron 4x/day; the file the app reads at /downloads/aleph-edge/presets-live.json)",
+      "reason": "forward track younger than its 30-day minimum; figures are early and not comparable",
+      "t0": "2026-10-08T00:00:00Z",
+      "data_end": "2026-10-16T22:00:00Z",
+      "days_running": 8.92,
+      "min_days_for_ranking": 30,
+      "ranking": "not_shown",
+      "method": "Lab simulator (botsim) forward from T0, template parameters as the Presets; budget 1000 per bot, 1x, monthly universes; open cycles marked at the last close; fees 0.05% + 0.02% slippage per market order, funding included.",
+      "templates": [
+        {
+          "template_id": "T01",
+          "preset_id": "dca_long_classic",
+          "universe": "majors",
+          "universe_month": "2026-10",
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT",
+            "SOLUSDT",
+            "ZECUSDT",
+            "XRPUSDT"
+          ],
+          "bots": 5,
+          "capital_usdt": 5000,
+          "pnl_usdt": 8.88,
+          "return_pct": 0.1775,
+          "cycles": 21,
+          "open_cycles": 5,
+          "win_rate_cycles": 0.7619,
+          "worst_dd_pct": -1.6906,
+          "median_dd_pct": -0.5412,
+          "stopped_share": 0,
+          "liquidated_share": 0
+        },
+        {
+          "template_id": "T02",
+          "preset_id": "dca_long_safe",
+          "universe": "majors",
+          "universe_month": "2026-10",
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT",
+            "SOLUSDT",
+            "ZECUSDT",
+            "XRPUSDT"
+          ],
+          "bots": 5,
+          "capital_usdt": 5000,
+          "pnl_usdt": 13.91,
+          "return_pct": 0.2782,
+          "cycles": 31,
+          "open_cycles": 5,
+          "win_rate_cycles": 0.8387,
+          "worst_dd_pct": -1.4582,
+          "median_dd_pct": -0.4149,
+          "stopped_share": 0,
+          "liquidated_share": 0
+        },
+        {
+          "template_id": "T03",
+          "preset_id": "dca_long_quick",
+          "universe": "majors",
+          "universe_month": "2026-10",
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT",
+            "SOLUSDT",
+            "ZECUSDT",
+            "XRPUSDT"
+          ],
+          "bots": 5,
+          "capital_usdt": 5000,
+          "pnl_usdt": 45.66,
+          "return_pct": 0.9133,
+          "cycles": 48,
+          "open_cycles": 5,
+          "win_rate_cycles": 0.8958,
+          "worst_dd_pct": -9.3092,
+          "median_dd_pct": -2.6515,
+          "stopped_share": 0,
+          "liquidated_share": 0
+        },
+        {
+          "template_id": "T04",
+          "preset_id": "dca_long_btc",
+          "universe": "btc",
+          "universe_month": "2026-10",
+          "symbols": [
+            "BTCUSDT"
+          ],
+          "bots": 1,
+          "capital_usdt": 1000,
+          "pnl_usdt": 1.13,
+          "return_pct": 0.1132,
+          "cycles": 2,
+          "open_cycles": 1,
+          "win_rate_cycles": 0.5,
+          "worst_dd_pct": -0.4972,
+          "median_dd_pct": -0.4972,
+          "stopped_share": 0,
+          "liquidated_share": 0
+        },
+        {
+          "template_id": "T05",
+          "preset_id": "dca_long_alts",
+          "universe": "alts",
+          "universe_month": "2026-10",
+          "symbols": [
+            "HYPEUSDT",
+            "DOGEUSDT",
+            "BNBUSDT",
+            "NEARUSDT",
+            "AKEUSDT",
+            "SUIUSDT",
+            "1000PEPEUSDT",
+            "ENAUSDT",
+            "UNIUSDT",
+            "BANKUSDT"
+          ],
+          "bots": 10,
+          "capital_usdt": 10000,
+          "pnl_usdt": 48.42,
+          "return_pct": 0.4842,
+          "cycles": 58,
+          "open_cycles": 10,
+          "win_rate_cycles": 0.8448,
+          "worst_dd_pct": -3.5116,
+          "median_dd_pct": -1.1364,
+          "stopped_share": 0,
+          "liquidated_share": 0
+        },
+        {
+          "template_id": "T06",
+          "preset_id": "dca_long_stop",
+          "universe": "majors",
+          "universe_month": "2026-10",
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT",
+            "SOLUSDT",
+            "ZECUSDT",
+            "XRPUSDT"
+          ],
+          "bots": 5,
+          "capital_usdt": 5000,
+          "pnl_usdt": 18.13,
+          "return_pct": 0.3627,
+          "cycles": 21,
+          "open_cycles": 5,
+          "win_rate_cycles": 0.7619,
+          "worst_dd_pct": -3.4541,
+          "median_dd_pct": -1.1057,
+          "stopped_share": 0,
+          "liquidated_share": 0
+        },
+        {
+          "template_id": "T07",
+          "preset_id": "dca_short_classic",
+          "universe": "majors",
+          "universe_month": "2026-10",
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT",
+            "SOLUSDT",
+            "ZECUSDT",
+            "XRPUSDT"
+          ],
+          "bots": 5,
+          "capital_usdt": 5000,
+          "pnl_usdt": 77.63,
+          "return_pct": 1.5527,
+          "cycles": 45,
+          "open_cycles": 5,
+          "win_rate_cycles": 0.9111,
+          "worst_dd_pct": -5.0295,
+          "median_dd_pct": -0.6461,
+          "stopped_share": 0,
+          "liquidated_share": 0
+        },
+        {
+          "template_id": "T08",
+          "preset_id": "dca_short_safe",
+          "universe": "majors",
+          "universe_month": "2026-10",
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT",
+            "SOLUSDT",
+            "ZECUSDT",
+            "XRPUSDT"
+          ],
+          "bots": 5,
+          "capital_usdt": 5000,
+          "pnl_usdt": 32,
+          "return_pct": 0.6399,
+          "cycles": 50,
+          "open_cycles": 5,
+          "win_rate_cycles": 0.9,
+          "worst_dd_pct": -1.9014,
+          "median_dd_pct": -0.3735,
+          "stopped_share": 0,
+          "liquidated_share": 0
+        },
+        {
+          "template_id": "T09",
+          "preset_id": "grid_neutral",
+          "universe": "majors",
+          "universe_month": "2026-10",
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT",
+            "SOLUSDT",
+            "ZECUSDT",
+            "XRPUSDT"
+          ],
+          "bots": 5,
+          "capital_usdt": 5000,
+          "pnl_usdt": -102.2,
+          "return_pct": -2.044,
+          "cycles": 8,
+          "open_cycles": 5,
+          "win_rate_cycles": 0.375,
+          "worst_dd_pct": -13.356,
+          "median_dd_pct": -1.5056,
+          "stopped_share": 0.2,
+          "liquidated_share": 0
+        },
+        {
+          "template_id": "T10",
+          "preset_id": "grid_neutral_tight",
+          "universe": "majors",
+          "universe_month": "2026-10",
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT",
+            "SOLUSDT",
+            "ZECUSDT",
+            "XRPUSDT"
+          ],
+          "bots": 5,
+          "capital_usdt": 5000,
+          "pnl_usdt": -174.39,
+          "return_pct": -3.4878,
+          "cycles": 20,
+          "open_cycles": 5,
+          "win_rate_cycles": 0.35,
+          "worst_dd_pct": -19.8527,
+          "median_dd_pct": -2.0146,
+          "stopped_share": 0.4,
+          "liquidated_share": 0
+        },
+        {
+          "template_id": "T11",
+          "preset_id": "grid_long_trail",
+          "universe": "majors",
+          "universe_month": "2026-10",
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT",
+            "SOLUSDT",
+            "ZECUSDT",
+            "XRPUSDT"
+          ],
+          "bots": 5,
+          "capital_usdt": 5000,
+          "pnl_usdt": -196.57,
+          "return_pct": -3.9314,
+          "cycles": 6,
+          "open_cycles": 5,
+          "win_rate_cycles": 0.1667,
+          "worst_dd_pct": -13.2811,
+          "median_dd_pct": -4.6022,
+          "stopped_share": 0.2,
+          "liquidated_share": 0
+        },
+        {
+          "template_id": "T12",
+          "preset_id": "grid_short",
+          "universe": "majors",
+          "universe_month": "2026-10",
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT",
+            "SOLUSDT",
+            "ZECUSDT",
+            "XRPUSDT"
+          ],
+          "bots": 5,
+          "capital_usdt": 5000,
+          "pnl_usdt": 79.11,
+          "return_pct": 1.5822,
+          "cycles": 8,
+          "open_cycles": 5,
+          "win_rate_cycles": 0.75,
+          "worst_dd_pct": -16.1067,
+          "median_dd_pct": -2.015,
+          "stopped_share": 0.2,
+          "liquidated_share": 0
+        }
+      ],
+      "reason_code": "ghost_younger_than_min",
+      "reason_args": {
+        "min_days": 30
+      },
+      "method_code": "ghost_botsim_forward_v1"
+    },
+    "farm": {
+      "status": "measuring",
+      "as_of": "2026-10-17T02:52:37.808Z",
+      "source": "Aleph Edge bot farm export farm-live.json (paper, simulated fills, schema aleph-bot-farm/1)",
+      "reason": "the farm's pre-registered ranking gate is not passed yet; per-template figures are shown in fixed order, unranked",
+      "file_generated_at": "2026-10-17T02:52:37.808Z",
+      "t0": "2026-10-17T02:27:20.748Z",
+      "days_running": 0.02,
+      "engine": {
+        "app_version": "0.3.15",
+        "fingerprint": "8cc7ddd4cf114f0b",
+        "farm_version": "0.1.0"
+      },
+      "labels": {
+        "mode": "paper",
+        "fills": "simulated",
+        "text": "Paper trading with simulated fills on the Aleph Edge engine. Not live results: real fills, slippage, fees and outages differ, and are expected to be worse.",
+        "funding": "Futures DCA/Grid cycles are charged settled funding from DataHub.",
+        "ranking": {
+          "status": "notAllowed",
+          "rule": "docs/PREREG_BOT_FARM.md section 4",
+          "min_days": 30,
+          "min_closed_cycles_per_bot": 10,
+          "min_closed_trades_signal_bot": 30,
+          "engine_check_passed": false,
+          "reasons": [
+            "0.02 of 30 days since T0",
+            "engine-vs-simulator check (PREREG §6) not passed yet",
+            "0 unit(s) meet the closed-cycle minimum; a ranking needs two"
+          ],
+          "ranked": [],
+          "reason_codes": [
+            {
+              "code": "farm_rank_days_below_min",
+              "args": {
+                "days": 0.02,
+                "min_days": 30.0
+              }
+            },
+            {
+              "code": "farm_rank_engine_check_pending"
+            },
+            {
+              "code": "farm_rank_too_few_units",
+              "args": {
+                "units": 0
+              }
+            }
+          ]
+        },
+        "text_code": "farm_paper_simulated_v1",
+        "funding_code": "farm_funding_settled_v1"
+      },
+      "templates": [
+        {
+          "template_id": "T01",
+          "preset_id": "dca_long_classic",
+          "name": "DCA Long Classic",
+          "kind": "dca",
+          "universe": "majors",
+          "shipped_verdict": "presetReady",
+          "bots": 5,
+          "cycles_closed": 0,
+          "cycles_open": 5,
+          "allocated_usdt": 5000,
+          "realized_net_pnl_usdt": 0,
+          "open_pnl_usdt": 0.03,
+          "return_pct": 0.0005,
+          "worst_bot": {
+            "bot_id": "sb_6q4kaqh4skh3",
+            "symbol": "BTCUSDT",
+            "return_pct": -0.0015
+          },
+          "max_drawdown_pct": -0.0116,
+          "rankable": false,
+          "not_rankable_reason": "no bot has run 14 days yet"
+        },
+        {
+          "template_id": "T02",
+          "preset_id": "dca_long_safe",
+          "name": "DCA Long Safe",
+          "kind": "dca",
+          "universe": "majors",
+          "shipped_verdict": "presetReady",
+          "bots": 5,
+          "cycles_closed": 0,
+          "cycles_open": 5,
+          "allocated_usdt": 5000,
+          "realized_net_pnl_usdt": 0,
+          "open_pnl_usdt": 0.02,
+          "return_pct": 0.0004,
+          "worst_bot": {
+            "bot_id": "sb_7mfaqwjfjj34",
+            "symbol": "BTCUSDT",
+            "return_pct": -0.0012
+          },
+          "max_drawdown_pct": -0.0094,
+          "rankable": false,
+          "not_rankable_reason": "no bot has run 14 days yet"
+        },
+        {
+          "template_id": "T03",
+          "preset_id": "dca_long_quick",
+          "name": "DCA Long Quick",
+          "kind": "dca",
+          "universe": "majors",
+          "shipped_verdict": "failed",
+          "bots": 5,
+          "cycles_closed": 0,
+          "cycles_open": 5,
+          "allocated_usdt": 5000,
+          "realized_net_pnl_usdt": 0,
+          "open_pnl_usdt": 0.07,
+          "return_pct": 0.0013,
+          "worst_bot": {
+            "bot_id": "sb_i6sxzjcjgoej",
+            "symbol": "BTCUSDT",
+            "return_pct": -0.0038
+          },
+          "max_drawdown_pct": -0.0289,
+          "rankable": false,
+          "not_rankable_reason": "no bot has run 14 days yet"
+        },
+        {
+          "template_id": "T04",
+          "preset_id": "dca_long_btc",
+          "name": "DCA Long BTC",
+          "kind": "dca",
+          "universe": "btc",
+          "shipped_verdict": "failed",
+          "bots": 1,
+          "cycles_closed": 0,
+          "cycles_open": 1,
+          "allocated_usdt": 1000,
+          "realized_net_pnl_usdt": 0,
+          "open_pnl_usdt": -0.03,
+          "return_pct": -0.0031,
+          "worst_bot": {
+            "bot_id": "sb_r2zhzt6laxr7",
+            "symbol": "BTCUSDT",
+            "return_pct": -0.0031
+          },
+          "max_drawdown_pct": -0.0091,
+          "rankable": false,
+          "not_rankable_reason": "no bot has run 14 days yet"
+        },
+        {
+          "template_id": "T05",
+          "preset_id": "dca_long_alts",
+          "name": "DCA Long Alts",
+          "kind": "dca",
+          "universe": "alts",
+          "shipped_verdict": "failed",
+          "bots": 10,
+          "cycles_closed": 0,
+          "cycles_open": 10,
+          "allocated_usdt": 10000,
+          "realized_net_pnl_usdt": 0,
+          "open_pnl_usdt": -0.85,
+          "return_pct": -0.0085,
+          "worst_bot": {
+            "bot_id": "sb_gh5gy7icncou",
+            "symbol": "AKEUSDT",
+            "return_pct": -0.1141
+          },
+          "max_drawdown_pct": -0.1141,
+          "rankable": false,
+          "not_rankable_reason": "no bot has run 14 days yet"
+        },
+        {
+          "template_id": "T06",
+          "preset_id": "dca_long_stop",
+          "name": "DCA Long Stop",
+          "kind": "dca",
+          "universe": "majors",
+          "shipped_verdict": "failed",
+          "bots": 5,
+          "cycles_closed": 0,
+          "cycles_open": 5,
+          "allocated_usdt": 5000,
+          "realized_net_pnl_usdt": 0,
+          "open_pnl_usdt": 0.05,
+          "return_pct": 0.0011,
+          "worst_bot": {
+            "bot_id": "sb_t3zxm2jbaoiy",
+            "symbol": "BTCUSDT",
+            "return_pct": -0.0031
+          },
+          "max_drawdown_pct": -0.0237,
+          "rankable": false,
+          "not_rankable_reason": "no bot has run 14 days yet"
+        },
+        {
+          "template_id": "T07",
+          "preset_id": "dca_short_classic",
+          "name": "DCA Short Classic",
+          "kind": "dca",
+          "universe": "majors",
+          "shipped_verdict": "failed",
+          "bots": 5,
+          "cycles_closed": 0,
+          "cycles_open": 5,
+          "allocated_usdt": 5000,
+          "realized_net_pnl_usdt": 0,
+          "open_pnl_usdt": -0.46,
+          "return_pct": -0.0092,
+          "worst_bot": {
+            "bot_id": "sb_ncbomwerqz4r",
+            "symbol": "XRPUSDT",
+            "return_pct": -0.0151
+          },
+          "max_drawdown_pct": -0.0194,
+          "rankable": false,
+          "not_rankable_reason": "no bot has run 14 days yet"
+        },
+        {
+          "template_id": "T08",
+          "preset_id": "dca_short_safe",
+          "name": "DCA Short Safe",
+          "kind": "dca",
+          "universe": "majors",
+          "shipped_verdict": "failed",
+          "bots": 5,
+          "cycles_closed": 0,
+          "cycles_open": 5,
+          "allocated_usdt": 5000,
+          "realized_net_pnl_usdt": 0,
+          "open_pnl_usdt": -0.32,
+          "return_pct": -0.0064,
+          "worst_bot": {
+            "bot_id": "sb_qz76thtsojpv",
+            "symbol": "XRPUSDT",
+            "return_pct": -0.0105
+          },
+          "max_drawdown_pct": -0.0135,
+          "rankable": false,
+          "not_rankable_reason": "no bot has run 14 days yet"
+        },
+        {
+          "template_id": "T09",
+          "preset_id": "grid_neutral",
+          "name": "Grid Neutral",
+          "kind": "grid",
+          "universe": "majors",
+          "shipped_verdict": "failed",
+          "bots": 5,
+          "cycles_closed": 0,
+          "cycles_open": 5,
+          "allocated_usdt": 5000,
+          "realized_net_pnl_usdt": 0,
+          "open_pnl_usdt": 0,
+          "return_pct": 0,
+          "worst_bot": {
+            "bot_id": "sb_lm534csx3o6r",
+            "symbol": "ZECUSDT",
+            "return_pct": 0
+          },
+          "max_drawdown_pct": 0,
+          "rankable": false,
+          "not_rankable_reason": "no bot has run 14 days yet"
+        },
+        {
+          "template_id": "T10",
+          "preset_id": "grid_neutral_tight",
+          "name": "Grid Neutral Tight",
+          "kind": "grid",
+          "universe": "majors",
+          "shipped_verdict": "failed",
+          "bots": 5,
+          "cycles_closed": 0,
+          "cycles_open": 5,
+          "allocated_usdt": 5000,
+          "realized_net_pnl_usdt": 0,
+          "open_pnl_usdt": 0,
+          "return_pct": 0,
+          "worst_bot": {
+            "bot_id": "sb_jabttzl75jbu",
+            "symbol": "SOLUSDT",
+            "return_pct": 0
+          },
+          "max_drawdown_pct": 0,
+          "rankable": false,
+          "not_rankable_reason": "no bot has run 14 days yet"
+        },
+        {
+          "template_id": "T11",
+          "preset_id": "grid_long_trail",
+          "name": "Grid Long Trailing",
+          "kind": "grid",
+          "universe": "majors",
+          "shipped_verdict": "failed",
+          "bots": 5,
+          "cycles_closed": 0,
+          "cycles_open": 5,
+          "allocated_usdt": 5000,
+          "realized_net_pnl_usdt": 0,
+          "open_pnl_usdt": 0.39,
+          "return_pct": 0.0077,
+          "worst_bot": {
+            "bot_id": "sb_locwwbtylkek",
+            "symbol": "BTCUSDT",
+            "return_pct": -0.0221
+          },
+          "max_drawdown_pct": -0.1678,
+          "rankable": false,
+          "not_rankable_reason": "no bot has run 14 days yet"
+        },
+        {
+          "template_id": "T12",
+          "preset_id": "grid_short",
+          "name": "Grid Short",
+          "kind": "grid",
+          "universe": "majors",
+          "shipped_verdict": "failed",
+          "bots": 5,
+          "cycles_closed": 0,
+          "cycles_open": 5,
+          "allocated_usdt": 5000,
+          "realized_net_pnl_usdt": 0,
+          "open_pnl_usdt": -3.97,
+          "return_pct": -0.0793,
+          "worst_bot": {
+            "bot_id": "sb_xepupyvj6r2l",
+            "symbol": "XRPUSDT",
+            "return_pct": -0.1307
+          },
+          "max_drawdown_pct": -0.1674,
+          "rankable": false,
+          "not_rankable_reason": "no bot has run 14 days yet"
+        }
+      ],
+      "bot_count": 63,
+      "refused_count": 0,
+      "reason_code": "farm_gate_not_passed",
+      "signal_bots": [
+        {
+          "id": "signal_futures",
+          "market": "futures",
+          "state": "running",
+          "started_at": "2026-10-17T02:27:20.748Z",
+          "days_running": 0.39,
+          "trades_closed": 0,
+          "trades_open": 3,
+          "allocated_usdt": 10000,
+          "realized_net_pnl_usdt": 0,
+          "open_pnl_usdt": -0.26,
+          "fees_paid_usdt": 0,
+          "return_pct": -0.0026,
+          "max_drawdown_pct": -0.005,
+          "worst_trade_pct": null,
+          "refusals": [],
+          "refusals_reported": false,
+          "mode": "paper",
+          "fills": "simulated",
+          "label_code": "farm_paper_simulated_v1"
+        },
+        {
+          "id": "signal_spot",
+          "market": "spot",
+          "state": "running",
+          "started_at": "2026-10-17T02:27:20.748Z",
+          "days_running": 0.39,
+          "trades_closed": 1,
+          "trades_open": 2,
+          "allocated_usdt": 10000,
+          "realized_net_pnl_usdt": 0.66,
+          "open_pnl_usdt": -0.72,
+          "fees_paid_usdt": 0.03,
+          "return_pct": -0.0005,
+          "max_drawdown_pct": -0.0077,
+          "worst_trade_pct": 0.0066,
+          "refusals": [],
+          "refusals_reported": false,
+          "mode": "paper",
+          "fills": "simulated",
+          "label_code": "farm_paper_simulated_v1"
+        }
+      ],
+      "signal_bots_code": "farm_signal_bots_paper_v1"
+    },
+    "similar_days": {
+      "status": "unavailable",
+      "as_of": null,
+      "source": "none",
+      "reason": "Not computed. The lab figures are per bot-month and the ghost track is a few days old; matching them to today's BTC trend and volatility bucket would need a new per-period classification of past data, which is new research and not in any stored output. A pre-registered test of choosing presets by market regime failed, so a 'how it did on days like today' table would suggest a choice the evidence does not support.",
+      "templates": [],
+      "reason_code": "similar_days_not_computed_v1"
+    },
+    "claim_rule_code": "proven_majors_v1",
+    "proven_ids": [
+      "dca_long_classic"
+    ],
+    "proven_top_n": 5,
+    "order_code": "fixed_template_order_v1"
+  },
+  "news": {
+    "status": "ok",
+    "as_of": "2026-10-16T23:02:00.109571Z",
+    "source": "news digest (news_digests / news_items, GET /api/public/market/news); each line links our stored item",
+    "digest_status": "ok",
+    "item_count": 2,
+    "lines_total": 2,
+    "lines": [
+      {
+        "group": "regulation",
+        "text": "Cointelegraph reports that at least two industry-aligned PACs have poured more than $52 million into opposing Sherrod Brown’s return to the Senate.",
+        "source_name": "Cointelegraph",
+        "title": "Crypto PACs escalate spending against Sherrod Brown in Ohio Senate race",
+        "url": "https://cointelegraph.com/news/crypto-pac-fairshake-spending-ohio-senate-race-sherrod-brown?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
+        "published_at": "2026-10-16T17:30:09Z",
+        "impact_type": "regulation_legal",
+        "source_lang": "en",
+        "translated": true,
+        "translations": {
+          "es": "Cointelegraph informa que al menos dos PACs alineados con la industria han invertido más de $52 millones en oponerse al regreso de Sherrod Brown al Senado.",
+          "hi": "Cointelegraph की रिपोर्ट के अनुसार उद्योग से जुड़े कम से कम दो PACs ने Sherrod Brown की Senate में वापसी के विरोध में $52 मिलियन से अधिक खर्च किए हैं।",
+          "id": "Cointelegraph melaporkan setidaknya dua PACs yang sejalan dengan industri telah menggelontorkan lebih dari $52 juta untuk menentang kembalinya Sherrod Brown ke Senat.",
+          "pt-BR": "Cointelegraph informa que pelo menos dois PACs alinhados ao setor já gastaram mais de $52 milhões para se opor ao retorno de Sherrod Brown ao Senado.",
+          "ru": "Cointelegraph сообщает, что как минимум два отраслевых PACs потратили более $52 миллионов на противодействие возвращению Sherrod Brown в Сенат.",
+          "tr": "Cointelegraph, sektörle uyumlu en az iki PACs'in Sherrod Brown'ın Senato'ya dönüşüne karşı 52 milyon $'dan fazla harcadığını bildiriyor.",
+          "vi": "Cointelegraph đưa tin ít nhất hai PACs gắn với ngành đã chi hơn $52 triệu để phản đối việc Sherrod Brown trở lại Thượng viện."
+        }
+      },
+      {
+        "group": "market",
+        "text": "Cointelegraph reports that Borderless.xyz data shows stablecoin remittances cost 84% less than traditional transfers and settle faster than international bank wires.",
+        "source_name": "Cointelegraph",
+        "title": "Stablecoin remittances cost 84% less than traditional transfers, report finds",
+        "url": "https://cointelegraph.com/news/stablecoin-remittances-cost-savings-traditional-transfers?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
+        "published_at": "2026-10-16T17:21:45Z",
+        "impact_type": "stablecoin",
+        "source_lang": "en",
+        "translated": true,
+        "translations": {
+          "es": "Cointelegraph informa que los datos de Borderless.xyz muestran que las remesas en stablecoins cuestan un 84% menos que las transferencias tradicionales y se liquidan más rápido que las transferencias bancarias internacionales."
+        }
+      }
+    ],
+    "withheld_lines": 0,
+    "impact": {
+      "status": "ok",
+      "as_of": "2026-10-17T02:21:25.416758Z",
+      "source": "news impact (nightly, GET /api/public/news/impact): BTC spot after past stories of a type vs the same hours of the day",
+      "window_days": 90,
+      "min_stories": 30,
+      "baseline": "same_hour_of_day",
+      "units": "percent; share_up in percent of stories",
+      "types": [
+        {
+          "type": "regulation_legal",
+          "label": "Regulation and legal",
+          "status": "ok",
+          "horizons": {
+            "1h": {
+              "status": "ok",
+              "n": 141,
+              "median": 0.01,
+              "mean": 0.01,
+              "share_up": 50.4,
+              "base_mean": 0.01,
+              "base_share_up": 50.2,
+              "diff_ci": [
+                -0.08,
+                0.08
+              ],
+              "differs": false
+            },
+            "24h": {
+              "status": "ok",
+              "n": 139,
+              "median": 0.03,
+              "mean": -0.11,
+              "share_up": 53.2,
+              "base_mean": 0.13,
+              "base_share_up": 55.4,
+              "diff_ci": [
+                -0.75,
+                0.17
+              ],
+              "differs": false
+            },
+            "4h": {
+              "status": "ok",
+              "n": 141,
+              "median": 0.06,
+              "mean": 0.04,
+              "share_up": 56,
+              "base_mean": 0.02,
+              "base_share_up": 54.4,
+              "diff_ci": [
+                -0.15,
+                0.19
+              ],
+              "differs": false
+            }
+          }
+        },
+        {
+          "type": "stablecoin",
+          "label": "Stablecoins and CBDCs",
+          "status": "ok",
+          "horizons": {
+            "1h": {
+              "status": "ok",
+              "n": 69,
+              "median": 0.05,
+              "mean": 0.04,
+              "share_up": 56.5,
+              "base_mean": 0.02,
+              "base_share_up": 51.9,
+              "diff_ci": [
+                -0.05,
+                0.1
+              ],
+              "differs": false
+            },
+            "24h": {
+              "status": "ok",
+              "n": 66,
+              "median": -0.07,
+              "mean": -0.27,
+              "share_up": 47,
+              "base_mean": 0.13,
+              "base_share_up": 55.2,
+              "diff_ci": [
+                -0.89,
+                0.07
+              ],
+              "differs": false
+            },
+            "4h": {
+              "status": "ok",
+              "n": 69,
+              "median": -0.02,
+              "mean": -0.1,
+              "share_up": 47.8,
+              "base_mean": 0.03,
+              "base_share_up": 54.5,
+              "diff_ci": [
+                -0.3,
+                0.01
+              ],
+              "differs": false
+            }
+          }
+        }
+      ],
+      "disclosure": "Measured history after past news, not a forecast. Each figure is BTC spot's move after past stories of one type, set against the same hours of the day in the same window. Headlines are typed by fixed keyword rules; price-wrap headlines written after a move are counted but never measured. Not used in any signal, veto or win rate.",
+      "disclosure_code": "news_impact_v1"
+    },
+    "disclosure": "Third-party reporting, not a Sentinel measurement. It is not used in any signal, veto or win rate.",
+    "disclosure_code": "news_third_party_v1",
+    "translation_code": "news_machine_translated_v1",
+    "translations_omitted": 0
+  },
+  "listings": {
+    "status": "ok",
+    "as_of": "2026-10-17T02:21:26.973887Z",
+    "source": "listings service (exchange announcement channels, GET /api/public/listings); reactions from DataHub candles",
+    "reason": "never read successfully, so absent here: upbit",
+    "upcoming": [],
+    "recent": [
+      {
+        "exchange": "bybit",
+        "market": "perp",
+        "symbol": "DNA",
+        "name": "",
+        "pairs": [
+          "DNA/USDT"
+        ],
+        "status": "live",
+        "listing_time": "2026-10-16T11:45:00Z",
+        "postponed": false,
+        "cancelled_at": null,
+        "announcement": {
+          "source": "bybit",
+          "title": "New listing: Listing of DNAUSDT on Bybit Perpetual on Oct 16, 2026, 11:45AM UTC",
+          "url": "https://announcements.bybit.com/en-US/article/new-listing-listing-of-dnausdt-on-bybit-perpetual-on-oct-16-2026-11-45am-utc--art2e000df3b3e1/",
+          "published_at": "2026-10-16T11:17:25Z",
+          "fetched_at": "2026-10-17T01:41:16.390225Z"
+        },
+        "reaction": {
+          "status": "no_data",
+          "reason": "DataHub has no bybit candles",
+          "ref_time": null,
+          "ret_5m_pct": null,
+          "ret_1h_pct": null,
+          "ret_24h_pct": null,
+          "reason_code": "reaction_no_venue_candles",
+          "reason_args": {
+            "exchange": "bybit"
+          }
+        }
+      },
+      {
+        "exchange": "bybit",
+        "market": "perp",
+        "symbol": "DRV",
+        "name": "",
+        "pairs": [
+          "DRV/USDT"
+        ],
+        "status": "live",
+        "listing_time": "2026-10-16T10:30:00Z",
+        "postponed": false,
+        "cancelled_at": null,
+        "announcement": {
+          "source": "bybit",
+          "title": "New listing: Listing of DRVUSDT on Bybit Perpetual on Oct 16, 2026, 10:30AM UTC",
+          "url": "https://announcements.bybit.com/en-US/article/new-listing-listing-of-drvusdt-on-bybit-perpetual-on-oct-16-2026-10-30am-utc--arta27d4222539c/",
+          "published_at": "2026-10-16T09:29:43Z",
+          "fetched_at": "2026-10-17T01:41:16.390225Z"
+        },
+        "reaction": {
+          "status": "no_data",
+          "reason": "DataHub has no bybit candles",
+          "ref_time": null,
+          "ret_5m_pct": null,
+          "ret_1h_pct": null,
+          "ret_24h_pct": null,
+          "reason_code": "reaction_no_venue_candles",
+          "reason_args": {
+            "exchange": "bybit"
+          }
+        }
+      },
+      {
+        "exchange": "binance",
+        "market": "spot",
+        "symbol": "RWUSD",
+        "name": "",
+        "pairs": [
+          "RWUSD/USDT"
+        ],
+        "status": "live",
+        "listing_time": "2026-10-13T08:00:00Z",
+        "postponed": false,
+        "cancelled_at": null,
+        "announcement": {
+          "source": "binance",
+          "title": "Binance Will List RWUSD and Introduce RWUSD Zero Trading Fee Promotion",
+          "url": "https://www.binance.com/en/support/announcement/detail/1dfe10f0e0fb4e7ab0eb8874e9fdab0e",
+          "published_at": "2026-10-13T03:30:01.158Z",
+          "fetched_at": "2026-10-17T01:41:00.783192Z"
+        },
+        "reaction": {
+          "status": "ok",
+          "data_source": "datahub:crypto_spot",
+          "ref_time": "2026-10-13T08:00:00Z",
+          "ret_5m_pct": -0.01,
+          "ret_1h_pct": 0,
+          "ret_24h_pct": 0
+        }
+      },
+      {
+        "exchange": "bybit",
+        "market": "perp",
+        "symbol": "CT",
+        "name": "",
+        "pairs": [
+          "CT/USDT"
+        ],
+        "status": "live",
+        "listing_time": null,
+        "postponed": false,
+        "cancelled_at": null,
+        "announcement": {
+          "source": "bybit",
+          "title": "New listing: CTUSDT Perpetual Contract, with up to 20x leverage",
+          "url": "https://announcements.bybit.com/en-US/article/new-listing-ctusdt-perpetual-contract-with-up-to-20x-leverage--art4fe8469b5876/",
+          "published_at": "2026-10-01T09:27:43Z",
+          "fetched_at": "2026-10-17T01:41:16.390225Z"
+        },
+        "reaction": {
+          "status": "no_data",
+          "reason": "DataHub has no bybit candles",
+          "ref_time": null,
+          "ret_5m_pct": null,
+          "ret_1h_pct": null,
+          "ret_24h_pct": null,
+          "reason_code": "reaction_no_venue_candles",
+          "reason_args": {
+            "exchange": "bybit"
+          }
+        }
+      },
+      {
+        "exchange": "binance",
+        "market": "perp",
+        "symbol": "CT",
+        "name": "Concrete",
+        "pairs": [
+          "CT/USDT"
+        ],
+        "status": "live",
+        "listing_time": "2026-10-01T07:45:00Z",
+        "postponed": false,
+        "cancelled_at": null,
+        "announcement": {
+          "source": "binance",
+          "title": "Binance Futures Will Launch USDⓈ-Margined CTUSDT Perpetual Contract (2026-10-01)",
+          "url": "https://www.binance.com/en/support/announcement/detail/6bd26adeb6f742fe88eb72faca183566",
+          "published_at": "2026-10-01T06:30:01.04Z",
+          "fetched_at": "2026-10-17T01:41:00.783192Z"
+        },
+        "reaction": {
+          "status": "ok",
+          "data_source": "datahub:crypto",
+          "ref_time": "2026-10-01T07:45:00Z",
+          "ret_5m_pct": 3.06,
+          "ret_1h_pct": 3.99,
+          "ret_24h_pct": 49.11
+        }
+      },
+      {
+        "exchange": "binance",
+        "market": "spot",
+        "symbol": "HYPE",
+        "name": "Hyperliquid",
+        "pairs": [
+          "HYPE/TRY",
+          "HYPE/USDC",
+          "HYPE/USDT"
+        ],
+        "status": "live",
+        "listing_time": "2026-09-24T11:00:00Z",
+        "postponed": false,
+        "cancelled_at": null,
+        "announcement": {
+          "source": "binance",
+          "title": "Binance Will List Hyperliquid (HYPE) with Seed Tag Applied",
+          "url": "https://www.binance.com/en/support/announcement/detail/d49de208bb6d4a26b02677d7c3d89b5d",
+          "published_at": "2026-09-24T07:30:38.608Z",
+          "fetched_at": "2026-10-17T01:41:00.783192Z"
+        },
+        "reaction": {
+          "status": "ok",
+          "data_source": "datahub:crypto_spot",
+          "ref_time": "2026-09-24T11:00:00Z",
+          "ret_5m_pct": -0.6,
+          "ret_1h_pct": -1.07,
+          "ret_24h_pct": 2.17
+        }
+      }
+    ],
+    "upcoming_total": 0,
+    "recent_total": 6,
+    "withheld_titles": 0,
+    "sources": [
+      {
+        "id": "binance",
+        "status": "ok",
+        "last_ok_at": "2026-10-17T02:21:26.973887Z",
+        "last_run_at": "2026-10-17T02:21:26.973887Z"
+      },
+      {
+        "id": "okx",
+        "status": "ok",
+        "last_ok_at": "2026-10-17T02:21:27.199808Z",
+        "last_run_at": "2026-10-17T02:21:27.199808Z"
+      },
+      {
+        "id": "bybit",
+        "status": "ok",
+        "last_ok_at": "2026-10-17T02:21:27.562845Z",
+        "last_run_at": "2026-10-17T02:21:27.562845Z"
+      },
+      {
+        "id": "kraken",
+        "status": "ok",
+        "last_ok_at": "2026-10-17T02:21:27.70319Z",
+        "last_run_at": "2026-10-17T02:21:27.70319Z"
+      },
+      {
+        "id": "upbit",
+        "status": "http_error",
+        "last_ok_at": null,
+        "last_run_at": "2026-10-17T02:21:27.728416Z"
+      }
+    ],
+    "reaction_method": "ref = open of the first 1-minute candle at or after the stated listing time (first trade); ret_h = close of the 1-minute candle ending ref+h / ref - 1. Binance spot and USDT-M perps only (DataHub has no other venue's candles).",
+    "reaction_units": "percent (ret = price change after the listing; positive_rate_pct = share of listings with a positive change)",
+    "reaction_summary": [
+      {
+        "exchange": "binance",
+        "market": "perp",
+        "listings": 1,
+        "no_data": 0,
+        "pending": 0,
+        "horizons": [
+          {
+            "horizon": "5m",
+            "n": 1,
+            "mean_pct": 3.06,
+            "median_pct": 3.06,
+            "positive_rate_pct": 100
+          },
+          {
+            "horizon": "1h",
+            "n": 1,
+            "mean_pct": 3.99,
+            "median_pct": 3.99,
+            "positive_rate_pct": 100
+          },
+          {
+            "horizon": "24h",
+            "n": 1,
+            "mean_pct": 49.11,
+            "median_pct": 49.11,
+            "positive_rate_pct": 100
+          }
+        ]
+      },
+      {
+        "exchange": "binance",
+        "market": "spot",
+        "listings": 2,
+        "no_data": 0,
+        "pending": 0,
+        "horizons": [
+          {
+            "horizon": "5m",
+            "n": 2,
+            "mean_pct": -0.3,
+            "median_pct": -0.3,
+            "positive_rate_pct": 0
+          },
+          {
+            "horizon": "1h",
+            "n": 2,
+            "mean_pct": -0.53,
+            "median_pct": -0.53,
+            "positive_rate_pct": 0
+          },
+          {
+            "horizon": "24h",
+            "n": 2,
+            "mean_pct": 1.09,
+            "median_pct": 1.09,
+            "positive_rate_pct": 50
+          }
+        ]
+      },
+      {
+        "exchange": "bybit",
+        "market": "perp",
+        "listings": 3,
+        "no_data": 3,
+        "pending": 0,
+        "horizons": [
+          {
+            "horizon": "5m",
+            "n": 0,
+            "mean_pct": null,
+            "median_pct": null,
+            "positive_rate_pct": null
+          },
+          {
+            "horizon": "1h",
+            "n": 0,
+            "mean_pct": null,
+            "median_pct": null,
+            "positive_rate_pct": null
+          },
+          {
+            "horizon": "24h",
+            "n": 0,
+            "mean_pct": null,
+            "median_pct": null,
+            "positive_rate_pct": null
+          }
+        ]
+      }
+    ],
+    "disclosure": "Listing times and pairs are the exchanges' own announcements, linked. Reactions are measured from DataHub candles where they exist; no data is shown as no data. Not a signal.",
+    "reason_code": "listings_channels_never_read",
+    "reason_args": {
+      "channels": [
+        "upbit"
+      ]
+    },
+    "disclosure_code": "listings_v1",
+    "reaction_method_code": "listing_reaction_1m_v1"
+  },
+  "schema_minor": 2,
+  "disclosure_code": "byt_disclosure_v1"
+}

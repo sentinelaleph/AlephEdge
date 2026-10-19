@@ -4,14 +4,17 @@
 //! The routes this client calls, as the public API Center documents them
 //! (https://ribqa.com/api-center):
 //!   funding  → GET {base}/api/v1/market/funding-rates    (auth)
-//!   depth    → GET {base}/api/v1/market/depth/{symbol}   (auth)
+//!   depth    → GET {base}/api/v1/market/depth/{symbol}?market=spot|futures (auth)
 //!   btc      → GET {base}/api/v1/market/btc-macro
 //!
 //! Funding and depth are sentinel-api proxies onto DataHub, which reads
 //! Binance USDT-M futures for every listed perp: funding for all perps in one
 //! snapshot (rate in percent per interval, cached 60s, served `stale` for up
-//! to 10 minutes if Binance fails) and ±1% depth for any perp on demand
-//! (cached 15s). The older `/api/v1/arbitrage/funding-rates` (18 symbols)
+//! to 10 minutes if Binance fails) and ±1% depth on demand (cached 15s) for
+//! any perp, or with `market=spot` for any spot pair: each signal bot reads
+//! its own market's book (spot for Spot, futures for Futures and Pump). A
+//! sentinel-api older than Aleph Edge 0.3.18 does not know `market=`; see
+//! `MarketManager::depth` for the fallback. The older `/api/v1/arbitrage/funding-rates` (18 symbols)
 //! and `/api/v1/liquidity/depth/{symbol}` (streamed books only) routes stay
 //! for the web; the bot does not use them. An unknown symbol is a 404,
 //! which lands on the same "unavailable" error as any other non-2xx.
@@ -19,7 +22,7 @@
 use reqwest::Client;
 use std::time::Duration;
 
-use super::model::{BtcMacro, DepthAnalysis, FundingRate, FundingRatesResponse};
+use super::model::{BtcMacro, DepthAnalysis, DepthMarket, FundingRate, FundingRatesResponse};
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(8);
 
@@ -34,8 +37,13 @@ fn funding_url(base: &str) -> String {
     format!("{base}/api/v1/market/funding-rates")
 }
 
-fn depth_url(base: &str, symbol: &str) -> String {
-    format!("{base}/api/v1/market/depth/{symbol}")
+/// `market = None` is the pre-0.3.18 request (the server's futures default),
+/// used only as the fallback for an older server.
+fn depth_url(base: &str, symbol: &str, market: Option<DepthMarket>) -> String {
+    match market {
+        Some(m) => format!("{base}/api/v1/market/depth/{symbol}?market={}", m.as_str()),
+        None => format!("{base}/api/v1/market/depth/{symbol}"),
+    }
 }
 
 pub async fn funding_rates(
@@ -82,9 +90,10 @@ pub async fn liquidity_depth(
     base: &str,
     token: &str,
     symbol: &str,
+    market: Option<DepthMarket>,
 ) -> Result<DepthAnalysis, String> {
     let res = client
-        .get(depth_url(base, symbol))
+        .get(depth_url(base, symbol, market))
         .bearer_auth(token)
         .send()
         .await
@@ -126,7 +135,16 @@ mod tests {
             "https://ribqa.com/api/v1/market/funding-rates"
         );
         assert_eq!(
-            depth_url("https://ribqa.com", "SUIUSDT"),
+            depth_url("https://ribqa.com", "SUIUSDT", Some(DepthMarket::Spot)),
+            "https://ribqa.com/api/v1/market/depth/SUIUSDT?market=spot"
+        );
+        assert_eq!(
+            depth_url("https://ribqa.com", "SUIUSDT", Some(DepthMarket::Futures)),
+            "https://ribqa.com/api/v1/market/depth/SUIUSDT?market=futures"
+        );
+        // The pre-0.3.18 request, kept for an older server.
+        assert_eq!(
+            depth_url("https://ribqa.com", "SUIUSDT", None),
             "https://ribqa.com/api/v1/market/depth/SUIUSDT"
         );
     }
@@ -170,11 +188,17 @@ mod tests {
         assert!((d.imbalance - 0.2).abs() < 1e-12);
         assert!((d.spread_bps - 1.5).abs() < 1e-12);
         assert!(d.truncated);
+        assert_eq!(d.source, "datahub.binance.futures.depth");
+        assert!(DepthMarket::Futures.matches_source(&d.source));
+        assert!(!DepthMarket::Spot.matches_source(&d.source));
+        assert!(DepthMarket::Spot.matches_source("datahub.binance.spot.depth"));
         // A body without the optional flag still parses.
         let plain: DepthAnalysis = serde_json::from_str(
             r#"{"symbol":"BTCUSDT","bid_depth_usd":1,"ask_depth_usd":2,"imbalance":0,"spread_bps":0}"#,
         )
         .unwrap();
         assert!(!plain.truncated);
+        assert!(plain.source.is_empty());
+        assert!(DepthMarket::Spot.matches_source(&plain.source));
     }
 }

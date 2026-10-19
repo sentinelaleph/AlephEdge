@@ -206,19 +206,27 @@ pub(super) fn now_millis() -> u64 {
 mod key_check_tests {
     use super::*;
 
-    /// The signed-endpoint example from Binance's API documentation.
+    /// The signed-endpoint example from Binance's API documentation, read at
+    /// run time from `tests/fixtures/binance_hmac_vector.json` (its `source`
+    /// names the page): the documented example key is not a literal here.
+    fn documented_vector() -> (String, String, String) {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/binance_hmac_vector.json");
+        let raw = std::fs::read_to_string(&path).expect("fixture readable");
+        let v: serde_json::Value = serde_json::from_str(&raw).expect("fixture parses");
+        let field = |k: &str| v[k].as_str().expect(k).to_string();
+        (field("secretKey"), field("query"), field("signature"))
+    }
+
     #[test]
     fn signature_matches_the_binance_documentation_example() {
-        let secret = "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j";
-        let query = "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559";
-        assert_eq!(sign_query(secret, query), "c8db56825ae71d6d79447849e617115f4a920fa2acdcab2b053c4b2838bd6b71");
+        let (secret, query, signature) = documented_vector();
+        assert_eq!(sign_query(&secret, &query), signature);
     }
 
     #[test]
     fn the_hmac_signer_is_the_documented_scheme() {
-        let secret = "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j";
-        let query = "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559";
-        assert_eq!(BinanceSigner::Hmac(secret).signature_param(query).unwrap(), sign_query(secret, query));
+        let (secret, query, _) = documented_vector();
+        assert_eq!(BinanceSigner::Hmac(&secret).signature_param(&query).unwrap(), sign_query(&secret, &query));
     }
 
     /// The response shape from Binance's "Get API Key Permission" docs.

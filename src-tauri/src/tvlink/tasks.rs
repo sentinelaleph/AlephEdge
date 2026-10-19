@@ -48,8 +48,10 @@ pub(crate) fn save(app: &AppHandle) -> Result<(), String> {
 }
 
 /// One read and the handling of what it returned; the wait before the next.
-async fn pass(app: &AppHandle) -> Duration {
+pub(crate) async fn pass(app: &AppHandle) -> Duration {
     let mgr = app.state::<TvManager>();
+    // The loop and "Send test alert" never read at the same time.
+    let _one = mgr.pass_lock.lock().await;
     let (active, cursor) = {
         let g = mgr.lock();
         (g.stored.active(), g.stored.cursor.clone())
@@ -104,8 +106,10 @@ async fn handle(app: &AppHandle, ev: Event) {
     if let Err(e) = save(app) {
         mgr.lock().last_error = Some(e);
     }
-    let decision = decide(&ev.body, ev.received_at, execute, now_ms());
+    // A test event can only come back as Decision::Record (message.rs).
+    let decision = decide(&ev.body, ev.received_at, ev.test, execute, now_ms());
     let (outcome, seen, position_id) = run(app, decision).await;
+    let test = ev.test || outcome == message::TEST_ONLY;
     let result = AlertResult {
         event_id: ev.id,
         received_at: ev.received_at,
@@ -115,6 +119,7 @@ async fn handle(app: &AppHandle, ev: Event) {
         bot: seen.bot.map(|b| b.as_str().to_string()),
         outcome,
         position_id,
+        test,
     };
     mgr.lock().stored.record(result.clone());
     if let Err(e) = save(app) {
@@ -123,7 +128,7 @@ async fn handle(app: &AppHandle, ev: Event) {
     // Execute on and nothing opened or closed: one line to Telegram (bot
     // error). An open adds nothing (no "opened" category); a close is
     // already sent as a closed deal from the trade it books.
-    if execute && !matches!(result.outcome.as_str(), message::OPENED | message::CLOSED | message::RECEIVED) {
+    if execute && !result.test && !matches!(result.outcome.as_str(), message::OPENED | message::CLOSED | message::RECEIVED) {
         let text = refusal_line(&result);
         crate::telegram::send_line(app, Category::BotError, &text).await;
     }
@@ -191,6 +196,21 @@ async fn open(app: &AppHandle, a: &Alert) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The one path from an event to `run` (which opens and closes) passes
+    /// the event's test flag to `decide`, which only records a test.
+    #[test]
+    fn the_events_test_flag_reaches_the_decision() {
+        let src = include_str!("tasks.rs");
+        let body = &src[..src.find("#[cfg(test)]").unwrap()];
+        let calls: Vec<_> = body.lines().filter(|l| l.contains("decide(")).collect();
+        assert_eq!(calls, vec!["    let decision = decide(&ev.body, ev.received_at, ev.test, execute, now_ms());"]);
+        assert_eq!(body.matches("run(app, ").count(), 1, "run is reached only from handle");
+        assert!(body.contains("run(app, decision)"));
+        // No Open / Close is built here, only matched: decide makes them.
+        assert_eq!(body.matches("Decision::Open(").count(), 1, "only run's match arm");
+        assert_eq!(body.matches("Decision::Close(").count(), 1, "only run's match arm");
+    }
 
     #[test]
     fn the_telegram_line_names_the_alert_and_the_code() {

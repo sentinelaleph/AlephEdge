@@ -22,8 +22,12 @@ function initial(): TvStatus {
   };
 }
 
+/** The server's limit on test alerts per hour. */
+const TESTS_PER_HOUR = 5;
+
 export const mock = (() => {
   let s = initial();
+  let tests = 0;
   const snap = (): Promise<TvStatus> => Promise.resolve(structuredClone(s));
   const signedOut = () => Promise.reject("tvSignedOut");
   return {
@@ -45,6 +49,32 @@ export const mock = (() => {
       s = { ...s, prefs: { receive: prefs.receive || prefs.execute, execute: prefs.execute } };
       return snap();
     },
+    /** As the relay + Rust reader would: a test row when Receive is on. */
+    sendTest() {
+      if (!s.signedIn) return signedOut();
+      const server = s.server;
+      if (!server?.active) return Promise.reject("tvNoUrl");
+      if (tests >= TESTS_PER_HOUR) return Promise.reject("tvTestRateLimited");
+      tests += 1;
+      const at = Date.now();
+      const pending = server.pending + (s.prefs.receive ? 0 : 1);
+      s = { ...s, server: { ...server, lastReceivedAt: at, received24h: server.received24h + 1, pending } };
+      if (s.prefs.receive) {
+        const row: TvAlertResult = {
+          eventId: `test-${tests}`,
+          receivedAt: at,
+          handledAt: at,
+          action: "buy",
+          symbol: "BTCUSDT",
+          bot: "futures",
+          outcome: "tvTestOnly",
+          positionId: null,
+          test: true,
+        };
+        s = { ...s, results: [row, ...s.results].slice(0, 100), lastPollAt: at };
+      }
+      return snap();
+    },
     results() {
       return Promise.resolve(structuredClone(s.results));
     },
@@ -57,6 +87,7 @@ export const mock = (() => {
     },
     reset() {
       s = initial();
+      tests = 0;
     },
   };
 })();

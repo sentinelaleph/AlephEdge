@@ -1699,6 +1699,11 @@
       "rotate": "Đổi URL",
       "revoke": "Thu hồi",
       "rotateNote": "Đổi tạo URL mới; URL cũ ngừng hoạt động ngay. Thu hồi ngừng nó mà không tạo URL mới.",
+      "sendTest": "Gửi cảnh báo thử",
+      "testSent": "Đã gửi cảnh báo thử. Sẽ hiện bên dưới khi được đọc.",
+      "testNeedsReceive": "Bật Nhận cảnh báo để đọc cảnh báo thử.",
+      "paidPlan": "TradingView chỉ gửi webhook trên gói trả phí; nút thử kiểm tra phần còn lại của chuỗi.",
+      "testChip": "Thử",
       "shownOnce": "Chỉ hiển thị một lần: ứng dụng không lưu và không thể hiển thị lại. Nếu mất, hãy đổi. Đổi sẽ ngừng URL cũ.",
       "copy": "Sao chép",
       "copied": "Đã sao chép",
@@ -1744,7 +1749,8 @@
         "tvExpired": "Không thực hiện · cũ hơn 120 giây khi được đọc",
         "tvBadMessage": "Không đọc được · không phải JSON theo định dạng cảnh báo",
         "tvBadLevels": "Cho một trong tp / tp_pct và một trong sl / sl_pct, lớn hơn 0",
-        "tvNothingToClose": "Không có gì để đóng · bạn không có lệnh mở trên cặp và bot này"
+        "tvNothingToClose": "Không có gì để đóng · bạn không có lệnh mở trên cặp và bot này",
+        "tvTestOnly": "Chỉ thử · không đặt lệnh"
       }
     }
   },
@@ -2869,6 +2875,8 @@
     "tvBadResponse": "Phản hồi không mong đợi từ relay TradingView",
     "tvForbidden": "Relay TradingView đã từ chối tài khoản này",
     "tvRateLimited": "Quá nhiều yêu cầu tới relay TradingView · đợi một phút",
+    "tvTestRateLimited": "Đã đạt giới hạn thử · 5 cảnh báo thử mỗi giờ",
+    "tvNoUrl": "Không có URL webhook đang hoạt động · hãy tạo trước",
     "tvHttp": "Yêu cầu tới relay TradingView thất bại ({{detail}})",
     "tvTimeout": "Relay TradingView không trả lời kịp",
     "keyTransferEnabled": "Khóa này có thể chuyển tiền sang tài khoản khác (chuyển nội bộ hoặc chuyển đa năng). Tắt quyền chuyển tiền trên sàn rồi thêm lại.",
@@ -3226,7 +3234,8 @@
       "ok": "Hiện tại",
       "measuring": "Đang đo",
       "not_started": "Chưa bắt đầu",
-      "unavailable": "Không có"
+      "unavailable": "Không có",
+      "unknown": "Không rõ"
     },
     "noData": "Không có dữ liệu",
     "linkFailed": "Không mở được liên kết",
@@ -3241,7 +3250,8 @@
     "errors": {
       "bytUnavailable": "Sentinel không phản hồi. Kiểm tra kết nối rồi làm mới.",
       "bytSchema": "Sentinel gửi phiên bản ứng dụng này không đọc được. Hãy cập nhật ứng dụng.",
-      "bytHttp": "Sentinel trả về lỗi (HTTP {{detail}})."
+      "bytHttp": "Sentinel trả về lỗi (HTTP {{detail}}).",
+      "unknown": "Sentinel trả lời theo cách mà phiên bản ứng dụng này không đọc được."
     },
     "market": {
       "title": "Thị trường hôm nay",
@@ -3297,7 +3307,20 @@
       "notOk": "Không có nhận định dùng được.",
       "noRecord": "Không hiển thị nhận định: thiếu tỷ lệ đúng hoặc ngưỡng.",
       "noCall": "Nhận định không đưa ra kết luận.",
-      "latestAttempt": "Lần thử gần nhất {{time}}: {{status}}. Nhận định ở trên là lần thành công mới nhất."
+      "latestAttempt": "Lần thử gần nhất {{time}}: {{status}}. Nhận định ở trên là lần thành công mới nhất.",
+      "confidenceLevels": {
+        "low": "Thấp",
+        "medium": "Trung bình",
+        "high": "Cao",
+        "unknown": "Không nêu"
+      },
+      "attemptStatus": {
+        "error": "thất bại",
+        "timeout": "hết thời gian",
+        "skipped": "bỏ qua",
+        "invalid": "câu trả lời không dùng được",
+        "other": "không thành công"
+      }
     },
     "vol": {
       "title": "Biến động",
@@ -3351,7 +3374,39 @@
       "paperSimulated": "Giấy, khớp lệnh mô phỏng",
       "bots": "Bot (n)",
       "refused": "Bị từ chối khi khởi động",
-      "noRanking": "Không xếp hạng: chưa qua ngưỡng đăng ký trước của trại."
+      "noRanking": "Không xếp hạng: chưa qua ngưỡng đăng ký trước của trại.",
+      "signal": {
+        "title": "Bot tín hiệu",
+        "market": "Thị trường",
+        "trades": "Giao dịch",
+        "tradesTip": "Giao dịch đã đóng / còn mở.",
+        "tradesValue": "{{closed}} đã đóng / {{open}} đang mở",
+        "pnl": "Đã chốt",
+        "pnlTip": "Lãi/lỗ ròng của các giao dịch đã đóng bằng USDT, sau phí.",
+        "ret": "Lợi nhuận",
+        "retTip": "Lãi/lỗ đã chốt cộng đang mở, tính theo phần trăm vốn phân bổ cho bot.",
+        "capital": "Vốn",
+        "dd": "Sụt giảm tối đa",
+        "worst": "Giao dịch tệ nhất",
+        "worstTip": "Giao dịch đã đóng tệ nhất, phần trăm vốn phân bổ; chưa có trước lần đóng đầu tiên.",
+        "refusals": "Tín hiệu bị từ chối",
+        "refusalsNotReported": "Farm chưa báo cáo",
+        "refusalsNone": "Không có",
+        "refusal": "{{reason}}: {{n}}",
+        "refusalUnknown": "Lý do khác: {{n}}",
+        "markets": {
+          "spot": "Spot",
+          "futures": "Hợp đồng tương lai",
+          "other": "Thị trường khác"
+        },
+        "states": {
+          "running": "Đang chạy",
+          "dailyStop": "Dừng trong ngày",
+          "stopped": "Đã dừng",
+          "dead": "Dừng do lỗi",
+          "other": "Trạng thái khác"
+        }
+      }
     },
     "similar": {
       "title": "Những ngày giống hôm nay"
@@ -3370,7 +3425,10 @@
       "differs": "Chênh lệch trung bình: {{lo}} đến {{hi}} (khoảng 95%).",
       "impactMeasuring": "{{label}}: đang đo, {{n}}/{{needed}} tin.",
       "impactNone": "{{label}}: không có dữ liệu.",
-      "impactUnavailable": "{{label}}: không có, {{reason}}"
+      "impactUnavailable": "{{label}}: không có, {{reason}}",
+      "sourceLanguage": "Các dòng tóm tắt được hiển thị bằng ngôn ngữ nguồn.",
+      "translated": "bản dịch",
+      "showOriginal": "Hiện bản gốc (tiếng Anh)"
     },
     "listings": {
       "title": "Niêm yết mới",
@@ -3391,7 +3449,145 @@
       "summary": "Phản ứng đến nay, theo sàn",
       "summaryLine": "{{exchange}} {{market}}: {{listings}} niêm yết ({{noData}} không dữ liệu, {{pending}} đang chờ).",
       "horizon": "{{h}} trung vị {{median}}, dương {{up}} (n={{n}})",
-      "sources": "Kênh: {{list}}."
+      "sources": "Kênh: {{list}}.",
+      "announcement": "Thông báo của {{exchange}}",
+      "feedStatus": {
+        "baseline": "lần đọc đầu",
+        "http_error": "lỗi HTTP",
+        "never_run": "chưa từng chạy",
+        "parse_error": "câu trả lời không đọc được",
+        "other": "lần chạy gần nhất thất bại"
+      }
+    },
+    "reason": {
+      "unknown": "Lý do không có trong phiên bản ứng dụng này.",
+      "not_wired": "Nguồn này chưa được kết nối trên máy chủ.",
+      "store_unavailable": "Máy chủ không đọc được nguồn này.",
+      "macro_warming_up": "Dịch vụ chế độ BTC đang khởi động hoặc gặp lỗi.",
+      "macro_stale": "Dữ liệu chế độ BTC quá cũ để hiển thị.",
+      "range_high_low_missing": "Thiếu giá cao nhất và thấp nhất 24 giờ.",
+      "datahub_not_configured": "DataHub chưa được cấu hình trên máy chủ.",
+      "datahub_candles_unavailable": "Không lấy được nến ngày của DataHub.",
+      "datahub_too_few_candles": "DataHub trả về {{got}} nến ngày đã đóng; ATR(14) cần {{need}}.",
+      "funding_unavailable": "Không lấy được ảnh chụp funding của DataHub.",
+      "funding_stale": "Ảnh chụp funding của DataHub quá cũ.",
+      "funding_no_rows": "Ảnh chụp funding không có dòng BTCUSDT hay ETHUSDT.",
+      "funding_partial": "Ảnh chụp funding thiếu BTCUSDT hoặc ETHUSDT.",
+      "chart_no_successful_read": "Chưa lưu lần đọc biểu đồ thành công nào.",
+      "chart_read_too_old": "Không có lần đọc biểu đồ thành công nào trong {{max_age_h}} giờ qua (mới nhất: {{newest}}).",
+      "ghost_path_not_configured": "Tệp theo dõi bóng chưa được cấu hình trên máy chủ.",
+      "ghost_file_not_found": "Không tìm thấy tệp theo dõi bóng.",
+      "ghost_file_unreadable": "Không đọc được tệp theo dõi bóng.",
+      "ghost_invalid_json": "Tệp theo dõi bóng bị hỏng.",
+      "ghost_version_unknown": "Tệp theo dõi bóng ở phiên bản {{version}}, máy chủ không đọc được.",
+      "ghost_no_updated_at": "Tệp theo dõi bóng không có thời gian cập nhật.",
+      "ghost_stale": "Theo dõi bóng được cập nhật lần cuối {{updated_at}}, hơn {{max_age_h}} giờ trước.",
+      "ghost_no_templates": "Theo dõi bóng không có mẫu nào trong mười hai mẫu.",
+      "ghost_younger_than_min": "Theo dõi tiến còn ngắn hơn mức tối thiểu {{min_days}} ngày: số liệu còn sớm và chưa so sánh được.",
+      "farm_not_started": "Trại bot chưa bắt đầu.",
+      "farm_unreadable": "Không đọc được bản xuất của trại bot.",
+      "farm_invalid_json": "Bản xuất của trại bot bị hỏng.",
+      "farm_schema_unknown": "Bản xuất của trại bot ở định dạng máy chủ không đọc được ({{schema}}).",
+      "farm_no_generated_at": "Bản xuất của trại bot không có thời gian hợp lệ.",
+      "farm_stale": "Bản xuất của trại bot được ghi lần cuối {{written_at}}, hơn {{max_age_min}} phút trước (trại đã dừng?).",
+      "farm_gate_not_passed": "Ngưỡng xếp hạng đăng ký trước của trại chưa đạt: số liệu từng mẫu được hiển thị theo thứ tự cố định, không xếp hạng.",
+      "similar_days_not_computed_v1": "Chưa tính. Ghép kết quả quá khứ với xu hướng và biến động BTC hôm nay cần một nghiên cứu mới không có trong bất kỳ kết quả đã lưu nào, và một kiểm định đăng ký trước về chọn mẫu theo chế độ thị trường đã thất bại. Một bảng 'kết quả vào những ngày giống hôm nay' sẽ gợi ý một lựa chọn mà bằng chứng không ủng hộ.",
+      "news_collector_off": "Bộ thu thập tin tức đang tắt.",
+      "news_no_digest": "Chưa lưu bản tóm tắt tin nào.",
+      "news_digest_failed": "Lần chạy tóm tắt gần nhất không tạo ra bản tóm tắt (trạng thái {{status}}).",
+      "news_digest_old": "Bản tóm tắt gần nhất cũ hơn {{max_age_h}} giờ.",
+      "news_no_showable_line": "Bản tóm tắt gần nhất không có dòng nào hiển thị được.",
+      "impact_job_off": "Tác vụ tác động tin tức đang tắt.",
+      "impact_not_run": "Tác vụ tác động tin tức chưa chạy.",
+      "impact_stale": "Bản tóm tắt tác động tin tức cũ hơn {{max_age_h}} giờ.",
+      "impact_no_line_to_match": "Không có dòng tóm tắt nào để đối chiếu.",
+      "impact_price_wrap_not_measured": "tiêu đề nói về biến động giá đã xảy ra được đếm nhưng không bao giờ được đo: biến động đến trước.",
+      "impact_type_not_in_summary": "loại này không có trong bản tóm tắt đã lưu.",
+      "impact_no_horizon": "không có khung thời gian nào được lưu.",
+      "impact_excluded": "loại này bị loại khỏi phép đo.",
+      "listings_collector_off": "Bộ thu thập niêm yết đang tắt.",
+      "listings_no_channel_read": "Chưa đọc thành công kênh sàn nào.",
+      "listings_channels_never_read": "Chưa từng đọc thành công nên không có ở đây: {{channels}}.",
+      "listings_channel_failed": "Ít nhất một kênh sàn đã lỗi ở lần chạy gần nhất; các thông báo mới nhất của kênh đó có thể bị thiếu.",
+      "reaction_listing_cancelled": "niêm yết đã hủy",
+      "reaction_no_venue_candles": "DataHub không có nến của {{exchange}}",
+      "reaction_tokenized_spot": "các cặp spot chứng khoán token hóa không có trong DataHub",
+      "reaction_no_usd_pair": "không nêu cặp USDT, USDC hay USD1",
+      "reaction_market_no_klines": "DataHub không có nến cho thị trường {{market}}",
+      "reaction_no_listing_time": "thông báo không nêu thời gian niêm yết",
+      "reaction_datahub_not_set": "DataHub chưa được cấu hình",
+      "reaction_symbol_unknown": "DataHub không biết {{symbol}} ({{market}})",
+      "reaction_traded_before_listing": "{{symbol}} đã giao dịch trước thời gian niêm yết đã nêu (không phải niêm yết mới)",
+      "reaction_no_candle_15m": "không có nến nào trong 15 phút sau thời gian niêm yết đã nêu",
+      "reaction_no_candle_yet": "chưa có nến nào trong 15 phút sau thời gian niêm yết đã nêu",
+      "reaction_datahub_error": "DataHub trả về lỗi",
+      "reaction_candles_missing": "thiếu nến ở mọi khung thời gian",
+      "reaction_some_horizons_missing": "một số khung thời gian không có nến",
+      "reaction_other": "lý do không có trong phiên bản ứng dụng này",
+      "farm_rank_days_below_min": "{{days}} trên {{min_days}} ngày kể từ T0",
+      "farm_rank_data_gap": "khoảng trống dữ liệu {{hours}} giờ (giới hạn 24 giờ)",
+      "farm_rank_engine_check_pending": "kiểm tra động cơ so với trình mô phỏng chưa đạt",
+      "farm_rank_mixed_engines": "kết quả đến từ nhiều hơn một phiên bản động cơ",
+      "farm_rank_too_few_units": "{{units}} đơn vị đạt mức tối thiểu chu kỳ đã đóng; xếp hạng cần hai",
+      "farm_rank_other": "một điều kiện ngưỡng mà phiên bản ứng dụng này không gọi tên được"
+    },
+    "text": {
+      "unknown": "Giải thích này không có trong phiên bản ứng dụng này.",
+      "listJoin": " và ",
+      "proven_majors_v1": "Đã kiểm chứng = chỉ {{names}} trên vũ trụ majors ({{top}} hợp đồng vĩnh cửu USDT đứng đầu theo khối lượng 90 ngày). Mọi mẫu khác đều là thử nghiệm, bất kể kết luận phòng thí nghiệm. Không có mẫu nào được gợi ý cho hôm nay.",
+      "top30_worst_bot_v1": "{{name}} được đo trên năm hợp đồng vĩnh cửu USDT giao dịch nhiều nhất. Cùng cài đặt trên {{top}} cặp đứng đầu, mỗi bot-tháng: huấn luyện {{train}}, kiểm định {{valid}}, kiểm tra {{test}}; bot tệ nhất sụt {{dd}}.",
+      "fixed_template_order_v1": "Các mẫu được liệt kê theo thứ tự cố định T01 đến T12 ở mọi nguồn và không bao giờ sắp xếp theo kết quả.",
+      "partial_month_open_v1": "Lần chạy lại tháng Mười thêm một tháng chưa trọn ({{month}}, {{days}} ngày) trong đó mọi giao dịch vẫn còn mở và mức trung bình âm, nên điều kiện 'mọi tháng kiểm tra đều dương' không còn đúng; các kiểm tra sẽ được đọc lại trên một tháng trọn ({{next}}).",
+      "alt_long_guard_v1": "Tín hiệu long altcoin mới không được đăng khi lần đọc BTC đáng tin đang đi xuống cùng với một trong các điều kiện: biến động 24 giờ ở cực thấp, mức thống trị BTC tăng, rủi ro long altcoin từ 0,60 trở lên, sức mạnh xu hướng từ 0,35 trở lên. Sau lần đọc như vậy, lệnh chặn giữ trong khoảng thời gian của nó trừ khi xu hướng quay lên. Hiển thị ở đây mà không thay đổi.",
+      "btcd_shield_48h_v1": "Mã xu hướng của lá chắn BTCD math-core trên 48 nến 1 giờ BTCUSDT.",
+      "ema9_21_48h_v1": "EMA9 so với EMA21 trên 48 nến 1 giờ BTCUSDT; đi ngang trong dải 0,3%.",
+      "atr14_1h_over_1_5pct_v1": "ATR(14) trên nến 1 giờ BTCUSDT so với giá đóng cửa trung bình; cao khi trên 1,5%.",
+      "atr14_1d_closed_v1": "Biên độ thực trung bình của 14 nến ngày đã đóng gần nhất, theo phần trăm giá đóng cửa gần nhất.",
+      "ghost_botsim_forward_v1": "Trình mô phỏng phòng thí nghiệm (botsim) chạy tiến từ T0 với tham số của từng mẫu: 1000 mỗi bot, 1x, danh sách cặp hàng tháng, chu kỳ mở định giá theo giá đóng cửa gần nhất, phí 0,05% cộng trượt giá 0,02% mỗi lệnh thị trường, đã tính funding.",
+      "farm_paper_simulated_v1": "Giao dịch giấy với khớp lệnh mô phỏng trên động cơ Aleph Edge. Không phải kết quả thật: khớp lệnh thật, trượt giá, phí và sự cố khác đi và dự kiến sẽ tệ hơn.",
+      "farm_funding_settled_v1": "Các chu kỳ DCA và Grid hợp đồng tương lai bị tính funding đã thanh toán từ DataHub.",
+      "farm_funding_not_charged_v1": "Các chu kỳ DCA và Grid hợp đồng tương lai chưa bị tính funding: DataHub chưa có lịch sử funding đã thanh toán.",
+      "news_third_party_v1": "Tin của bên thứ ba, không phải phép đo của Sentinel. Không dùng trong bất kỳ tín hiệu, phủ quyết hay tỷ lệ thắng nào.",
+      "news_impact_v1": "Lịch sử đo được sau các tin trước đây, không phải dự báo: biến động BTC spot sau các tin cùng loại trước đây, so với cùng giờ trong ngày trong cùng khoảng thời gian. Tiêu đề được phân loại bằng quy tắc từ khóa cố định; tiêu đề tóm tắt giá được đếm nhưng không bao giờ được đo. Không dùng trong bất kỳ tín hiệu, phủ quyết hay tỷ lệ thắng nào.",
+      "listings_v1": "Thời gian và cặp niêm yết là thông báo của chính các sàn, có liên kết. Phản ứng được đo từ nến DataHub nếu có; không có dữ liệu thì ghi không có dữ liệu. Không phải tín hiệu.",
+      "listing_reaction_1m_v1": "Mốc = giá mở của nến 1 phút đầu tiên tại hoặc sau thời gian niêm yết đã nêu; thay đổi ở mỗi khung là giá đóng của nến 1 phút kết thúc lúc đó, so với mốc. Chỉ spot và hợp đồng vĩnh cửu USDT-M của Binance (DataHub không có nến của sàn khác).",
+      "chart_info_only_bar_not_met": "Chỉ để tham khảo: lần đọc không được dùng trong phủ quyết nào vì chưa đạt ngưỡng đăng ký trước.",
+      "chart_bar_met": "Lần đọc đã đạt ngưỡng đăng ký trước.",
+      "chart_info_only_bar_open": "Chỉ để tham khảo: ngưỡng đăng ký trước của lần đọc vẫn đang mở.",
+      "farm_signal_bots_paper_v1": "Bot tín hiệu theo các tín hiệu đã công bố với cài đặt mặc định của ứng dụng. Giao dịch giấy với khớp lệnh mô phỏng; không xếp hạng.",
+      "news_machine_translated_v1": "Các dòng đã dịch là bản dịch máy của dòng tiếng Anh; số liệu và mã ticker đã được đối chiếu với nó.",
+      "news_newer_run_failed_v1": "Lần chạy bản tóm tắt mới nhất ({{time}}) không tạo được tóm tắt; bản tóm tắt trước được hiển thị."
+    },
+    "bar": {
+      "notMet": "Chưa đạt ngưỡng phủ quyết: {{hit}} tại n={{n}} (cần {{needed}} và cao hơn cả hai mốc so sánh {{margin}} điểm %).",
+      "notMetNoFigure": "Chưa đạt ngưỡng phủ quyết tại n={{n}}.",
+      "met": "Đã đạt ngưỡng phủ quyết: {{hit}} tại n={{n}} ({{rule}} điểm % so với quy tắc, {{persist}} điểm % so với duy trì).",
+      "metNoFigure": "Đã đạt ngưỡng phủ quyết tại n={{n}}.",
+      "open": "Ngưỡng phủ quyết đang mở: {{graded}} trên {{min}} lần đọc 24 giờ đã chấm.",
+      "unavailable": "Ngưỡng phủ quyết: không có đánh giá."
+    },
+    "about": {
+      "notAdvice": "Lịch sử đo được và tin của bên thứ ba: không phải lời khuyên, không phải dự báo.",
+      "simulations": "Số liệu phòng thí nghiệm là mô phỏng lịch sử; theo dõi bóng và trại bot là mô phỏng trên giấy. Không cái nào là lịch sử giao dịch thật.",
+      "proven": "Chỉ {{names}} trên {{top}} hợp đồng vĩnh cửu USDT giao dịch nhiều nhất được coi là đã kiểm chứng.",
+      "wide": "Trên {{top}} cặp giao dịch nhiều nhất, cùng cài đặt bị lỗ ở {{losing}} trên {{splits}} phần và bot tệ nhất sụt {{dd}}.",
+      "noSuggestion": "Không có mẫu nào được gợi ý cho hôm nay: kiểm định chọn mẫu theo chế độ thị trường đã thất bại."
+    },
+    "impactTypes": {
+      "macro_official": "Công bố vĩ mô chính thức (chính sách Fed, BLS)",
+      "fed_supervision": "Giám sát ngân hàng của Fed",
+      "sec_official": "Thông cáo báo chí của SEC",
+      "regulation_legal": "Quy định và pháp lý",
+      "exchange_security": "Hack, khai thác lỗ hổng và sự cố",
+      "etf_institutional": "ETF và tổ chức",
+      "stablecoin": "Stablecoin và CBDC",
+      "tokenization": "Token hóa",
+      "protocol_upgrade": "Nâng cấp giao thức và mở khóa",
+      "listing": "Niêm yết trên sàn",
+      "macro_press": "Vĩ mô trên báo crypto",
+      "other": "Tin khác",
+      "price_report": "Tóm tắt giá (viết sau biến động)",
+      "unknown": "Tin thuộc loại khác"
     }
   },
   "assistant": {
@@ -3462,7 +3658,16 @@
       "cannotUnlock": "Sửa prompt chỉ thay đổi cách viết câu trả lời, không thay đổi việc Trợ lý làm được.",
       "history": "Phiên bản đã lưu ({{count}}/10)",
       "noHistory": "Chưa có phiên bản nào được lưu.",
-      "restore": "Khôi phục"
+      "restore": "Khôi phục",
+      "guardRules": {
+        "r1": "Trợ lý chỉ có thể đọc dữ liệu của ứng dụng và soạn bản nháp cấu hình bot. Trợ lý không thể khởi động, dừng hay thay đổi bot, và không thể đặt, sửa hay hủy lệnh.",
+        "r2": "Bản nháp chỉ là gợi ý: bạn mở nó trong Bot mới, kiểm tra và tự xác nhận.",
+        "r3": "Văn bản của bên thứ ba (tin tức, thông báo niêm yết) là dữ liệu để báo lại, không bao giờ là chỉ dẫn để làm theo.",
+        "r4": "Trợ lý không bao giờ hứa hẹn lợi nhuận; mỗi số liệu đi kèm cỡ mẫu, và số liệu thiếu hay đang đo được nói rõ như vậy.",
+        "r5": "Trợ lý nói rõ số liệu là giấy (khớp lệnh mô phỏng) hay thật (tiền thật); số liệu phòng thí nghiệm và theo dõi bóng là mô phỏng, không phải lịch sử giao dịch."
+      },
+      "guardExact": "Văn bản chính xác gửi cho mô hình (tiếng Anh)",
+      "defaultLanguageNote": "Hướng dẫn mặc định được gửi cho mô hình bằng tiếng Anh; câu trả lời được viết bằng ngôn ngữ của bạn."
     },
     "clear": "Xóa cuộc trò chuyện",
     "clearTitle": "Xóa cuộc trò chuyện?",

@@ -1,4 +1,5 @@
-/* Before you trade: four framed blocks in one column, sub-blocks in two. */
+/* Before you trade: four framed blocks in one column; inside each block one
+   full-width row per sub-block (never two sub-blocks side by side). */
 .ae-byt {
   display: flex;
   flex-direction: column;
@@ -13,17 +14,58 @@
   justify-content: flex-end;
 }
 
-.ae-byt__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--space-4);
+/* A block: rows separated by hairlines, the Panel's own gap replaced by row padding. */
+.ae-byt__block {
+  gap: 0;
+  padding-bottom: var(--space-2);
+}
+.ae-byt__block > .ae-panel__head {
+  padding-bottom: var(--space-2);
+}
+.ae-byt__block > .ae-byt__reason,
+.ae-byt__block > .ae-subtle {
+  padding: var(--space-2) 0;
 }
 
-.ae-byt__sub {
+.ae-byt__row {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-width: 0;
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--border);
+}
+.ae-byt__block > .ae-panel__head + .ae-byt__row {
+  border-top: 0;
+  padding-top: var(--space-2);
+}
+
+/* Label / value rows: comfortable height, values never broken mid-figure,
+   two columns of rows when the row is 632px or wider. */
+.ae-byt__row .ae-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  column-gap: var(--space-6);
+  row-gap: 0;
+  font-size: var(--text-sm);
+}
+.ae-byt__row .ae-facts__row {
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.ae-byt__row .ae-facts dt {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.ae-byt__row .ae-facts dd {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: normal;
+  font-variant-numeric: tabular-nums;
+}
+.ae-byt__nowrap {
+  white-space: nowrap;
 }
 
 .ae-byt__subhead {
@@ -45,10 +87,11 @@
 .ae-byt p {
   margin: 0;
   font-size: var(--text-xs);
+  line-height: 1.5;
 }
 
 .ae-byt__lead {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-muted);
   margin: 0;
 }
@@ -122,17 +165,53 @@
   text-align: left;
 }
 
+/* Template cell: id, name and its badge on one line; the table folds
+   secondary columns into the row expander before it squeezes the name. */
 .ae-byt__tcell {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-.ae-byt__tname {
   display: inline-flex;
-  gap: var(--space-1);
-  align-items: baseline;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
 }
+.ae-byt__tname,
 .ae-byt__tid {
   white-space: nowrap;
+}
+
+/* Right panel: short facts instead of one long paragraph. */
+.ae-byt__facts {
+  margin: 0;
+  padding-left: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* A translated digest line: the "translation" label opens the English original. */
+.ae-byt__orig {
+  display: inline;
+}
+.ae-byt__orig > summary {
+  display: inline;
+  list-style: none;
+  cursor: help;
+}
+.ae-byt__orig > summary::-webkit-details-marker {
+  display: none;
+}
+.ae-byt__trlabel {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-1);
+  white-space: nowrap;
+}
+.ae-byt__orig[open] > span {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--text-muted);
 }

@@ -13,7 +13,13 @@
 //! Links: a news or listing source opens only if it is one of the URLs in the
 //! payload this desk actually received (`byt_open_link`); the page cannot be
 //! made to open an arbitrary address.
+//!
+//! Language (0.3.18): the page asks with its UI locale (`?lang=tr`); the
+//! server then sends the news translations for that locale only. The copy is
+//! cached per locale, in memory and on disk. An older server ignores the
+//! parameter and sends every locale (or none): the page renders either.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
@@ -28,8 +34,30 @@ pub const SCHEMA: &str = "before-you-trade/1";
 const DEFAULT_TTL_MS: u64 = 300_000;
 const CACHE_FILE: &str = "before-you-trade.json";
 
-pub fn url_on(base: &str) -> String {
-    format!("{}{PATH}", base.trim_end_matches('/'))
+/// The app's locales (src/i18n/locales). Only these are ever sent as `lang`.
+pub const LOCALES: [&str; 8] = ["en", "es", "hi", "id", "pt-BR", "ru", "tr", "vi"];
+
+/// The `lang` to send for a UI language: one of LOCALES (any case; a region
+/// suffix such as "tr-TR" falls back to its base when that is a locale), else
+/// None (no parameter).
+pub fn normalize_lang(raw: Option<&str>) -> Option<&'static str> {
+    let raw = raw?.trim();
+    if raw.is_empty() {
+        return None;
+    }
+    let exact = LOCALES.iter().find(|l| l.eq_ignore_ascii_case(raw)).copied();
+    exact.or_else(|| {
+        let base = raw.split(['-', '_']).next().unwrap_or("");
+        LOCALES.iter().find(|l| !l.contains('-') && l.eq_ignore_ascii_case(base)).copied()
+    })
+}
+
+pub fn url_on(base: &str, lang: Option<&str>) -> String {
+    let url = format!("{}{PATH}", base.trim_end_matches('/'));
+    match normalize_lang(lang) {
+        Some(l) => format!("{url}?lang={l}"),
+        None => url,
+    }
 }
 
 /// What the page (and the Assistant's read tool) gets.
@@ -102,29 +130,43 @@ struct Disk {
     payload: Value,
 }
 
-fn cache_path(dir: &Path) -> PathBuf {
-    dir.join(CACHE_FILE)
+/// The cache file of one locale ("before-you-trade.json" without one,
+/// "before-you-trade-tr.json" with one). `lang` is a LOCALES entry or None.
+fn cache_name(lang: Option<&str>) -> String {
+    match lang {
+        Some(l) => format!("before-you-trade-{l}.json"),
+        None => CACHE_FILE.to_string(),
+    }
 }
 
-fn read_disk(dir: &Path) -> Option<(u64, Value)> {
-    let body = std::fs::read_to_string(cache_path(dir)).ok()?;
+fn cache_path(dir: &Path, lang: Option<&str>) -> PathBuf {
+    dir.join(cache_name(lang))
+}
+
+fn read_disk(dir: &Path, lang: Option<&str>) -> Option<(u64, Value)> {
+    let body = std::fs::read_to_string(cache_path(dir, lang)).ok()?;
     let d: Disk = serde_json::from_str(&body).ok()?;
     (d.payload.get("schema").and_then(Value::as_str) == Some(SCHEMA)).then_some((d.fetched_at_ms, d.payload))
 }
 
-fn write_disk(dir: &Path, at: u64, payload: &Value) {
+fn write_disk(dir: &Path, lang: Option<&str>, at: u64, payload: &Value) {
     let Ok(body) = serde_json::to_string(&Disk { fetched_at_ms: at, payload: payload.clone() }) else {
         return;
     };
-    let tmp = dir.join(format!("{CACHE_FILE}.tmp"));
+    let tmp = dir.join(format!("{}.tmp", cache_name(lang)));
     if std::fs::write(&tmp, body).is_ok() {
-        let _ = std::fs::rename(&tmp, cache_path(dir));
+        let _ = std::fs::rename(&tmp, cache_path(dir, lang));
     }
 }
 
-fn memory() -> &'static Mutex<Option<(u64, Value)>> {
-    static C: OnceLock<Mutex<Option<(u64, Value)>>> = OnceLock::new();
-    C.get_or_init(|| Mutex::new(None))
+/// In-memory copies by locale ("" = no locale).
+fn memory() -> &'static Mutex<HashMap<String, (u64, Value)>> {
+    static C: OnceLock<Mutex<HashMap<String, (u64, Value)>>> = OnceLock::new();
+    C.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn mem_key(lang: Option<&str>) -> String {
+    lang.unwrap_or("").to_string()
 }
 
 fn client() -> &'static reqwest::Client {
@@ -137,9 +179,9 @@ fn client() -> &'static reqwest::Client {
     })
 }
 
-async fn fetch() -> Result<Value, String> {
+async fn fetch(lang: Option<&str>) -> Result<Value, String> {
     let resp = client()
-        .get(url_on(&super::endpoints::api_base()))
+        .get(url_on(&super::endpoints::api_base(), lang))
         .send()
         .await
         .map_err(|_| "bytUnavailable".to_string())?;
@@ -165,15 +207,18 @@ pub fn resolve(
     }
 }
 
-/// The current payload: the cached copy within its TTL, else a fetch, else
-/// the last good copy (marked stale). Shared with the Assistant's read tool.
-pub async fn current(app: &AppHandle, refresh: bool) -> Result<BeforeYouTradeView, String> {
+/// The current payload for a UI language: the cached copy of that locale
+/// within its TTL, else a fetch, else the last good copy of that locale
+/// (marked stale). Shared with the Assistant's read tool (which asks "en":
+/// the English lines without translations).
+pub async fn current(app: &AppHandle, refresh: bool, lang: Option<&str>) -> Result<BeforeYouTradeView, String> {
+    let lang = normalize_lang(lang);
     let now = crate::bot::engine::now_ms();
     let dir = app.path().app_data_dir().ok();
-    let mut cached = memory().lock().expect("byt cache").clone();
+    let mut cached = memory().lock().expect("byt cache").get(&mem_key(lang)).cloned();
     if cached.is_none() {
         if let Some(d) = dir.as_deref() {
-            cached = read_disk(d);
+            cached = read_disk(d, lang);
         }
     }
     if let (false, Some((at, v))) = (refresh, cached.as_ref()) {
@@ -181,31 +226,38 @@ pub async fn current(app: &AppHandle, refresh: bool) -> Result<BeforeYouTradeVie
             return Ok(BeforeYouTradeView { payload: v.clone(), fetched_at_ms: *at, stale: false, error: None });
         }
     }
-    let view = resolve(fetch().await, now, cached)?;
+    let view = resolve(fetch(lang).await, now, cached)?;
     if !view.stale {
-        *memory().lock().expect("byt cache") = Some((view.fetched_at_ms, view.payload.clone()));
+        memory().lock().expect("byt cache").insert(mem_key(lang), (view.fetched_at_ms, view.payload.clone()));
         if let Some(d) = dir.as_deref() {
-            write_disk(d, view.fetched_at_ms, &view.payload);
+            write_disk(d, lang, view.fetched_at_ms, &view.payload);
         }
     }
     Ok(view)
 }
 
+/// `lang`: the page's UI language (i18n.resolvedLanguage); anything not in
+/// LOCALES is sent as no parameter.
 #[tauri::command]
-pub async fn before_you_trade(app: AppHandle, refresh: Option<bool>) -> Result<BeforeYouTradeView, String> {
-    current(&app, refresh.unwrap_or(false)).await
+pub async fn before_you_trade(app: AppHandle, refresh: Option<bool>, lang: Option<String>) -> Result<BeforeYouTradeView, String> {
+    current(&app, refresh.unwrap_or(false), lang.as_deref()).await
 }
 
-/// Opens one of the payload's own source links in the browser.
+/// Opens one of the payload's own source links in the browser: a link of
+/// any copy this desk holds (every locale's copy carries the same links).
 #[tauri::command]
-pub fn byt_open_link(app: AppHandle, url: String) -> Result<(), String> {
-    let mut payload = memory().lock().expect("byt cache").clone().map(|(_, v)| v);
-    if payload.is_none() {
-        payload = app.path().app_data_dir().ok().and_then(|d| read_disk(&d)).map(|(_, v)| v);
+pub fn byt_open_link(app: AppHandle, url: String, lang: Option<String>) -> Result<(), String> {
+    let lang = normalize_lang(lang.as_deref());
+    let mut allowed = memory().lock().expect("byt cache").values().any(|(_, p)| link_allowed(p, &url));
+    if !allowed {
+        if let Ok(d) = app.path().app_data_dir() {
+            allowed = [lang, None].iter().any(|l| read_disk(&d, *l).is_some_and(|(_, p)| link_allowed(&p, &url)));
+        }
     }
-    match payload {
-        Some(p) if link_allowed(&p, &url) => app.opener().open_url(url, None::<&str>).map_err(|_| "linkOpenFailed".to_string()),
-        _ => Err("linkNotAllowed".into()),
+    if allowed {
+        app.opener().open_url(url, None::<&str>).map_err(|_| "linkOpenFailed".to_string())
+    } else {
+        Err("linkNotAllowed".into())
     }
 }
 
@@ -217,8 +269,21 @@ mod tests {
 
     #[test]
     fn url_follows_the_api_base() {
-        assert_eq!(url_on("https://ribqa.com"), "https://ribqa.com/api/public/edge/before-you-trade");
-        assert_eq!(url_on("http://localhost:8080/"), "http://localhost:8080/api/public/edge/before-you-trade");
+        assert_eq!(url_on("https://ribqa.com", None), "https://ribqa.com/api/public/edge/before-you-trade");
+        assert_eq!(url_on("http://localhost:8080/", None), "http://localhost:8080/api/public/edge/before-you-trade");
+    }
+
+    #[test]
+    fn url_carries_only_a_known_locale() {
+        assert_eq!(url_on("https://ribqa.com", Some("tr")), "https://ribqa.com/api/public/edge/before-you-trade?lang=tr");
+        assert_eq!(url_on("https://ribqa.com", Some("pt-br")), "https://ribqa.com/api/public/edge/before-you-trade?lang=pt-BR");
+        assert_eq!(url_on("https://ribqa.com", Some("tr-TR")), "https://ribqa.com/api/public/edge/before-you-trade?lang=tr");
+        assert_eq!(url_on("https://ribqa.com", Some("en-US")), "https://ribqa.com/api/public/edge/before-you-trade?lang=en");
+        for junk in ["de", "", "  ", "tr&x=1", "../x", "pt"] {
+            assert_eq!(url_on("https://ribqa.com", Some(junk)), "https://ribqa.com/api/public/edge/before-you-trade", "{junk:?}");
+        }
+        assert_eq!(normalize_lang(Some("PT-BR")), Some("pt-BR"));
+        assert_eq!(normalize_lang(None), None);
     }
 
     #[test]
@@ -264,8 +329,24 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("byt-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let v = parse(FIXTURE).unwrap();
-        write_disk(&dir, 42, &v);
-        assert_eq!(read_disk(&dir), Some((42, v)));
+        write_disk(&dir, None, 42, &v);
+        assert_eq!(read_disk(&dir, None), Some((42, v)));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn each_locale_has_its_own_disk_copy() {
+        let dir = std::env::temp_dir().join(format!("byt-test-lang-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut tr = parse(FIXTURE).unwrap();
+        tr["generated_at"] = Value::from("tr-copy");
+        let plain = parse(FIXTURE).unwrap();
+        write_disk(&dir, Some("tr"), 7, &tr);
+        write_disk(&dir, None, 9, &plain);
+        assert_eq!(read_disk(&dir, Some("tr")), Some((7, tr)));
+        assert_eq!(read_disk(&dir, None), Some((9, plain)));
+        assert_eq!(read_disk(&dir, Some("ru")), None, "another locale is not served the Turkish copy");
+        assert!(cache_path(&dir, Some("pt-BR")).ends_with("before-you-trade-pt-BR.json"));
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
