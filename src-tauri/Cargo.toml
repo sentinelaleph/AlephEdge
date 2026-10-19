@@ -20,7 +20,11 @@ aleph-desk-link = { path = "../crates/aleph-desk-link" }
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 # Signature-verified auto-update. Desktop-only.
-tauri-plugin-updater = "2"
+# Without the default `zip` feature: the feed serves the NSIS setup.exe
+# itself (createUpdaterArtifacts: true), never a .zip, so the plugin's zip
+# extraction is dead code here. Dropping it removes the `zip` crate
+# (RUSTSEC-2026-0367/0368/0369 in zip 4.x, still required by updater 2.14).
+tauri-plugin-updater = { version = "2.14", default-features = false, features = ["rustls-tls", "system-proxy"] }
 # One desk per app identifier: a second launch focuses the running window
 # instead of starting a second engine on the same edge.db. Held below 2.5,
 # which needs rustc 1.90; the release toolchain is 1.88.
@@ -32,7 +36,7 @@ serde_json = { version = "1", features = ["float_roundtrip"] }
 
 # Vault crypto — key material never leaves the device.
 argon2 = "0.6"
-aes-gcm = "0.10"
+aes-gcm = "0.11"
 rand = "0.8"
 zeroize = "1"
 base64 = "0.22"

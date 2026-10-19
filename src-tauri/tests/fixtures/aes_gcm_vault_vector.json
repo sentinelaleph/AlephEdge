@@ -1,0 +1,7 @@
+{
+  "source": "Aleph Edge vault known answer: AES-256-GCM output of aes-gcm 0.10.3 for a test-only key and nonce (never a real vault key)",
+  "keyHex": "0707070707070707070707070707070707070707070707070707070707070707",
+  "nonceHex": "090909090909090909090909",
+  "plaintext": "[{\"exchange\":\"binance\"}]",
+  "ciphertextHex": "7cfea6f1c693a900ce05ae1adcc8c1b6bad10d9051cc8a9d71113b33797461e8c6db8d9ba2e00df8"
+}

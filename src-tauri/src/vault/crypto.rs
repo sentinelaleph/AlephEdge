@@ -7,7 +7,7 @@
 //! never echoes secrets.
 
 use aes_gcm::aead::{Aead, KeyInit};
-use aes_gcm::{Aes256Gcm, Key, Nonce};
+use aes_gcm::Aes256Gcm;
 use argon2::{Algorithm, Argon2, Params, Version};
 use rand::rngs::OsRng;
 use rand::RngCore;
@@ -53,23 +53,23 @@ pub fn derive_key(
 /// Seal plaintext under the key, returning a fresh nonce and the ciphertext
 /// (which embeds the GCM auth tag).
 pub fn seal(key: &[u8; KEY_LEN], plaintext: &[u8]) -> Result<(Vec<u8>, Vec<u8>), String> {
-    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
-    let nonce_bytes = random_bytes(NONCE_LEN);
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    let cipher = Aes256Gcm::new(key.into());
+    let mut nonce = [0u8; NONCE_LEN];
+    OsRng.fill_bytes(&mut nonce);
     let ciphertext = cipher
-        .encrypt(nonce, plaintext)
+        .encrypt(&nonce.into(), plaintext)
         .map_err(|_| "vaultEncryptFailed".to_string())?;
-    Ok((nonce_bytes, ciphertext))
+    Ok((nonce.to_vec(), ciphertext))
 }
 
 /// Open ciphertext under the key. Fails on a wrong key or any tampering.
 pub fn open(key: &[u8; KEY_LEN], nonce: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>, String> {
-    if nonce.len() != NONCE_LEN {
-        return Err("vaultFileCorrupt|nonce".to_string());
-    }
-    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
+    let nonce: [u8; NONCE_LEN] = nonce
+        .try_into()
+        .map_err(|_| "vaultFileCorrupt|nonce".to_string())?;
+    let cipher = Aes256Gcm::new(key.into());
     cipher
-        .decrypt(Nonce::from_slice(nonce), ciphertext)
+        .decrypt(&nonce.into(), ciphertext)
         .map_err(|_| "vaultWrongPassword".to_string())
 }
 
@@ -87,6 +87,33 @@ mod tests {
         let key = derive_key(b"correct horse", SALT, &KdfParams::default()).unwrap();
         let hex: String = key.iter().map(|b| format!("{b:02x}")).collect();
         assert_eq!(hex, "bd1bb14c874996956dc97c7b9f7b25ee38c9383e47ded8d8b84bfcbb6b61b780");
+    }
+
+    fn unhex(s: &str) -> Vec<u8> {
+        (0..s.len() / 2)
+            .map(|i| u8::from_str_radix(&s[2 * i..2 * i + 2], 16).expect("hex"))
+            .collect()
+    }
+
+    /// Known answer for AES-256-GCM: a vault sealed by an older build must
+    /// still open after an aes-gcm upgrade, and sealing must still produce
+    /// the same bytes. The test-only key, nonce and ciphertext are read at
+    /// run time from `tests/fixtures/aes_gcm_vault_vector.json`.
+    #[test]
+    fn aes_gcm_opens_the_known_ciphertext() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/aes_gcm_vault_vector.json");
+        let raw = std::fs::read_to_string(&path).expect("fixture readable");
+        let v: serde_json::Value = serde_json::from_str(&raw).expect("fixture parses");
+        let field = |k: &str| v[k].as_str().expect(k).to_string();
+        let key: [u8; KEY_LEN] = unhex(&field("keyHex")).try_into().expect("key length");
+        let nonce: [u8; NONCE_LEN] = unhex(&field("nonceHex")).try_into().expect("nonce length");
+        let plain = field("plaintext").into_bytes();
+        let ct = unhex(&field("ciphertextHex"));
+        assert_eq!(open(&key, &nonce, &ct).expect("open"), plain);
+        let cipher = Aes256Gcm::new((&key).into());
+        let again = cipher.encrypt(&nonce.into(), plain.as_slice()).expect("seal");
+        assert_eq!(again, ct);
     }
 
     #[test]
