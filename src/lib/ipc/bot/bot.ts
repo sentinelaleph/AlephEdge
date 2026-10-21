@@ -1,8 +1,8 @@
 /**
- * Bot-desk IPC bridge (mirrors src-tauri/src/bot). Live trading is compiled in
- * only with the Rust `live` feature; `liveTradingEnabled` in the status is the
- * honest indicator the UI shows. `npm run dev` gets an idle,
- * dev-only desk through `devMock`; the released bundle has none.
+ * Bot-desk IPC bridge (mirrors src-tauri/src/bot). One build: every bot is
+ * Paper or Live (`BotConfig.mode`), Paper by default; a Live bot trades only
+ * once armed this session (`live`, the typed LIVE). `npm run dev` gets an
+ * idle, dev-only desk through `devMock`; the released bundle has none.
  */
 
 import { devMock, inTauri, invoke } from "../bridge";
@@ -11,7 +11,55 @@ import type { SignalDirection } from "../signal/signal";
 type Mock = typeof import("./bot.mock");
 const mock = <T>(run: (m: Mock) => Promise<T>) => devMock(() => import("./bot.mock"), run);
 
-export type BotKind = "futures" | "spot" | "pump";
+/** `tradingview`: the TradingView bot, which trades the user's own alerts (never Sentinel's signals). */
+export type BotKind = "futures" | "spot" | "pump" | "tradingview";
+
+/** The signal bots (Sentinel's signals). */
+export const SIGNAL_KINDS = ["futures", "spot", "pump"] as const;
+
+/** Every bot of the book: the signal bots and the TradingView bot. */
+export const ALL_KINDS: readonly BotKind[] = [...SIGNAL_KINDS, "tradingview"];
+
+/** Whether `kind`'s bot is running (desk status). */
+export function kindRunning(s: BotDeskStatus, kind: BotKind): boolean {
+  switch (kind) {
+    case "futures":
+      return s.futuresRunning;
+    case "spot":
+      return s.spotRunning;
+    case "pump":
+      return s.pumpRunning;
+    case "tradingview":
+      return s.tradingviewRunning === true;
+  }
+}
+
+/**
+ * The TradingView bot's alert limits (mirrors `TvSettings` in bot/model.rs),
+ * enforced by Rust on every alert. Its `maxPositions` is the position cap,
+ * `leverage` the leverage cap, `symbols` the allow list; Rust derives
+ * `capital` = budget / positions.
+ */
+export interface TvSettings {
+  name: string;
+  budgetUsdt: number;
+  maxSizeUsdt: number;
+  maxOpensPerDay: number;
+  /** 5–120 s; an older alert (server clock) never runs. */
+  staleS: number;
+  /** Refuse when the live price is more than this % from the alert's price. */
+  priceGuardPct: number;
+  /** Refuse an entry without `price`. */
+  requirePrice: boolean;
+  /** Present when a passphrase is set (its salted hash; the text is never sent back). */
+  passphraseSha256?: string;
+  passphraseSalt?: string;
+  /** Form only: a new passphrase, "" to clear, absent to keep. */
+  passphrase?: string;
+}
+
+/** Limits of TvSettings, as Rust checks them. */
+export const TV_LIMITS = { staleMin: 5, staleMax: 120, staleDefault: 30, guardMax: 10, guardDefault: 0.5, opensMax: 200, sizeMin: 5 } as const;
 
 /** How a position is sized — mirrors `SizingMode` in bot/model.rs. */
 export type SizingMode = "fixed" | "risk";
@@ -74,12 +122,48 @@ export interface BotConfig {
    * limit. Absent in older saves: the Rust side defaults it to 240 (4 h). */
   maxSignalAgeMin?: number;
   /**
-   * Real-money trading for this bot. Server-owned and read-only here:
-   * `bot_configure` ignores it and keeps the bot's current value; only
-   * `botSetLive` changes it. Never restored after a restart (comes back
-   * simulated).
+   * Armed for real orders THIS session (the typed LIVE). Server-owned and
+   * read-only here: `bot_configure` ignores it; only `botSetLive` changes it.
+   * Never restored after a restart: a Live bot comes back stopped, unarmed.
    */
   live?: boolean;
+  /** Paper or Live, stored with the bot (absent = Paper). Server-owned like `live`. */
+  mode?: TradeMode;
+  /** The TradingView bot's alert limits (kind `tradingview` only). */
+  tv?: TvSettings;
+}
+
+/** How a bot trades (mirrors `TradeMode` in bot/model.rs). */
+export type TradeMode = "paper" | "live";
+
+/** The bot's mode: Live when stored as Live (or armed), else Paper. */
+export function botMode(cfg: BotConfig | null | undefined): TradeMode {
+  return cfg && (cfg.mode === "live" || cfg.live === true) ? "live" : "paper";
+}
+
+/** A Live bot that still needs its typed LIVE this session before it may start. */
+export function needsArm(cfg: BotConfig | null | undefined): boolean {
+  return botMode(cfg) === "live" && cfg?.live !== true;
+}
+
+/**
+ * The money one real-money confirmation shows and sends back (mirrors
+ * `LiveTerms` in bot/live_terms.rs). The command recomputes it and refuses
+ * with `liveTermsChanged` when the settings moved under the dialog.
+ */
+export interface LiveTerms {
+  venue: string;
+  /** Most margin on the exchange at once; on isolated margin, the most it can lose. */
+  marginAtRiskUsdt: number;
+  /** Largest ONE position at full size (the pilot caps the first entries lower). */
+  maxNotionalUsdt: number;
+  /** The margin that largest position ties up (`maxNotionalUsdt / leverage`). */
+  maxPositionMarginUsdt?: number;
+  leverage: number;
+  positions: number;
+  /** First `pilotCount` real entries (signal) or cycles (DCA / Grid) capped near `pilotNotionalUsdt`. */
+  pilotCount: number;
+  pilotNotionalUsdt: number;
 }
 
 /**
@@ -209,9 +293,14 @@ export interface BotDeskStatus {
   futures: BotConfig | null;
   spot: BotConfig | null;
   pump: BotConfig | null;
+  /** The TradingView bot, when one was made. */
+  tradingview?: BotConfig | null;
   futuresRunning: boolean;
   spotRunning: boolean;
   pumpRunning: boolean;
+  tradingviewRunning?: boolean;
+  /** Real entries left in the TradingView bot's own pilot. */
+  tradingviewPilotLeft?: number;
   openPositions: OpenPosition[];
   recentSkips: SkipNote[];
   killSwitchTripped: boolean;
@@ -234,6 +323,13 @@ export interface BotDeskStatus {
   marks?: PositionMark[];
   /** Each open position at its current stop (riskReadout.ts). */
   atStop?: PositionAtStop[];
+  /**
+   * Real-money position rows the book does not manage ("kind signalId"):
+   * unreadable, or on a Paper bot. Money in play; shown until a restart reads them.
+   */
+  liveUnreadable?: string[];
+  /** Why no bot may start now (risk settings or the store unreadable), an error code, or null. */
+  tradingBlocked?: string | null;
 }
 
 /**
@@ -341,6 +437,12 @@ export interface TradeRequest {
   notionalUsdt?: number;
   takeProfit: number;
   stopLoss: number;
+  /** Paper (default) or Live: must match the bot; Live needs the armed Live Futures bot. */
+  mode?: TradeMode;
+  /** The typed word, for a Live trade. */
+  confirmation?: string;
+  /** The margin the Live confirmation showed (the preview's `capital`); Rust re-plans and refuses `liveTermsChanged` when it moved. */
+  confirmedMarginUsdt?: number;
 }
 
 /** What `botOpenTrade` would open now (mirrors `TradePreview` in user_trade.rs). */
@@ -393,16 +495,50 @@ export function botPreviewTrade(request: TradeRequest): Promise<TradePreview> {
 export const LIVE_CONFIRMATION = "LIVE";
 
 /**
- * Switches one bot's real-money trading on or off. Rust accepts ON only for a
- * live build, the Futures bot on Binance, `confirmation.trim() === "LIVE"` and
- * a Binance key in the unlocked vault; anything else rejects with a string the
- * UI must show. OFF needs no confirmation (send ""). Live is never restored
- * after an app restart.
+ * Real money for one signal bot: "Go live" on a Paper bot and the
+ * per-session arm of a Live bot. Rust accepts ON only for the Futures bot on
+ * a dry-run venue, `confirmation.trim() === "LIVE"`, a verified trade-only key
+ * in the unlocked vault, no paper position in its book and `atRiskUsdt` equal
+ * to the margin the confirmation showed (`botLiveTerms`); anything else
+ * rejects with a code the UI must show. OFF needs no confirmation (send ""):
+ * the bot is disarmed and stopped, and becomes Paper once it holds no real
+ * position. The arm is never restored after a restart.
  */
-export function botSetLive(kind: BotKind, enabled: boolean, confirmation: string): Promise<BotDeskStatus> {
+export function botSetLive(kind: BotKind, enabled: boolean, confirmation: string, atRiskUsdt?: number): Promise<BotDeskStatus> {
   return inTauri()
-    ? invoke<BotDeskStatus>("bot_set_live", { kind, enabled, confirmation })
+    ? invoke<BotDeskStatus>("bot_set_live", { kind, enabled, confirmation, atRiskUsdt: atRiskUsdt ?? null })
     : mock((m) => m.mock.setLive(kind, enabled, confirmation));
+}
+
+/** The money the typed LIVE would put at risk on a signal bot's saved settings. */
+export function botLiveTerms(kind: BotKind): Promise<LiveTerms> {
+  return inTauri() ? invoke<LiveTerms>("bot_live_terms", { kind }) : mock((m) => m.mock.liveTerms(kind));
+}
+
+/**
+ * "Close positions and switch" (mirrors `bot_close_live_and_paper`): the
+ * Live bot is disarmed and stopped, each of ITS real positions is closed
+ * with a reduce-only market order (the manual close path), and it becomes
+ * Paper once none is left. Rejects with `closeNotConfirmed|n` when some are
+ * still open (the bot then stays a disarmed Live bot). Never touches another
+ * bot's positions.
+ */
+export function botCloseLiveAndPaper(kind: BotKind): Promise<BotDeskStatus> {
+  return inTauri() ? invoke<BotDeskStatus>("bot_close_live_and_paper", { kind }) : mock((m) => m.mock.closeLiveAndPaper(kind));
+}
+
+/** What "Stop all live" did (mirrors `LiveStopReport`). */
+export interface LiveStopReport {
+  signalStopped: number;
+  strategyStopped: number;
+}
+
+/**
+ * "Stop all live": every Live bot stops taking new entries or cycles and is
+ * disarmed. Open real positions stay managed under their exchange stops.
+ */
+export function liveStopAll(): Promise<LiveStopReport> {
+  return inTauri() ? invoke<LiveStopReport>("live_stop_all") : mock((m) => m.mock.stopAllLive());
 }
 
 /**

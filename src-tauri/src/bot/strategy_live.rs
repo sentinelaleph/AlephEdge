@@ -1,7 +1,11 @@
-//! Real-money mirror for DCA / Grid bots: the user chooses paper or real.
-//! Binance USDT-M futures only, `--features live`
-//! builds only, per bot behind the typed LIVE word and a verified trade-only
-//! key.
+//! Real-money mirror for DCA / Grid bots: the user chooses Paper or Live per
+//! bot, when it is made (`strategy_create_live`) or later through the same
+//! checks ("Go live", `strategy_set_live`). Futures only, on a venue whose
+//! order path passed its test-network run, behind the typed LIVE word with
+//! the money at risk shown, and a verified trade-only key. The Live mode is
+//! stored (`LiveState::enabled`); the arm to start new cycles is per session
+//! (`StrategyLiveManager::armed`): after a restart a Live bot comes back
+//! stopped and starts again only after the typed LIVE.
 //!
 //! HOW IT TRADES. The simulation (bot/strategy) still makes every decision on
 //! closed 1m bars, exactly as on paper, and never touches the exchange. After
@@ -160,11 +164,17 @@ pub struct LiveView {
     pub cycle_factor: f64,
     /// Exchange the real orders go to.
     pub venue: String,
+    /// A Live bot armed this session: it may start new cycles. False after
+    /// every restart until the typed LIVE (`strategy_arm_live`).
+    pub armed: bool,
 }
 
 #[derive(Default)]
 pub struct StrategyLiveManager {
     states: Mutex<HashMap<String, LiveState>>,
+    /// Live bots armed THIS session (the typed LIVE): only these may start
+    /// new cycles. Memory only, so a restart always asks again.
+    armed: Mutex<std::collections::HashSet<String>>,
 }
 
 impl StrategyLiveManager {
@@ -178,6 +188,18 @@ impl StrategyLiveManager {
 
     fn put(&self, id: &str, st: LiveState) {
         self.states.lock().expect("live mutex").insert(id.to_string(), st);
+    }
+
+    pub fn is_armed(&self, id: &str) -> bool {
+        self.armed.lock().expect("live mutex").contains(id)
+    }
+
+    fn arm(&self, id: &str) {
+        self.armed.lock().expect("live mutex").insert(id.to_string());
+    }
+
+    fn disarm(&self, id: &str) {
+        self.armed.lock().expect("live mutex").remove(id);
     }
 
     pub fn enabled_ids(&self) -> Vec<String> {
@@ -303,9 +325,8 @@ fn read_stored(app: &AppHandle) -> (StoredLive, Option<String>) {
     }
 }
 
-/// Loads the persisted states at startup. A build without the `live` feature
-/// keeps them (a later live build resumes) but stops those bots from starting
-/// new cycles: it cannot reach the exchange to mirror them.
+/// Loads the persisted states at startup. Every Live bot comes back unarmed:
+/// its next start needs the typed LIVE (`start_refusal`).
 ///
 /// A state that cannot be read fails closed, never as "no live bots" (a real
 /// DCA bot would resume on paper and the mirror forget the real position it
@@ -337,13 +358,8 @@ pub fn restore(app: &AppHandle) {
         // While the app was closed the mirror could not act, but the
         // simulation replays those bars on the first pass. Count the downtime
         // as blind, so orders it missed are never sent at today's price.
-        if st.enabled && LIVE_TRADING_ENABLED {
-            st.blind_since = Some(st.last_sync_ms.min(now_ms().saturating_sub(BLIND_GRACE_MS + 1)));
-        }
-        if st.enabled && !LIVE_TRADING_ENABLED {
-            stop_bot(app, &id);
-            let sym = app.state::<StrategyManager>().bot(&id).map(|b| b.cfg.symbol).unwrap_or_default();
-            app.state::<StrategyManager>().note(&id, &sym, "liveBuildRequired", None, now_ms());
+        if st.enabled {
+            st.blind_since = Some(restored_blind_since(st.last_sync_ms, now_ms()));
         }
         mgr.put(&id, st);
     }
@@ -1094,24 +1110,47 @@ fn desired_after(step: &Step, synced: f64) -> f64 {
     }
 }
 
-/// Why a live bot may not start new cycles now, or None. A halted mirror
-/// would leave the cycles unmirrored, and with the vault locked the first
-/// orders would be missed (and halt the bot two minutes later).
-pub fn start_refusal(app: &AppHandle, id: &str) -> Option<&'static str> {
-    let st = app.state::<StrategyLiveManager>().get(id)?;
+/// When a restored Live bot counts as blind from (pure): while the app was
+/// closed the mirror could not act, but the simulation replays those bars on
+/// the first pass. The downtime is past the grace already, so a pass that
+/// would trade halts instead of sending missed orders at today's price.
+pub fn restored_blind_since(last_sync_ms: u64, now_ms: u64) -> u64 {
+    last_sync_ms.min(now_ms.saturating_sub(BLIND_GRACE_MS + 1))
+}
+
+/// Why a live bot may not start new cycles now, or None. Pure: a Live bot
+/// needs its typed LIVE this session (`armed`); a halted mirror would leave
+/// the cycles unmirrored; a venue without a passed dry run never gets real
+/// orders; with the vault locked the first orders would be missed (and halt
+/// the bot two minutes later).
+pub fn start_refusal_of(st: &LiveState, armed: bool, venue_allowed: bool, key_unlocked: bool) -> Option<&'static str> {
     if !st.enabled {
         return None;
     }
     if st.halted.is_some() {
         return Some("liveHaltedStart");
     }
-    if !crate::exchange::live_venue_allowed(st.venue()) {
+    if !venue_allowed {
         return Some(crate::exchange::VENUE_NOT_DRY_RUN);
     }
-    if LIVE_TRADING_ENABLED && app.state::<VaultManager>().credential(st.venue()).is_none() {
+    if !key_unlocked {
         return Some("liveVaultLocked");
     }
+    if !armed {
+        return Some("liveArmRequired");
+    }
     None
+}
+
+pub fn start_refusal(app: &AppHandle, id: &str) -> Option<&'static str> {
+    let lmgr = app.state::<StrategyLiveManager>();
+    let st = lmgr.get(id)?;
+    start_refusal_of(
+        &st,
+        lmgr.is_armed(id),
+        crate::exchange::live_venue_allowed(st.venue()),
+        app.state::<VaultManager>().credential(st.venue()).is_some(),
+    )
 }
 
 /// Whether the bot's settings are locked: real money is on, or a real
@@ -1298,11 +1337,13 @@ pub fn strategy_live_report(app: AppHandle, id: String) -> Result<DiffReport, St
 
 /// Every live bot's real-money view.
 pub fn views(app: &AppHandle) -> Vec<LiveView> {
-    let states = app.state::<StrategyLiveManager>().snapshot();
+    let lmgr = app.state::<StrategyLiveManager>();
+    let states = lmgr.snapshot();
     states
         .into_iter()
         .map(|(id, s)| {
             let (realized, fees, fills) = fill_summary(app, &id);
+            let armed = s.enabled && lmgr.is_armed(&id);
             let venue = s.venue().to_string();
             LiveView {
                 bot_id: id,
@@ -1319,6 +1360,7 @@ pub fn views(app: &AppHandle) -> Vec<LiveView> {
                 pilot_cycles_left: s.pilot_cycles_left,
                 cycle_factor: if s.cycle_factor > 0.0 { s.cycle_factor } else { 1.0 },
                 venue,
+                armed,
             }
         })
         .collect()
@@ -1364,7 +1406,185 @@ pub fn enable_refusal(live_build: bool, cfg: &StrategyConfig, venue: &str, confi
     None
 }
 
-/// Switches one DCA / Grid bot between paper and real money.
+/// The money the typed LIVE would put at risk for `config` on `venue`.
+#[tauri::command]
+pub fn strategy_live_terms(config: StrategyConfig, venue: Option<String>) -> Result<super::live_terms::LiveTerms, String> {
+    let venue = venue.filter(|v| !v.is_empty()).unwrap_or_else(default_venue);
+    Ok(super::live_terms::strategy_terms(&config, &venue))
+}
+
+/// Every check a bot must pass before its first real cycle, shared by a new
+/// Live bot and "Go live" on a Paper bot (`id` = the bot, or the id the new
+/// bot will get). Needs `op_lock` held.
+async fn go_live_checks(
+    app: &AppHandle,
+    id: &str,
+    cfg: &StrategyConfig,
+    venue: &str,
+    confirmation: &str,
+    at_risk_usdt: Option<f64>,
+) -> Result<(), String> {
+    let smgr = app.state::<StrategyManager>();
+    let lmgr = app.state::<StrategyLiveManager>();
+    let sandbox = crate::exchange::venue::ccxt::sandbox_from_env();
+    if let Some(refusal) = enable_refusal(LIVE_TRADING_ENABLED, cfg, venue, confirmation, sandbox) {
+        return Err(refusal);
+    }
+    if let Some(code) = crate::app::data_health::trading_blocked(app) {
+        return Err(code);
+    }
+    match app.state::<VaultManager>().credential(venue).map(|c| c.permission) {
+        Some(crate::vault::model::CredentialPermission::TradeOnly) => {}
+        Some(_) => return Err("liveNeedsVerifiedKey".into()),
+        None => return Err("liveNeedsTradeKey".into()),
+    }
+    super::live_terms::confirmed(&super::live_terms::strategy_terms(cfg, venue), at_risk_usdt)?;
+    // A paper cycle already running would be mirrored mid-way at today's
+    // price; start real money on a fresh cycle.
+    if smgr.has_open_cycle(id) {
+        return Err("liveNeedsIdleBot".into());
+    }
+    if !has_protective_level(cfg) {
+        return Err("liveNeedsStop".into());
+    }
+    // One real position per symbol (one-way mode nets them).
+    let busy_strategy = lmgr
+        .enabled_ids()
+        .into_iter()
+        .filter(|other| other != id)
+        .any(|other| smgr.bot(&other).is_some_and(|b| b.cfg.symbol == cfg.symbol));
+    let busy_signal = app
+        .state::<BotManager>()
+        .positions_snapshot()
+        .iter()
+        .any(|p| p.live && p.symbol == cfg.symbol);
+    if busy_strategy || busy_signal {
+        return Err("liveSymbolBusy".into());
+    }
+    // The smallest order must clear the venue's minimum for this symbol.
+    let exchange = app.state::<ExchangeManager>();
+    let cred = app.state::<VaultManager>().credential(venue).ok_or_else(|| "liveNeedsTradeKey".to_string())?;
+    let rules = exchange.symbol_rules(&cred, &cfg.symbol).await.map_err(|_| "liveExchangeCheckFailed".to_string())?;
+    if !rules.trading {
+        return Err("liveSymbolNotTrading".into());
+    }
+    let smallest = super::strategy::validate::smallest_order_notional(cfg);
+    if smallest < rules.min_notional {
+        return Err(format!("liveOrderBelowMinNotional|{:.2}", rules.min_notional));
+    }
+    // The symbol must be flat on the account: the mirror only ever trades
+    // the difference from what it sent itself.
+    let held = real_position(&exchange, &cred, &cfg.symbol)
+        .await
+        .ok_or_else(|| "liveExchangeCheckFailed".to_string())?;
+    if held.0 != 0.0 {
+        return Err("liveSymbolBusy".into());
+    }
+    Ok(())
+}
+
+/// A fresh Live state for a bot that passed `go_live_checks`.
+fn fresh_live_state(cur: LiveState, symbol: &str, venue: String) -> LiveState {
+    LiveState {
+        enabled: true,
+        halted: None,
+        synced_qty: 0.0,
+        stop_algo_id: None,
+        stop_px: None,
+        pending_check: false,
+        closed_seq: None,
+        blind_since: None,
+        fail_count: 0,
+        symbol: Some(symbol.to_string()),
+        unprotected: false,
+        pilot_cycles_left: PILOT_CYCLES,
+        cycle_factor: 0.0,
+        venue,
+        ..cur
+    }
+}
+
+/// A NEW DCA / Grid bot in Live mode: the Paper create's checks, then every
+/// go-live check, and only then is the bot saved, Live and armed (stopped:
+/// the user starts it). Nothing is saved when a check fails.
+#[tauri::command]
+pub async fn strategy_create_live(
+    app: AppHandle,
+    config: StrategyConfig,
+    confirmation: String,
+    venue: Option<String>,
+    at_risk_usdt: Option<f64>,
+) -> Result<super::strategy::StrategyBotView, String> {
+    use super::strategy::commands as sc;
+    let venue = venue.filter(|v| !v.is_empty()).unwrap_or_else(default_venue);
+    let smgr = app.state::<StrategyManager>();
+    let lmgr = app.state::<StrategyLiveManager>();
+    let _guard = smgr.op_lock.lock().await;
+    let now = now_ms();
+    let bot = sc::new_stopped_bot(config, sc::max_leverage(&app), smgr.bots().len(), sc::budget_limit(&app, &smgr), now)?;
+    sc::check_symbol(&app, &bot.cfg).await?;
+    go_live_checks(&app, &bot.id, &bot.cfg, &venue, &confirmation, at_risk_usdt).await?;
+    let symbol = bot.cfg.symbol.clone();
+    let id = sc::persist_new_bot(&app, &smgr, bot, now)?;
+    lmgr.put(&id, fresh_live_state(LiveState::default(), &symbol, venue));
+    lmgr.arm(&id);
+    save(&app);
+    app.state::<BotManager>().ensure_loop(app.clone());
+    sc::view(&smgr, &id)
+}
+
+/// The per-session arm of a Live DCA / Grid bot (after a restart, or after
+/// "Stop all live"): the typed LIVE with the money at risk shown, a verified
+/// trade-only key, and a venue that passed its dry run. Its real position
+/// and exchange stop are untouched; only new cycles wait for this.
+#[tauri::command]
+pub async fn strategy_arm_live(app: AppHandle, id: String, confirmation: String, at_risk_usdt: Option<f64>) -> Result<Vec<LiveView>, String> {
+    let smgr = app.state::<StrategyManager>();
+    let lmgr = app.state::<StrategyLiveManager>();
+    let _guard = smgr.op_lock.lock().await;
+    let bot = smgr.bot(&id).ok_or_else(|| "botUnknown".to_string())?;
+    let st = lmgr.get(&id).filter(|s| s.enabled).ok_or_else(|| "botNotLive".to_string())?;
+    let sandbox = crate::exchange::venue::ccxt::sandbox_from_env();
+    if let Some(refusal) = enable_refusal(LIVE_TRADING_ENABLED, &bot.cfg, st.venue(), &confirmation, sandbox) {
+        return Err(refusal);
+    }
+    if let Some(code) = crate::app::data_health::trading_blocked(&app) {
+        return Err(code);
+    }
+    match app.state::<VaultManager>().credential(st.venue()).map(|c| c.permission) {
+        Some(crate::vault::model::CredentialPermission::TradeOnly) => {}
+        Some(_) => return Err("liveNeedsVerifiedKey".into()),
+        None => return Err("liveNeedsTradeKey".into()),
+    }
+    super::live_terms::confirmed(&super::live_terms::strategy_terms(&bot.cfg, st.venue()), at_risk_usdt)?;
+    lmgr.arm(&id);
+    Ok(views(&app))
+}
+
+/// "Stop all live" for DCA / Grid: every Live bot stops starting cycles and
+/// is disarmed; an open cycle stays managed and mirrored under its exchange
+/// stop. Returns how many were running.
+pub async fn stop_all_live(app: &AppHandle) -> u32 {
+    let smgr = app.state::<StrategyManager>();
+    let lmgr = app.state::<StrategyLiveManager>();
+    let _guard = smgr.op_lock.lock().await;
+    let mut stopped = 0;
+    for id in lmgr.enabled_ids() {
+        lmgr.disarm(&id);
+        if let Some(mut b) = smgr.bot(&id) {
+            if super::strategy::driver::is_running(b.state) {
+                b.state = BotRunState::Stopped;
+                super::strategy::engine::save_bot(app, &b);
+                smgr.put_bot(b);
+                stopped += 1;
+            }
+        }
+    }
+    stopped
+}
+
+/// Switches one DCA / Grid bot between Paper and Live ("Go live" on a Paper
+/// bot, or back to Paper once flat). On runs `go_live_checks` and arms it.
 #[tauri::command]
 pub async fn strategy_set_live(
     app: AppHandle,
@@ -1372,6 +1592,7 @@ pub async fn strategy_set_live(
     enabled: bool,
     confirmation: String,
     venue: Option<String>,
+    at_risk_usdt: Option<f64>,
 ) -> Result<Vec<LiveView>, String> {
     let venue = venue.filter(|v| !v.is_empty()).unwrap_or_else(default_venue);
     let smgr = app.state::<StrategyManager>();
@@ -1395,80 +1616,14 @@ pub async fn strategy_set_live(
                     .map_err(|_| "liveExchangeCheckFailed".to_string())?;
             }
         }
+        lmgr.disarm(&id);
         lmgr.put(&id, LiveState { enabled: false, stop_algo_id: None, stop_px: None, halted: None, ..cur });
         save(&app);
         return Ok(views(&app));
     }
-    let sandbox = crate::exchange::venue::ccxt::sandbox_from_env();
-    if let Some(refusal) = enable_refusal(LIVE_TRADING_ENABLED, &bot.cfg, &venue, &confirmation, sandbox) {
-        return Err(refusal);
-    }
-    match app.state::<VaultManager>().credential(&venue).map(|c| c.permission) {
-        Some(crate::vault::model::CredentialPermission::TradeOnly) => {}
-        Some(_) => return Err("liveNeedsVerifiedKey".into()),
-        None => return Err("liveNeedsTradeKey".into()),
-    }
-    // A paper cycle already running would be mirrored mid-way at today's
-    // price; start real money on a fresh cycle.
-    if smgr.has_open_cycle(&id) {
-        return Err("liveNeedsIdleBot".into());
-    }
-    if !has_protective_level(&bot.cfg) {
-        return Err("liveNeedsStop".into());
-    }
-    // One real position per symbol (one-way mode nets them).
-    let busy_strategy = lmgr
-        .enabled_ids()
-        .into_iter()
-        .filter(|other| other != &id)
-        .any(|other| smgr.bot(&other).is_some_and(|b| b.cfg.symbol == bot.cfg.symbol));
-    let busy_signal = app
-        .state::<BotManager>()
-        .positions_snapshot()
-        .iter()
-        .any(|p| p.live && p.symbol == bot.cfg.symbol);
-    if busy_strategy || busy_signal {
-        return Err("liveSymbolBusy".into());
-    }
-    // The smallest order must clear the venue's minimum for this symbol.
-    let exchange = app.state::<ExchangeManager>();
-    let cred = app.state::<VaultManager>().credential(&venue).ok_or_else(|| "liveNeedsTradeKey".to_string())?;
-    let rules = exchange.symbol_rules(&cred, &bot.cfg.symbol).await.map_err(|_| "liveExchangeCheckFailed".to_string())?;
-    if !rules.trading {
-        return Err("liveSymbolNotTrading".into());
-    }
-    let smallest = super::strategy::validate::smallest_order_notional(&bot.cfg);
-    if smallest < rules.min_notional {
-        return Err(format!("liveOrderBelowMinNotional|{:.2}", rules.min_notional));
-    }
-    // The symbol must be flat on the account: the mirror only ever trades
-    // the difference from what it sent itself.
-    let held = real_position(&exchange, &cred, &bot.cfg.symbol)
-        .await
-        .ok_or_else(|| "liveExchangeCheckFailed".to_string())?;
-    if held.0 != 0.0 {
-        return Err("liveSymbolBusy".into());
-    }
-    lmgr.put(
-        &id,
-        LiveState {
-            enabled: true,
-            halted: None,
-            synced_qty: 0.0,
-            stop_algo_id: None,
-            stop_px: None,
-            pending_check: false,
-            closed_seq: None,
-            blind_since: None,
-            fail_count: 0,
-            symbol: Some(bot.cfg.symbol.clone()),
-            unprotected: false,
-            pilot_cycles_left: PILOT_CYCLES,
-            cycle_factor: 0.0,
-            venue,
-            ..cur
-        },
-    );
+    go_live_checks(&app, &id, &bot.cfg, &venue, &confirmation, at_risk_usdt).await?;
+    lmgr.put(&id, fresh_live_state(cur, &bot.cfg.symbol, venue));
+    lmgr.arm(&id);
     save(&app);
     app.state::<BotManager>().ensure_loop(app.clone());
     Ok(views(&app))

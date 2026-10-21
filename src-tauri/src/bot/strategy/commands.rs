@@ -4,6 +4,8 @@
 //!
 //! No command here can express a real-money intent: there is no live flag
 //! to set, and no command reaches the exchange close commands (real orders).
+//! A Live bot is made and armed in `bot::strategy_live`; `strategy_start`
+//! only asks it whether a Live bot may start (`start_refusal`).
 
 use std::path::PathBuf;
 
@@ -46,7 +48,7 @@ fn level_index(level: RiskLevel) -> usize {
     }
 }
 
-fn max_leverage(app: &AppHandle) -> u8 {
+pub(crate) fn max_leverage(app: &AppHandle) -> u8 {
     app.state::<RiskManager>().limits().max_leverage
 }
 
@@ -71,12 +73,12 @@ fn check(cfg: &StrategyConfig, app: &AppHandle) -> Result<(), String> {
     validate::validate(cfg, max_leverage(app)).map_err(|e| e.to_string())
 }
 
-fn view(mgr: &StrategyManager, id: &str) -> Result<StrategyBotView, String> {
+pub(crate) fn view(mgr: &StrategyManager, id: &str) -> Result<StrategyBotView, String> {
     mgr.view(id).ok_or_else(|| "botUnknown".to_string())
 }
 
 /// The symbol must exist on the exchange's market list (Binance).
-async fn check_symbol(app: &AppHandle, cfg: &StrategyConfig) -> Result<(), String> {
+pub(crate) async fn check_symbol(app: &AppHandle, cfg: &StrategyConfig) -> Result<(), String> {
     let list = app
         .state::<ExchangeManager>()
         .symbols(&cfg.exchange_id, cfg.market == MarketKind::Futures)
@@ -227,6 +229,76 @@ pub fn strategy_validate(app: AppHandle, config: StrategyConfig) -> Result<Valid
         error,
         min_budget: validate::min_budget(&config),
     })
+}
+
+/// What the budget field shows under itself: the save floor (every order at
+/// least 5 USDT, `validate::min_budget`) and, for a Binance futures bot, the
+/// floor the Live switch checks (`go_live_checks`: the smallest order at the
+/// symbol's own MIN_NOTIONAL). `symbolRules` says whether that second floor
+/// is known: "ok", "unavailable" (the exchange did not answer) or
+/// "notApplicable" (spot or another exchange: no Live path).
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetFloor {
+    pub min_budget: Option<f64>,
+    pub orders: u32,
+    pub min_order: f64,
+    pub symbol_rules: &'static str,
+    pub symbol_min_order: Option<f64>,
+    pub live_min_budget: Option<f64>,
+}
+
+/// Pure half of `strategy_budget_floor`. `rules` = the symbol's exchange
+/// minimum: None when not asked (no Live path), Some(None) when the
+/// exchange did not answer, Some(Some(min)) when read.
+pub(crate) fn budget_floor(cfg: &StrategyConfig, rules: Option<Option<f64>>) -> BudgetFloor {
+    let (symbol_rules, symbol_min_order) = match rules {
+        None => ("notApplicable", None),
+        Some(None) => ("unavailable", None),
+        Some(Some(min)) => ("ok", Some(min)),
+    };
+    BudgetFloor {
+        min_budget: validate::min_budget(cfg),
+        orders: validate::order_count(cfg),
+        min_order: super::limits::MIN_ORDER_NOTIONAL,
+        symbol_rules,
+        symbol_min_order,
+        live_min_budget: symbol_min_order.and_then(|m| validate::min_budget_at(cfg, m)),
+    }
+}
+
+/// Binance USDT-M rules already read (public exchangeInfo once per symbol per
+/// 15 min, not on every keystroke of a form). Shared by the budget floor and
+/// the TradingView bot's symbol minimum. None when Binance did not answer.
+pub(crate) async fn binance_rules_cached(app: &AppHandle, symbol: &str) -> Option<crate::exchange::providers::binance_rules::SymbolRules> {
+    let symbol = symbol.trim().to_ascii_uppercase();
+    let hit = RULES_CACHE.get_or_init(Default::default).lock().ok().and_then(|map| {
+        map.get(&symbol)
+            .filter(|(at, _)| at.elapsed() < std::time::Duration::from_secs(15 * 60))
+            .map(|(_, r)| *r)
+    });
+    if hit.is_some() {
+        return hit;
+    }
+    let read = app.state::<ExchangeManager>().bn_symbol_rules(&symbol).await.ok();
+    if let (Some(r), Ok(mut map)) = (read, RULES_CACHE.get_or_init(Default::default).lock()) {
+        map.insert(symbol, (std::time::Instant::now(), r));
+    }
+    read
+}
+
+static RULES_CACHE: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashMap<String, (std::time::Instant, crate::exchange::providers::binance_rules::SymbolRules)>>,
+> = std::sync::OnceLock::new();
+
+#[tauri::command]
+pub async fn strategy_budget_floor(app: AppHandle, config: StrategyConfig) -> Result<BudgetFloor, String> {
+    let live_path = config.exchange_id == "binance" && config.market == MarketKind::Futures;
+    if !live_path {
+        return Ok(budget_floor(&config, None));
+    }
+    let min = binance_rules_cached(&app, &config.symbol).await.map(|r| r.min_notional);
+    Ok(budget_floor(&config, Some(min)))
 }
 
 /// The preset id stays only while the config still describes that preset's
@@ -447,6 +519,9 @@ pub async fn strategy_start(app: AppHandle, mgr: State<'_, StrategyManager>, id:
     if let Some(code) = crate::bot::strategy_live::start_refusal(&app, &id) {
         return Err(code.into());
     }
+    if let Some(code) = crate::app::data_health::trading_blocked(&app) {
+        return Err(code);
+    }
     check(&bot.cfg, &app)?;
     // One running bot per (symbol, market, side): grids must not cross themselves.
     if mgr.bots().iter().any(|b| {
@@ -506,6 +581,11 @@ fn reservation_check(app: &AppHandle, mgr: &StrategyManager, bot: &StrategyBot) 
 /// leverage ceiling (`validate`), then the budget cap and the balance.
 /// Err = the refusal code; the bot then stays Stopped.
 pub(super) fn resume_refusal(app: &AppHandle, mgr: &StrategyManager, bot: &StrategyBot) -> Result<(), String> {
+    // Settings that could not be read stand in as defaults: nothing resumes
+    // on them (app/data_health.rs).
+    if let Some(code) = crate::app::data_health::trading_blocked(app) {
+        return Err(code);
+    }
     check(&bot.cfg, app)?;
     reservation_check(app, mgr, bot)
 }
@@ -851,6 +931,27 @@ fn preset_views() -> Vec<PresetView> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_budget_floor_says_which_minimum_is_known() {
+        let cfg = default_config(StrategyKind::Dca, "binance".into(), "BTCUSDT".into());
+        let save = validate::min_budget(&cfg);
+        let spot = budget_floor(&cfg, None);
+        assert_eq!((spot.symbol_rules, spot.min_budget, spot.live_min_budget), ("notApplicable", save, None));
+        assert_eq!(spot.min_order, 5.0);
+        assert_eq!(spot.orders, validate::order_count(&cfg));
+        let down = budget_floor(&cfg, Some(None));
+        assert_eq!((down.symbol_rules, down.symbol_min_order, down.live_min_budget), ("unavailable", None, None));
+        let btc = budget_floor(&cfg, Some(Some(100.0)));
+        assert_eq!(btc.symbol_rules, "ok");
+        assert_eq!(btc.live_min_budget, validate::min_budget_at(&cfg, 100.0));
+        assert!(btc.live_min_budget.unwrap() > save.unwrap() * 19.0);
+        // a 5 USDT symbol (or one with no filter) needs nothing above the save floor
+        assert_eq!(budget_floor(&cfg, Some(Some(0.0))).live_min_budget, save);
+        let json = serde_json::to_value(&btc).unwrap();
+        assert_eq!(json["symbolRules"], "ok");
+        assert_eq!(json["liveMinBudget"].as_f64(), btc.live_min_budget);
+    }
 
     #[test]
     fn every_preset_carries_its_minimum_budget_flat_in_the_payload() {

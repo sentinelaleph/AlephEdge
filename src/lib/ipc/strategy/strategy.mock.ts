@@ -7,6 +7,7 @@
  */
 
 import type {
+  BudgetFloor,
   CloseAllReport,
   CycleRow,
   EquityRow,
@@ -154,6 +155,19 @@ function minBudget(cfg: StrategyConfig): number | null {
 export function validate(cfg: StrategyConfig): Promise<{ ok: boolean; error: { code: string; field: string } | null; minBudget: number | null }> {
   const error = check(cfg);
   return ok({ ok: error === null, error, minBudget: minBudget(cfg) });
+}
+
+/** Dev stand-in for strategy_budget_floor: Binance futures minimums of two pairs, 5 USDT elsewhere. */
+const MOCK_SYMBOL_MIN: Record<string, number> = { BTCUSDT: 50, ETHUSDT: 20 };
+export function budgetFloor(cfg: StrategyConfig): Promise<BudgetFloor> {
+  const min = minBudget(cfg);
+  const orders = cfg.params.kind === "dca" ? 1 + cfg.params.maxSo : cfg.params.nGrids;
+  if (cfg.exchangeId !== "binance" || cfg.market !== "futures") {
+    return ok({ minBudget: min, orders, minOrder: 5, symbolRules: "notApplicable", symbolMinOrder: null, liveMinBudget: null });
+  }
+  const symbolMin = MOCK_SYMBOL_MIN[cfg.symbol] ?? 5;
+  const live = min === null ? null : cfg.params.kind === "dca" && cfg.params.baseOrder !== null ? (symbolMin <= 5 ? min : null) : Math.ceil(((min * Math.max(5, symbolMin)) / 5) * 100) / 100;
+  return ok({ minBudget: min, orders, minOrder: 5, symbolRules: "ok", symbolMinOrder: symbolMin, liveMinBudget: live });
 }
 
 export function preview(cfg: StrategyConfig): Promise<PreviewDto> {

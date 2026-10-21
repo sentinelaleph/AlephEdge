@@ -2,18 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Button } from "@/components/ui/Button/Button";
-import { Chip, PaperChip } from "@/components/ui/Chip/Chip";
+import { Chip, LiveChip, PaperChip } from "@/components/ui/Chip/Chip";
+import { LiveConfirmDialog, ModePicker } from "@/components/LiveMode/LiveMode";
 import { SegmentedControl } from "@/components/ui/SegmentedControl/SegmentedControl";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { localeForLanguage } from "@/i18n";
 import { formatNumber, formatPercent, formatPrice, formatSignedUsdt, formatUsdt, NO_VALUE } from "@/lib/format";
 import {
+  botMode,
   botOpenTrade,
   botPreviewTrade,
+  PILOT_NOTIONAL_USDT,
   type BotDeskStatus,
+  type LiveTerms,
+  type TradeMode,
   type TradePreview,
   type TradeRequest,
 } from "@/lib/ipc/bot/bot";
+import type { Blocker } from "@/lib/liveMode";
+import { EXCHANGE_MIN_ORDER_USDT } from "@/lib/botLimits";
 import { exchangeSymbols } from "@/lib/ipc/exchange/exchange";
 import type { SignalDirection } from "@/lib/ipc/signal/signal";
 import { takeRefusalText } from "@/pages/Signals/TakeNow";
@@ -26,6 +33,8 @@ const BOTS: TradeBot[] = ["futures", "spot"];
 
 /** What the user typed, as typed. */
 export interface TradeForm {
+  /** Paper (default) or Live: Live opens a real order on the armed Live Futures bot. */
+  mode: TradeMode;
   kind: TradeBot;
   symbol: string;
   direction: SignalDirection;
@@ -58,6 +67,7 @@ export function tradeRequest(form: TradeForm): TradeRequest | "incomplete" | str
   const stopLoss = num(form.stopLoss);
   if (!(takeProfit > 0 && stopLoss > 0)) return "tradeLevelsInvalid";
   const req: TradeRequest = { kind: form.kind, symbol, direction: form.direction, takeProfit, stopLoss };
+  if (form.mode === "live") req.mode = "live";
   if (form.sizing === "usdt") {
     const n = num(form.notional);
     if (!(n > 0)) return "tradeSizeInvalid";
@@ -87,16 +97,45 @@ export type TradeState =
   | { state: "ready"; preview: TradePreview; busy: boolean }
   | { state: "opened"; symbol: string; entry: number };
 
-/** The bot a New trade starts on: the first saved one, Futures when none is. */
+/** The bot a New trade starts on: the first saved Paper one, Futures when none is. */
 function firstBot(status: BotDeskStatus): TradeBot {
-  return BOTS.find((k) => status[k] !== null) ?? "futures";
+  return BOTS.find((k) => status[k] !== null && botMode(status[k]) === "paper") ?? "futures";
+}
+
+/**
+ * Why a Live New trade cannot be chosen now (pure). It opens on the Futures
+ * bot only, which must be a Live bot armed this session (the typed LIVE on
+ * its settings); Rust re-checks both and the typed word.
+ */
+export function liveTradeBlockers(status: BotDeskStatus): Blocker[] {
+  const out: Blocker[] = [];
+  if (status.tradingBlocked) out.push({ key: "liveMode.blockers.tradingBlocked" });
+  const fut = status.futures;
+  if (botMode(fut) !== "live") out.push({ key: "liveMode.blockers.tradeBotPaper" });
+  else if (fut?.live !== true) out.push({ key: "liveMode.blockers.notArmed" });
+  return out;
+}
+
+/** The figures a Live New trade's confirmation shows, from the preview (Rust sizes the same request). */
+export function tradeTerms(p: TradePreview, venue: string, pilotLeft: number): LiveTerms {
+  const pilot = pilotLeft > 0;
+  return {
+    venue,
+    marginAtRiskUsdt: p.capital,
+    maxNotionalUsdt: pilot ? Math.min(p.notionalUsdt, PILOT_NOTIONAL_USDT) : p.notionalUsdt,
+    leverage: p.leverage,
+    positions: 1,
+    pilotCount: pilotLeft,
+    pilotNotionalUsdt: PILOT_NOTIONAL_USDT,
+  };
 }
 
 export interface NewTradeController {
   form: TradeForm;
   set: (patch: Partial<TradeForm>) => void;
   trade: TradeState;
-  open: () => Promise<void>;
+  /** `confirmation`: the typed word, for a Live trade. */
+  open: (confirmation?: string) => Promise<void>;
   symbols: string[];
 }
 
@@ -106,6 +145,7 @@ export interface NewTradeController {
  */
 export function useNewTrade(status: BotDeskStatus, active = true): NewTradeController {
   const [form, setForm] = useState<TradeForm>(() => ({
+    mode: "paper",
     kind: firstBot(status),
     symbol: "",
     direction: "long",
@@ -153,15 +193,24 @@ export function useNewTrade(status: BotDeskStatus, active = true): NewTradeContr
   const set = (patch: Partial<TradeForm>) =>
     setForm((f) => {
       const next = { ...f, ...patch };
+      // Real money: the Futures bot only.
+      if (next.mode === "live") next.kind = "futures";
       // Spot is long only.
       if (next.kind === "spot") next.direction = "long";
       return next;
     });
 
-  const open = async () => {
+  const open = async (confirmation?: string) => {
     if (trade.state !== "ready") return;
     const req = tradeRequest(form);
     if (typeof req === "string") return;
+    if (req.mode === "live") {
+      if (!confirmation) return;
+      req.confirmation = confirmation;
+      // The margin the confirmation showed: Rust re-plans at the open and
+      // refuses (`liveTermsChanged`) when the money at risk moved.
+      req.confirmedMarginUsdt = tradeTerms(trade.preview, "", 0).marginAtRiskUsdt;
+    }
     const id = ++seq.current;
     setTrade({ ...trade, busy: true });
     try {
@@ -183,7 +232,16 @@ export function NewTradeForm({ ctl, status }: { ctl: NewTradeController; status:
     <form className="ae-newtrade__form" aria-label={t("positions.newTrade.title")} onSubmit={(e) => e.preventDefault()}>
       <div className="ae-newtrade__head">
         <h2 className="ae-section-title">{t("positions.newTrade.title")}</h2>
-        <PaperChip />
+        {form.mode === "live" ? <LiveChip /> : <PaperChip />}
+      </div>
+      <div className="ae-field">
+        <span className="ae-field__label">{t("liveMode.label")}</span>
+        <ModePicker
+          value={form.mode}
+          onChange={(mode) => set({ mode })}
+          blockers={liveTradeBlockers(status)}
+          liveNote={t("liveMode.trade.liveNote")}
+        />
       </div>
       <div className="ae-field">
         <span className="ae-field__label">{t("positions.newTrade.bot")}</span>
@@ -196,6 +254,8 @@ export function NewTradeForm({ ctl, status }: { ctl: NewTradeController; status:
             value: k,
             label: t(`bots.kind.${k}`),
             ...(status[k] === null ? { sub: t("positions.newTrade.notSaved") } : {}),
+            disabled: form.mode === "live" && k !== "futures",
+            reason: form.mode === "live" && k !== "futures" ? t("liveMode.blockers.futuresOnly") : undefined,
           }))}
         />
       </div>
@@ -247,6 +307,8 @@ export function NewTradeForm({ ctl, status }: { ctl: NewTradeController; status:
           label={t("positions.newTrade.notional")}
           inputMode="decimal"
           className="tabular"
+          placeholder={String(EXCHANGE_MIN_ORDER_USDT)}
+          hint={t("positions.newTrade.notionalMin", { min: EXCHANGE_MIN_ORDER_USDT })}
           value={form.notional}
           onChange={(e) => set({ notional: e.target.value })}
         />
@@ -324,10 +386,14 @@ function Figures({ p }: { p: TradePreview }) {
 }
 
 /** Center: the paper preview of the trade and the one button that opens it. */
-export function NewTradePreview({ ctl, onClose }: { ctl: NewTradeController; onClose: () => void }) {
+export function NewTradePreview({ ctl, status, onClose }: { ctl: NewTradeController; status: BotDeskStatus; onClose: () => void }) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const { trade, form } = ctl;
+  const [confirm, setConfirm] = useState(false);
+  const live = form.mode === "live";
+  const terms =
+    live && trade.state === "ready" ? tradeTerms(trade.preview, status.futures?.exchangeId ?? "binance", status.pilotLeft ?? 0) : null;
   const title = t("positions.newTrade.previewTitle", {
     symbol: form.symbol.trim() || NO_VALUE,
     side: t(`signalDesk.direction.${form.direction}`),
@@ -337,7 +403,7 @@ export function NewTradePreview({ ctl, onClose }: { ctl: NewTradeController; onC
     <section className="ae-newtrade" aria-label={t("positions.newTrade.title")}>
       <div className="ae-newtrade__bar">
         <h2 className="ae-section-title">{title}</h2>
-        <PaperChip />
+        {live ? <LiveChip /> : <PaperChip />}
         <span className="ae-toolbar__spacer" />
         <Button variant="ghost" size="xs" onClick={onClose}>
           {t("positions.newTrade.close")}
@@ -366,13 +432,31 @@ export function NewTradePreview({ ctl, onClose }: { ctl: NewTradeController; onC
             ) : null}
             <span className="ae-subtle">{t("positions.newTrade.exitLine")}</span>
             <span className="ae-toolbar__spacer" />
-            <Button variant="primary" size="sm" disabled={trade.busy} onClick={() => void ctl.open()}>
-              {trade.busy ? t("signalsPage.take.opening") : t("positions.newTrade.open")}
+            <Button variant={live ? "danger" : "primary"} size="sm" disabled={trade.busy} onClick={() => (live ? setConfirm(true) : void ctl.open())}>
+              {trade.busy ? t("signalsPage.take.opening") : t(live ? "liveMode.trade.open" : "positions.newTrade.open")}
             </Button>
           </div>
           <PortfolioWhatIf candidate={tradeCandidate(trade.preview)} />
         </>
       )}
+      <LiveConfirmDialog
+        open={confirm && terms !== null}
+        title={t("liveMode.trade.confirmTitle", { symbol: form.symbol.trim(), side: t(`signalDesk.direction.${form.direction}`) })}
+        terms={terms}
+        extra={
+          trade.state === "ready"
+            ? [{ label: t("positions.newTrade.lossAtStop", { price: formatPrice(trade.preview.stopLoss, locale) }), value: formatSignedUsdt(trade.preview.lossAtStopUsdt, locale), tone: "down" }]
+            : []
+        }
+        note={t("liveMode.trade.note")}
+        confirmLabel={t("liveMode.trade.open")}
+        busy={trade.state === "ready" && trade.busy}
+        onConfirm={(typed) => {
+          setConfirm(false);
+          void ctl.open(typed);
+        }}
+        onCancel={() => setConfirm(false)}
+      />
     </section>
   );
 }

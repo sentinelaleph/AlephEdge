@@ -49,6 +49,39 @@
 .ae-sfield__input .ae-field__input {
   padding-right: 48px;
 }
+/* One fact per line under a field (the minimum budget, the Live minimum, what is free). */
+.ae-sfield__line {
+  display: block;
+}
+/* "Use": fills the minimum budget. Text-weight, so it reads as part of the hint. */
+.ae-sfield__fill {
+  margin-left: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity 120ms ease-out;
+}
+.ae-sfield__fill:hover {
+  color: var(--accent-hover);
+}
+.ae-sfield__fill:active {
+  opacity: 0.7;
+}
+.ae-sfield__fill:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ae-sfield__fill {
+    transition: none;
+  }
+}
 .ae-sfield__unit {
   position: absolute;
   right: var(--space-3);

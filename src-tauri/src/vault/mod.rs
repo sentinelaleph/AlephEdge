@@ -1317,3 +1317,6 @@ mod tests {
         assert!(!m.touch_if_unlocked(), "a locked vault has nothing to touch");
     }
 }
+
+#[cfg(test)]
+mod update_vault;

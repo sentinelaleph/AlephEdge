@@ -32,7 +32,7 @@ export function updateStatusText(t: TFunction, u: UpdateState): string {
 
 export function buildText(t: TFunction, info: AppInfo | null): string {
   if (!info) return NO_VALUE;
-  const build = t(info.liveBuild ? "settings.about.liveBuild" : "settings.about.paperBuild");
+  const build = t("settings.about.liveBuild");
   return isTestnetBuild(info) ? `${build} · ${t("settings.about.testnetBuild")}` : build;
 }
 

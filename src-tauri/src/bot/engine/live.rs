@@ -8,9 +8,11 @@
 //! swap HOW a decision becomes reality.
 //!
 //! Gating, in order, all must hold:
-//!   1. `LIVE_TRADING_ENABLED` — compile-time master switch, false today.
-//!      Flipping it is a deliberate release act, not a setting.
-//!   2. `cfg.live` — per-bot opt-in the user sets, default false.
+//!   1. `LIVE_TRADING_ENABLED` — the binary has the order path: always in the
+//!      desktop's one build, never in the bot farm.
+//!   2. `cfg.live` — the bot is armed this session: set only by the typed
+//!      LIVE on a Live bot (`bot_set_live`, which also checks the key, the
+//!      venue and the money at risk), never restored from disk.
 //!   3. Futures only, on a venue whose order path passed its test-network
 //!      dry run (`exchange::DRY_RUN_PASSED`: Binance today), or any order
 //!      venue while the app runs against the venues' test networks
@@ -92,7 +94,7 @@ pub fn live_trading_allowed(cfg: &BotConfig, kind: BotKind) -> bool {
 pub fn live_trading_allowed_in(cfg: &BotConfig, kind: BotKind, sandbox: bool) -> bool {
     LIVE_TRADING_ENABLED
         && cfg.live
-        && kind == BotKind::Futures
+        && kind.live_capable()
         && crate::exchange::live_venue_allowed_in(&cfg.exchange_id, sandbox)
 }
 
@@ -132,6 +134,9 @@ pub struct LiveOpen {
     /// The take-profit resolved at the REAL fill; the exchange TP order
     /// sits at this level.
     pub tp: TpResolution,
+    /// The stop the exchange order sits at (the signal's, or the alert's
+    /// put at the fill).
+    pub sl: f64,
 }
 
 /// Attempts for the stop and the emergency flatten, and lookups of an entry
@@ -153,10 +158,77 @@ pub async fn open_live(
     leverage_cap: u8,
     target: TakeProfitTarget,
 ) -> Result<LiveOpen, &'static str> {
+    open_live_with(app, cfg, sig, live_price, notional, leverage_cap, target, None)
+        .await
+        .map_err(|r| r.key)
+}
+
+/// Why a real entry left no position, and whether the entry order's
+/// outcome stayed unknown (sent, no verdict): such an entry is never sent
+/// again; its client id (`entry_client_id(sig.id)`) is looked up later.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LiveRefusal {
+    pub key: &'static str,
+    pub outcome_unknown: bool,
+}
+
+impl From<&'static str> for LiveRefusal {
+    fn from(key: &'static str) -> Self {
+        Self { key, outcome_unknown: false }
+    }
+}
+
+/// The take-profit and stop after a real fill whose levels were given as a
+/// percent from the price (TradingView alerts): percents are measured from
+/// the FILL, then both levels are checked against it (side, both fees, the
+/// liquidation price). Err = the fill made the levels unusable.
+pub fn levels_after_fill(
+    direction: Direction,
+    fill: f64,
+    levels: (super::user_trade::Level, super::user_trade::Level),
+    leverage: u8,
+    fee_frac: f64,
+) -> Result<(f64, f64), String> {
+    let (tp, sl) = super::user_trade::resolve_levels(direction, fill, levels.0, levels.1);
+    super::user_trade::level_refusal(direction, fill, tp, sl, fee_frac)?;
+    if stop_beyond_liquidation((fill - sl).abs() / fill, leverage) {
+        return Err(SKIP_STOP_BEYOND_LIQUIDATION.to_string());
+    }
+    Ok((tp, sl))
+}
+
+/// The pilot cap on one real entry (pure): while `pilot_left` > 0 the
+/// notional is at most `PILOT_NOTIONAL_USDT`, or just above the symbol's
+/// minimum when that is higher. Per bot kind: the TradingView bot has its
+/// own pilot, apart from the Futures bot's.
+pub fn pilot_notional(notional: f64, pilot_left: u32, min_notional: f64) -> f64 {
+    if pilot_left > 0 {
+        notional.min(super::super::model::PILOT_NOTIONAL_USDT.max(min_notional * 1.1))
+    } else {
+        notional
+    }
+}
+
+/// The fill made the alert's levels unusable: flattened (confirmed flat).
+pub const SKIP_LEVELS_AFTER_FILL: &str = "liveLevelsAfterFill";
+
+/// `open_live`, with the levels of `fill_levels` (take-profit, stop) put at
+/// the real fill instead of the signal's (see `levels_after_fill`).
+#[allow(clippy::too_many_arguments)]
+pub async fn open_live_with(
+    app: &AppHandle,
+    cfg: &BotConfig,
+    sig: &Signal,
+    live_price: f64,
+    notional: f64,
+    leverage_cap: u8,
+    target: TakeProfitTarget,
+    fill_levels: Option<(super::user_trade::Level, super::user_trade::Level)>,
+) -> Result<LiveOpen, LiveRefusal> {
     let exchange = app.state::<ExchangeManager>();
     let bots = app.state::<BotManager>();
     let Some(cred) = app.state::<VaultManager>().credential(&cfg.exchange_id) else {
-        return Err(SKIP_VAULT_LOCKED);
+        return Err(SKIP_VAULT_LOCKED.into());
     };
     let long = sig.direction == Direction::Long;
     let symbol = sig.symbol.as_str();
@@ -166,8 +238,8 @@ pub async fn open_live(
     // leg. Refuse before any order exists.
     match exchange.hedge_mode(&cred, symbol).await {
         Ok(false) => {}
-        Ok(true) => return Err(SKIP_HEDGE_MODE),
-        Err(_) => return Err(SKIP_EXCHANGE_CHECK_FAILED),
+        Ok(true) => return Err(SKIP_HEDGE_MODE.into()),
+        Err(_) => return Err(SKIP_EXCHANGE_CHECK_FAILED.into()),
     }
     // One exchange position per symbol. Two book positions on one symbol
     // (e.g. 1h and 4h signals) would net into ONE exchange position whose
@@ -185,14 +257,14 @@ pub async fn open_live(
     // order: a signal position there would net into its position.
     let held_by_strategy = crate::bot::strategy_live::owns_symbol(app, symbol);
     if held_in_book || held_by_strategy || account.positions.iter().any(|p| p.symbol == symbol) {
-        return Err(SKIP_SYMBOL_HELD);
+        return Err(SKIP_SYMBOL_HELD.into());
     }
     // A leftover order on a flat symbol (an old closePosition stop, the
     // user's own limit) would act on the position we are about to open.
     match exchange.open_order_count(&cred, symbol).await {
         Ok(0) => {}
-        Ok(_) => return Err(SKIP_SYMBOL_HAS_ORDERS),
-        Err(_) => return Err(SKIP_EXCHANGE_CHECK_FAILED),
+        Ok(_) => return Err(SKIP_SYMBOL_HAS_ORDERS.into()),
+        Err(_) => return Err(SKIP_EXCHANGE_CHECK_FAILED.into()),
     }
 
     let rules = exchange
@@ -200,12 +272,12 @@ pub async fn open_live(
         .await
         .map_err(|e| setup_failure_skip(&e))?;
     if !rules.trading {
-        return Err(SKIP_SYMBOL_NOT_TRADING);
+        return Err(SKIP_SYMBOL_NOT_TRADING.into());
     }
     let leverage = exchange_leverage(notional, cfg.capital, leverage_cap);
     let stop_frac = (live_price - sig.sl).abs() / live_price;
     if stop_beyond_liquidation(stop_frac, leverage) {
-        return Err(SKIP_STOP_BEYOND_LIQUIDATION);
+        return Err(SKIP_STOP_BEYOND_LIQUIDATION.into());
     }
     // Isolated margin at the leverage the sizing assumed: on CROSS (Binance's
     // default) the whole wallet backs the position, and a symbol left at 20x
@@ -227,17 +299,13 @@ pub async fn open_live(
     // Capped to the largest single MARKET order: only ever less than sized.
     // Pilot: the first real entries after LIVE is switched on are capped
     // (just above the symbol's minimum when that is higher).
-    let notional = if bots.pilot_left(cfg.kind) > 0 {
-        notional.min(super::super::model::PILOT_NOTIONAL_USDT.max(rules.min_notional * 1.1))
-    } else {
-        notional
-    };
+    let notional = pilot_notional(notional, bots.pilot_left(cfg.kind), rules.min_notional);
     let mut qty = quantize_qty(notional / live_price, rules.lot);
     if let Some(max) = rules.market_max_qty {
         qty = qty.min(quantize_qty(max, rules.lot));
     }
     if qty <= 0.0 || qty * live_price < rules.min_notional {
-        return Err(SKIP_QTY_BELOW_MIN);
+        return Err(SKIP_QTY_BELOW_MIN.into());
     }
     let client_id = entry_client_id(&sig.id);
     let fill = match exchange
@@ -246,13 +314,15 @@ pub async fn open_live(
     {
         Ok(fill) => fill,
         // Never sent (no connection, rate-limit hold): nothing happened.
-        Err(E::NetworkUnavailable | E::RateLimited) => return Err(SKIP_EXCHANGE_CHECK_FAILED),
+        Err(E::NetworkUnavailable | E::RateLimited) => return Err(SKIP_EXCHANGE_CHECK_FAILED.into()),
         Err(E::Unknown) => {
             match resolve_unknown_entry(&exchange, &cred, symbol, long, &client_id).await {
                 Ok(fill) => fill,
                 Err(skip) => {
                     bots.push_skip(symbol, skip, None);
-                    return Err(skip);
+                    // Sent and never confirmed either way: the caller must
+                    // never send it again (the lookup can still find it).
+                    return Err(LiveRefusal { key: skip, outcome_unknown: true });
                 }
             }
         }
@@ -261,7 +331,44 @@ pub async fn open_live(
             return Err(match setup_failure_skip(&e) {
                 SKIP_EXCHANGE_CHECK_FAILED => SKIP_ORDER_FAILED,
                 skip => skip,
-            })
+            }
+            .into())
+        }
+    };
+
+    // Levels given as a percent are put at the real fill, then re-checked
+    // against it: a fill that makes them unusable is flattened, never left
+    // with a stop on the wrong side.
+    let at_fill;
+    let sig = match fill_levels {
+        None => sig,
+        Some(levels) => {
+            let fee = super::user_trade::round_trip_fee(cfg.kind);
+            match levels_after_fill(sig.direction, fill.avg_price, levels, leverage, fee) {
+                Ok((tp, sl)) => {
+                    let mut s = sig.clone();
+                    (s.tp, s.sl) = (vec![tp], sl);
+                    at_fill = s;
+                    &at_fill
+                }
+                Err(_) => {
+                    if flatten_confirmed(&exchange, &cred, symbol, long, fill.executed_qty).await {
+                        bots.push_skip(symbol, SKIP_LEVELS_AFTER_FILL, None);
+                        return Err(SKIP_LEVELS_AFTER_FILL.into());
+                    }
+                    // Still exposed: the book flattens it every tick.
+                    bots.push_skip(symbol, NOTE_UNPROTECTED, None);
+                    return Ok(LiveOpen {
+                        entry: fill.avg_price,
+                        qty: fill.executed_qty,
+                        entry_order_id: fill.order_id,
+                        stop_algo_id: None,
+                        tp_algo_id: None,
+                        tp: TpResolution::signal_tp1(sig),
+                        sl: sig.sl,
+                    });
+                }
+            }
         }
     };
 
@@ -276,6 +383,7 @@ pub async fn open_live(
         stop_algo_id: protection.stop_algo_id,
         tp_algo_id: protection.tp_algo_id,
         tp: protection.tp,
+        sl: sig.sl,
     })
 }
 
@@ -481,26 +589,23 @@ mod tests {
         }
     }
 
-    // The master switch is false in this build, so NOTHING may be considered
-    // live — not even a fully opted-in Binance futures bot, in any direction
-    // or configuration. This test is the contract that shipping the live path
-    // changes no behaviour.
-    #[cfg(not(feature = "live"))]
+    // The one build has the order path, so the arm is what stands between a
+    // bot and real orders: a bot not armed this session is never live, in
+    // any mode, venue, kind or direction (a Live bot restored from disk
+    // included: its arm is never restored).
     #[test]
-    fn master_switch_off_means_never_live() {
-        // Checked at compile time: this build cannot even compile with it on.
-        const _: () = assert!(!LIVE_TRADING_ENABLED);
+    fn a_bot_not_armed_this_session_is_never_live() {
+        const _: () = assert!(LIVE_TRADING_ENABLED);
         for exchange in ["binance", "okx", "bybit"] {
-            for live in [true, false] {
-                for kind in [BotKind::Futures, BotKind::Spot, BotKind::Pump] {
-                    let mut c = cfg(live, exchange);
-                    c.kind = kind;
+            for mode in [crate::bot::model::TradeMode::Paper, crate::bot::model::TradeMode::Live] {
+                for kind in crate::bot::ALL_KINDS {
+                    let mut c = cfg(false, exchange);
+                    (c.kind, c.mode) = (kind, mode);
                     for direction in [None, Some("long".to_string()), Some("short".to_string())] {
                         c.direction = direction;
-                        assert!(
-                            !live_trading_allowed(&c, kind),
-                            "{exchange} {live} {kind:?}"
-                        );
+                        for sandbox in [false, true] {
+                            assert!(!live_trading_allowed_in(&c, kind, sandbox), "{exchange} {mode:?} {kind:?} {sandbox}");
+                        }
                     }
                 }
             }
@@ -509,6 +614,51 @@ mod tests {
 
     // The rest of the gate chain, so a future master-switch flip cannot
     // silently widen the surface: spot, pump and non-Binance stay excluded.
+    #[test]
+    fn the_pilot_caps_the_first_real_entries_of_each_bot_on_its_own() {
+        assert_eq!(pilot_notional(200.0, 3, 5.0), 50.0);
+        assert_eq!(pilot_notional(30.0, 1, 5.0), 30.0, "below the cap: as sized");
+        assert!((pilot_notional(200.0, 2, 100.0) - 110.0).abs() < 1e-9, "the symbol minimum is higher");
+        assert_eq!(pilot_notional(200.0, 0, 5.0), 200.0, "pilot over");
+        // The counter is per bot: TradingView entries never use up the
+        // Futures bot's pilot, nor the other way round.
+        let bots = BotManager::new();
+        bots.set_pilot(BotKind::Futures, crate::bot::model::PILOT_TRADES);
+        bots.set_pilot(BotKind::Tradingview, crate::bot::model::PILOT_TRADES);
+        for _ in 0..3 {
+            bots.pilot_used(BotKind::Tradingview);
+        }
+        assert_eq!(bots.pilot_left(BotKind::Tradingview), 0);
+        assert_eq!(bots.pilot_left(BotKind::Futures), 3);
+        bots.pilot_used(BotKind::Tradingview);
+        assert_eq!(bots.pilot_left(BotKind::Tradingview), 0, "never below zero");
+    }
+
+    #[test]
+    fn percent_levels_are_put_at_the_real_fill_and_rechecked() {
+        use super::super::user_trade::Level;
+        let fee = 0.001;
+        // Planned at 100, filled at 101: 3% / 1.5% from the fill, not from 100.
+        let (tp, sl) = levels_after_fill(Direction::Long, 101.0, (Level::Pct(3.0), Level::Pct(1.5)), 3, fee).unwrap();
+        assert!((tp - 104.03).abs() < 1e-9 && (sl - 99.485).abs() < 1e-9, "{tp} {sl}");
+        let (tp, sl) = levels_after_fill(Direction::Short, 99.0, (Level::Pct(3.0), Level::Pct(1.5)), 3, fee).unwrap();
+        assert!((tp - 96.03).abs() < 1e-9 && (sl - 100.485).abs() < 1e-9, "{tp} {sl}");
+        // A price stop the fill slipped through: the stop is now on the wrong side.
+        assert_eq!(
+            levels_after_fill(Direction::Long, 99.0, (Level::Price(110.0), Level::Price(99.5)), 3, fee),
+            Err("tradeStopWrongSide".to_string())
+        );
+        // A stop past the liquidation price at the leverage the order ran.
+        assert_eq!(
+            levels_after_fill(Direction::Long, 100.0, (Level::Pct(20.0), Level::Pct(9.0)), 20, fee),
+            Err(SKIP_STOP_BEYOND_LIQUIDATION.to_string())
+        );
+        // Inside both fees after the fill.
+        assert!(levels_after_fill(Direction::Long, 100.0, (Level::Pct(5.0), Level::Pct(0.05)), 3, fee)
+            .unwrap_err()
+            .starts_with("tradeStopInsideFees|"));
+    }
+
     #[test]
     fn exchange_leverage_puts_the_margin_at_the_capital() {
         assert_eq!(exchange_leverage(250.0, 100.0, 5), 3, "2.5x rounds up");
@@ -583,8 +733,13 @@ mod tests {
                 assert!(!live_trading_allowed_in(&cfg(false, venue), BotKind::Futures, sandbox), "{venue}");
             }
         }
-        // The dry-run venue follows the build switch.
+        // The dry-run venue follows the build switch, for the Futures bot and
+        // the TradingView bot (both USDT-M futures) only.
         assert_eq!(live_trading_allowed_in(&cfg(true, "binance"), BotKind::Futures, false), LIVE_TRADING_ENABLED);
+        assert_eq!(live_trading_allowed_in(&cfg(true, "binance"), BotKind::Tradingview, false), LIVE_TRADING_ENABLED);
+        for venue in ["bybit", "okx", "mexc", "bitget"] {
+            assert!(!live_trading_allowed_in(&cfg(true, venue), BotKind::Tradingview, false), "{venue}");
+        }
         // No dry run passed: never real money, even with the build switch on
         // and a config that says live (e.g. one kept from an older version)...
         for venue in ["bybit", "okx"] {

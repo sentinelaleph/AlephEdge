@@ -334,9 +334,9 @@ pub fn is_due(last_ms: u64, now_ms: u64) -> bool {
 pub async fn reconcile_phase(app: &AppHandle) {
     let bots = app.state::<BotManager>();
     let positions = bots.positions_snapshot();
-    let live_bot = bots
-        .config_for(BotKind::Futures)
-        .is_some_and(|c| live_trading_allowed(&c, BotKind::Futures));
+    let armed_venue = |kind: BotKind| bots.config_for(kind).filter(|c| live_trading_allowed(c, kind)).map(|c| c.exchange_id);
+    let tv_venue = armed_venue(BotKind::Tradingview);
+    let live_bot = armed_venue(BotKind::Futures).is_some() || tv_venue.is_some();
     if !live_bot && !positions.iter().any(|p| p.is_live()) {
         return;
     }
@@ -355,7 +355,14 @@ pub async fn reconcile_phase(app: &AppHandle) {
         .filter(|c| live_trading_allowed(c, BotKind::Futures))
         .map(|c| c.exchange_id);
     let live_positions: Vec<OpenPosition> = positions.iter().filter(|p| p.is_live()).cloned().collect();
-    for venue in reconcile_venues(bot_venue.as_deref(), &live_positions) {
+    let mut venues = reconcile_venues(bot_venue.as_deref(), &live_positions);
+    // The armed TradingView bot's venue too: an alert entry whose outcome
+    // was lost shows there as untracked exposure until tvlink's lookup
+    // adopts it (it is never attributed to a Sentinel signal here).
+    if let Some(v) = tv_venue.filter(|v| !venues.contains(v)) {
+        venues.push(v);
+    }
+    for venue in venues {
         reconcile_venue(app, &venue, &live_positions).await;
     }
 }

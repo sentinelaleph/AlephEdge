@@ -16,6 +16,7 @@ import {
   telegramSetMode,
   telegramSetPrefs,
   telegramSetToken,
+  telegramStartOver,
   telegramStatus,
   telegramTest,
   type TelegramMode,
@@ -171,6 +172,16 @@ export function TelegramPanel() {
 
   return (
     <Panel title={t("settings.telegram.title")} aside={chip}>
+      {st.settingsUnreadable !== undefined ? (
+        <div className="ae-banner" data-tone="danger" role="alert">
+          <span>
+            {t(st.settingsUnreadable ? "liveMode.telegramUnreadable.kept" : "liveMode.telegramUnreadable.notKept", { key: st.settingsUnreadable })}
+          </span>
+          <Button size="xs" disabled={busy} onClick={() => void run(() => telegramStartOver())}>
+            {t("liveMode.telegramUnreadable.startOver")}
+          </Button>
+        </div>
+      ) : null}
       <div className="ae-tg__mode">
         <SegmentedControl
           label={t("settings.telegram.mode.label")}

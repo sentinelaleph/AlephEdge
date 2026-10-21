@@ -24,6 +24,7 @@ import { MinimumOrderBanner } from "@/components/BotDesk/MinimumOrderBanner/Mini
 import { signalBotRows, type BotRow } from "./botRows";
 import { BotStateChip, SignalRowAction } from "./BotsTable";
 import { SignalBotForm } from "./signal/SignalBotForm";
+import { useSignalLive } from "./signal/useSignalLive";
 import "./bots.css";
 import { MarketTrendPanel } from "@/components/Desk/MarketTrend";
 
@@ -70,7 +71,7 @@ export function SignalBotsPage() {
   const positions = kindFilter.length ? s.openPositions.filter((p) => kindFilter.includes(p.botKind)) : s.openPositions;
   const skips = reasonFilter.length ? s.recentSkips.filter((n) => reasonFilter.includes(n.reason)) : s.recentSkips;
   const groups = groupSkips(s.recentSkips);
-  const anyLive = KINDS.some((k) => s[k]?.live === true);
+  const anyLive = KINDS.some((k) => s[k]?.live === true && (k === "futures" ? s.futuresRunning : k === "spot" ? s.spotRunning : s.pumpRunning));
   const today = utcDayStart();
   const maxLeverage = risk.state?.limits.maxLeverage ?? null;
   const exchanges = catalog.exchanges;
@@ -82,6 +83,7 @@ export function SignalBotsPage() {
   };
 
   const money = useSignalBotMoney();
+  const signalLive = useSignalLive(selected);
   const columns: DataColumn<BotRow>[] = [
     {
       id: "name",
@@ -92,7 +94,8 @@ export function SignalBotsPage() {
             {t(`bots.kind.${r.kind}`)}
           </Link>
           {r.untested ? <UntestedChip title={t("bots.pumpNote")} /> : null}
-          {r.live ? <LiveChip /> : s.liveTradingEnabled && r.config ? <PaperChip /> : null}
+          {r.live ? <LiveChip /> : r.config ? <PaperChip /> : null}
+          {r.live && !r.armed ? <span className="ae-subtle">{t("liveMode.header.needsArm")}</span> : null}
         </span>
       ),
     },
@@ -267,24 +270,14 @@ export function SignalBotsPage() {
               maxCapitalQuote={maxCapitalQuote}
               levelMaxPositions={risk.state?.limits.maxConcurrentPositions ?? null}
               exchanges={exchanges}
-              live={
-                selected === "futures" && s.liveTradingEnabled
-                  ? {
-                      binanceIsProduction: s.binanceIsProduction,
-                      onSetLive: (enabled, confirmation) => desk.setLive("futures", enabled, confirmation),
-                      pilotLeft: desk.status.pilotLeft ?? 0,
-                      onEndPilot: () => desk.endPilot("futures"),
-                      liveVenues: s.liveVenues,
-                      venueSandbox: s.venueSandbox,
-                    }
-                  : undefined
-              }
+              live={signalLive.control}
               onStart={(c) => void desk.configureAndStart(c)}
               onStop={() => void desk.stop(selected)}
             />
           ) : catalog.error ? null : (
             <p className="ae-subtle">{t("workspace.loading")}</p>
           )}
+          {signalLive.dialog}
         </Section>
       </div>
     </PageShell>

@@ -8,15 +8,13 @@
 
 Aleph Edge is a Rust + [Tauri 2](https://tauri.app) desktop application with a React front end. Windows is the primary target; the code builds wherever Tauri does.
 
-**What it is in five lines**
+In five lines:
 
 - **Simulation first.** Every bot starts on paper, on live Binance prices, with fees, slippage and funding charged.
 - **Your keys never leave your device.** There is no Aleph Edge server that could hold them. Only verified trade-only keys are accepted.
-- **Real orders are a separate, deliberate build.** The default build cannot place an automated order at all.
+- **Real orders are opt-in per bot.** Every bot starts on Paper; a Live bot needs the typed `LIVE` and a verified trade-only key.
 - **Nothing is sold on a track record.** Templates ship with the result of their historical test, including the ones that failed.
 - **Eight languages, light and dark themes:** English, Türkçe, Español, हिन्दी, Bahasa Indonesia, Português (Brasil), Русский, Tiếng Việt.
-
----
 
 ## Contents
 
@@ -42,8 +40,6 @@ Aleph Edge is a Rust + [Tauri 2](https://tauri.app) desktop application with a R
 - [Security surfaces](#security-surfaces)
 - [Project layout](#project-layout)
 - [Licence](#licence)
-
----
 
 ## Features
 
@@ -149,7 +145,7 @@ Every closed trade and what it adds up to: net P&L, win rate (exits at the targe
 - A **daily stop** on realized losses stops the signal bots and can close their open positions; they cannot be started again until the next UTC day (DCA and Grid are accounted for separately).
 - A **portfolio breaker** closes the DCA and Grid bots inside it when their combined loss reaches 15% of their budgets.
 - The **BTC regime** read is shown live and gates entries.
-- The **LIVE gate** states whether this build can place real orders at all.
+- The **LIVE readiness** list checks everything a Live bot depends on (key, venue, account, clock, kill switch, Sentinel stream) before real money.
 - **Emergency** controls stop every bot and close every simulated cycle, behind a confirmation.
 
 ### Exchange key vault
@@ -173,24 +169,23 @@ Settings lists its sections with their current state: language and theme, which 
 
 Pair a phone by QR code under Settings, Devices. The desk accepts signed, single-use, time-limited pairing and HMAC-verified messages through a relay that carries messages but cannot originate them. The mobile app itself is not published yet.
 
----
-
 ## Simulation and real orders
 
-| | Default build | Live build (`--features live`) |
+One build for everyone. Every bot is **Paper** or **Live**, chosen when it is made (Paper is the default) and shown on the bot from then on.
+
+| | Paper bot | Live bot |
 |---|---|---|
-| Signal bots | Simulation | Simulation, or real orders per bot after a typed `LIVE` opt-in |
-| DCA and Grid bots | Simulation | Simulation, or real orders per Binance Futures bot after the same typed `LIVE` opt-in |
-| Execute → Take this signal now | Simulation | Simulation |
+| Signal bots (Futures) | Simulation | Real orders, Binance USD-M futures |
+| DCA and Grid bots (futures) | Simulation | The simulation decides; the difference is mirrored as real market orders under one exchange stop |
+| New trade | Simulation | Real order with exchange stop and take-profit (on the Live Futures bot) |
+| TradingView alerts | Simulation | Real orders, Binance USD-M futures (spot alerts stay paper) |
 | Manual close on the exchange tab | Real reduce-only orders | Real reduce-only orders |
 
-Real automated orders need all of these at once: a build compiled with the `live` feature, a Futures bot on Binance, the typed `LIVE` confirmation for that bot, and a verified trade-only key in an unlocked vault. Bybit and OKX are refused for real orders until each passes an end-to-end run on its own test network. A position's live flag read back from disk is checked against the same compile-time switch, so a file cannot turn trading on.
+Real automated orders need all of these at once: a Live bot (chosen with the typed `LIVE` and the money at risk shown: margin, leverage cap, pilot), its per-session arm (the typed `LIVE` again after every restart; a Live bot comes back stopped), a Futures bot on a venue whose order path passed its test-network run (Binance), and a verified trade-only key in an unlocked vault. Pilot caps, the daily stop, the risk level's leverage cap and the kill switch apply to every Live bot; **Stop all live** in the top bar stops and disarms them all. A real position row on a Paper bot is held out of the book, so a line in a file cannot send an order. Paper and real results are never mixed.
 
 The manual **Close position** and **Close all** on the exchange tab are the exception in every build: they send real reduce-only market orders on Binance, Bybit or OKX so you can flatten an account the desk is watching. They cannot open a position or move funds, and they sit behind a typed confirmation.
 
-Try a live build on the **Binance Futures testnet** first (see [Configuration](#configuration)); the top bar then shows TESTNET.
-
----
+Try a Live bot on the **Binance Futures testnet** first (see [Configuration](#configuration)); the top bar then shows TESTNET.
 
 ## What this is not
 
@@ -202,13 +197,11 @@ Try a live build on the **Binance Futures testnet** first (see [Configuration](#
 
 **Not independently audited.** It has been through internal adversarial reviews; the defects that could move money were fixed before publication. It handles exchange credentials: read the vault code before you trust it with a key that can trade.
 
----
-
 ## Honesty
 
 The signal system this desk consumes has been measured on its own history, and the measurements are not flattering. They are published here because a reader will find them anyway.
 
-**Entry selection carries no measurable information.** Three independent tests, three nulls:
+**Entry selection carries no measurable information.** Three independent tests found nothing:
 
 | Test | What it asks | Result |
 |---|---|---|
@@ -216,7 +209,7 @@ The signal system this desk consumes has been measured on its own history, and t
 | Information coefficient | Does the score rank one signal above another? | **−0.002** |
 | Drift-aware placebo | Does entry *timing* beat a random entry on the same tape? | **−1.6pp** |
 
-The placebo is the one that matters: 1,335 real signals against 6,581 random-timed entries on the same symbols and the same geometry. Ours won 47.9% of the time, random timing won 49.5%.
+The placebo test is the most direct: 1,335 real signals against 6,581 random-timed entries on the same symbols and the same geometry. Ours won 47.9% of the time, random timing won 49.5%.
 
 **The published win rate is mostly geometry and drift, not selection.** At a 2.5×ATR stop and the target used, a driftless entry earns roughly 62% by the barrier law alone. Any headline number has to be read against that baseline, not against 50%.
 
@@ -224,16 +217,12 @@ The placebo is the one that matters: 1,335 real signals against 6,581 random-tim
 
 **Failures are real and visible.** Wins land near +2.3%, losses near −3.8%. A run of stop-outs is the expected behaviour of a system with no entry edge, not a malfunction.
 
----
-
 ## Download
 
-The Windows x64 installer is on the [Releases](https://github.com/sentinelaleph/AlephEdge/releases) page and on [ribqa.com/edge](https://ribqa.com/edge), which also has a screen-by-screen user guide. It is the default build: paper trading only, with the manual close buttons described above. Windows 10 or 11, 64-bit. A macOS build is not released yet.
+The Windows x64 installer is on the [Releases](https://github.com/sentinelaleph/AlephEdge/releases) page and on [ribqa.com/edge](https://ribqa.com/edge), which also has a screen-by-screen user guide. It is the one build for everyone: every bot starts as Paper, and Live is chosen per bot as described above. Windows 10 or 11, 64-bit. A macOS build is not released yet.
 
 - The installer is not Authenticode-signed yet. Windows SmartScreen shows a warning: choose **More info**, then **Run anyway**. Each release lists the installer's SHA-256.
 - Updates install from inside the app. It checks the feed at launch and every 6 hours, and **Settings → About** has a manual check. An update installs only if its signature matches the public key built into the app. 0.2.0 and later update themselves; 0.1.0 needs one manual install. The TESTNET build never reads the public feed.
-
----
 
 ## Build
 
@@ -261,16 +250,10 @@ npm run dev
 
 Then open `http://localhost:1420/?shot=dashboard` (other screens: `bots`, `dca-new`, `grid-new`, `presets`, `backtest-report`, `guide`, `positions`, `risk`, `accounts`).
 
-Production bundle (simulation only):
+Production bundle (the one build; every bot starts on paper):
 
 ```bash
 npm run tauri build
-```
-
-Live build, able to place real orders after the per-bot opt-in:
-
-```bash
-npm run tauri build -- --features live
 ```
 
 Tests:
@@ -282,8 +265,6 @@ npm test
 ```bash
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
-
----
 
 ## Configuration
 
@@ -298,8 +279,6 @@ ALEPH_EDGE_VAULT_IDLE_MINUTES    default auto-lock, 1-1440; the choice made in S
 
 The front end carries no host at all; it asks the Rust core for every endpoint. The CSP and the update public key are pinned in `src-tauri/tauri.conf.json`.
 
----
-
 ## Security surfaces
 
 If you are reading this repository with an attacker's eye, these are the places worth your time:
@@ -310,13 +289,11 @@ If you are reading this repository with an attacker's eye, these are the places 
 
 **The relay trust boundary:** the relay is supposed to carry messages, not originate them. Assume you own the relay: what can you do?
 
-**The automated-trading gate:** `live_trading_allowed()` in `src-tauri/src/bot/engine/live.rs` and `bot_set_live` in `src-tauri/src/bot/commands.rs`. Try to reach an automated order without the `live` feature, the per-bot opt-in, a Futures bot on Binance and a verified trade-only key.
+**The automated-trading gate:** `live_trading_allowed()` in `src-tauri/src/bot/engine/live.rs`, `bot_set_live` in `src-tauri/src/bot/commands.rs` and `strategy_set_live` / `strategy_create_live` / `strategy_arm_live` in `src-tauri/src/bot/strategy_live.rs`. Try to reach an automated order without a Live bot, its per-session typed arm, a Futures bot on Binance and a verified trade-only key.
 
 **The manual close commands:** `exchange_close_position` and `exchange_close_all` in `src-tauri/src/exchange/commands.rs` send real orders by design. Anything able to run script in the webview could invoke them while the vault is unlocked. If you find a way to reach them without the user pressing the button, tell us.
 
 Report security issues to <support@ribqa.com> with "security" in the subject, and give us a chance to fix them before publishing.
-
----
 
 ## Project layout
 
@@ -330,8 +307,6 @@ src-tauri/src/membership/ sign-in and session refresh against Sentinel
 crates/aleph-link         pairing and message protocol (shared)
 crates/aleph-desk-link    desk side of the phone link
 ```
-
----
 
 ## Licence
 

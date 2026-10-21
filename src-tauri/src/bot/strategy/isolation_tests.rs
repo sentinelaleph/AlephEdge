@@ -2,7 +2,7 @@
 //! exchange; it is the decision book, and its rows stay paper rows. Real money
 //! for these bots goes only through `bot/strategy_live.rs` (live builds, typed
 //! LIVE per bot), which mirrors the simulated position with market orders.
-//! These tests hold under `--features live` too.
+//! These tests hold in the one build, which always has the live order path.
 
 use std::path::Path;
 

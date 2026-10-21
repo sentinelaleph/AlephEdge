@@ -198,7 +198,8 @@
     "kind": {
       "futures": "Futuros",
       "spot": "Spot",
-      "pump": "Pump"
+      "pump": "Pump",
+      "tradingview": "TradingView"
     },
     "capital": "Capital por posição (USDT)",
     "maxPositions": "Posições simultâneas máx.",
@@ -243,7 +244,7 @@
       "marketHeld": "Já há posição neste símbolo e timeframe · nova tentativa depois",
       "invalidatedHeld": "O Sentinel invalidou um sinal em posição · posição mantida",
       "vetoClosed": "{{count}} posição(ões) fechada(s) por um veto do Sentinel: {{detail}}",
-      "superseded": "Substituído · trocado por um sinal regenerado",
+      "superseded": "Substituído por um sinal regenerado",
       "signalResolved": "Sinal já resolvido (alvo ou stop) · tarde demais para entrar",
       "signalStatusUnknown": "Status do sinal não confirmado · bot real não entra às cegas",
       "signalParseError": "Não foi possível ler o sinal ({{detail}})",
@@ -289,7 +290,14 @@
       "settledPositionDropped": "Já fechada no Histórico · a linha aberta que sobrou foi removida na inicialização",
       "belowExchangeMinimum": "A ordem seria de {{detail}} USDT, abaixo do mínimo da corretora de 5 USDT",
       "manualOpened": "Aberta à mão pelo Execute · simulado",
-      "userTradeOpened": "Nova operação aberta · seus níveis · simulada"
+      "userTradeOpened": "Nova operação aberta · seus níveis · simulada",
+      "liveDisarmedStopped": "Bot real parado e desarmado: o tamanho mudou. Inicie de novo com LIVE",
+      "liveBotMapped": "Mantido como bot real: operou com dinheiro real na versão LIVE. Aguarda parado por LIVE",
+      "liveRowOnPaperBot": "Registro de posição real num bot de papel, fora do livro",
+      "telegramSettingsUnreadable": "Ajustes do Telegram ilegíveis: cópia guardada, Telegram desligado até configurar de novo",
+      "tvAlertOpened": "Alerta do TradingView aberto",
+      "tvLateFillAdopted": "Alerta do TradingView: uma execução tardia foi encontrada e protegida",
+      "liveLevelsAfterFill": "A execução tornou os níveis do alerta inutilizáveis · posição fechada"
     },
     "exchange": "Corretora",
     "signalFilter": "Filtro de sinal",
@@ -333,7 +341,7 @@
           "body": "O corte por perda diária para todos os bots · alavancagem limitada pelo nível de risco · entrada recusada se o preço cruzou alvo ou stop"
         },
         "localFirst": {
-          "title": "Suas chaves, sua máquina",
+          "title": "As chaves ficam no seu computador",
           "body": "Chaves em um cofre local criptografado · sem custódia · ordens reais desligadas por padrão · o stop-loss real fica na corretora"
         }
       }
@@ -369,7 +377,7 @@
       "fallbackTooltip": "O sinal não tinha {{from}}; foi usado o alvo mais alto dele.",
       "horizonExit": "Fecha no horizonte se o alvo não for atingido"
     },
-    "actionFailed": "Isso não funcionou. Tente novamente.",
+    "actionFailed": "A ação falhou. Tente novamente.",
     "defaultsFailed": "Não foi possível carregar as configurações padrão do bot.",
     "leverageCapLabel": "Alavancagem máx. (teto {{max}}x)",
     "leverageCapHint": "Teto, não tamanho · o dimensionamento por risco pode usar menos",
@@ -403,21 +411,10 @@
       "hasSignal": "sinal"
     },
     "live": {
-      "title": "Dinheiro real",
-      "stateSimulated": "Simulado",
-      "switchOn": "Mudar para dinheiro real",
-      "switchOff": "Mudar para simulado",
-      "saveFirst": "Inicie o bot uma vez para salvar as configurações antes de mudar para dinheiro real.",
-      "confirmTitle": "Operar com dinheiro real neste bot",
+      "switchOff": "Mudar para papel",
       "targetProduction": "As ordens vão para a Binance produção, na sua conta real.",
       "targetTestnet": "As ordens vão para a testnet da Binance, não para produção.",
-      "terms": "Configurações salvas: {{capital}} USDT por posição, até {{positions}} posições, alavancagem máxima {{leverage}}x.",
-      "restartNote": "O dinheiro real é desligado de novo quando o app reinicia.",
-      "typePrompt": "Digite {{word}} para confirmar",
-      "confirm": "Confirmar dinheiro real",
-      "cancel": "Cancelar",
       "failed": "Não foi possível alterar a configuração de dinheiro real.",
-      "sizingTurnedOff": "LIVE foi desativado porque o capital, a alavancagem ou o limite de posições mudou. Confirme o novo tamanho com LIVE de novo.",
       "pilot": "Piloto: restam {{count}} entradas reais de até {{cap}} USDT cada.",
       "endPilot": "Encerrar piloto",
       "targetVenue": "As ordens vão para a {{exchange}}, na sua conta real.",
@@ -496,8 +493,9 @@
     "commission": "taxa {{amount}} USDT",
     "scope": {
       "label": "Escopo das estatísticas",
-      "simulated": "Simulado",
-      "real": "Dinheiro real"
+      "simulated": "Papel",
+      "real": "Dinheiro real",
+      "realTestnet": "Testnet"
     },
     "col": {
       "ledger": "Livro %"
@@ -563,8 +561,7 @@
       "botRunningHint": "Inicie um bot configurado",
       "firstPreset": "Primeiro bot recomendado: {{name}} · passou no teste"
     },
-    "liveLockedNote": "Trading real: bloqueado · Só simulado",
-    "liveAvailableNote": "Trading real: disponível · desligado até ativar por bot"
+    "liveAvailableNote": "Operação real: por bot, desligada até você escolher Real"
   },
   "nav": {
     "label": "Navegação principal",
@@ -615,18 +612,9 @@
     "more": "Mais",
     "guide": "Guia",
     "faq": "Perguntas frequentes",
-    "scope": {
-      "paperBuild": "Só simulado",
-      "liveAvailable": "Simulado · Ao vivo desligado",
-      "live": "LIVE · {{n}}"
-    },
-    "scopeTooltip": {
-      "paperBuild": "Esta versão opera só em modo simulado: execuções simuladas, sem ordens reais. Clique para ver como funciona o dinheiro real.",
-      "liveAvailable": "Esta versão pode operar com dinheiro real em Futuros da {{venues}}. Nenhum bot opera agora: todos estão em modo simulado. O dinheiro real é ativado por bot (digitando LIVE). Clique para detalhes.",
-      "live": "{{n}} bots operam com dinheiro real. LIVE é ativado por bot. Clique para detalhes."
-    },
     "beforeYouTrade": "Antes de operar",
-    "assistant": "Assistente"
+    "assistant": "Assistente",
+    "tvBot": "Bot do TradingView"
   },
   "page": {
     "botNew": "Novo bot",
@@ -635,10 +623,12 @@
     "botDetail": "Bot",
     "presetDetail": "Preset",
     "backtestReport": "Relatório de backtest",
-    "notFound": "Página não encontrada"
+    "notFound": "Página não encontrada",
+    "tvBot": "Bot do TradingView"
   },
   "states": {
     "paper": "Simulado",
+    "live": "Real",
     "clearFilters": "Limpar filtros",
     "asOf": "Em",
     "cancel": "Cancelar",
@@ -713,7 +703,8 @@
     "type": {
       "signal": "Sinal",
       "dca": "DCA",
-      "grid": "Grid"
+      "grid": "Grid",
+      "tradingview": "TradingView"
     },
     "selectAll": "Selecionar todos os bots",
     "selectRow": "Selecionar {{name}}",
@@ -721,7 +712,9 @@
     "blocked": {
       "killSwitch": "Início recusado: o stop diário foi acionado. Reinício liberado após 00:00 UTC.",
       "notConfigured": "Iniciar exige configurações salvas: abra o bot e salve-as.",
-      "capitalAboveCap": "O capital por posição está acima do teto do nível de risco: reduza-o nas configurações do bot."
+      "capitalAboveCap": "O capital por posição está acima do teto do nível de risco: reduza-o nas configurações do bot.",
+      "tradingBlocked": "Início recusado: ajustes de risco ou dados locais ilegíveis.",
+      "liveArm": "Bot real: inicie pelos ajustes dele, com LIVE."
     },
     "totals": {
       "bots": "Bots",
@@ -753,35 +746,37 @@
     "type": {
       "signal": "Bot de sinais (Sentinel)",
       "dca": "Bot DCA",
-      "grid": "Bot grid"
+      "grid": "Bot grid",
+      "tradingview": "Bot do TradingView"
     },
     "suitsLabel": "Indicado para",
     "suits": {
       "signal": "Guiado por sinais",
       "trend": "Tendência",
-      "range": "Lateral"
+      "range": "Lateral",
+      "tradingview": "Seus próprios alertas"
     },
     "mode": {
       "title": "Simulado e dinheiro real",
-      "liveBuildLine": "Simulado por padrão; dinheiro real é ativado por bot, só em Futuros, após as verificações ao vivo",
+      "liveBuildLine": "Papel por padrão; Real é escolhido por bot, só Futuros, digitando LIVE",
       "paperHead": "Simulado: todo bot novo começa aqui",
       "paperBody": "Execuções simuladas a preços ao vivo, taxas incluídas. Nenhuma ordem chega à corretora; nada pode ser perdido.",
-      "realHead": "Dinheiro real: por bot, depois de criado",
-      "realBody": "Só em Futuros USDT-M da {{venues}}: o bot de sinais de Futuros e bots DCA ou Grid configurados em Futuros nessa corretora. Spot fica simulado.",
+      "realHead": "Real: escolhido ao criar o bot",
+      "realBody": "Só em Futuros USDT-M da {{venues}}: o bot de sinais de Futuros, o bot do TradingView e bots DCA ou Grid configurados em Futuros nessa corretora. Spot fica simulado.",
       "step1": "Uma chave com acesso a Futuros e Trade no cofre:",
       "step2": "A verificação de prontidão ao vivo passa:",
-      "step3": "No bot, mude para dinheiro real e digite LIVE.",
+      "step3": "Na tela de criação do bot escolha Real, confira o dinheiro em risco e digite LIVE.",
       "step4": "Piloto: as 3 primeiras entradas reais de um bot de sinais são limitadas a 50 USDT; os 3 primeiros ciclos de um bot DCA ou Grid têm cerca de 100 USDT.",
       "preflight": "Prontidão ao vivo",
       "notYet": "{{venues}}: dinheiro real fica desligado até o teste na testnet passar.",
-      "guide": "Como funciona o dinheiro real",
-      "paperOnly": "Simulado: execuções simuladas a preços ao vivo, taxas incluídas"
+      "guide": "Como funciona o dinheiro real"
     },
     "presetsLink": "Presets deste tipo",
     "how": {
       "signal": "Abre uma posição em cada sinal do Sentinel que passa nos seus filtros e sai nos alvos ou no stop do sinal.",
       "dca": "Abre com uma ordem base, adiciona ordens de segurança quando o preço vai contra e fecha a posição inteira em um único take profit sobre o preço médio.",
-      "grid": "Coloca ordens de compra e venda em níveis fixos ao longo de uma faixa de preço e opera os movimentos entre eles."
+      "grid": "Coloca ordens de compra e venda em níveis fixos ao longo de uma faixa de preço e opera os movimentos entre eles.",
+      "tradingview": "Executa seus próprios alertas do TradingView: alertas de indicador ou de estratégia chegam ao app pelo relé da Sentinel e abrem, fecham ou invertem uma posição de futuros USDT-M por par, dentro dos limites que você definir."
     },
     "yours": "Seus bots",
     "yoursNone": "Nenhum ainda",
@@ -796,7 +791,6 @@
     "evidenceInfo": "Simulação histórica em candles passados com taxas, julgada uma vez num período TEST reservado. Não é previsão; Modelos lista as verificações de cada um.",
     "realMoney": "Dinheiro real",
     "realFutures": "Futuros na {{venues}}",
-    "realNotInBuild": "Não nesta versão",
     "openSignal": "Abrir bots de sinais",
     "fromTemplate": "De um modelo",
     "blank": "Em branco",
@@ -816,7 +810,10 @@
     "templatesProven": "{{n}} comprovado",
     "templatesExperimental": "{{n}} experimentais",
     "evidenceProven": "Modelo comprovado {{name}}, TEST histórico: {{mean}} por bot-mês (IC 95% {{lo}} a {{hi}}), pior bot {{dd}}",
-    "startProven": "Começar com {{name}}"
+    "startProven": "Começar com {{name}}",
+    "evidenceTradingview": "Sem teste da Sentinel: os resultados são da sua estratégia.",
+    "templatesTradingview": "Gerador de mensagem em Configurações, TradingView",
+    "openTradingview": "Abrir bot do TradingView"
   },
   "botDetail": {
     "notFound": "Bot não encontrado",
@@ -1097,7 +1094,7 @@
   "positions": {
     "tabPaper": "Simulado",
     "tabExchange": "Corretora",
-    "noPaper": "Nenhuma posição simulada aberta",
+    "noPaper": "Nenhuma posição em papel aberta",
     "noKey": "Nenhuma chave de corretora no cofre",
     "realZone": "Conta real da corretora: as ações enviam ordens reais",
     "totals": "Totais",
@@ -1115,8 +1112,8 @@
     "closeFailed": "Não foi possível fechar.",
     "closeAllPaper": {
       "button": "Fechar tudo ({{count}})",
-      "title": "Fechar todas as posições simuladas",
-      "body": "Para {{bots}} bots de sinais, fecha {{positions}} posições simuladas e {{cycles}} ciclos DCA / Grid a mercado e pausa {{strategyBots}} bots DCA / Grid.",
+      "title": "Fechar todas as posições em papel",
+      "body": "Para {{bots}} bots de sinais, fecha {{positions}} posições em papel e {{cycles}} ciclos DCA / Grid a mercado e pausa {{strategyBots}} bots DCA / Grid.",
       "realNote": "Posições reais na corretora não são tocadas: feche-as na aba Corretora.",
       "confirm": "Fechar tudo",
       "done": "Fechadas: {{closed}} · não fechadas: {{failed}}",
@@ -1167,7 +1164,7 @@
       "open": "Abrir operação simulada",
       "opened": "Aberta · {{symbol}} a {{price}} · simulada",
       "refusal": {
-        "manualTakePaperOnly": "Este bot opera com dinheiro real · Nova operação só abre posições simuladas",
+        "manualTakePaperOnly": "É um bot real: escolha Real para uma operação real",
         "botNotConfigured": "Salve primeiro as configurações deste bot",
         "marketHeld": "Este bot já tem uma posição neste par",
         "stopPassed": "O preço passou do stop",
@@ -1180,8 +1177,21 @@
         "tradeTargetWrongSide": "Take-profit do lado errado do preço atual",
         "tradeStopWrongSide": "Stop-loss do lado errado do preço atual",
         "tradeStopInsideFees": "Stop mais perto que as duas taxas · precisa de mais de {{detail}}",
-        "tradeTargetInsideFees": "Take-profit mais perto que as duas taxas · precisa de mais de {{detail}}"
-      }
+        "tradeTargetInsideFees": "Take-profit mais perto que as duas taxas · precisa de mais de {{detail}}",
+        "tradeBotIsPaper": "O bot de Futuros é de papel: torne-o real primeiro"
+      },
+      "notionalMin": "Mínimo {{min}} USDT (mínimo da Binance)"
+    },
+    "liveBotPositions": "Posições dos bots na corretora",
+    "noLiveBot": "Nenhum bot tem posição real",
+    "noOpen": "Nenhuma posição aberta",
+    "protection": {
+      "qty": "Quantidade",
+      "stop": "Stop na corretora",
+      "tp": "TP na corretora",
+      "placed": "Ordem {{id}}",
+      "none": "Nenhuma",
+      "tip": "As ordens de stop e take-profit que o bot colocou na corretora, pelo id da ordem, do registro da posição do próprio bot. A conta é verificada a cada 60 s; um stop ou take-profit executado fecha a linha."
     }
   },
   "history": {
@@ -1296,8 +1306,6 @@
       }
     },
     "live": {
-      "notThisBuild": "Esta versão não pode enviar ordens reais.",
-      "build": "A versão tem o recurso real",
       "binanceKey": "Chave de trade no cofre",
       "endpoint": "Endpoint de ordens",
       "turnOff": "Desligar LIVE",
@@ -1405,7 +1413,7 @@
       "keys": "Chaves de API, cofre, conexões",
       "about": "Versão, atualizações, seus dados",
       "backup": "Backups, arquivo de configurações dos bots",
-      "tradingview": "Alertas em operações simuladas"
+      "tradingview": "Alertas para o bot do TradingView"
     },
     "navStatus": {
       "alerts": "{{on}} de {{total}} exibidos",
@@ -1582,12 +1590,10 @@
     },
     "about": {
       "tagline": "Um app de desktop para bots de sinais do Sentinel e bots DCA e Grid, dentro dos limites de risco que você define.",
-      "paperBuild": "Build simulado",
-      "liveBuild": "Build real",
+      "liveBuild": "Versão única",
       "testnetBuild": "Testnet",
       "buildNote": {
-        "paper": "Este build opera apenas no simulado. Os botões Fechar da aba Corretora são a única ordem real que ele pode enviar.",
-        "live": "Este build pode colocar ordens reais na Binance Futures, por bot, depois que você digitar LIVE."
+        "live": "Cada bot é de papel, a não ser que você escolha Real e digite LIVE. Os botões Fechar da aba Exchange enviam ordens reais."
       },
       "notAdvice": "Software, não consultoria financeira.",
       "installTitle": "Detalhes da instalação",
@@ -1652,7 +1658,7 @@
       "failed": "O backup falhou.",
       "fileTitle": "Arquivo de configurações dos bots",
       "fileHolds": "As configurações dos bots de sinais e de cada bot DCA / Grid em um único arquivo JSON. Sem chaves de API, cofre, token do Telegram ou histórico de operações.",
-      "importRule": "Importar substitui as configurações dos bots de sinais e adiciona cada bot DCA / Grid como um novo bot parado. Tudo o que é importado fica simulado; dinheiro real nunca é ativado.",
+      "importRule": "Importar substitui as configurações dos bots de sinais e adiciona cada bot DCA / Grid como um novo bot parado. Tudo o que é importado fica em papel; o modo Real nunca é ativado.",
       "export": "Exportar configurações",
       "exporting": "Exportando…",
       "import": "Importar configurações",
@@ -1663,8 +1669,8 @@
       "importResult": "Resultado da importação",
       "importSummary": "{{ok}} de {{total}} aplicados",
       "importEmpty": "O arquivo não contém bots.",
-      "created": "Adicionado, parado, simulado",
-      "replaced": "Configurações substituídas, simulado",
+      "created": "Adicionado, parado, em papel",
+      "replaced": "Configurações substituídas, em papel",
       "refused": "Recusado",
       "signalBot": "Bot de sinais {{kind}}",
       "unreadableEntry": "Entrada ilegível",
@@ -1673,8 +1679,8 @@
         "keeps": "Uma atualização mantém neste computador os bots, as configurações, o histórico de operações e as chaves da corretora.",
         "backup": "Um backup é feito antes de cada instalação. Se o backup falhar, a atualização não é instalada.",
         "liveBlocks": "Uma atualização não começa enquanto houver dinheiro real em jogo: feche primeiro as posições reais e desative o dinheiro real.",
-        "signal": "Os bots de sinais voltam simulados após qualquer reinício; o dinheiro real exige digitar LIVE de novo. Bots de sinais simulados que estavam rodando voltam a rodar se passarem nas verificações de início.",
-        "strategy": "Bots DCA / Grid simulados que estavam rodando voltam a rodar após um reinício se passarem nas verificações de início. Um bot com dinheiro real volta parado; seu ciclo aberto continua sendo gerenciado."
+        "signal": "Um bot de sinais Real volta parado após qualquer reinício e exige digitar LIVE de novo. Bots de sinais em papel que estavam rodando voltam a rodar se passarem nas verificações de início.",
+        "strategy": "Bots DCA / Grid em papel que estavam rodando voltam a rodar após um reinício se passarem nas verificações de início. Um bot Real volta parado; seu ciclo aberto continua sendo gerenciado."
       }
     },
     "tv": {
@@ -1710,9 +1716,9 @@
       "copyFailed": "Falha ao copiar",
       "alertsTitle": "Alertas",
       "receive": "Receber alertas",
-      "receiveDesc": "Lê os alertas do relay a cada 5 s e os lista abaixo. Nada é executado.",
-      "execute": "Executar alertas como operações simuladas",
-      "executeDesc": "Comprar e vender abrem uma posição simulada pela Nova operação, com todas as verificações. Fechar fecha sua própria operação aberta nesse par. Alertas com mais de 120 s ao serem lidos não são executados.",
+      "receiveDesc": "Lê os alertas do relé (envio do servidor ou consulta a cada poucos segundos) e lista abaixo. Nada é executado.",
+      "execute": "Executar alertas",
+      "executeDesc": "Alertas de futuros e de estratégia rodam no bot do TradingView (Papel) com seus limites e proteções; alertas de spot no livro de papel do bot Spot. Fechar fecha só a posição do próprio bot do TradingView no par.",
       "lastRead": "Última leitura",
       "lastError": "Último erro",
       "howTitle": "Configurar no TradingView",
@@ -1726,13 +1732,13 @@
         "close": "Fechar"
       },
       "field": {
-        "action": "action: buy (comprado), sell (vendido, só bot de Futuros), close (fecha sua própria operação aberta no par).",
-        "symbol": "symbol: {{ticker}} ou um par. BINANCE:BTCUSDT.P, BTCUSDT.P, BTCUSDTPERP e btcusdt são lidos como BTCUSDT. Só pares USDT.",
-        "levels": "tp ou tp_pct, e sl ou sl_pct: exatamente um de cada para comprar e vender. tp e sl são preços.",
-        "pct": "tp_pct e sl_pct são distâncias percentuais do preço ao vivo na execução. Comprado: tp = preço × (1 + tp_pct/100), sl = preço × (1 − sl_pct/100). Vendido: tp = preço × (1 − tp_pct/100), sl = preço × (1 + sl_pct/100).",
-        "bot": "bot: futures (padrão) ou spot. Spot é só comprado.",
-        "size": "size_usdt: nocional opcional em USDT. Sem ele vale o dimensionamento do próprio bot.",
-        "stale": "Um alerta recebido mais de 120 s antes de o app lê-lo não é executado. Texto simples ou outro JSON aparece como ilegível."
+        "action": "action: buy (compra), sell (venda, futuros), close (fecha a posição do próprio bot do TradingView no par).",
+        "symbol": "symbol: {{ticker}} ou um par. BINANCE:BTCUSDT.P, BTCUSDT.P e BTCUSDTPERP são lidos como futuros BTCUSDT; pares renomeados como 1000PEPEUSDT são associados. Só pares USDT.",
+        "levels": "tp ou tp_pct, e sl ou sl_pct: exatamente um de cada para uma entrada. tp e sl são preços.",
+        "pct": "tp_pct e sl_pct são distâncias percentuais do preço: num bot Real a partir da execução real, e verificadas de novo ali. Compra: tp = preço × (1 + tp_pct/100), sl = preço × (1 − sl_pct/100). Venda: o inverso.",
+        "bot": "bot: futures (padrão, o bot do TradingView) ou spot (o bot Spot, papel, só compra). Um símbolo .P não pode ir para spot.",
+        "size": "size_usdt: nocional opcional em USDT, no máximo o máximo por alerta do bot. Sem ele, esse máximo.",
+        "stale": "Um alerta mais antigo que a janela de validade do bot no relógio do servidor não é executado. Texto simples ou outro JSON aparece como ilegível."
       },
       "resultsTitle": "Alertas recentes",
       "resultsEmpty": "Nenhum alerta lido ainda.",
@@ -1740,18 +1746,119 @@
         "time": "Hora",
         "action": "Ação",
         "symbol": "Par",
-        "outcome": "Resultado"
+        "outcome": "Resultado",
+        "bot": "Bot",
+        "qty": "Pedida / executada",
+        "qtyTip": "Quantidade calculada no preço ao vivo e a executada (no papel, a mesma).",
+        "fill": "Exec. média",
+        "slippage": "Derrapagem",
+        "slippageTip": "A execução contra o preço do alerta; positivo é pior para a operação.",
+        "latency": "Latência",
+        "latencyTip": "Do relé receber o alerta até a execução, no relógio do servidor."
       },
       "outcome": {
         "received": "Recebido · não executado (Executar desligado)",
-        "opened": "Aberta · simulada",
-        "closed": "Fechada · simulada",
-        "tvExpired": "Não executado · tinha mais de 120 s ao ser lido",
+        "opened": "Aberta",
+        "closed": "Fechada",
+        "tvExpired": "Não executado · mais antigo que a janela de validade do bot (relógio do servidor)",
         "tvBadMessage": "Ilegível · não é JSON no formato do alerta",
         "tvBadLevels": "Informe um de tp / tp_pct e um de sl / sl_pct, acima de 0",
-        "tvNothingToClose": "Nada a fechar · nenhuma operação sua aberta neste par e bot",
-        "tvTestOnly": "Só teste · sem ordem"
-      }
+        "tvNothingToClose": "Nada a fechar · o bot do TradingView não tem posição neste par",
+        "tvTestOnly": "Só teste · sem ordem",
+        "flipped": "Invertida · fechada, depois aberta",
+        "tvExpiredOffline": "Não executado · chegou com o app offline",
+        "tvServerTimeMissing": "Não executado · o relé não enviou a hora do servidor",
+        "tvDuplicate": "Duplicado · mesma mensagem ou id em 5 minutos",
+        "tvPriceMoved": "Não executado · o preço se moveu {{detail}} do preço do alerta",
+        "tvPriceRequired": "Não executado · o alerta não tem preço e o bot exige",
+        "tvSizeAboveMax": "Tamanho acima do máximo por alerta do bot ({{detail}} USDT)",
+        "tvPositionsFull": "O limite de posições do bot está cheio ({{detail}})",
+        "tvBudgetFull": "O orçamento do bot está cheio · restam {{detail}} USDT",
+        "tvDailyOpensFull": "O limite diário de entradas do bot foi atingido ({{detail}})",
+        "tvSymbolNotAllowed": "Par fora da lista permitida do bot",
+        "tvPassphraseWrong": "Senha da mensagem errada ou ausente",
+        "tvBotRequired": "Nenhum bot do TradingView · crie um em Bots",
+        "tvBotStopped": "O bot do TradingView está parado",
+        "tvSpotPaperOnly": "Alertas de spot continuam no papel: recusados enquanto o bot do TradingView é Real",
+        "tvCloseNotOwn": "Não fechada · este par está com o bot {{detail}}, não com o do TradingView",
+        "tvSymbolHeldBy": "Não aberta · este par está com o bot {{detail}} (uma posição real por par)",
+        "tvFlipCloseFailed": "Inversão interrompida · o fechamento não se completou, nada foi aberto",
+        "tvFlipOpenRefused": "Inversão: fechada, a nova posição foi recusada",
+        "livePending": "Resultado da ordem desconhecido · em consulta, nunca reenviada",
+        "tvAlreadyOpen": "Já aberta neste sentido · uma posição por par",
+        "tvOppositeOpen": "A posição oposta está aberta · envie close antes ou use um alerta de estratégia",
+        "tvPartialExit": "Saídas parciais não são suportadas · uma posição inteira por par",
+        "tvStrategyMismatch": "A estratégia está zerada do lado oposto à posição do bot",
+        "tvBadPosition": "market_position deve ser long, short ou flat",
+        "tvPerpOnSpot": "Um símbolo perpétuo (.P) não pode ir para o bot spot",
+        "liveLevelsAfterFill": "A execução tornou os níveis do alerta inutilizáveis · posição fechada",
+        "tvBelowSymbolMinimum": "Não executado · {{symbol}} precisa de pelo menos {{min}} USDT por ordem; este alerta pediu {{size}} USDT (tamanho máximo {{max}} USDT)"
+      },
+      "executeDescLive": "O bot do TradingView é Real: alertas de futuros enviam ordens reais à Binance enquanto ele está armado e rodando. Alertas de spot são recusados (spot continua no papel).",
+      "bot": "Bot do TradingView",
+      "botNone": "Nenhum ainda · crie um",
+      "botRunning": "Rodando",
+      "botStopped": "Parado",
+      "link": "Conexão",
+      "linkState": {
+        "off": "Recebimento desligado",
+        "online": "Online",
+        "offline": "Offline"
+      },
+      "transport": {
+        "stream": "envio do servidor",
+        "poll": "consulta"
+      },
+      "lastSeen": "Visto pelo servidor",
+      "lastSeenInfo": "O registro do relé da última leitura ou fluxo aberto do app. Um alerta que chega com o app offline não é executado depois.",
+      "pendingOrders": "Ordens em consulta",
+      "notice": "Aviso no Telegram quando offline",
+      "noticeDesc": "O servidor envia uma mensagem no Telegram quando chega um alerta e o app está offline há mais de {{s}} s.",
+      "noticeNoTelegram": "Vincule o Telegram em Notificações para usar.",
+      "noticeDefault": "Ligado por padrão para um bot do TradingView Real. Desligado aqui, continua desligado.",
+      "holderStrategy": "DCA / Grid",
+      "builder": {
+        "title": "Gerador de mensagem",
+        "mode": "Modo",
+        "manual": "Manual",
+        "strategy": "Estratégia",
+        "action": "Ação",
+        "market": "Mercado",
+        "levels": "Níveis",
+        "levelsPct": "Percentual",
+        "levelsPrice": "Preço",
+        "tpPct": "Take-profit %",
+        "slPct": "Stop-loss %",
+        "tpPrice": "Preço do take-profit",
+        "slPrice": "Preço do stop-loss",
+        "size": "Tamanho (USDT)",
+        "sizeEmpty": "Máximo do bot",
+        "price": "Adicionar preço ({{close}})",
+        "alertMessage": "Adicionar alert_message do Pine ({{alertMessage}})",
+        "passphrase": "Senha da mensagem",
+        "passphraseHint": "Vai só no texto copiado; o app não a salva aqui.",
+        "id": "Id do alerta",
+        "idNone": "Nenhum",
+        "idTime": "Hora do alerta",
+        "idCustom": "Próprio",
+        "customId": "Texto do id",
+        "error": {
+          "levels": "Informe um take-profit e um stop-loss acima de 0",
+          "pct": "Níveis percentuais: acima de 0 e abaixo de 100",
+          "size": "Tamanho: pelo menos 5 USDT, ou vazio",
+          "spotShort": "O bot spot só compra: sell precisa de futuros",
+          "customId": "Id: de 1 a 64 caracteres, sem aspas"
+        },
+        "note": {
+          "manualMap": "Buy abre uma compra, sell uma venda (futuros), close fecha a posição do próprio bot do TradingView no par.",
+          "strategyMap": "O modo estratégia envia {{action}} e {{position}}: buy + long abre uma compra, sell + short uma venda, sell + flat ou buy + flat fecha.",
+          "flip": "Uma inversão (compra para venda, venda para compra) fecha primeiro e só abre depois que o fechamento é confirmado.",
+          "priceGuard": "Com preço, o bot recusa a entrada quando o preço ao vivo se moveu mais que sua proteção desde {{close}}.",
+          "idNote": "Um id como {{timenow}} deixa a proteção contra duplicados descartar uma entrega repetida do mesmo alerta em 5 minutos.",
+          "alertMessage": "Só quando todo strategy.entry e strategy.exit define alert_message como um objeto JSON; senão a mensagem fica ilegível."
+        }
+      },
+      "streamFailed": "o fluxo falhou: {{reason}}"
     }
   },
   "accountPage": {
@@ -2612,7 +2719,13 @@
       "budgetCapDetail": "Acima do limite de orçamento DCA/Grid: {{free}} USDT livres de {{limit}} USDT. Aumente o saldo simulado ou o nível de risco em Risco e segurança.",
       "slBeyondLiquidation": "Stop loss no preço de liquidação ou além dele: nunca seria acionado. Use um stop mais próximo ou menos alavancagem.",
       "budgetBelowMinNotionalMin": "Uma ordem ficaria abaixo do mínimo de 5 USDT. Orçamento mínimo: {{min}} USDT.",
-      "liveVenueNotDryRun": "Dinheiro real ainda não está disponível nesta corretora: o caminho de ordens dela não passou por um teste na rede de testes da corretora. As posições lá ainda podem ser fechadas."
+      "liveVenueNotDryRun": "Dinheiro real ainda não está disponível nesta corretora: o caminho de ordens dela não passou por um teste na rede de testes da corretora. As posições lá ainda podem ser fechadas.",
+      "liveArmRequired": "Bot real não armado nesta sessão: digite LIVE com o dinheiro em risco primeiro (painel Dinheiro real).",
+      "liveTermsChanged": "Os ajustes mudaram durante a confirmação (margem agora {{detail}} USDT). Confirme de novo.",
+      "liveTermsRequired": "Confirme primeiro o dinheiro em risco.",
+      "riskConfigUnreadable": "Não foi possível ler os ajustes de risco: salve-os na página de risco.",
+      "storeSchemaNewer": "Os dados locais foram gravados por um Aleph Edge mais novo (esquema {{detail}}). Instale essa versão; nada foi alterado.",
+      "botNotLive": "Este bot não é real."
     },
     "leverageConfirm": {
       "title": "Liquidação possível, sem stop",
@@ -2642,8 +2755,6 @@
       "enable": "Mudar para dinheiro real",
       "disable": "Voltar ao simulado",
       "confirmTitle": "Dinheiro real para {{name}}",
-      "confirmBody": "Cada compra e venda que este bot simula é enviada à Binance Futures como ordem a mercado em {{symbol}}, margem isolada, {{leverage}}x. Um stop fica na corretora no nível de stop do bot. Se a posição na Binance mudar fora do bot, o bot para. Aplicam-se taxas taker.",
-      "buildOff": "Esta versão apenas simula.",
       "futuresOnly": "Dinheiro real só está disponível para bots da Binance Futures.",
       "goKeys": "Chaves de corretora",
       "goSettings": "Configurações do bot",
@@ -2659,8 +2770,7 @@
       "pilot": "Piloto: restam {{count}} ciclos a {{pct}}% do tamanho simulado. Encerrar vale a partir do próximo ciclo.",
       "endPilot": "Encerrar piloto",
       "venue": "Corretora das ordens",
-      "confirmBodyVenue": "Cada compra e venda que este bot simula é enviada aos futuros da {{exchange}} como ordem a mercado em {{symbol}}, margem isolada, {{leverage}}x. As decisões continuam usando preços da Binance. Um stop fica na corretora no nível de stop do bot. Se a posição mudar fora do bot, o bot para. Taxas taker se aplicam.",
-      "confirmBudget": "Orçamento do bot: {{budget}} USDT, alavancagem {{leverage}}x."
+      "confirmBodyVenue": "Cada compra e venda que este bot simula é enviada aos futuros da {{exchange}} como ordem a mercado em {{symbol}}, margem isolada, {{leverage}}x. As decisões continuam usando preços da Binance. Um stop fica na corretora no nível de stop do bot. Se a posição mudar fora do bot, o bot para. Taxas taker se aplicam."
     },
     "report": {
       "title": "Execuções reais vs simuladas",
@@ -2689,6 +2799,22 @@
       "matched": "Execuções pareadas",
       "note": "Slippage positivo é custo: pagou mais na compra ou recebeu menos na venda. Uma ordem a mercado pode espelhar várias execuções simuladas.",
       "empty": "Ainda não há execuções reais."
+    },
+    "budgetFloor": {
+      "min": "Mínimo {{min}} USDT · ordens: {{orders}}, a menor {{order}} USDT (mínimo da Binance)",
+      "fill": "Usar",
+      "fillLabel": "Definir o orçamento em {{min}} USDT",
+      "loading": "Orçamento mínimo: calculando",
+      "loadingRules": "Orçamento mínimo: lendo as regras da Binance para {{symbol}}",
+      "failed": "Orçamento mínimo indisponível: a verificação não respondeu",
+      "fixedSmall": "Cada ordem deve ter pelo menos {{order}} USDT: aumente primeiro o tamanho das ordens",
+      "live": "Real: mínimo {{min}} USDT. Menor ordem de {{symbol}} na Binance: {{order}} USDT",
+      "liveFixedSmall": "Real: cada ordem de {{symbol}} deve ter pelo menos {{order}} USDT na Binance",
+      "liveUnknown": "Mínimo para Real desconhecido: não foi possível ler as regras da Binance para {{symbol}}",
+      "empty": "Informe um orçamento (mínimo {{min}} USDT)",
+      "emptyNoMin": "Informe um orçamento",
+      "minShort": "Mínimo {{min}} USDT.",
+      "below": "São necessários pelo menos {{min}} USDT: dividido em {{orders}} ordens, a menor fica abaixo de {{order}} USDT"
     }
   },
   "errors": {
@@ -2824,7 +2950,7 @@
     "trendUnavailable": "Tendência indisponível: a Binance não respondeu.",
     "liveVenueNotDryRun": "Dinheiro real ainda não está disponível nesta corretora: o caminho de ordens dela não passou por um teste na rede de testes da corretora. As posições lá ainda podem ser fechadas.",
     "botHasLivePositions": "Este bot tem posições reais na {{detail}}. Feche-as antes de mudar a corretora dele.",
-    "liveExchangeLocked": "Volte este bot ao simulado antes de mudar a corretora dele: o dinheiro real foi confirmado para {{detail}}.",
+    "liveExchangeLocked": "Volte este bot ao papel antes de mudar a corretora dele: o dinheiro real foi confirmado para {{detail}}.",
     "closeAllPartial": "Fechar tudo não fechou todas as posições. Ainda abertas: {{detail}}. Confira a lista e feche-as de novo, ou na corretora.",
     "closeCleanupFailed": "Fechada, mas as ordens de stop ou take-profit em {{detail}} não puderam ser canceladas. Cancele-as na corretora.",
     "botCapitalAboveCap": "O capital por posição está acima do teto de {{detail}} USDT do seu nível de risco. Reduza-o, ou aumente o saldo simulado ou o nível de risco em Risco e segurança.",
@@ -2884,7 +3010,29 @@
     "ed25519NoPendingKey": "Nenhum par de chaves aguardando. Crie um par de chaves, registre a chave pública na Binance e cole a chave de API.",
     "viewThresholdSameDirection": "Mesma direção: informe de 50 a 100%.",
     "viewThresholdSingleCoin": "Uma moeda: informe de 10 a 100%.",
-    "viewThresholdStress": "Perda com BTC -20%: informe de 1 a 100%."
+    "viewThresholdStress": "Perda com BTC -20%: informe de 1 a 100%.",
+    "liveArmRequired": "Bot real não armado nesta sessão: digite LIVE com o dinheiro em risco primeiro.",
+    "liveTermsChanged": "Os ajustes mudaram durante a confirmação (margem agora {{detail}} USDT). Confirme de novo.",
+    "liveTermsRequired": "Confirme primeiro o dinheiro em risco.",
+    "liveHasPaperPositions": "Este bot tem posições em papel: feche-as antes do dinheiro real.",
+    "tradeBotIsPaper": "O bot de Futuros é de papel: torne-o real primeiro.",
+    "riskConfigUnreadable": "Não foi possível ler os ajustes de risco: salve-os na página de risco.",
+    "storeSchemaNewer": "Os dados locais foram gravados por um Aleph Edge mais novo (esquema {{detail}}). Instale essa versão; nada foi alterado.",
+    "tgSettingsUnreadable": "Ajustes salvos do Telegram ilegíveis: configure o Telegram de novo primeiro.",
+    "botNotLive": "Este bot não é real.",
+    "tvBotNameInvalid": "Nome do bot do TradingView: de 1 a 40 caracteres",
+    "tvBudgetInvalid": "O orçamento deve ser maior que 0 USDT",
+    "tvMaxSizeInvalid": "Tamanho máximo por alerta: pelo menos {{detail}} USDT",
+    "tvOpensPerDayRange": "Entradas por dia: {{detail}}",
+    "tvStaleRange": "Janela de validade: {{detail}} s",
+    "tvPriceGuardRange": "Proteção de preço: {{detail}} %, acima de 0",
+    "tvSettingsMissing": "Faltam as configurações do bot do TradingView",
+    "tvPassphraseTooLong": "Senha da mensagem longa demais (no máximo {{detail}} caracteres)",
+    "tvOfflineAfterRange": "Atraso offline: {{detail}} s",
+    "tvStreamRead": "O fluxo de eventos do TradingView caiu; lendo por consulta",
+    "tvStreamOversized": "O fluxo de eventos do TradingView enviou um bloco grande demais",
+    "tvBotRequired": "Nenhum bot do TradingView · crie um em Bots",
+    "tvStreamIdle": "O fluxo de eventos do TradingView não enviou nada em 45 s; lendo por consulta"
   },
   "status": {
     "running": "Em execução",
@@ -2963,7 +3111,6 @@
       "fail": "Não pronto"
     },
     "checks": {
-      "build": "Versão real",
       "endpoint": "Endpoint da {{exchange}}",
       "key": "Chave só de trade",
       "clock": "Relógio vs Binance",
@@ -2980,7 +3127,6 @@
       "keySafety": "Restrição de IP e idade da chave"
     },
     "codes": {
-      "buildOff": "Esta versão não opera com dinheiro real",
       "production": "Produção",
       "testnet": "Testnet: ordens não são dinheiro real",
       "keyNotVerified": "Chave não verificada como só de trade",
@@ -3707,6 +3853,167 @@
       "orUnavailable": "Não foi possível acessar o OpenRouter.",
       "orBadResponse": "O OpenRouter enviou uma resposta que este app não conseguiu ler.",
       "linkOpenFailed": "Não foi possível abrir o navegador."
+    }
+  },
+  "liveMode": {
+    "label": "Modo",
+    "paper": "Papel",
+    "live": "Real",
+    "blockersTitle": "Para operar em real",
+    "blockers": {
+      "futuresOnly": "Dinheiro real: só Futuros da Binance",
+      "tradingBlocked": "Ajustes de risco ou dados locais ilegíveis: nenhum bot pode iniciar",
+      "key": "Uma chave {{exchange}} verificada, só de trading, no cofre desbloqueado",
+      "paperPositions": "Feche antes as posições em papel deste bot: papel e dinheiro real nunca dividem um bot",
+      "stop": "Um stop loss, stop-out de grid ou stop por drawdown",
+      "tradeBotPaper": "O bot de Futuros é de papel: torne-o real nos ajustes dele primeiro",
+      "notArmed": "O bot real de Futuros não está armado nesta sessão: inicie-o antes com LIVE"
+    },
+    "terms": {
+      "orders": "Ordens",
+      "margin": "Margem máxima em risco",
+      "marginInfo": "Margem isolada: o máximo que este bot pode ter de uma vez na exchange, e o máximo que pode perder.",
+      "notional": "Maior tamanho de posição",
+      "leverage": "Limite de alavancagem",
+      "positions": "Posições ao mesmo tempo",
+      "pilot": "Piloto",
+      "pilotValue": "As primeiras {{count}} limitadas a cerca de {{cap}}",
+      "notionalValue": "{{notional}} · margem {{margin}}",
+      "notionalInfo": "Uma posição em tamanho cheio: o tamanho máximo por alerta do bot, ou o capital dele no limite de alavancagem. O piloto limita mais as primeiras entradas."
+    },
+    "header": {
+      "chip": "Reais ativos: {{count}}",
+      "tooltip": "Bots reais ativos agora. Abra para parar todos.",
+      "title": "Bots reais",
+      "none": "Nenhum bot real. Todos são de papel.",
+      "running": "Ativo",
+      "needsArm": "Requer LIVE",
+      "stoppedState": "Parado",
+      "positionsStay": "As posições reais abertas ficam sob seus stops na exchange. Feche-as em Posições, Exchange.",
+      "stopAll": "Parar todos os reais",
+      "stopAllBody": "Cada bot real para de abrir entradas e ciclos e é desarmado: iniciar de novo pede LIVE. As posições reais abertas seguem geridas sob seus stops.",
+      "stopped": "Parados: {{count}}",
+      "tooltipNone": "Nenhum bot real rodando. Inicie um bot no modo Real para enviar ordens reais."
+    },
+    "signal": {
+      "armed": "Armado nesta sessão: ordens reais nos próximos sinais.",
+      "needsArm": "Bot real, não armado nesta sessão (volta parado após reiniciar). Iniciar mostra o dinheiro em risco e pede LIVE.",
+      "chooseLive": "Iniciar salva os ajustes, mostra o dinheiro em risco e pede LIVE.",
+      "toPaperTitle": "Passar este bot para papel",
+      "toPaperBody": "O bot para agora. Suas posições reais seguem geridas sob seus stops; vira bot de papel quando nenhuma estiver aberta.",
+      "armTitle": "Armar {{bot}} para esta sessão",
+      "goLiveTitle": "{{bot}}: dinheiro real",
+      "goLiveTitleTestnet": "{{bot}}: ordens na testnet",
+      "toPaperHeld": "Posições reais abertas neste bot ({{count}}):",
+      "heldLine": "{{symbol}} · {{side}} · {{qty}} @ {{entry}}",
+      "closeAndSwitch": "Fechar posições e mudar",
+      "switchLater": "Mudar depois",
+      "closeAndSwitchNote": "Fechar posições e mudar envia uma ordem a mercado só de redução para cada posição acima, espera a corretora confirmar e passa o bot para papel. Mudar depois para o bot agora; ele vira papel quando essas posições fecharem. Nenhuma posição de outro bot é tocada."
+    },
+    "startLive": "Iniciar com dinheiro real",
+    "restartNote": "Após reiniciar, este bot volta parado e pede LIVE de novo.",
+    "strategy": {
+      "createNote": "Criar verifica a chave, a exchange, o par e a ordem mínima, mostra o dinheiro em risco e pede LIVE. Nada é salvo se uma verificação falhar.",
+      "createTitle": "Novo bot real: {{name}}",
+      "mirrorNote": "Cada compra e venda que este bot simula em {{symbol}} é enviada como ordem a mercado, margem isolada. Um stop fica na exchange. Após reiniciar, o bot volta parado e pede LIVE de novo.",
+      "createLive": "Criar bot real",
+      "createStartLive": "Criar e iniciar em real",
+      "needsArm": "Não armado nesta sessão: ciclos novos só começam após LIVE. A posição aberta e seu stop seguem geridos.",
+      "arm": "Armar com LIVE",
+      "armTitle": "Armar {{name}} para esta sessão"
+    },
+    "trade": {
+      "liveNote": "Ordem real no bot real de Futuros, com stop e take-profit na exchange.",
+      "open": "Abrir posição real",
+      "confirmTitle": "Posição real: {{side}} {{symbol}}",
+      "note": "Ordem a mercado no preço ao vivo: a execução pode diferir da prévia. Valem os limites do piloto."
+    },
+    "blocked": {
+      "head": "Nenhum bot pode iniciar:"
+    },
+    "riskUnreadable": {
+      "kept": "Não foi possível ler os ajustes de risco; os padrões estão exibidos. O arquivo ilegível foi guardado como {{file}}. Nenhum bot inicia até você salvar os ajustes de risco.",
+      "notKept": "Não foi possível ler os ajustes de risco; os padrões estão exibidos. Nenhum bot inicia até você salvar os ajustes de risco.",
+      "keep": "Manter estes ajustes"
+    },
+    "heldRows": "Registros de dinheiro real que a mesa não gere ({{count}}): feche-os na exchange.",
+    "telegramUnreadable": {
+      "kept": "Não foi possível ler os ajustes salvos do Telegram; uma cópia foi guardada ({{key}}). Nada é enviado até você configurar o Telegram de novo.",
+      "notKept": "Não foi possível ler os ajustes salvos do Telegram. Nada é enviado até você configurar o Telegram de novo.",
+      "startOver": "Configurar de novo"
+    },
+    "startTestnet": "Iniciar na testnet"
+  },
+  "botsTv": {
+    "now": "Agora",
+    "state": "Estado",
+    "notSaved": "Ainda não salvo",
+    "marginUsed": "Margem em uso",
+    "pilot": "Entradas piloto restantes",
+    "passphrase": "Senha da mensagem",
+    "passphraseSet": "Definida",
+    "passphraseNone": "Nenhuma",
+    "toSettings": "URL do webhook, gerador de mensagem e resultados dos alertas",
+    "rulesTitle": "Verificado em cada alerta",
+    "rule1": "Executar alertas ligado, o bot rodando, a senha da mensagem e a mesma mensagem ou id não visto nos últimos 5 minutos.",
+    "rule2": "A idade do alerta no relógio do servidor dentro da janela de validade; um alerta que chegou com o app offline nunca é executado.",
+    "rule3": "O par na lista permitida, o tamanho dentro do máximo, o limite de posições, o orçamento e o limite diário de entradas.",
+    "rule4": "O preço ao vivo dentro da proteção de preço em relação ao preço do alerta; depois o nível de risco, o stop diário e, no Real, o armamento, a chave, a corretora e o piloto.",
+    "save": "Salvar",
+    "general": "Geral",
+    "name": "Nome",
+    "exchangeHint": "Dinheiro real: só Binance. Bybit e OKX rodam no papel.",
+    "limits": "Limites",
+    "budget": "Orçamento",
+    "budgetHint": "Margem máxima ao mesmo tempo. Margem por posição: {{margin}}.",
+    "maxSize": "Tamanho máximo por alerta",
+    "maxSizeHint": "Nocional da posição. Um alerta sem size_usdt usa este tamanho.",
+    "leverage": "Alavancagem máxima",
+    "leverageHint": "O nível de risco permite até {{max}}x.",
+    "opensPerDay": "Entradas máximas por dia",
+    "opensHint": "Dia UTC; uma inversão conta sua abertura.",
+    "allowList": "Lista permitida",
+    "allowListHint": "Pares que o bot pode operar, separados por vírgula. Vazio: todos os pares USDT.",
+    "allowListEmpty": "Todos os pares",
+    "guards": "Proteções",
+    "stale": "Janela de validade",
+    "staleHint": "Um alerta mais antigo que isso no relógio do servidor não é executado. 5–120 s.",
+    "priceGuard": "Proteção de preço",
+    "priceGuardHint": "Recusa a entrada quando o preço ao vivo se moveu mais do que isso do preço do alerta.",
+    "requirePrice": "Exigir preço no alerta",
+    "requirePriceLive": "Recomendado no Real: sem preço a proteção de preço não funciona.",
+    "passphraseHint": "Guardada só como hash com sal; a senha do alerta precisa conferir.",
+    "passKeep": "Manter",
+    "passNone": "Nenhuma",
+    "passSet": "Definir nova",
+    "passClear": "Remover",
+    "passNew": "Nova senha da mensagem",
+    "error": {
+      "name": "Nome: de 1 a 40 caracteres",
+      "exchange": "Escolha uma corretora",
+      "budget": "O orçamento deve ser maior que 0 USDT",
+      "size": "Tamanho máximo: pelo menos {{min}} USDT",
+      "positions": "Posições: de 1 a 20",
+      "leverage": "Alavancagem: de 1 a {{max}}x",
+      "opens": "Entradas por dia: de 1 a {{max}}",
+      "stale": "Janela de validade: de {{min}} a {{max}} s",
+      "guard": "Proteção de preço: acima de 0, no máximo {{max}}%",
+      "allowList": "Lista permitida: só pares USDT, ex. BTCUSDT",
+      "passphrase": "Senha da mensagem: de 1 a 64 caracteres",
+      "budgetEmpty": "Informe um orçamento (mínimo {{min}} USDT)",
+      "budgetBelow": "São necessários pelo menos {{min}} USDT: um alerta no tamanho máximo ({{size}} USDT, {{leverage}}x) retém essa margem",
+      "sizeEmpty": "Informe um tamanho (mínimo {{min}} USDT)"
+    },
+    "budgetMin": "Mínimo {{min}} USDT: um alerta no tamanho máximo ({{size}} USDT, {{leverage}}x). Todas as {{positions}} posições no tamanho máximo: {{full}} USDT.",
+    "maxSizeMin": "Mínimo {{min}} USDT (mínimo da Binance).",
+    "symbolMin": {
+      "label": "Mínimo da Binance por par",
+      "hint": "Digite um par para ver a menor ordem que a Binance aceita agora.",
+      "check": "Verificar",
+      "result": "{{symbol}}: pelo menos {{min}} USDT por ordem ({{qty}} a {{price}})",
+      "aboveMax": "Acima do tamanho máximo por alerta deste bot ({{max}} USDT): alertas de {{symbol}} são recusados até o tamanho máximo ser de pelo menos {{min}} USDT.",
+      "unavailable": "A Binance não respondeu. Tente de novo.",
+      "invalid": "Digite um par USDT, ex. BTCUSDT"
     }
   }
 }

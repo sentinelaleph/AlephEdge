@@ -5,7 +5,7 @@ import { KpiTile } from "@/components/ui/KpiTile/KpiTile";
 import { localeForLanguage } from "@/i18n";
 import { formatPnl, NO_VALUE, pnlToneAttr } from "@/lib/format";
 import { isActive, type StrategyKind } from "@/lib/ipc/strategy/strategy";
-import { signalBotRows } from "./botRows";
+import { allBotRows, signalBotRows } from "./botRows";
 import { strategyBotMoney, sumMoney, totalOf, useSignalBotMoney } from "./botMoney";
 
 export type BotsScope = "all" | "signal" | StrategyKind;
@@ -22,7 +22,10 @@ export function BotsSummary({ scope }: { scope: BotsScope }) {
   const signalMoney = useSignalBotMoney();
   if (!desk.loaded) return null;
 
-  const signals = scope === "all" || scope === "signal" ? signalBotRows(desk.status, risk.state?.maxCapitalQuote ?? null).filter((r) => r.config) : [];
+  // All bots counts the TradingView bot too; the signal page its own three.
+  const cap = risk.state?.maxCapitalQuote ?? null;
+  const book = scope === "all" ? allBotRows(desk.status, cap) : scope === "signal" ? signalBotRows(desk.status, cap) : [];
+  const signals = book.filter((r) => r.config);
   const strategies = scope === "signal" ? [] : (strategy.bots ?? []).filter((b) => scope === "all" || b.kind === scope);
   const total = signals.length + strategies.length;
   if (total === 0) return null;

@@ -5,9 +5,7 @@ import { Link } from "@/app/router/router";
 import { Tooltip } from "@/components/ui/Tooltip/Tooltip";
 import { Cockpit, type CockpitReadings } from "@/components/Shell/Cockpit/Cockpit";
 import { streamLabelKey, streamTone } from "@/lib/ipc/signal/streamStatus";
-import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
-import { scopeState } from "@/pages/Bots/botNewModel";
-import { exchangeName } from "@/lib/ipc/exchange/exchange";
+import { LiveRunning } from "@/components/LiveMode/LiveRunning";
 import { Icon } from "./icons";
 
 interface HeaderProps {
@@ -24,28 +22,20 @@ interface HeaderProps {
 
 /**
  * The global header: the page heading and actions (filled by the page through
- * portals), then global state. The scope indicator is a readout, never a
- * switch: real money is enabled only per bot, by typing LIVE.
+ * portals), then global state. The live indicator counts the Live bots
+ * running and holds the one global "Stop all live"; real money is chosen per
+ * bot, by typing LIVE, never here.
  *
  * PageHeader contract (see PageShell): crumb + title left; page actions
  * right as [secondary…][one primary][panel toggle]; then the global zone
- * [mode chip][testnet][demo venues][kill switch][alerts][Exchange pill][Sentinel pill]
- * [account]. The mode chip (Paper / Paper + LIVE) lives HERE ONLY: pages do
- * not repeat a page-level "Paper" / "Simulated fills" chip.
+ * [live running][testnet][demo venues][kill switch][alerts][Exchange pill][Sentinel pill]
+ * [account]. The live indicator lives HERE ONLY: pages do not repeat a
+ * page-level "Paper" / "Simulated fills" chip.
  */
 export function Header({ showMenu, menuOpen, onMenu, headingRef, actionsRef, unread, alertsOpen, onAlerts }: HeaderProps) {
   const { t } = useTranslation();
-  const { desk, endpoints, membership, accountExchange, feed, health, catalog } = useDeskContext();
+  const { desk, endpoints, membership, accountExchange, feed, health } = useDeskContext();
   const s = desk.status;
-  const { liveIds } = useStrategyLive();
-  // Paper only (public build), paper with real money off (live build, no bot
-  // live), or LIVE with how many bots trade real money. One readout, linked
-  // to the guide's real-money chapter; real money is still switched per bot.
-  const scope = scopeState(
-    desk.loaded && s.liveTradingEnabled,
-    [s.futures, s.spot, s.pump].filter((c) => c?.live === true).length + liveIds.size,
-  );
-  const liveScope = scope.kind === "live";
   const email = membership.view.email ?? membership.view.displayName ?? "";
   const tone = streamTone(feed.health, feed.loaded);
   const exHealth = accountExchange ? health?.exchanges.find((e) => e.id === accountExchange) : undefined;
@@ -76,17 +66,7 @@ export function Header({ showMenu, menuOpen, onMenu, headingRef, actionsRef, unr
       <div className="ae-header__actions" ref={actionsRef} />
 
       <div className="ae-header__global">
-        {desk.loaded ? (
-          <Link
-            to="/guide?s=real-money"
-            className="ae-header__scope"
-            data-live={liveScope || undefined}
-            data-scope={scope.kind}
-            title={t(`nav.scopeTooltip.${scope.kind}`, { venues: (s.liveVenues ?? []).map((v) => exchangeName(v, catalog.exchanges)).join(", ") })}
-          >
-            {t(`nav.scope.${scope.kind}`, { n: scope.kind === "live" ? scope.bots : 0 })}
-          </Link>
-        ) : null}
+        <LiveRunning />
         {endpoints && !endpoints.binanceIsProduction ? (
           <span className="ae-header__testnet" title={t("app.testnetTooltip", { host: endpoints.binanceFuturesBase })}>
             {t("app.testnetBadge")}

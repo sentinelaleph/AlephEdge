@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useDeskContext } from "@/app/DeskProvider";
+import { ordersOnTestnet, scopeLabelKey } from "@/lib/liveMode";
 import { Link } from "@/app/router/router";
 import { Chip, type ChipTone } from "@/components/ui/Chip/Chip";
 import { Meter } from "@/components/ui/KpiTile/KpiTile";
@@ -149,7 +150,7 @@ export function KillSwitchCard() {
       <FactList
         rows={[
           {
-            label: pnl.split ? t("safety.killSwitch.realizedTodayScoped", { scope: t(`pnl.scope.${pnl.scope}`) }) : t("safety.killSwitch.realizedToday"),
+            label: pnl.split ? t("safety.killSwitch.realizedTodayScoped", { scope: t(scopeLabelKey(pnl.scope, ordersOnTestnet(desk.status, desk.loaded))) }) : t("safety.killSwitch.realizedToday"),
             value: today === null ? NO_VALUE : formatPnl(today, locale).text,
             tone: pnlToneAttr(today),
           },

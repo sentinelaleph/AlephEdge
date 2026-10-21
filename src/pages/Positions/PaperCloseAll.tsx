@@ -3,13 +3,13 @@ import { useTranslation } from "react-i18next";
 import { useDeskContext } from "@/app/DeskProvider";
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
-import type { BotKind } from "@/lib/ipc/bot/bot";
+import { ALL_KINDS, kindRunning } from "@/lib/ipc/bot/bot";
 import { errorMessage } from "@/lib/ipc/bridge";
 import { isActive, strategyCloseAll } from "@/lib/ipc/strategy/strategy";
 import { localizeError } from "@/lib/errorText";
 import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
 
-const KINDS: BotKind[] = ["futures", "spot", "pump"];
+const KINDS = ALL_KINDS;
 
 /**
  * Paper tab emergency: stop every signal bot, close every simulated position
@@ -27,7 +27,7 @@ export function PaperCloseAll() {
   const [error, setError] = useState<string | null>(null);
 
   const s = desk.status;
-  const running = KINDS.filter((k) => (k === "futures" ? s.futuresRunning : k === "spot" ? s.spotRunning : s.pumpRunning));
+  const running = KINDS.filter((k) => kindRunning(s, k));
   const positions = s.openPositions.filter((p) => !p.live);
   const bots = strategy.bots ?? [];
   const cycles = bots.filter((b) => b.openCycle !== null).length;

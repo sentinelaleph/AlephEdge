@@ -80,7 +80,7 @@ describe("localizeError", () => {
       'The exchange rejected the key for this request. (key "main" · -2015: Invalid API-key, IP, or permissions for action.)',
     );
     expect(localizeError("credentialExchangeTaken|main")).toBe(
-      "This exchange already has a stored key, “main”. Renew that key with the new one, or remove it first.",
+      'This exchange already has a stored key, "main". Renew that key with the new one, or remove it first.',
     );
   });
 

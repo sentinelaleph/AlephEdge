@@ -1,0 +1,11 @@
+{
+  "level": "balanced",
+  "balance": 1800.0,
+  "closeOnStop": true,
+  "dailyLossOverridePct": null,
+  "viewThresholds": {
+    "sameDirectionPct": 80.0,
+    "singleCoinPct": 40.0,
+    "stress20Pct": 25.0
+  }
+}

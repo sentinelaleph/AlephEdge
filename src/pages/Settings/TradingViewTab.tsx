@@ -1,33 +1,44 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { navigate } from "@/app/router/router";
+import { useDeskContext } from "@/app/DeskProvider";
+import { Link, navigate } from "@/app/router/router";
 import { Button } from "@/components/ui/Button/Button";
-import { Chip, PaperChip } from "@/components/ui/Chip/Chip";
-import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
+import { Chip, LiveChip, PaperChip } from "@/components/ui/Chip/Chip";
+import { DataTable, type DataColumn, type PriorityBreakpoints } from "@/components/ui/DataTable/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState/EmptyState";
 import { FactList, Panel } from "@/components/ui/Panel/Panel";
 import { StatusChip, type StatusKind } from "@/components/ui/StatusChip/StatusChip";
 import { localizeError } from "@/lib/errorText";
-import { formatNumber, formatTableTime } from "@/lib/format";
+import { formatLatency, formatNumber, formatPrice, formatSignedPercent, formatTableTime, NO_VALUE } from "@/lib/format";
+import { botMode } from "@/lib/ipc/bot/bot";
 import { errorMessage } from "@/lib/ipc/bridge";
 import {
-  TV_TEMPLATES,
   tvCreateUrl,
   tvRevoke,
   tvSendTest,
+  tvSetNotice,
   tvSetPrefs,
+  tvResults,
   tvStatus,
+  onTvResult,
   type TvAlertResult,
   type TvCreatedUrl,
   type TvPrefs,
   type TvStatus,
-  type TvTemplate,
 } from "@/lib/ipc/tvlink/tvlink";
 import { tradeRefusalText } from "@/pages/Positions/NewTrade";
 import { SwitchRow } from "./TelegramPanel";
+import { TvMessageBuilder } from "./TvMessageBuilder";
 
 const POLL_MS = 10_000;
+/**
+ * The results table sits in the Settings content column (about 500-800 px
+ * wide): its columns are short numbers, so they show from narrower widths
+ * than the app default, and the fit loop folds the rest.
+ */
+export const RESULTS_BREAKPOINTS: PriorityBreakpoints = { p2: 560, p3: 720 };
+export const TV_BOT_PATH = "/bots/tradingview";
 
 type Phase = "signedOut" | "unknown" | "none" | "active";
 
@@ -39,26 +50,59 @@ function phaseOf(s: TvStatus): Phase {
 
 const CHIP: Record<Phase, StatusKind> = { signedOut: "notConfigured", unknown: "error", none: "needsSetup", active: "connected" };
 
-const DONE = new Set(["received", "opened", "closed", "tvTestOnly"]);
+const DONE = new Set(["received", "opened", "closed", "flipped", "tvTestOnly"]);
 
 /** An alert's outcome in the user's language: this panel's own codes first, then New trade's chain. */
 export function tvOutcomeText(t: TFunction, i18nExists: (key: string) => boolean, raw: string): string {
-  const head = raw.split("|")[0].trim();
-  const own = `settings.tv.outcome.${head}`;
-  if (i18nExists(own)) return t(own);
+  const [head, ...rest] = raw.split("|");
+  const own = `settings.tv.outcome.${head.trim()}`;
+  // The symbol's smallest order: symbol | minimum | size asked | max size.
+  if (head.trim() === "tvBelowSymbolMinimum" && i18nExists(own)) {
+    const [symbol = "", min = "", size = "", max = ""] = rest.map((x) => x.trim());
+    return t(own, { symbol, min, size, max });
+  }
+  if (i18nExists(own)) {
+    const detail = rest.join("|").trim();
+    // A wrapper code (a pending order, a flip leg) names the code it wraps.
+    if (detail && ["livePending", "tvFlipCloseFailed", "tvFlipOpenRefused"].includes(head.trim())) {
+      return `${t(own)} · ${tvOutcomeText(t, i18nExists, detail)}`;
+    }
+    // A bot kind names the holder in words.
+    const holder = ["tvCloseNotOwn", "tvSymbolHeldBy"].includes(head.trim())
+      ? detail === "strategy"
+        ? t("settings.tv.holderStrategy")
+        : t(`bots.kind.${detail}`, { defaultValue: detail })
+      : detail;
+    return t(own, { detail: holder });
+  }
   return tradeRefusalText(t, i18nExists, raw);
+}
+
+/**
+ * The bot an alert row names: the bot that handled it, else the bot it was
+ * for. A futures alert is always the TradingView bot's, never the Futures
+ * bot's (alerts never trade on the signal bots). Null when unreadable.
+ */
+export function alertBotLabel(t: TFunction, r: Pick<TvAlertResult, "bot" | "botName">): string | null {
+  if (r.botName) return r.botName === "spot" ? t("bots.kind.spot") : r.botName;
+  if (!r.bot) return null;
+  return t(r.bot === "spot" ? "bots.kind.spot" : "bots.kind.tradingview");
 }
 
 type Copied = { what: string; ok: boolean } | null;
 
 /**
- * Settings, TradingView: the webhook URL on Sentinel's relay, the two
- * switches, the message format and the last alerts the app read. Every
- * figure comes from the relay or from the Rust reader; nothing is filled in.
+ * Settings, TradingView: the webhook URL on Sentinel's relay, the link's
+ * online state, the two switches, the server's offline notice, the message
+ * builder and the last alerts the app read. Every figure comes from the
+ * relay or from the Rust reader; nothing is filled in.
  */
 export function TradingViewTab() {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
+  const { desk } = useDeskContext();
+  const tvBot = desk.loaded ? (desk.status.tradingview ?? null) : null;
+  const tvLive = botMode(tvBot) === "live";
   const [st, setSt] = useState<TvStatus | null>(null);
   const [created, setCreated] = useState<TvCreatedUrl | null>(null);
   const [busy, setBusy] = useState(false);
@@ -79,6 +123,21 @@ export function TradingViewTab() {
     const id = window.setInterval(() => void refresh(), POLL_MS);
     return () => window.clearInterval(id);
   }, [refresh]);
+
+  // Each handled alert: the rows at once, from the app's own store (no relay
+  // round trip), and the status (online, last read) right after.
+  useEffect(() => {
+    let alive = true;
+    const pending = onTvResult(() => {
+      void tvResults()
+        .then((results) => alive && setSt((prev) => (prev ? { ...prev, results } : prev)))
+        .catch(() => undefined);
+    });
+    return () => {
+      alive = false;
+      void pending.then((unlisten) => unlisten());
+    };
+  }, []);
 
   const run = async (call: () => Promise<void>) => {
     setBusy(true);
@@ -113,6 +172,10 @@ export function TradingViewTab() {
     run(async () => {
       setSt(await tvSetPrefs(p));
     });
+  const setNotice = (on: boolean) =>
+    run(async () => {
+      setSt(await tvSetNotice(on));
+    });
 
   const copy = async (what: string, text: string) => {
     try {
@@ -142,6 +205,8 @@ export function TradingViewTab() {
   const phase = phaseOf(st);
   const server = st.server;
   const exists = (k: string) => i18n.exists(k);
+  const num = (v: number | null | undefined, digits = 6) =>
+    v === null || v === undefined ? NO_VALUE : formatNumber(v, locale, { maximumFractionDigits: digits });
 
   const columns: DataColumn<TvAlertResult>[] = [
     {
@@ -155,7 +220,7 @@ export function TradingViewTab() {
       header: t("settings.tv.col.action"),
       cell: (r) => (
         <>
-          {r.action ? t(`settings.tv.action.${r.action}`) : "—"}
+          {r.strategy ?? (r.action ? t(`settings.tv.action.${r.action}`) : NO_VALUE)}
           {r.test ? (
             <>
               {" "}
@@ -168,8 +233,22 @@ export function TradingViewTab() {
     {
       id: "symbol",
       header: t("settings.tv.col.symbol"),
-      cell: (r) => (r.symbol ? [r.symbol, r.bot ? t(`bots.kind.${r.bot}`, { defaultValue: r.bot }) : null].filter(Boolean).join(" · ") : "—"),
+      cell: (r) => r.symbol ?? NO_VALUE,
       keep: true,
+    },
+    {
+      id: "bot",
+      header: t("settings.tv.col.bot"),
+      priority: 3,
+      cell: (r) =>
+        r.botName ? (
+          <span className="ae-namecell">
+            {alertBotLabel(t, r)}
+            {r.mode === "live" ? <LiveChip /> : r.mode === "paper" ? <PaperChip /> : null}
+          </span>
+        ) : (
+          (alertBotLabel(t, r) ?? NO_VALUE)
+        ),
     },
     {
       id: "outcome",
@@ -179,7 +258,40 @@ export function TradingViewTab() {
       wrap: true,
       keep: true,
     },
+    {
+      id: "qty",
+      header: t("settings.tv.col.qty"),
+      headerTip: t("settings.tv.col.qtyTip"),
+      numeric: true,
+      priority: 3,
+      cell: (r) => (r.requestedQty == null && r.filledQty == null ? NO_VALUE : `${num(r.requestedQty)} / ${num(r.filledQty)}`),
+    },
+    {
+      id: "fill",
+      header: t("settings.tv.col.fill"),
+      numeric: true,
+      priority: 2,
+      cell: (r) => (r.avgFill == null ? NO_VALUE : formatPrice(r.avgFill, locale)),
+    },
+    {
+      id: "slip",
+      header: t("settings.tv.col.slippage"),
+      headerTip: t("settings.tv.col.slippageTip"),
+      numeric: true,
+      cell: (r) => (r.slippagePct == null ? NO_VALUE : formatSignedPercent(r.slippagePct, locale, 2)),
+      tone: (r) => (r.slippagePct != null && r.slippagePct > 0 ? "down" : undefined),
+    },
+    {
+      id: "latency",
+      header: t("settings.tv.col.latency"),
+      headerTip: t("settings.tv.col.latencyTip"),
+      numeric: true,
+      cell: (r) => (r.latencyMs == null ? NO_VALUE : formatLatency(r.latencyMs, locale)),
+    },
   ];
+
+  const linkState = !st.prefs.receive ? "off" : st.online ? "online" : "offline";
+  const notice = st.notice ?? null;
 
   return (
     <>
@@ -202,7 +314,7 @@ export function TradingViewTab() {
             {server && server.active ? (
               <FactList
                 rows={[
-                  { label: t("settings.tv.created"), value: server.createdAt ? formatTableTime(server.createdAt, locale) : "—" },
+                  { label: t("settings.tv.created"), value: server.createdAt ? formatTableTime(server.createdAt, locale) : NO_VALUE },
                   {
                     label: t("settings.tv.lastReceived"),
                     value: server.lastReceivedAt ? formatTableTime(server.lastReceivedAt, locale) : t("settings.tv.never"),
@@ -261,7 +373,43 @@ export function TradingViewTab() {
         ) : null}
       </Panel>
 
-      <Panel title={t("settings.tv.alertsTitle")} aside={<PaperChip />}>
+      <Panel title={t("settings.tv.alertsTitle")} aside={tvBot ? tvLive ? <LiveChip /> : <PaperChip /> : null}>
+        <FactList
+          rows={[
+            {
+              label: t("settings.tv.bot"),
+              value: tvBot ? (
+                <Link to={TV_BOT_PATH} className="ae-link">
+                  {[tvBot.tv?.name ?? t("bots.kind.tradingview"), t(desk.status.tradingviewRunning ? "settings.tv.botRunning" : "settings.tv.botStopped")].join(" · ")}
+                </Link>
+              ) : (
+                <Link to={TV_BOT_PATH} className="ae-link">
+                  {t("settings.tv.botNone")}
+                </Link>
+              ),
+              tone: tvBot ? undefined : "warn",
+            },
+            {
+              label: t("settings.tv.link"),
+              value: [
+                t(`settings.tv.linkState.${linkState}`),
+                st.transport ? t(`settings.tv.transport.${st.transport}`) : null,
+                st.transport === "poll" && st.streamError ? t("settings.tv.streamFailed", { reason: localizeError(st.streamError) }) : null,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              tone: linkState === "offline" ? "danger" : linkState === "off" ? "muted" : undefined,
+            },
+            {
+              label: t("settings.tv.lastSeen"),
+              value: server?.lastSeenAt ? formatTableTime(server.lastSeenAt, locale) : t("settings.tv.never"),
+              info: t("settings.tv.lastSeenInfo"),
+            },
+            { label: t("settings.tv.lastRead"), value: st.lastPollAt ? formatTableTime(st.lastPollAt, locale) : t("settings.tv.never") },
+            ...((st.pending ?? 0) > 0 ? [{ label: t("settings.tv.pendingOrders"), value: formatNumber(st.pending ?? 0, locale), tone: "danger" as const }] : []),
+            ...(st.lastError ? [{ label: t("settings.tv.lastError"), value: localizeError(st.lastError), tone: "danger" as const }] : []),
+          ]}
+        />
         <ul className="ae-notify">
           <SwitchRow
             id="tv-receive"
@@ -274,18 +422,25 @@ export function TradingViewTab() {
           <SwitchRow
             id="tv-execute"
             name={t("settings.tv.execute")}
-            desc={t("settings.tv.executeDesc")}
+            desc={t(tvLive ? "settings.tv.executeDescLive" : "settings.tv.executeDesc")}
             checked={st.prefs.execute}
             disabled={busy || !st.signedIn}
             onChange={(on) => void setPrefs({ receive: on ? true : st.prefs.receive, execute: on })}
           />
+          <SwitchRow
+            id="tv-notice"
+            name={t("settings.tv.notice")}
+            desc={
+              notice?.telegram === "linked"
+                ? t("settings.tv.noticeDesc", { s: notice.offlineAfterS })
+                : t("settings.tv.noticeNoTelegram")
+            }
+            checked={notice?.notifyOffline === true}
+            disabled={busy || !notice || notice.telegram !== "linked"}
+            onChange={(on) => void setNotice(on)}
+          />
         </ul>
-        <FactList
-          rows={[
-            { label: t("settings.tv.lastRead"), value: st.lastPollAt ? formatTableTime(st.lastPollAt, locale) : t("settings.tv.never") },
-            ...(st.lastError ? [{ label: t("settings.tv.lastError"), value: localizeError(st.lastError), tone: "danger" as const }] : []),
-          ]}
-        />
+        {tvLive && notice && !st.noticeTouched && notice.telegram === "linked" ? <p className="ae-subtle">{t("settings.tv.noticeDefault")}</p> : null}
       </Panel>
 
       <Panel title={t("settings.tv.howTitle")}>
@@ -295,17 +450,6 @@ export function TradingViewTab() {
           <li>{t("settings.tv.step3")}</li>
         </ol>
         <p className="ae-subtle">{t("settings.tv.twoFactor")}</p>
-        <ul className="ae-tv__templates">
-          {(Object.keys(TV_TEMPLATES) as TvTemplate[]).map((k) => (
-            <li key={k}>
-              <span className="ae-tv__tname">{t(`settings.tv.action.${k}`)}</span>
-              <code className="ae-tg__code ae-tv__tpl">{TV_TEMPLATES[k]}</code>
-              <Button variant="secondary" size="sm" onClick={() => void copy(k, TV_TEMPLATES[k])}>
-                {copyLabel(k)}
-              </Button>
-            </li>
-          ))}
-        </ul>
         <ul className="ae-setlist">
           {(["action", "symbol", "levels", "pct", "bot", "size", "stale"] as const).map((k) => (
             <li key={k}>{t(`settings.tv.field.${k}`, { ticker: "{{ticker}}" })}</li>
@@ -313,16 +457,23 @@ export function TradingViewTab() {
         </ul>
       </Panel>
 
+      <TvMessageBuilder onCopy={(text) => void copy("built", text)} copyLabel={copyLabel("built")} />
+
       <Panel title={t("settings.tv.resultsTitle")}>
-        <DataTable
-          label={t("settings.tv.resultsTitle")}
-          columns={columns}
-          rows={st.results}
-          rowKey={(r) => r.eventId}
-          bare
-          compact
-          empty={<EmptyState title={t("settings.tv.resultsEmpty")} />}
-        />
+        {/* Narrow: headers wrap and the bot / quantity / fill columns fold
+            into the row details first, so slippage and latency stay in view. */}
+        <div className="ae-tv__results">
+          <DataTable
+            label={t("settings.tv.resultsTitle")}
+            columns={columns}
+            rows={st.results}
+            rowKey={(r) => r.eventId}
+            bare
+            compact
+            breakpoints={RESULTS_BREAKPOINTS}
+            empty={<EmptyState title={t("settings.tv.resultsEmpty")} />}
+          />
+        </div>
       </Panel>
     </>
   );

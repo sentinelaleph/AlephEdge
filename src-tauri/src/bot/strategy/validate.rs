@@ -264,18 +264,26 @@ pub fn suggested_sl_pct(cfg: &StrategyConfig, p: &DcaParams) -> Option<f64> {
 /// DCA sizes do not scale with the budget, so their minimum is the capital
 /// the ladder reserves, and only when its smallest order clears the minimum.
 pub fn min_budget(cfg: &StrategyConfig) -> Option<f64> {
+    min_budget_at(cfg, MIN_ORDER_NOTIONAL)
+}
+
+/// `min_budget` against another smallest-order floor (a symbol's own
+/// exchange MIN_NOTIONAL, which the Live switch checks). A floor below the
+/// app's 5 USDT is raised to it: the save refuses anything under 5 USDT.
+pub fn min_budget_at(cfg: &StrategyConfig, floor: f64) -> Option<f64> {
+    let floor = if floor.is_finite() { floor.max(MIN_ORDER_NOTIONAL) } else { MIN_ORDER_NOTIONAL };
     let lev = f64::from(cfg.leverage.max(1));
     let cents = |v: f64| (v.is_finite() && v > 0.0).then(|| (v * 100.0).ceil() / 100.0);
     // Orders are linear in the budget: measure at a reference budget, never
     // at the config's own (it may be 0 or invalid while being typed).
     const REF: f64 = 1000.0;
-    let per_ref = |smallest: f64| (smallest.is_finite() && smallest > 0.0).then(|| MIN_ORDER_NOTIONAL * REF / smallest);
+    let per_ref = |smallest: f64| (smallest.is_finite() && smallest > 0.0).then(|| floor * REF / smallest);
     match &cfg.params {
         StrategyParams::Dca(p) => {
             if p.base_order.is_some() || p.safety_order.is_some() {
                 let (bo, sos) = dca::ladder_notionals(p, cfg.budget, lev, 1.0);
                 let smallest = sos.iter().copied().fold(bo, f64::min);
-                (smallest >= MIN_ORDER_NOTIONAL).then(|| dca::required_capital(bo, &sos, lev)).and_then(cents)
+                (smallest >= floor).then(|| dca::required_capital(bo, &sos, lev)).and_then(cents)
             } else {
                 let (bo, sos) = dca::ladder_notionals(p, REF, lev, 1.0);
                 per_ref(sos.iter().copied().fold(bo, f64::min)).and_then(cents)
@@ -289,6 +297,15 @@ pub fn min_budget(cfg: &StrategyConfig) -> Option<f64> {
             let lv = grid::levels(lower, upper, p.n_grids, p.spacing);
             per_ref(grid::qty_per_level(REF, lev, &lv) * lv[0]).and_then(cents)
         }
+    }
+}
+
+/// Orders the budget is split across: base + safety orders for DCA, one
+/// per grid line for Grid (the level nearest the start stays empty).
+pub fn order_count(cfg: &StrategyConfig) -> u32 {
+    match &cfg.params {
+        StrategyParams::Dca(p) => 1 + u32::from(p.max_so),
+        StrategyParams::Grid(p) => u32::from(p.n_grids),
     }
 }
 
@@ -1160,5 +1177,43 @@ pub(crate) mod tests {
         assert!(liq > 104.0, "{liq}");
         assert_eq!(d.worst_loss_basis, "liq");
         assert!(d.liq_distance_pct.unwrap() > 0.0);
+    }
+
+    /// A symbol whose exchange minimum is above 5 USDT (Binance futures
+    /// BTCUSDT: 100) needs a larger budget for Live; the save floor stays 5.
+    #[test]
+    fn the_minimum_budget_follows_a_higher_symbol_floor() {
+        use crate::bot::strategy::commands::default_config;
+        use crate::bot::strategy::model::StrategyKind;
+        let mut cfg = default_config(StrategyKind::Dca, "binance".into(), "ALGOUSDT".into());
+        let base = min_budget(&cfg).unwrap();
+        assert_eq!(min_budget_at(&cfg, 5.0), Some(base));
+        assert_eq!(min_budget_at(&cfg, 1.0), Some(base), "below 5 USDT the save floor rules");
+        assert_eq!(min_budget_at(&cfg, f64::NAN), Some(base));
+        let at100 = min_budget_at(&cfg, 100.0).unwrap();
+        assert!((at100 - base * 20.0).abs() < 0.25, "{at100} vs {base}");
+        // at that figure the smallest order clears 100 USDT, a cent below it does not
+        cfg.budget = at100;
+        assert!(smallest_order_notional(&cfg) >= 100.0 - 1e-9);
+        cfg.budget = at100 - 0.01;
+        assert!(smallest_order_notional(&cfg) < 100.0);
+        assert_eq!(order_count(&cfg), 1 + u32::from(match &cfg.params {
+            StrategyParams::Dca(p) => p.max_so,
+            _ => unreachable!(),
+        }));
+        // fixed sizes: the floor is met or it is not
+        let fixed = with_dca(|p| {
+            p.base_order = Some(20.0);
+            p.safety_order = Some(20.0);
+            p.base_weight = None;
+            p.safety_weight = None;
+        });
+        assert!(min_budget_at(&fixed, 10.0).is_some());
+        assert_eq!(min_budget_at(&fixed, 100.0), None);
+        // grid: one order per line, linear in the floor
+        let g = default_config(StrategyKind::Grid, "binance".into(), "BTCUSDT".into());
+        assert_eq!(order_count(&g), 16);
+        let (g5, g20) = (min_budget(&g).unwrap(), min_budget_at(&g, 20.0).unwrap());
+        assert!((g20 - g5 * 4.0).abs() < 0.05, "{g20} vs {g5}");
     }
 }

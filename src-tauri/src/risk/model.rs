@@ -210,6 +210,11 @@ pub struct RiskState {
     pub daily_loss_override_capped: bool,
     /// Portfolio risk view thresholds (warn/danger chips and alerts).
     pub view_thresholds: ViewThresholds,
+    /// The stored settings file could not be read at start: these are the
+    /// defaults, the bad file was kept under this name ("" = it could not
+    /// be copied), and no bot starts until the user saves. Absent when fine.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub config_unreadable: Option<String>,
 }
 
 impl RiskState {
@@ -227,6 +232,7 @@ impl RiskState {
             balance: config.balance,
             close_on_stop: config.close_on_stop,
             view_thresholds: config.view_thresholds,
+            config_unreadable: None,
         }
     }
 }

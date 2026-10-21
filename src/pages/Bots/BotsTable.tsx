@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useDeskContext } from "@/app/DeskProvider";
 import { Link } from "@/app/router/router";
 import { Button } from "@/components/ui/Button/Button";
-import { LiveChip } from "@/components/ui/Chip/Chip";
+import { LiveChip, PaperChip } from "@/components/ui/Chip/Chip";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
 import { botMoneyColumns, useSignalBotMoney } from "./botMoney";
 import { StatusChip } from "@/components/ui/StatusChip/StatusChip";
@@ -10,7 +10,7 @@ import { Tooltip } from "@/components/ui/Tooltip/Tooltip";
 import { localeForLanguage } from "@/i18n";
 import { exchangeName } from "@/lib/ipc/exchange/exchange";
 import { formatUsdt, NO_VALUE } from "@/lib/format";
-import { rowStatus, type BotRow } from "./botRows";
+import { botRowName, rowStatus, type BotRow } from "./botRows";
 import "./bots.css";
 
 export type SortKey = "openPositions" | "capital" | "maxPositions";
@@ -86,6 +86,9 @@ export function BotsTable({ rows, sort, onSort, selected, onSelect }: BotsTableP
   };
 
   const money = useSignalBotMoney();
+  // The TradingView bot's money is a budget plus a max size per alert, not
+  // a capital per position: its own table says so.
+  const tvOnly = rows.length > 0 && rows.every((r) => r.type === "tradingview");
   const columns: DataColumn<BotRow>[] = [
     ...(onSelect
       ? [
@@ -96,7 +99,7 @@ export function BotsTable({ rows, sort, onSort, selected, onSelect }: BotsTableP
             cell: (row: BotRow) => (
               <input
                 type="checkbox"
-                aria-label={t("botsList.selectRow", { name: t(`bots.kind.${row.kind}`) })}
+                aria-label={t("botsList.selectRow", { name: botRowName(t, row) })}
                 checked={selected?.has(row.id) ?? false}
                 onChange={() => toggle(row.id)}
               />
@@ -111,9 +114,9 @@ export function BotsTable({ rows, sort, onSort, selected, onSelect }: BotsTableP
       cell: (row) => (
         <span className="ae-namecell">
           <Link to={`/bots/${row.id}`} className="ae-link">
-            {t(`bots.kind.${row.kind}`)}
+            {botRowName(t, row)}
           </Link>
-          {row.live ? <LiveChip /> : null}
+          {row.live ? <LiveChip /> : row.config ? <PaperChip /> : null}
         </span>
       ),
     },
@@ -143,7 +146,7 @@ export function BotsTable({ rows, sort, onSort, selected, onSelect }: BotsTableP
     ...botMoneyColumns<BotRow>(t, locale, (row) => (row.config ? money(row.kind) : null)),
     {
       id: "capital",
-      header: t("table.capital"),
+      header: tvOnly ? t("botsTv.budget") : t("table.capital"),
       numeric: true,
       sortable: true,
       priority: 2,
@@ -157,6 +160,17 @@ export function BotsTable({ rows, sort, onSort, selected, onSelect }: BotsTableP
       priority: 3,
       cell: (row) => row.maxPositions ?? NO_VALUE,
     },
+    ...(tvOnly
+      ? [
+          {
+            id: "maxSize",
+            header: t("botsTv.maxSize"),
+            numeric: true,
+            detailOnly: true,
+            cell: (row: BotRow) => (row.maxSizeUsdt !== null ? formatUsdt(row.maxSizeUsdt, locale) : NO_VALUE),
+          },
+        ]
+      : []),
   ];
 
   const onSortColumn = onSort

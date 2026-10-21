@@ -1,6 +1,6 @@
 [package]
 name = "aleph-edge"
-version = "0.3.18"
+version = "0.3.19"
 description = "Aleph Edge — Sentinel Aleph automated trading bot"
 authors = ["Sentinel Aleph"]
 edition = "2021"
@@ -79,8 +79,12 @@ libc = "0.2"
 # Serves the bundled frontend (`build.frontendDist` in tauri.conf.json) instead
 # of the dev server at `build.devUrl`; the Tauri CLI enables it for release builds.
 custom-protocol = ["tauri/custom-protocol"]
-# Real-money order sending (`LIVE_TRADING_ENABLED`). OFF in every default
-# build, including the public one; a live build is made on purpose with
-# `npm run tauri build -- --features live`. Each bot still needs its own
-# per-session live opt-in, confirmed in the UI.
+# ONE build since 0.3.19: the real-money order path (`LIVE_TRADING_ENABLED`)
+# is always compiled into the desktop app, and the user chooses Paper or Live
+# per bot. Building without it is a compile error (src/lib.rs). Real orders
+# still need a Live bot (chosen with a typed confirmation of the money at
+# risk), a per-session typed LIVE arm, a verified trade-only key in the
+# unlocked vault and a venue whose order path passed its test-network run.
+# The headless bot farm mounts bot/model.rs without this feature: never live.
+default = ["live"]
 live = []

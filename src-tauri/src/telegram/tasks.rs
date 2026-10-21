@@ -56,27 +56,75 @@ pub fn spawn(app: &AppHandle) {
     });
 }
 
+/// What the stored Telegram row gave (pure): the settings, or why they are
+/// unusable.
+pub(crate) enum StoredSettings {
+    Fine(super::Settings),
+    /// The row exists and does not parse: its text, to keep a copy of.
+    Unreadable(String),
+    /// The store could not be read: nothing to copy, nothing to trust.
+    ReadFailed,
+}
+
+/// `raw`: Ok(None) = nothing saved, Err = the store read failed.
+pub(crate) fn parse_settings(raw: Result<Option<String>, String>) -> StoredSettings {
+    match raw {
+        Ok(None) => StoredSettings::Fine(super::Settings::default()),
+        Ok(Some(body)) => match serde_json::from_str(&body) {
+            Ok(s) => StoredSettings::Fine(s),
+            Err(_) => StoredSettings::Unreadable(body),
+        },
+        Err(_) => StoredSettings::ReadFailed,
+    }
+}
+
+/// Meta key an unreadable Telegram row is copied to.
+pub(crate) fn unreadable_key(now_ms: u64) -> String {
+    format!("{SETTINGS_KEY}.unreadable.{now_ms}")
+}
+
 fn load(app: &AppHandle) {
     let token = read_token(&OsKeychain);
-    let mut settings: super::Settings = app
-        .path()
-        .app_data_dir()
-        .ok()
-        .and_then(|dir| app.state::<StoreManager>().get_meta(&dir, SETTINGS_KEY).ok().flatten())
-        .and_then(|body| serde_json::from_str(&body).ok())
-        .unwrap_or_default();
-    // Rows from before modes: own bot when a token is kept, else official.
-    if settings.migrate(token.is_some()) {
+    let mgr = app.state::<TelegramManager>();
+    let dir = app.path().app_data_dir().ok();
+    let raw = match &dir {
+        Some(d) => app.state::<StoreManager>().get_meta(d, SETTINGS_KEY),
+        None => Err("appDataDirUnavailable".to_string()),
+    };
+    // An unreadable row is never replaced by the defaults (that would unlink
+    // the chat without a word): its text is copied first, the panel says so,
+    // and nothing is saved over it until the user sets Telegram up again.
+    // The DCA / Grid real-money state is kept the same way.
+    let (mut settings, unreadable) = match parse_settings(raw) {
+        StoredSettings::Fine(s) => (s, None),
+        StoredSettings::Unreadable(body) => {
+            let key = unreadable_key(now_ms());
+            let kept = dir.as_ref().is_some_and(|d| app.state::<StoreManager>().set_meta(d, &key, &body).is_ok());
+            (super::Settings::default(), Some(if kept { key } else { String::new() }))
+        }
+        StoredSettings::ReadFailed => (super::Settings::default(), Some(String::new())),
+    };
+    if unreadable.is_some() {
+        mgr.hold_unreadable.store(true, std::sync::atomic::Ordering::SeqCst);
+        app.state::<BotManager>().push_skip("—", "telegramSettingsUnreadable", unreadable.clone().filter(|k| !k.is_empty()));
+    } else if settings.migrate(token.is_some()) {
+        // Rows from before modes: own bot when a token is kept, else official.
         let _ = save_settings(app, &settings);
     }
-    let mgr = app.state::<TelegramManager>();
     let mut g = mgr.lock();
     g.token = token;
     g.settings = settings;
+    g.settings_unreadable = unreadable;
     g.loaded = true;
 }
 
+/// Error while an unreadable saved row is held (see `load`).
+pub(crate) const SETTINGS_HELD: &str = "tgSettingsUnreadable";
+
 pub(crate) fn save_settings(app: &AppHandle, settings: &super::Settings) -> Result<(), String> {
+    if app.state::<TelegramManager>().hold_unreadable.load(std::sync::atomic::Ordering::SeqCst) {
+        return Err(SETTINGS_HELD.to_string());
+    }
     let dir = app.path().app_data_dir().map_err(|_| "appDataDirUnavailable".to_string())?;
     let body = serde_json::to_string(settings).map_err(|_| "storeWriteFailed".to_string())?;
     app.state::<StoreManager>().set_meta(&dir, SETTINGS_KEY, &body)
@@ -535,6 +583,25 @@ pub(crate) fn help_text(live: bool) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // An unreadable saved row is never read as "not set up": the defaults it
+    // would become unlink the chat silently. It is kept, and flagged.
+    #[test]
+    fn an_unreadable_telegram_row_is_kept_not_replaced_by_defaults() {
+        let good = serde_json::to_string(&crate::telegram::Settings { enabled: true, chat_id: Some(42), ..Default::default() }).unwrap();
+        match parse_settings(Ok(Some(good))) {
+            StoredSettings::Fine(s) => assert_eq!((s.enabled, s.chat_id), (true, Some(42))),
+            _ => panic!("a good row reads"),
+        }
+        assert!(matches!(parse_settings(Ok(None)), StoredSettings::Fine(_)), "nothing saved = not set up");
+        match parse_settings(Ok(Some("{\"enabled\":tru".into()))) {
+            StoredSettings::Unreadable(body) => assert_eq!(body, "{\"enabled\":tru", "the bytes to keep"),
+            _ => panic!("a corrupt row is unreadable, not defaults"),
+        }
+        assert!(matches!(parse_settings(Err("storeReadFailed".into())), StoredSettings::ReadFailed));
+        assert_eq!(unreadable_key(1_700), "telegram.settings.unreadable.1700");
+        assert_ne!(unreadable_key(1_700), SETTINGS_KEY, "the copy never lands on the row itself");
+    }
 
     #[test]
     fn status_reply_states_the_desk() {

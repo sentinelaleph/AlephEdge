@@ -189,6 +189,22 @@ pub async fn telegram_set_token(app: AppHandle, mgr: State<'_, TelegramManager>,
     Ok(view(&mgr))
 }
 
+/// The user's answer to an unreadable saved row: Telegram starts from the
+/// defaults (not linked, nothing sent) and may be saved again. The kept copy
+/// stays in the store under its own key.
+#[tauri::command]
+pub fn telegram_start_over(app: AppHandle, mgr: State<TelegramManager>) -> Result<TelegramStatus, String> {
+    mgr.hold_unreadable.store(false, std::sync::atomic::Ordering::SeqCst);
+    let settings = {
+        let mut g = mgr.lock();
+        g.settings_unreadable = None;
+        g.last_error = None;
+        g.settings.clone()
+    };
+    save_settings(&app, &settings)?;
+    Ok(view(&mgr))
+}
+
 /// Deletes the token and forgets the chat. The category choices stay.
 #[tauri::command]
 pub fn telegram_remove(app: AppHandle, mgr: State<TelegramManager>) -> Result<TelegramStatus, String> {

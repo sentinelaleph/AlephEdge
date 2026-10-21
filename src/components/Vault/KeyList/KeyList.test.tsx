@@ -172,7 +172,7 @@ describe("KeyList", () => {
     );
     expect(el.querySelectorAll('[data-testid="key-in-use"]')).toHaveLength(1);
     expect(el.querySelector('[data-testid="key-not-used"]')?.textContent).toBe(
-      "Not used: the app signs with “old”. Renew that key or remove one of them.",
+      'Not used: the app signs with "old". Renew that key or remove one of them.',
     );
   });
 

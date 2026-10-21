@@ -78,7 +78,9 @@ pub fn refusal(
     let Some(cfg) = cfg else {
         return Err("botNotConfigured".to_string());
     };
-    if cfg.live {
+    // Paper only: never on a Live bot, armed or not (paper and real money
+    // never share a bot's book).
+    if cfg.live || cfg.mode == crate::bot::model::TradeMode::Live {
         return Err(PAPER_ONLY.to_string());
     }
     if tripped {

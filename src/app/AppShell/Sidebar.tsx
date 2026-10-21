@@ -380,10 +380,10 @@ function useBadges(): Partial<Record<NavItemId, Badge>> {
   const strategyLive = useStrategyLive();
   if (!desk.loaded) return {};
   const s = desk.status;
-  const running = [s.futuresRunning, s.spotRunning, s.pumpRunning].filter(Boolean).length;
+  const running = [s.futuresRunning, s.spotRunning, s.pumpRunning, s.tradingviewRunning === true].filter(Boolean).length;
   const paperOpen = s.openPositions.filter((p) => !p.live).length;
   const realOpen = s.openPositions.some((p) => p.live) || strategyLive.views.some((v) => v.realQty !== 0);
-  const anyLive = [s.futures, s.spot, s.pump].some((c) => c?.live === true) || strategyLive.anyLive;
+  const anyLive = [s.futures, s.spot, s.pump, s.tradingview].some((c) => c?.live === true) || strategyLive.anyLive;
   // Strategy bots arming or holding a cycle (paper only).
   const strategyActive = (kind: "dca" | "grid") =>
     strategy.bots?.filter((b) => b.kind === kind && (b.acceptingNewCycles || b.openCycle !== null)).length ?? 0;
@@ -417,7 +417,7 @@ function useBadges(): Partial<Record<NavItemId, Badge>> {
         : undefined,
     risk: {
       dots: riskDots,
-      chips: anyLive ? [{ tone: "live", label: "LIVE", title: t("nav.badge.live") }] : undefined,
+      chips: anyLive ? [{ tone: "live", label: t("states.live"), title: t("nav.badge.live") }] : undefined,
     },
   };
 }

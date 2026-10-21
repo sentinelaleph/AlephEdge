@@ -205,7 +205,7 @@ pub async fn open_phase(app: &AppHandle, regime: BtcRegime) {
                 .await
                 {
                     Ok(open) => {
-                        bots.pilot_used(kind);
+                        bots.pilot_used_saved(app, kind);
                         Some(open)
                     }
                     Err(key) => {

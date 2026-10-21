@@ -7,6 +7,7 @@ pub mod about;
 pub mod backup;
 pub mod before_you_trade;
 pub mod cockpit;
+pub mod data_health;
 pub mod commands;
 pub mod endpoints;
 pub mod foreign_fill;
@@ -19,3 +20,6 @@ pub mod presets_live;
 pub mod settings_transfer;
 pub mod update;
 pub mod window;
+
+#[cfg(test)]
+mod update_channel_tests;

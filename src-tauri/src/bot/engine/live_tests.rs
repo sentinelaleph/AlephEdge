@@ -15,7 +15,7 @@ use super::reconcile::{
     reference_exit, ExchangeSide, ReconcilePlan, RECONCILE_INTERVAL_MS,
 };
 use super::test_fixtures::{plan, position, signal};
-use crate::bot::model::OpenPosition;
+use crate::bot::model::{BotKind, OpenPosition};
 use crate::exchange::providers::binance_fills::{parse_user_trades, summarize_fills};
 use crate::exchange::providers::binance_rules::LotStep;
 
@@ -239,23 +239,30 @@ fn fallback_blends_exchange_partial_and_marks_trigger_exit() {
 }
 
 // A position's `live` flag is persisted as raw JSON, so anything that can
-// write the app's data directory can set it. One edited line must not reach
-// real reduce-only orders while the compile-time master switch is off:
-// `is_live()` is the single gate every close, manage and reconcile path reads.
-// Default (non-live) builds only: in a `--features live` build a live flag
-// is honoured by design.
-#[cfg(not(feature = "live"))]
+// write the app's data directory can set it. In the one build an edited line
+// on a PAPER bot must not reach real reduce-only orders: restore holds such a
+// row out of the book (no close, manage or reconcile path sees it). Only a
+// Live bot's real rows enter the book.
 #[test]
-fn tampered_live_flag_cannot_reach_the_venue() {
-    const _: () = assert!(!crate::bot::model::LIVE_TRADING_ENABLED);
-    let mut p = live_short();
-    assert!(p.live, "fixture opts the position into live");
-    assert!(
-        !p.is_live(),
-        "master switch is off, so no position may be treated as live"
-    );
-    p.live = false;
-    assert!(!p.is_live());
+fn a_real_row_on_a_paper_bot_is_held_out_of_the_book() {
+    use crate::bot::model::TradeMode;
+    let real = live_short();
+    assert!(real.live, "fixture opts the position into live");
+    let mut paper = real.clone();
+    (paper.signal_id, paper.live) = ("paper-1".into(), false);
+    let mut spot_real = real.clone();
+    (spot_real.signal_id, spot_real.bot_kind) = ("spot-1".into(), BotKind::Spot);
+    let rows = vec![real.clone(), paper.clone(), spot_real.clone()];
+    // Futures is Live, Spot is Paper.
+    let mode = |k: BotKind| if k == BotKind::Futures { TradeMode::Live } else { TradeMode::Paper };
+    let (kept, held) = crate::bot::split_foreign_live_rows(rows.clone(), mode);
+    let ids = |v: &[OpenPosition]| v.iter().map(|p| p.signal_id.clone()).collect::<Vec<_>>();
+    assert_eq!(ids(&kept), vec![real.signal_id.clone(), "paper-1".to_string()]);
+    assert_eq!(ids(&held), vec!["spot-1".to_string()]);
+    // Every bot Paper: no real row is managed.
+    let (kept, held) = crate::bot::split_foreign_live_rows(rows, |_| TradeMode::Paper);
+    assert_eq!(ids(&kept), vec!["paper-1".to_string()]);
+    assert_eq!(held.len(), 2);
 }
 
 // Reconcile settles a live position only under the close claim, so a veto

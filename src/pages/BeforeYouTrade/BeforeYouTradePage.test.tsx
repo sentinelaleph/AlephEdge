@@ -220,7 +220,7 @@ describe("Before you trade in Turkish: no English prose from the payload", () =>
       window.history.replaceState({}, "", `/${mode === "legacy" ? "?byt=legacy" : ""}#/before-you-trade`);
       const el = await mount();
       const text = ownText(el);
-      expect(text).toContain("Bugün piyasa");
+      expect(text).toContain("Bugünkü piyasa");
       const sentences = payloadSentences(payload);
       expect(sentences.length).toBeGreaterThan(30);
       for (const s of sentences) expect(text, s).not.toContain(s);
@@ -344,7 +344,7 @@ describe("farm signal bots and translated news lines (schema_minor 2)", () => {
     const el = await mount();
     const text = el.querySelector('[data-testid="byt-farm-signal"]')!.textContent ?? "";
     expect(text).toContain("Sinyal botları");
-    expect(text).toContain("Kâğıt üzerinde işlem, simüle edilmiş dolumlar");
+    expect(text).toContain("Simülasyonda işlem; sıralama yok");
     expect(text).toContain("1 kapandı / 2 açık");
     expect(text).toContain("Vadeli");
   });

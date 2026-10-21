@@ -17,8 +17,16 @@
 //! skip the "has Sentinel resolved it" lookup (it was never published) and
 //! the UI reads to label the trade as the user's own.
 //!
-//! Paper only, desktop only: a bot on real money refuses (`PAPER_ONLY`) and
-//! no exchange order API is ever called here.
+//! Paper or Live, chosen on the form (`TradeRequest::mode`, Paper by
+//! default) and matched to the bot: a Paper trade opens on a Paper bot's
+//! book only, a Live one on the Live Futures bot armed this session only,
+//! after the typed LIVE with the money at risk shown. A Live trade goes
+//! through the signal bots' own real entry (`live::open_live`: market order,
+//! exchange-side stop and take-profit, the pilot cap), so no new order code
+//! exists here. The open re-plans and refuses (`liveTermsChanged`) when the
+//! margin is no longer the one the confirmation showed. TradingView alerts
+//! plan through the same function (`plan_in`, `PlanFor::Alert`) on the
+//! TradingView bot (`tv_trade`), with an id derived from the relay event.
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
@@ -28,7 +36,7 @@ use crate::risk::RiskManager;
 use crate::signal::model::{Direction, Signal};
 
 use super::super::model::{
-    BotConfig, BotKind, OpenPosition, SizingMode, TakeProfitTarget, EXCHANGE_MIN_ORDER_USDT, FUTURES_FEE_RATE,
+    BotConfig, BotKind, OpenPosition, SizingMode, TakeProfitTarget, TradeMode, EXCHANGE_MIN_ORDER_USDT, FUTURES_FEE_RATE,
     SPOT_FEE_RATE,
 };
 use super::super::BotManager;
@@ -66,6 +74,10 @@ pub const STOP_WRONG_SIDE: &str = "tradeStopWrongSide";
 pub const STOP_INSIDE_FEES: &str = "tradeStopInsideFees";
 /// Take-profit closer than both fees: reaching it books a loss.
 pub const TARGET_INSIDE_FEES: &str = "tradeTargetInsideFees";
+/// A Live trade asked of a Paper bot.
+pub const BOT_IS_PAPER: &str = "tradeBotIsPaper";
+/// Real money only on the Futures bot (the order path is futures only).
+pub const LIVE_FUTURES_ONLY: &str = "liveFuturesBinanceOnly";
 
 /// Whether `id` names a trade the user set up by hand, not a Sentinel
 /// signal (defined with the pure entry rules, which the precheck reads).
@@ -83,6 +95,46 @@ pub struct TradeRequest {
     pub notional_usdt: Option<f64>,
     pub take_profit: f64,
     pub stop_loss: f64,
+    /// Paper unless the user chose Live on the form. Must match the bot.
+    #[serde(default)]
+    pub mode: TradeMode,
+    /// The typed word, for a Live trade.
+    #[serde(default)]
+    pub confirmation: Option<String>,
+    /// The margin the Live confirmation showed (the preview's `capital`).
+    /// The open re-plans and refuses (`liveTermsChanged`) when the money
+    /// at risk is no longer this.
+    #[serde(default)]
+    pub confirmed_margin_usdt: Option<f64>,
+}
+
+/// A take-profit or stop as an alert gave it.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "value", rename_all = "lowercase")]
+pub enum Level {
+    Price(f64),
+    /// Positive distance from the reference price, in percent.
+    Pct(f64),
+}
+
+/// Take-profit and stop as prices from `price` for percents.
+///
+/// Long:  tp = price × (1 + tp_pct/100), sl = price × (1 − sl_pct/100).
+/// Short: tp = price × (1 − tp_pct/100), sl = price × (1 + sl_pct/100).
+pub fn resolve_levels(direction: Direction, price: f64, tp: Level, sl: Level) -> (f64, f64) {
+    let up = |pct: f64| price * (1.0 + pct / 100.0);
+    let down = |pct: f64| price * (1.0 - pct / 100.0);
+    let tp = match (tp, direction) {
+        (Level::Price(p), _) => p,
+        (Level::Pct(p), Direction::Long) => up(p),
+        (Level::Pct(p), Direction::Short) => down(p),
+    };
+    let sl = match (sl, direction) {
+        (Level::Price(p), _) => p,
+        (Level::Pct(p), Direction::Long) => down(p),
+        (Level::Pct(p), Direction::Short) => up(p),
+    };
+    (tp, sl)
 }
 
 /// What opening the trade now would do, from the paper fill model.
@@ -133,7 +185,32 @@ pub fn normalize_symbol(raw: &str) -> Result<String, String> {
     }
 }
 
-/// Checks that need no network, in order: a saved config, paper money, the
+/// Why the trade's mode does not fit the bot (pure). Paper: a Paper bot,
+/// never a Live one (armed or not). Live: the Futures bot, Live and armed
+/// this session, with the typed word.
+pub fn mode_refusal(cfg: &BotConfig, req: &TradeRequest) -> Result<(), String> {
+    match req.mode {
+        TradeMode::Paper if cfg.live || cfg.mode == TradeMode::Live => Err(PAPER_ONLY.to_string()),
+        TradeMode::Paper => Ok(()),
+        TradeMode::Live => {
+            if req.kind != BotKind::Futures {
+                return Err(LIVE_FUTURES_ONLY.to_string());
+            }
+            if cfg.mode != TradeMode::Live {
+                return Err(BOT_IS_PAPER.to_string());
+            }
+            if !cfg.live {
+                return Err("liveArmRequired".to_string());
+            }
+            if req.confirmation.as_deref().map(str::trim) != Some(crate::bot::LIVE_CONFIRMATION) {
+                return Err(format!("liveConfirmRequired|{}", crate::bot::LIVE_CONFIRMATION));
+            }
+            Ok(())
+        }
+    }
+}
+
+/// Checks that need no network, in order: a saved config, the mode, the
 /// daily stop, a valid config, a Futures or Spot bot, spot long only, the
 /// symbol, the levels, the size, and no position of this bot on the symbol.
 /// Returns the normalized symbol.
@@ -141,9 +218,7 @@ pub fn refusal(cfg: Option<&BotConfig>, tripped: bool, req: &TradeRequest, held:
     let Some(cfg) = cfg else {
         return Err("botNotConfigured".to_string());
     };
-    if cfg.live {
-        return Err(PAPER_ONLY.to_string());
-    }
+    mode_refusal(cfg, req)?;
     if tripped {
         return Err("botDailyLossTripped".to_string());
     }
@@ -311,13 +386,59 @@ pub fn preview_of(pos: &OpenPosition, bot_capital: f64) -> TradePreview {
     }
 }
 
+/// Who asks for the trade: the New trade form, or a TradingView alert on
+/// the TradingView bot (its synthetic id is derived from the relay event,
+/// so a lost order can be looked up by its client id).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PlanFor<'a> {
+    Form,
+    Alert { id: &'a str },
+}
+
+/// The pre-network checks of an alert entry on the TradingView bot (pure):
+/// a saved config, the daily stop, a valid config, the TradingView bot,
+/// the symbol, the levels, the size, and no position of this bot on it.
+pub fn alert_refusal(cfg: Option<&BotConfig>, tripped: bool, req: &TradeRequest, held: bool) -> Result<String, String> {
+    let Some(cfg) = cfg else {
+        return Err("tvBotRequired".to_string());
+    };
+    if tripped {
+        return Err("botDailyLossTripped".to_string());
+    }
+    cfg.validate()?;
+    if req.kind != BotKind::Tradingview || cfg.kind != BotKind::Tradingview {
+        return Err(BOT_KIND.to_string());
+    }
+    let symbol = normalize_symbol(&req.symbol)?;
+    let level_ok = |v: f64| v.is_finite() && v > 0.0;
+    if !(level_ok(req.take_profit) && level_ok(req.stop_loss)) {
+        return Err(LEVELS_INVALID.to_string());
+    }
+    match req.notional_usdt {
+        Some(n) if n.is_finite() && n >= EXCHANGE_MIN_ORDER_USDT => {}
+        Some(n) if n.is_finite() && n > 0.0 => return Err(format!("belowExchangeMinimum|{n:.2}")),
+        _ => return Err(SIZE_INVALID.to_string()),
+    }
+    if held {
+        return Err("tvAlreadyOpen".to_string());
+    }
+    Ok(symbol)
+}
+
 /// The paper position the request would open now (and the bot's capital),
 /// or the refusal code (`key` or `key|detail`).
 async fn plan(app: &AppHandle, req: &TradeRequest) -> Result<(OpenPosition, f64), String> {
+    plan_in(app, req, PlanFor::Form).await
+}
+
+pub(crate) async fn plan_in(app: &AppHandle, req: &TradeRequest, by: PlanFor<'_>) -> Result<(OpenPosition, f64), String> {
     let bots = app.state::<BotManager>();
     let cfg = bots.config_for(req.kind);
     let held = bots.holds_symbol(req.kind, req.symbol.trim());
-    let symbol = refusal(cfg.as_ref(), bots.kill_switch_tripped(), req, held)?;
+    let symbol = match by {
+        PlanFor::Form => refusal(cfg.as_ref(), bots.kill_switch_tripped(), req, held)?,
+        PlanFor::Alert { .. } => alert_refusal(cfg.as_ref(), bots.kill_switch_tripped(), req, held)?,
+    };
     let Some(cfg) = cfg else {
         return Err("botNotConfigured".to_string());
     };
@@ -336,7 +457,11 @@ async fn plan(app: &AppHandle, req: &TradeRequest) -> Result<(OpenPosition, f64)
     let leverage = precheck::effective_leverage(&cfg, &app.state::<RiskManager>().limits());
     let tcfg = trade_config(&cfg, req, leverage);
     let now = now_ms();
-    let sig = synthetic_signal(req, &symbol, price, now, new_id(now, rand::random()));
+    let id = match by {
+        PlanFor::Form => new_id(now, rand::random()),
+        PlanFor::Alert { id } => id.to_string(),
+    };
+    let sig = synthetic_signal(req, &symbol, price, now, id);
     let Prepared { plan, ctx } = entry::prepare_entry(app, &tcfg, &sig, bots.btc_regime(), EntryMode::Manual, held, now)
         .await
         .map_err(|s| skip_code(&s))?
@@ -349,10 +474,11 @@ async fn plan(app: &AppHandle, req: &TradeRequest) -> Result<(OpenPosition, f64)
 
 /// The live price `kind`'s bot would fill `symbol` at now, on its own
 /// exchange and market: the base of levels given as a percent (TradingView
-/// alerts, `tvlink`). Refuses as `open` would for a missing or live bot.
+/// alerts, `tvlink`, Paper only). Refuses as a Paper `open` would for a
+/// missing or Live bot.
 pub async fn quote(app: &AppHandle, kind: BotKind, symbol: &str) -> Result<f64, String> {
     let cfg = app.state::<BotManager>().config_for(kind).ok_or_else(|| "botNotConfigured".to_string())?;
-    if cfg.live {
+    if cfg.live || cfg.mode == TradeMode::Live {
         return Err(PAPER_ONLY.to_string());
     }
     if !matches!(kind, BotKind::Futures | BotKind::Spot) {
@@ -369,16 +495,63 @@ pub async fn preview(app: &AppHandle, req: &TradeRequest) -> Result<TradePreview
     plan(app, req).await.map(|(p, capital)| preview_of(&p, capital))
 }
 
-/// Opens the trade on the bot's paper book now. The book is checked again at
-/// the open: a double click, or the bot's loop taking the symbol meanwhile,
-/// opens nothing twice.
+/// Opens the trade now: on the bot's paper book, or for a Live trade as a
+/// real market order with its exchange stop and take-profit (the signal
+/// bots' real entry). The book is checked again at the open: a double
+/// click, or the bot's loop taking the symbol meanwhile, opens nothing twice.
 pub async fn open(app: &AppHandle, req: &TradeRequest) -> Result<OpenPosition, String> {
-    let (pos, _) = plan(app, req).await?;
+    let (mut pos, _) = plan(app, req).await?;
     let bots = app.state::<BotManager>();
+    if req.mode == TradeMode::Live {
+        // The confirmation showed the preview's margin; this plan, made now,
+        // must put the same money at risk (the backend re-check).
+        super::super::live_terms::confirmed_entry(pos.capital, req.confirmed_margin_usdt)?;
+        pos = open_real(app, req, pos).await?;
+        // A position the exchange holds is booked whatever the book says
+        // meanwhile; the real entry refused a symbol already held.
+        book::open_position(app, pos.clone());
+        bots.push_skip(&pos.symbol, FEED_KEY, Some("live".to_string()));
+        bots.ensure_loop(app.clone());
+        // The daily stop or "Stop all live" can land while the order was on
+        // the wire; their close-all ran on a book without this position.
+        if bots.kill_switch_tripped() || !bots.config_for(req.kind).is_some_and(|c| c.live) {
+            book::close_now(app, &pos.signal_id, req.kind, "stopped").await;
+        }
+        return Ok(pos);
+    }
     if !book::open_position_if_free(app, pos.clone()) {
         return Err("marketHeld".to_string());
     }
     bots.push_skip(&pos.symbol, FEED_KEY, None);
     bots.ensure_loop(app.clone());
+    Ok(pos)
+}
+
+/// The real entry of a Live trade planned as `pos` (paper fill model): the
+/// gate is re-read now (`live_trading_allowed`), then `live::open_live`
+/// places the market order, the stop and the take-profit at the planned
+/// size (capped by the pilot). The position records the REAL fill.
+async fn open_real(app: &AppHandle, req: &TradeRequest, mut pos: OpenPosition) -> Result<OpenPosition, String> {
+    let bots = app.state::<BotManager>();
+    let cfg = bots.config_for(req.kind).ok_or_else(|| "botNotConfigured".to_string())?;
+    mode_refusal(&cfg, req)?;
+    if !super::live::live_trading_allowed(&cfg, req.kind) {
+        return Err(LIVE_FUTURES_ONLY.to_string());
+    }
+    let leverage = precheck::effective_leverage(&cfg, &app.state::<RiskManager>().limits());
+    let tcfg = trade_config(&cfg, req, leverage);
+    let now = now_ms();
+    let sig = synthetic_signal(req, &pos.symbol, pos.entry, now, pos.signal_id.clone());
+    let open = super::live::open_live(app, &tcfg, &sig, pos.entry, pos.notional_usdt, leverage, TakeProfitTarget::Tp1)
+        .await
+        .map_err(str::to_string)?;
+    bots.pilot_used_saved(app, req.kind);
+    pos.live = true;
+    pos.entry = open.entry;
+    pos.qty = open.qty;
+    pos.entry_order_id = Some(open.entry_order_id);
+    pos.unprotected = open.stop_algo_id.is_none();
+    pos.stop_algo_id = open.stop_algo_id;
+    pos.tp_algo_id = open.tp_algo_id;
     Ok(pos)
 }

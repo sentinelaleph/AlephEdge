@@ -19,6 +19,7 @@ pub fn cfg() -> BotConfig {
         combos: vec![],
         engines: vec![],
         live: false,
+        mode: Default::default(),
         max_loss_pct: None,
         sizing: crate::bot::model::SizingMode::Fixed,
         risk_per_trade_pct: 1.0,
@@ -26,6 +27,7 @@ pub fn cfg() -> BotConfig {
         take_profit_overrides: Default::default(),
         // Fixtures carry fixed dates; the age gate has its own tests.
         max_signal_age_min: 0,
+        tv: None,
     }
 }
 

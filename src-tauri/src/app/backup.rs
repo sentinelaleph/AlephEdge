@@ -8,7 +8,9 @@
 //!   (a consistent snapshot, never a raw copy of a database in use);
 //! - `config.json`: risk level, simulated balance, daily stop;
 //! - `vault.edge`: the exchange-key vault, copied as is (it is encrypted at
-//!   rest; its salt stays in the OS keychain).
+//!   rest; its salt stays in the OS keychain);
+//! - `desk-id`: the identity paired phones and the Sentinel relay know this
+//!   desk by (a restored backup without it would pair as a new desk).
 //!
 //! The newest `KEEP` folders stay; older ones are deleted after each new
 //! backup. A backup is written to a `.partial` folder and renamed into place
@@ -30,7 +32,7 @@ pub const KEEP: usize = 5;
 /// The store file (see `StoreManager::with_conn`).
 pub const DB_FILE: &str = "edge.db";
 /// Plain files copied as they are, when present.
-pub const PLAIN_FILES: [&str; 2] = ["config.json", "vault.edge"];
+pub const PLAIN_FILES: [&str; 3] = ["config.json", "vault.edge", "desk-id"];
 
 const PARTIAL: &str = ".partial";
 
@@ -371,11 +373,12 @@ mod tests {
         store.set_meta(&data, "running_kinds", "futures").unwrap();
         std::fs::write(data.join("config.json"), b"{\"level\":\"calm\"}").unwrap();
         std::fs::write(data.join("vault.edge"), b"sealed-bytes").unwrap();
+        std::fs::write(data.join("desk-id"), b"desk-4f1c").unwrap();
 
         let name = folder_name(&Reason::Update { from: "0.3.14".into(), to: "0.3.15".into() }, 1_792_158_307_000);
         let entry = take(&data, &name, |dest| store.backup_into(&data, dest)).unwrap();
         assert_eq!(entry.kind, "update");
-        assert_eq!(entry.files, vec!["config.json", "edge.db", "vault.edge"]);
+        assert_eq!(entry.files, vec!["config.json", "desk-id", "edge.db", "vault.edge"]);
         assert!(entry.size_bytes > 0);
 
         let dir = data.join(BACKUP_DIR).join(&name);
@@ -387,6 +390,7 @@ mod tests {
         let n: i64 = copy.query_row("SELECT COUNT(*) FROM meta", [], |r| r.get(0)).unwrap();
         assert_eq!(n, 2);
         assert_eq!(std::fs::read(dir.join("vault.edge")).unwrap(), b"sealed-bytes");
+        assert_eq!(std::fs::read(dir.join("desk-id")).unwrap(), b"desk-4f1c", "the pre-update backup keeps the desk identity");
         assert_eq!(list(&data.join(BACKUP_DIR)), vec![entry]);
         // The original keeps working after the copy.
         store.set_meta(&data, "after", "1").unwrap();

@@ -14,7 +14,7 @@ import { localeForLanguage } from "@/i18n";
 import { formatUsdt, NO_VALUE } from "@/lib/format";
 import { exchangeName } from "@/lib/ipc/exchange/exchange";
 import { runStateText } from "@/lib/strategyText";
-import { signalBotRows, type BotRow, type BotType } from "./botRows";
+import { allBotRows, botRowName, type BotRow, type BotType } from "./botRows";
 import { BotsTable, sortRows, type SortState } from "./BotsTable";
 import { SkeletonRows } from "./SkeletonRows";
 import { isActive, type StrategyBotView } from "@/lib/ipc/strategy/strategy";
@@ -34,7 +34,7 @@ function readSort(): SortState | null {
   }
 }
 
-const TYPES: BotType[] = ["signal", "dca", "grid"];
+const TYPES: BotType[] = ["signal", "tradingview", "dca", "grid"];
 const STATES = ["running", "stopped", "stoppedByKillSwitch", "notConfigured"] as const;
 
 /** #/bots: every bot of every type in one table, filters in the URL. */
@@ -76,12 +76,12 @@ export function BotsPage() {
   const anyFilter = Object.values(filters).some((v) => (Array.isArray(v) ? v.length > 0 : v !== ""));
 
   const all: BotRow[] = useMemo(
-    () => (desk.loaded ? signalBotRows(desk.status, risk.state?.maxCapitalQuote ?? null) : []),
+    () => (desk.loaded ? allBotRows(desk.status, risk.state?.maxCapitalQuote ?? null) : []),
     [desk.loaded, desk.status, risk.state?.maxCapitalQuote],
   );
   const rows = sortRows(
     all.filter((r) => {
-      const name = t(`bots.kind.${r.kind}`).toLowerCase();
+      const name = botRowName(t, r).toLowerCase();
       const needle = filters.q.trim().toLowerCase();
       if (needle && !name.includes(needle) && !r.symbols.some((s) => s.toLowerCase().includes(needle))) return false;
       if (filters.type.length && !filters.type.includes(r.type)) return false;
@@ -110,6 +110,8 @@ export function BotsPage() {
   const exchanges = [
     ...new Set([...all.map((r) => r.exchangeId), ...strategyAll.map((b) => b.exchangeId)].filter((x): x is string => !!x)),
   ];
+  const signalRows = rows.filter((r) => r.type === "signal");
+  const tvRows = rows.filter((r) => r.type === "tradingview");
   const runningSelected = rows.filter((r) => selected.has(r.id) && r.running);
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
@@ -121,7 +123,7 @@ export function BotsPage() {
         options={TYPES.map((v) => ({
           value: v,
           label: t(`botsList.type.${v}`),
-          count: v === "signal" ? all.length : strategyAll.filter((b) => b.kind === v).length,
+          count: v === "signal" || v === "tradingview" ? all.filter((r) => r.type === v).length : strategyAll.filter((b) => b.kind === v).length,
         }))}
         selected={filters.type}
         onChange={(v) => setFilter("type", v)}
@@ -146,7 +148,7 @@ export function BotsPage() {
         label={t("filters.mode")}
         options={[
           { value: "paper", label: t("states.paper") },
-          { value: "live", label: "LIVE" },
+          { value: "live", label: t("states.live") },
         ]}
         selected={filters.mode}
         onChange={(v) => setFilter("mode", v)}
@@ -167,14 +169,13 @@ export function BotsPage() {
     </>
   );
 
-  const configured = all.filter((r) => r.config);
   const attention = all.filter((r) => r.state === "stoppedByKillSwitch");
   const strategyAttention = strategyAll.filter((b) => b.runState === "dead" || b.runState === "paused");
   const right = (
     <>
       <MarketTrendPanel />
       {TYPES.map((type) => {
-        if (type !== "signal") {
+        if (type === "dca" || type === "grid") {
           const of = strategyAll.filter((b) => b.kind === type);
           return (
             <Panel key={type} title={t(`botsList.type.${type}`)}>
@@ -190,17 +191,19 @@ export function BotsPage() {
           );
         }
         const of = all.filter((r) => r.type === type);
+        if (type === "tradingview" && of.length === 0) return null;
         const cap = of.reduce((sum, r) => sum + (r.config ? r.capital ?? 0 : 0), 0);
+        const budget = of.reduce((sum, r) => sum + (r.config?.tv?.budgetUsdt ?? 0), 0);
         return (
           <Panel key={type} title={t(`botsList.type.${type}`)}>
             <FactList
               rows={[
-                { label: t("botsList.totals.bots"), value: type === "signal" ? configured.length : of.length },
+                { label: t("botsList.totals.bots"), value: of.filter((r) => r.config).length },
                 { label: t("botsList.totals.running"), value: of.filter((r) => r.running).length },
                 { label: t("table.openPositions"), value: of.reduce((n, r) => n + r.openPositions, 0) },
-                ...(type === "signal"
-                  ? [{ label: t("botsList.totals.capitalAllocated"), value: formatUsdt(cap, locale) }]
-                  : []),
+                type === "signal"
+                  ? { label: t("botsList.totals.capitalAllocated"), value: formatUsdt(cap, locale) }
+                  : { label: t("botsTv.budget"), value: formatUsdt(budget, locale) },
               ]}
             />
           </Panel>
@@ -214,7 +217,7 @@ export function BotsPage() {
             {attention.map((r) => (
               <li key={r.id}>
                 <Link to={`/bots/${r.id}`} className="ae-link">
-                  {t(`bots.kind.${r.kind}`)}
+                  {botRowName(t, r)}
                 </Link>
                 <span className="ae-error">{t(`botState.${r.state}`)}</span>
               </li>
@@ -297,10 +300,10 @@ export function BotsPage() {
               </Button>
             </div>
           ) : null}
-          {rows.length > 0 ? (
+          {signalRows.length > 0 ? (
             <Section
               title={t("nav.signalBots")}
-              count={rows.length}
+              count={signalRows.length}
               aside={
                 <label className="ae-checkline">
                   <input
@@ -312,7 +315,12 @@ export function BotsPage() {
                 </label>
               }
             >
-              <BotsTable rows={rows} sort={sort} onSort={setSort} selected={selected} onSelect={setSelected} />
+              <BotsTable rows={signalRows} sort={sort} onSort={setSort} selected={selected} onSelect={setSelected} />
+            </Section>
+          ) : null}
+          {tvRows.length > 0 ? (
+            <Section title={t("botsList.type.tradingview")} count={tvRows.length}>
+              <BotsTable rows={tvRows} selected={selected} onSelect={setSelected} />
             </Section>
           ) : null}
           {strategyRows.length > 0 ? (

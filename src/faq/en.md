@@ -134,7 +134,7 @@ Sections of the settings form:
 
 **What is the daily stop?** When today's realized loss reaches the level's share of the simulated balance (2% at Cautious), every signal bot stops. If **Close positions on daily stop** is on, open positions close too. Bots can be restarted after 00:00 UTC. DCA and Grid bots are outside the daily stop; they have their own protection.
 
-**How do I switch a signal bot to real money?** Only the **Futures** bot, only on Binance, and only in a build with real money. In the **Real money** panel under the settings form, press **Switch to real money**, type LIVE and confirm. You need a verified trade-only Binance key in the vault. The first 3 real entries run as a pilot of at most 50 USDT each. While the bot is on real money or holds real positions, its exchange cannot change. When the app restarts, the signal bot switches back to simulated on its own.
+**How do I switch a signal bot to real money?** Only the **Futures** bot and the TradingView bot, only on Binance. In the bot's **Mode** panel choose **Live**, then press **Start with real money**: the app shows the money at risk and asks you to type LIVE. You need a verified trade-only Binance key in the vault. The first 3 real entries run as a pilot of at most 50 USDT each; the count is kept across restarts. While the bot is Live or holds real positions, its exchange cannot change. After a restart a Live bot comes back stopped and asks for LIVE again. **Switch to Paper** lists the bot's open real positions: **Close positions and switch** closes them first, **Switch later** stops the bot and makes it Paper once they close.
 
 **What happens to signal bots when the app restarts?** Paper bots that were running start again by themselves. A bot stays stopped when its capital is above the per-position cap, its saved settings fail a check, its saved data cannot be read or the daily stop has tripped; **Skipped trades** names the reason ("Not resumed after restart"). A bot on real money comes back stopped and on paper.
 
@@ -361,7 +361,7 @@ Closed trades and performance stats.
 
 **Do the figures follow the filters?** Yes. Every figure on the page, the totals, chart and breakdowns included, is worked out over the trades the filters leave, with the same rules as the totals elsewhere in the app. The totals at the top cover signal trades; the DCA/Grid cycles have their own totals in their section, and the Dashboard adds the two.
 
-**Are real and simulated trades counted together?** No. In a build with real money, **Statistics scope** switches between **Simulated** and **Real money**; the two are never added together.
+**Are real and Paper trades counted together?** No. **Statistics scope** switches between **Paper** and **Real money** (**Testnet** in the testnet build); the two are never added together.
 
 ## Risk & safety {#risk}
 
@@ -389,7 +389,7 @@ Every percentage is of the **Simulated balance (USDT)**. Picking Greedy shows a 
 
 **Can I set my own daily loss limit?** Yes, but only a stricter one. If you type a looser value than the level's cap, the level's cap stays in force.
 
-**What does the live readiness check do?** It appears only in a build with real money. It reads everything real money needs in one pass: live build, Binance endpoint, trade-only key, your clock against Binance, futures balance, one-way position mode, positions no bot holds, daily stop, BTC regime, membership, signal stream and halted live bots. Each row is marked **OK**, **Check** or **Blocks**; a row with a problem has a **Fix** link to where it is fixed. It only reads; no order is sent. **Check now** runs it again.
+**What does the live readiness check do?** It reads everything real money needs in one pass: Binance endpoint, trade-only key, your clock against Binance, futures balance, one-way position mode, positions no bot holds, daily stop, BTC regime, membership, signal stream and halted live bots. Each row is marked **OK**, **Check** or **Blocks**; a row with a problem has a **Fix** link to where it is fixed. It only reads; no order is sent. **Check now** runs it again.
 
 **What is the BTC regime gate?** Sentinel's BTC reading. **Normal**: no block. **Break**: new long entries are paused, shorts continue. **Unknown**: entries that need a regime reading are refused.
 

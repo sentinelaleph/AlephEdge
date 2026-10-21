@@ -9,15 +9,15 @@ Run from `src-tauri/`. Use a bash shell (Git Bash):
 ```bash
 # OKX demo trading
 ALEPH_TESTNET_VENUE=okx ALEPH_TESTNET_KEY=... ALEPH_TESTNET_SECRET=... ALEPH_TESTNET_PASSPHRASE=... \
-  cargo test --features live --lib testnet_dry_run -- --ignored --nocapture
+  cargo test --lib testnet_dry_run -- --ignored --nocapture
 
 # Bybit testnet
 ALEPH_TESTNET_VENUE=bybit ALEPH_TESTNET_KEY=... ALEPH_TESTNET_SECRET=... \
-  cargo test --features live --lib testnet_dry_run -- --ignored --nocapture
+  cargo test --lib testnet_dry_run -- --ignored --nocapture
 
 # Binance futures testnet (the reference run, passed 2026-10-05)
 ALEPH_TESTNET_VENUE=binance ALEPH_TESTNET_KEY=... ALEPH_TESTNET_SECRET=... \
-  cargo test --features live --lib testnet_dry_run -- --ignored --nocapture
+  cargo test --lib testnet_dry_run -- --ignored --nocapture
 ```
 
 | Variable | Needed for | Value |

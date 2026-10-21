@@ -1,6 +1,5 @@
 import { Link } from "@/app/router/router";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { ComboPicker } from "@/components/BotDesk/ComboPicker/ComboPicker";
@@ -13,7 +12,10 @@ import {
   type TargetDraft,
 } from "@/components/BotDesk/TakeProfitPicker/TakeProfitPicker";
 import { Button } from "@/components/ui/Button/Button";
-import { Chip, LiveChip } from "@/components/ui/Chip/Chip";
+import { Chip, LiveChip, PaperChip } from "@/components/ui/Chip/Chip";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
+import { CLOSE_WORD } from "@/components/Account/AccountPanel/AccountPanel";
+import { ModePicker } from "@/components/LiveMode/LiveMode";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
 import { Panel } from "@/components/ui/Panel/Panel";
 import { ReadOnlyField } from "@/components/ui/ReadOnlyField/ReadOnlyField";
@@ -22,10 +24,10 @@ import { localeForLanguage } from "@/i18n";
 import { capitalAboveCap, EXCHANGE_MIN_ORDER_USDT, MAX_BOT_POSITIONS } from "@/lib/botLimits";
 import { formatDecimalInput, parseDecimal } from "@/lib/decimal";
 import { formatNumber, formatPercent, formatSignedPercent, formatSignedUsdt, formatUsdt } from "@/lib/format";
-import { botDefaultConfig, LIVE_CONFIRMATION, PILOT_NOTIONAL_USDT, type BotConfig, type BotKind, type SizingMode } from "@/lib/ipc/bot/bot";
+import { botDefaultConfig, botMode, PILOT_NOTIONAL_USDT, type BotConfig, type BotKind, type OpenPosition, type SizingMode, type TradeMode } from "@/lib/ipc/bot/bot";
+import { liveWordKey, signalStartAction, type Blocker } from "@/lib/liveMode";
 import { errorMessage } from "@/lib/ipc/bridge";
 import type { ExchangeInfo } from "@/lib/ipc/exchange/exchange";
-import { DUR, EASE, prefersReducedMotion } from "@/lib/motion";
 import {
   DEFAULT_RISK_PCT,
   estimateRiskSize,
@@ -38,26 +40,31 @@ import {
   type MaxLossEffect,
   type SizeEstimate,
 } from "@/lib/sizing";
-import { liveTargetKey, liveVenueAllowed } from "@/lib/venues";
 import { FieldShell } from "@/pages/Bots/strategy/formControls";
 import "@/pages/Bots/strategy/StrategyForm.css";
 import "@/pages/Bots/bots.css";
 import "./SignalBotForm.css";
 import { TrendMismatchNote } from "@/components/Desk/MarketTrend";
 
-/** Real-money switch wiring; passed only when the build and the bot allow it. */
+/** Paper / Live wiring for one signal bot (every bot shows its mode). */
 export interface BotLiveControl {
-  /** False when orders would go to the Binance testnet. */
-  binanceIsProduction: boolean;
-  /** Resolves to the rejection text, or null on success. */
-  onSetLive: (enabled: boolean, confirmation: string) => Promise<string | null>;
   /** Real entries left in the pilot (0 = full size). */
   pilotLeft: number;
   onEndPilot: () => Promise<string | null>;
-  /** Venues real money can be switched on for (desk status `liveVenues`). */
-  liveVenues?: string[];
-  /** Bybit / OKX orders go to their demo / test networks (desk status). */
-  venueSandbox?: boolean;
+  /** Why Live cannot be chosen now (empty = it can). */
+  blockers: Blocker[];
+  /** Saves `config`, shows the money at risk and the typed LIVE, then starts. */
+  onStartLive: (config: BotConfig) => void;
+  /** Back to Paper: disarms and stops; Paper once no real position is held ("Switch later"). */
+  onToPaper: () => Promise<string | null>;
+  /** This bot's open real positions (the Paper switch lists them). */
+  realPositions: OpenPosition[];
+  /** "Close positions and switch": reduce-only closes of `realPositions`, then Paper. */
+  onCloseAndPaper: () => Promise<string | null>;
+  /** Orders go to the Binance testnet: say "testnet", never "real money". */
+  testnet: boolean;
+  /** The last real-money refusal, shown in the Mode panel. */
+  error?: string | null;
 }
 
 interface SignalBotFormProps {
@@ -84,7 +91,7 @@ interface SignalBotFormProps {
   levelMaxPositions?: number | null;
   /** Exchanges the bot may price against (paper needs no key). */
   exchanges: ExchangeInfo[];
-  /** Present only in a live build, for the Futures bot. */
+  /** Paper / Live for this bot. */
   live?: BotLiveControl;
   /** Configure + start this bot with the built config (single awaited chain). */
   onStart: (config: BotConfig) => void;
@@ -92,8 +99,6 @@ interface SignalBotFormProps {
 }
 
 /** Where the form's values came from; Start stays off until it has some. */
-/** Display name for an exchange id (bybit -> Bybit, okx -> OKX). */
-const venueLabel = (id: string) => (id === "okx" ? "OKX" : id.charAt(0).toUpperCase() + id.slice(1));
 
 type Seed = "none" | "defaults" | "config";
 
@@ -130,6 +135,8 @@ export function SignalBotForm({
   // The exchange list can arrive after the first render: fall back to the
   // first usable exchange instead of freezing an empty selection.
   const [exchangeSel, setExchangeSel] = useState(config?.exchangeId ?? "");
+  // Paper / Live as chosen on this screen: the saved mode, Paper for a new bot.
+  const [chosen, setChosen] = useState<TradeMode>(botMode(config));
   const exchangeId = exchangeSel || usable[0]?.id || "";
   const [capital, setCapital] = useState(config ? formatDecimalInput(config.capital) : "");
   const [positions, setPositions] = useState(config ? formatDecimalInput(config.maxPositions) : "");
@@ -282,15 +289,18 @@ export function SignalBotForm({
 
   // A running bot must always be stoppable: `disabled` / `!valid` gate STARTING only.
   const startOff = busy || disabled || !valid;
+  // Live chosen: Start saves, shows the money at risk and asks for LIVE.
+  const action = live ? signalStartAction(config, chosen, valid ? buildConfig() : null) : "start";
   const startButton = (
     <Button
       size="sm"
-      disabled={startOff}
+      variant={action === "confirmLive" ? "danger" : undefined}
+      disabled={startOff || action === "toPaper"}
       disabledReason={disabled && disabledReasonKey ? t(disabledReasonKey) : undefined}
       tooltipAlign="end"
-      onClick={() => onStart(buildConfig())}
+      onClick={() => (action === "confirmLive" && live ? live.onStartLive(buildConfig()) : onStart(buildConfig()))}
     >
-      {t("bots.start")}
+      {t(action === "confirmLive" ? liveWordKey("startLive", live?.testnet === true) : "bots.start")}
     </Button>
   );
 
@@ -309,7 +319,7 @@ export function SignalBotForm({
         </div>
       ) : null}
 
-      {live ? <LiveControl config={config} busy={busy} live={live} /> : null}
+      {live ? <ModePanel config={config} chosen={chosen} onChoose={setChosen} busy={busy} live={live} /> : null}
 
       <Panel title={t("strategy.form.section.general")}>
         <div className="ae-sform__grid">
@@ -653,146 +663,138 @@ function SizingPreview({ capital, leverageCap, riskPct }: { capital: number; lev
 }
 
 /**
- * The real-money switch (live builds, Futures bot only). Turning it ON goes
- * through an inline confirmation that states where orders go and what the
- * SAVED settings will risk, and needs the typed word; turning it OFF is one
- * click. The server re-checks every condition; its refusal is shown as-is.
+ * The bot's mode: Paper or Live, chosen here. Paper is the default and Live
+ * is never pre-selected. Choosing Live does nothing by itself: Start then
+ * saves the settings, shows the money at risk and asks for the typed LIVE
+ * (`onStartLive`). A Live bot comes back stopped after every restart and
+ * asks for LIVE again. Back to Paper stops the bot; it becomes Paper once it
+ * holds no real position. Rust re-checks every condition; its refusal is
+ * shown as-is.
  */
-function LiveControl({ config, busy, live }: { config: BotConfig | null; busy: boolean; live: BotLiveControl }) {
+export function ModePanel({
+  config,
+  chosen,
+  onChoose,
+  busy,
+  live,
+}: {
+  config: BotConfig | null;
+  chosen: TradeMode;
+  onChoose: (m: TradeMode) => void;
+  busy: boolean;
+  live: BotLiveControl;
+}) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
-  const id = useId();
-  const isLive = config?.live === true;
-  // Real money switches on only where the order path passed a test-network
-  // dry run (Rust refuses the rest with liveVenueNotDryRun).
-  const venueOk = !config || liveVenueAllowed(live.liveVenues, config.exchangeId);
-  const [open, setOpen] = useState(false);
-  const [typed, setTyped] = useState("");
+  const saved = botMode(config);
+  const armed = config?.live === true;
+  const [toPaper, setToPaper] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const confirmed = typed === LIVE_CONFIRMATION;
-  // bot_configure switches live off when capital, leverage or the position
-  // cap changes (the sizing LIVE confirmed). Say so instead of going quiet.
-  const wasLive = useRef(isLive);
-  const offByUser = useRef(false);
-  const [sizingOff, setSizingOff] = useState(false);
-  useEffect(() => {
-    if (wasLive.current && !isLive && !offByUser.current) setSizingOff(true);
-    if (isLive) setSizingOff(false);
-    wasLive.current = isLive;
-    offByUser.current = false;
-  }, [isLive]);
+  const shown = live.error ?? error;
 
-  function close() {
-    setOpen(false);
-    setTyped("");
-  }
-
-  async function switchOn() {
-    if (!confirmed) return;
+  const pick = (m: TradeMode) => {
     setError(null);
-    const err = await live.onSetLive(true, typed);
-    if (err) setError(err);
-    else close();
-  }
+    if (m === "paper" && saved === "live") setToPaper(true);
+    else onChoose(m);
+  };
 
-  async function switchOff() {
-    setError(null);
-    offByUser.current = true;
-    const err = await live.onSetLive(false, "");
+  const confirmPaper = async () => {
+    const err = await live.onToPaper();
+    setToPaper(false);
     if (err) setError(err);
-  }
+    else onChoose("paper");
+  };
+
+  // Real positions open: name them, and offer to close them first.
+  const held = live.realPositions;
+  const closeAndSwitch = async () => {
+    const err = await live.onCloseAndPaper();
+    setToPaper(false);
+    if (err) setError(err);
+    else onChoose("paper");
+  };
+
+  const note =
+    saved === "live" && armed
+      ? live.pilotLeft > 0
+        ? t("bots.live.pilot", { count: live.pilotLeft, cap: formatNumber(PILOT_NOTIONAL_USDT, locale) })
+        : t("liveMode.signal.armed")
+      : saved === "live"
+        ? t("liveMode.signal.needsArm")
+        : t("liveMode.signal.chooseLive");
 
   return (
-    <Panel title={t("bots.live.title")} tone={isLive || open ? "live" : "default"} aside={isLive ? <LiveChip /> : <Chip>{t("bots.live.stateSimulated")}</Chip>}>
-      {sizingOff ? <p className="ae-error" role="status">{t("bots.live.sizingTurnedOff")}</p> : null}
-      {isLive && live.pilotLeft > 0 ? (
-        <p className="ae-muted">
-          {t("bots.live.pilot", { count: live.pilotLeft, cap: PILOT_NOTIONAL_USDT })}{" "}
+    <Panel title={t("liveMode.label")} tone={chosen === "live" ? "live" : "default"} aside={saved === "live" ? <LiveChip /> : <PaperChip />}>
+      <ModePicker
+        value={chosen}
+        onChange={pick}
+        // A Live bot keeps Live selectable: Start checks its arm.
+        blockers={saved === "live" ? [] : live.blockers}
+        disabled={busy}
+        liveNote={note}
+      />
+      {saved === "live" && !armed && live.blockers.length > 0 ? (
+        <ul className="ae-livemode__blockers">
+          {live.blockers.map((b) => (
+            <li key={b.key}>{t(b.key, b.params)}</li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="ae-toolbar">
+        {saved === "live" && armed && live.pilotLeft > 0 ? (
           <Button variant="ghost" size="xs" disabled={busy} onClick={() => void live.onEndPilot().then((e) => e && setError(e))}>
             {t("bots.live.endPilot")}
           </Button>
-        </p>
-      ) : null}
-      <div className="ae-sigform__liverow">
-        {isLive ? (
-          <Button variant="secondary" size="sm" disabled={busy} onClick={() => void switchOff()}>
-            {t("bots.live.switchOff")}
-          </Button>
-        ) : !open ? (
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={busy || !config || !venueOk}
-            onClick={() => {
-              setError(null);
-              setOpen(true);
-            }}
-          >
-            {t("bots.live.switchOn")}
-          </Button>
-        ) : null}
-        {!config ? <span className="ae-subtle">{t("bots.live.saveFirst")}</span> : null}
-        {config && !isLive && !venueOk ? (
-          <span className="ae-error" role="note">
-            {t("vault.venueNotDryRun", { exchange: venueLabel(config.exchangeId) })}
-          </span>
         ) : null}
         <Link to="/risk?s=preflight" className="ae-link">
           {t("preflight.title")}
         </Link>
       </div>
-
-      <AnimatePresence initial={false}>
-        {open && !isLive && config && venueOk ? (
-          <motion.div
-            className="ae-sigform__liveconfirm"
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: prefersReducedMotion() ? 0 : DUR.pop, ease: EASE.out }}
-          >
-            <p className="ae-sigform__livetitle">{t("bots.live.confirmTitle")}</p>
-            <p>
-              {t(liveTargetKey(config.exchangeId, live.binanceIsProduction, live.venueSandbox), {
-                exchange: venueLabel(config.exchangeId),
-              })}
-            </p>
-            <p>
-              {t("bots.live.terms", {
-                capital: formatNumber(config.capital, locale),
-                positions: formatNumber(config.maxPositions, locale),
-                leverage: formatNumber(config.leverage, locale),
-              })}
-            </p>
-            <p>{t("bots.live.restartNote")}</p>
-            <FieldShell label={t("bots.live.typePrompt", { word: LIVE_CONFIRMATION })} htmlFor={`${id}-word`}>
-              <input
-                id={`${id}-word`}
-                className="ae-field__input mono"
-                autoComplete="off"
-                spellCheck={false}
-                value={typed}
-                onChange={(e) => setTyped(e.target.value)}
-                disabled={busy}
-              />
-            </FieldShell>
-            <div className="ae-sigform__liverow">
-              <Button variant="secondary" size="sm" disabled={busy} onClick={close}>
-                {t("bots.live.cancel")}
-              </Button>
-              <Button variant="danger" size="sm" disabled={busy || !confirmed} onClick={() => void switchOn()}>
-                {t("bots.live.confirm")}
-              </Button>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-
-      {error ? (
+      {shown ? (
         <p className="ae-sfield__error" role="alert">
-          {error}
+          {shown}
         </p>
       ) : null}
+      <ConfirmDialog
+        open={toPaper && held.length === 0}
+        danger
+        title={t("liveMode.signal.toPaperTitle")}
+        body={<p>{t("liveMode.signal.toPaperBody")}</p>}
+        confirmLabel={t("bots.live.switchOff")}
+        busy={busy}
+        onConfirm={() => void confirmPaper()}
+        onCancel={() => setToPaper(false)}
+      />
+      <ConfirmDialog
+        open={toPaper && held.length > 0}
+        live
+        danger
+        title={t("liveMode.signal.toPaperTitle")}
+        body={
+          <>
+            <p>{t("liveMode.signal.toPaperHeld", { count: held.length })}</p>
+            <ul className="ae-livemode__held">
+              {held.map((p) => (
+                <li key={p.signalId} className="tabular">
+                  {t("liveMode.signal.heldLine", {
+                    symbol: p.symbol,
+                    side: t(`signalDesk.direction.${p.direction === "short" ? "short" : "long"}`),
+                    qty: formatNumber(p.qty, locale, { maximumFractionDigits: 8 }),
+                    entry: formatNumber(p.entry, locale, { maximumFractionDigits: 8 }),
+                  })}
+                </li>
+              ))}
+            </ul>
+            <p>{t("liveMode.signal.closeAndSwitchNote")}</p>
+          </>
+        }
+        word={CLOSE_WORD}
+        confirmLabel={t("liveMode.signal.closeAndSwitch")}
+        alternative={{ label: t("liveMode.signal.switchLater"), onSelect: () => void confirmPaper() }}
+        busy={busy}
+        onConfirm={() => void closeAndSwitch()}
+        onCancel={() => setToPaper(false)}
+      />
     </Panel>
   );
 }

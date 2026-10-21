@@ -29,6 +29,9 @@ fn req(direction: Direction, tp: f64, sl: f64) -> TradeRequest {
         notional_usdt: None,
         take_profit: tp,
         stop_loss: sl,
+        mode: Default::default(),
+        confirmation: None,
+        confirmed_margin_usdt: None,
     }
 }
 

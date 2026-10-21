@@ -1,21 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { modeKey } from "@/pages/Bots/BotNewPage";
+import { MODE_LINE_KEY } from "@/pages/Bots/BotNewPage";
 import { riskSections } from "@/pages/Risk/RiskPage";
 
-// The public build places no real orders: it must not advertise a LIVE
-// opt-in or audit a real-money setup it cannot have. A live build keeps both.
-describe("paper build surfaces", () => {
-  it("the bot type cards say paper only, without a LIVE opt-in", () => {
-    expect(modeKey(false)).toBe("botCreate.mode.paperOnly");
-    expect(modeKey(true)).toBe("botCreate.mode.liveBuildLine");
+// One build (0.3.19): every install can make a Live bot, so no surface says
+// "paper build", and Live readiness is always audited right under the summary.
+describe("one build surfaces", () => {
+  it("the bot type cards say Paper by default, Live per bot", () => {
+    expect(MODE_LINE_KEY).toBe("botCreate.mode.liveBuildLine");
   });
 
-  it("Risk & safety has no Live readiness section in the paper build", () => {
-    expect(riskSections(false)).not.toContain("preflight");
-    expect(riskSections(false)).toContain("live");
-    // A live build audits its setup right under the risk summary, before any setting.
-    const live = riskSections(true);
-    expect(live.slice(0, 2)).toEqual(["summary", "preflight"]);
-    expect(live.indexOf("preflight")).toBeLessThan(live.indexOf("level"));
+  it("Risk & safety audits the live setup right under the risk summary, before any setting", () => {
+    const s = riskSections();
+    expect(s.slice(0, 2)).toEqual(["summary", "preflight"]);
+    expect(s).toContain("live");
+    expect(s.indexOf("preflight")).toBeLessThan(s.indexOf("level"));
   });
 });

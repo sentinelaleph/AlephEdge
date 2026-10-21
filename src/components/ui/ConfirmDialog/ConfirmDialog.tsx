@@ -23,6 +23,11 @@ interface ConfirmDialogProps {
    * danger variant. Row triggers stay quiet (secondary xs); the red lives here.
    */
   danger?: boolean;
+  /**
+   * A second way forward next to Cancel (e.g. "Switch later"). It never
+   * needs the typed word: it must be the step that places no order.
+   */
+  alternative?: { label: string; onSelect: () => void };
   /** Runs with what was typed (trimmed), so the backend can re-check it. */
   onConfirm: (typed: string) => void;
   onCancel: () => void;
@@ -34,7 +39,7 @@ interface ConfirmDialogProps {
  * Focus is trapped inside; Esc and the scrim cancel; focus returns to the
  * control that opened it.
  */
-export function ConfirmDialog({ open, title, body, word, confirmLabel, busy, live, danger, onConfirm, onCancel }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, title, body, word, confirmLabel, busy, live, danger, alternative, onConfirm, onCancel }: ConfirmDialogProps) {
   const { t } = useTranslation();
   const titleId = useId();
   const [typed, setTyped] = useState("");
@@ -116,6 +121,11 @@ export function ConfirmDialog({ open, title, body, word, confirmLabel, busy, liv
           <Button variant="secondary" size="sm" onClick={onCancel}>
             {t("states.cancel")}
           </Button>
+          {alternative ? (
+            <Button variant="secondary" size="sm" disabled={busy} onClick={alternative.onSelect}>
+              {alternative.label}
+            </Button>
+          ) : null}
           <Button ref={confirmRef} type="submit" size="sm" variant={danger ? "danger" : "primary"} className="ae-dialog__confirm" disabled={!matches || busy}>
             {confirmLabel}
           </Button>

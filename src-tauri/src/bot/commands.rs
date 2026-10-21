@@ -2,7 +2,8 @@
 
 use tauri::{AppHandle, Manager, State};
 
-use super::model::{BotConfig, BotDeskStatus, BotKind, OpenPosition, LIVE_TRADING_ENABLED, MAX_BOT_POSITIONS};
+use super::live_terms::{self, LiveTerms};
+use super::model::{BotConfig, BotDeskStatus, BotKind, OpenPosition, TradeMode, LIVE_TRADING_ENABLED, MAX_BOT_POSITIONS};
 use super::BotManager;
 use crate::risk::RiskManager;
 use crate::signal::model::StreamNoteKind;
@@ -58,6 +59,10 @@ pub(crate) enum KeepLive {
 /// The checks and the save of `bot_configure`, shared with the settings
 /// import (app/settings_transfer.rs).
 pub(crate) fn apply_config(app: &AppHandle, bots: &BotManager, config: BotConfig, keep: KeepLive) -> Result<(), String> {
+    // The TradingView bot: margin per position from its budget, and its
+    // passphrase kept as a salted hash only.
+    let salt = format!("{:032x}", rand::random::<u128>());
+    let config = super::engine::tv_trade::normalize_config(bots.config_for(config.kind).as_ref(), config, &salt)?;
     config.validate()?;
     if config.max_positions > MAX_BOT_POSITIONS {
         return Err(format!("botMaxPositionsRange|1–{MAX_BOT_POSITIONS}"));
@@ -70,23 +75,21 @@ pub(crate) fn apply_config(app: &AppHandle, bots: &BotManager, config: BotConfig
     if config.kind.uses_futures_market() && !exchange.supports_futures(&config.exchange_id) {
         return Err(format!("exchangeNoFutures|{}", config.exchange_id));
     }
-    // `live` is set only through `bot_set_live` (typed confirmation). A
-    // settings save keeps whatever the bot already has, so a stale form can
-    // never switch real money on or off by accident.
+    // The mode and the arm are set only through `bot_set_live` (typed
+    // confirmation). A settings save keeps whatever the bot already has, so a
+    // stale form can never switch real money on or off by accident.
     let mut config = config;
     let prev = bots.config_for(config.kind);
+    let positions = bots.positions_snapshot();
     // The exchange is where the typed LIVE sent real money, and where its
     // real positions are reconciled and closed: it cannot move under them.
-    if let Some(refusal) = exchange_change_refusal(prev.as_ref(), &config, &bots.positions_snapshot()) {
+    if let Some(refusal) = exchange_change_refusal(prev.as_ref(), &config, &positions) {
         return Err(refusal);
     }
-    config.live = keep == KeepLive::Yes && prev.as_ref().is_some_and(|c| c.live);
-    // The typed LIVE confirmed real money at the sizing it showed. A change
-    // to capital, leverage or the position cap switches live off; the user
-    // confirms the new sizing with LIVE again.
-    if prev.as_ref().is_some_and(|p| p.live && live_terms_changed(p, &config)) {
-        config.live = false;
-    }
+    let holds_real = positions.iter().any(|p| p.bot_kind == config.kind && p.live);
+    let (mode, armed) = saved_mode(prev.as_ref(), &config, keep, holds_real);
+    (config.mode, config.live) = (mode, armed);
+    let disarmed = prev.as_ref().is_some_and(|p| p.live) && !armed;
     if keep == KeepLive::No {
         bots.set_pilot(config.kind, 0);
     }
@@ -94,6 +97,12 @@ pub(crate) fn apply_config(app: &AppHandle, bots: &BotManager, config: BotConfig
     bots.save_config(app, &config);
     let kind = config.kind;
     bots.configure(config);
+    // The typed LIVE confirmed the sizing it showed: with new terms a Live
+    // bot stops until LIVE is typed again for them (it never runs on paper).
+    if disarmed {
+        bots.disarm_and_stop(app, kind);
+        bots.push_skip("—", "liveDisarmedStopped", Some(kind.as_str().to_string()));
+    }
     // Saved settings apply to signals already refused under the old ones,
     // not only to the next signal.
     if changed {
@@ -102,25 +111,45 @@ pub(crate) fn apply_config(app: &AppHandle, bots: &BotManager, config: BotConfig
     Ok(())
 }
 
-/// Any setting other than the real-money flag differs. Comparing the whole
-/// config errs toward re-judging: a re-judged signal reaches the same
+/// The (mode, arm) a saved config keeps (pure). A settings save keeps the
+/// mode; it keeps the arm unless the typed LIVE's terms changed. A settings
+/// import (`KeepLive::No`) makes the bot Paper and disarmed, unless it still
+/// holds real positions: then it stays a Live bot, disarmed, until they close.
+pub fn saved_mode(prev: Option<&BotConfig>, next: &BotConfig, keep: KeepLive, holds_real: bool) -> (TradeMode, bool) {
+    let Some(prev) = prev else {
+        return (if holds_real { TradeMode::Live } else { TradeMode::Paper }, false);
+    };
+    match keep {
+        KeepLive::Yes => (prev.mode, prev.live && !live_terms_changed(prev, next)),
+        KeepLive::No if holds_real => (TradeMode::Live, false),
+        KeepLive::No => (TradeMode::Paper, false),
+    }
+}
+
+/// Any setting other than the real-money mode and arm differs. Comparing the
+/// whole config errs toward re-judging: a re-judged signal reaches the same
 /// verdict again and the skip log keeps one row per verdict.
 pub fn settings_changed(prev: &BotConfig, next: &BotConfig) -> bool {
     let plain = |c: &BotConfig| {
         let mut c = c.clone();
         c.live = false;
+        c.mode = TradeMode::Paper;
         serde_json::to_value(c).ok()
     };
     plain(prev) != plain(next)
 }
 
-/// What the typed LIVE confirmed: capital, leverage, position cap, and the
-/// exchange the orders go to.
+/// What the typed LIVE confirmed: capital, leverage, position cap, the
+/// exchange the orders go to and, for the TradingView bot, its budget and
+/// max size per alert (its margin at risk and largest position,
+/// `live_terms::signal_terms`).
 pub fn live_terms_changed(prev: &BotConfig, next: &BotConfig) -> bool {
+    let tv_money = |c: &BotConfig| c.tv.as_ref().map(|t| (t.budget_usdt, t.max_size_usdt));
     prev.capital != next.capital
         || prev.leverage != next.leverage
         || prev.max_positions != next.max_positions
         || prev.exchange_id != next.exchange_id
+        || tv_money(prev) != tv_money(next)
 }
 
 /// Why a settings save may not change the bot's exchange, or None. A bot
@@ -136,15 +165,16 @@ pub fn exchange_change_refusal(prev: Option<&BotConfig>, next: &BotConfig, posit
     if let Some(p) = positions.iter().find(|p| p.bot_kind == next.kind && p.live) {
         return Some(format!("botHasLivePositions|{}", p.exchange_id));
     }
-    if prev.live {
+    if prev.live || prev.mode == TradeMode::Live {
         return Some(format!("liveExchangeLocked|{}", prev.exchange_id));
     }
     None
 }
 
 /// Why real money may not be switched ON for `kind` on `exchange_id`, or
-/// None. Pure (the build switch and the sandbox are passed in); the key
-/// check needs the vault and stays in the command.
+/// None. Pure (the order path and the sandbox are passed in); the key check
+/// needs the vault and stays in the command. `LIVE_TRADING_ENABLED` is true
+/// in the desktop's one build; the parameter keeps the rule testable.
 pub fn live_enable_refusal(
     live_build: bool,
     kind: BotKind,
@@ -155,7 +185,7 @@ pub fn live_enable_refusal(
     if !live_build {
         return Some("liveBuildDisabled".to_string());
     }
-    if kind != BotKind::Futures || !crate::exchange::has_order_path(exchange_id) {
+    if !kind.live_capable() || !crate::exchange::has_order_path(exchange_id) {
         return Some("liveFuturesBinanceOnly".to_string());
     }
     // Only a venue whose order path passed its test-network dry run.
@@ -171,11 +201,41 @@ pub fn live_enable_refusal(
 /// The exact text the user types to switch a bot to real money.
 pub const LIVE_CONFIRMATION: &str = "LIVE";
 
-/// Switches one bot's real-money trading on or off. On needs: a live build,
-/// the Futures bot on a venue whose order path passed its dry run (Binance),
-/// a Trade key in the unlocked vault, and the typed confirmation. Off always
-/// works. Never persisted as on: a restart comes back simulated (see
-/// `BotManager::restore_configs`).
+/// Why a bot whose book holds paper positions may not take real money, or
+/// None (pure): paper and real positions never share a bot.
+pub fn paper_book_refusal(kind: BotKind, positions: &[OpenPosition]) -> Option<&'static str> {
+    positions.iter().any(|p| p.bot_kind == kind && !p.live).then_some("liveHasPaperPositions")
+}
+
+/// What switching real money OFF leaves the bot as (pure): it goes back to
+/// Paper only once it holds no real position, else it stays a Live bot,
+/// disarmed and stopped, until they close (the book keeps managing them).
+pub fn off_mode(holds_real: bool) -> TradeMode {
+    if holds_real {
+        TradeMode::Live
+    } else {
+        TradeMode::Paper
+    }
+}
+
+/// The money the typed LIVE would put at risk on `kind`'s saved settings.
+#[tauri::command]
+pub fn bot_live_terms(bots: State<BotManager>, risk: State<RiskManager>, kind: BotKind) -> Result<LiveTerms, String> {
+    let cfg = bots.config_for(kind).ok_or_else(|| "botSaveFirst".to_string())?;
+    Ok(live_terms::signal_terms(&cfg, &risk.limits()))
+}
+
+/// Real money for one signal bot: the "Go live" of a Paper bot and the
+/// per-session arm of a Live bot share this one gate. On needs: the Futures
+/// bot on a venue whose order path passed its dry run, a verified trade-only
+/// key in the unlocked vault, readable risk settings and store, no paper
+/// position in the bot's book, the typed confirmation and the margin at risk
+/// it showed (`at_risk_usdt`, re-checked against the settings in force). On
+/// makes the bot Live (stored) and armed with its pilot (a new one when it
+/// was Paper, the saved count on a re-arm: `pilot_at_arm`). The arm is never
+/// persisted: a restart brings the Live bot back stopped (see
+/// `BotManager::restore_configs`). Off always works: the bot is disarmed and
+/// stopped, and becomes Paper once it holds no real position.
 #[tauri::command]
 pub fn bot_set_live(
     app: AppHandle,
@@ -183,37 +243,137 @@ pub fn bot_set_live(
     kind: BotKind,
     enabled: bool,
     confirmation: String,
+    at_risk_usdt: Option<f64>,
 ) -> Result<BotDeskStatus, String> {
     let mut cfg = bots
         .config_for(kind)
         .ok_or_else(|| "botSaveFirst".to_string())?;
-    if enabled {
-        let sandbox = crate::exchange::venue::ccxt::sandbox_from_env();
-        if let Some(refusal) = live_enable_refusal(LIVE_TRADING_ENABLED, kind, &cfg.exchange_id, &confirmation, sandbox) {
-            return Err(refusal);
-        }
-        // A verified trade-only key: a key stored before verification was
-        // mandatory (Unknown) or one that can withdraw never goes live.
-        match app
-            .state::<crate::vault::VaultManager>()
-            .credential(&cfg.exchange_id)
-            .map(|c| c.permission)
-        {
-            Some(crate::vault::model::CredentialPermission::TradeOnly) => {}
-            Some(_) => return Err("liveNeedsVerifiedKey".to_string()),
-            None => return Err("liveNeedsTradeKey".to_string()),
-        }
+    let positions = bots.positions_snapshot();
+    if !enabled {
+        let holds_real = positions.iter().any(|p| p.bot_kind == kind && p.live);
+        bots.disarm_and_stop(&app, kind);
+        bots.set_pilot(kind, 0);
+        cfg.live = false;
+        cfg.mode = off_mode(holds_real);
+        bots.save_config(&app, &cfg);
+        bots.configure(cfg);
+        return Ok(bots.status());
     }
-    cfg.live = enabled;
-    bots.set_pilot(kind, if enabled { super::model::PILOT_TRADES } else { 0 });
+    let sandbox = crate::exchange::venue::ccxt::sandbox_from_env();
+    if let Some(refusal) = live_enable_refusal(LIVE_TRADING_ENABLED, kind, &cfg.exchange_id, &confirmation, sandbox) {
+        return Err(refusal);
+    }
+    if let Some(code) = crate::app::data_health::trading_blocked(&app) {
+        return Err(code);
+    }
+    if let Some(code) = paper_book_refusal(kind, &positions) {
+        return Err(code.to_string());
+    }
+    // A verified trade-only key: a key stored before verification was
+    // mandatory (Unknown) or one that can withdraw never goes live.
+    match app
+        .state::<crate::vault::VaultManager>()
+        .credential(&cfg.exchange_id)
+        .map(|c| c.permission)
+    {
+        Some(crate::vault::model::CredentialPermission::TradeOnly) => {}
+        Some(_) => return Err("liveNeedsVerifiedKey".to_string()),
+        None => return Err("liveNeedsTradeKey".to_string()),
+    }
+    let terms = live_terms::signal_terms(&cfg, &app.state::<RiskManager>().limits());
+    live_terms::confirmed(&terms, at_risk_usdt)?;
+    // A Paper bot going Live starts a new pilot; a Live bot's re-arm (after
+    // a restart, "Stop all live") continues the saved one.
+    let fresh = cfg.mode == TradeMode::Paper;
+    cfg.live = true;
+    cfg.mode = TradeMode::Live;
+    bots.set_pilot(kind, super::pilot_at_arm(bots.saved_pilot(&app, kind), fresh));
+    bots.save_pilot_left(&app, kind);
+    bots.set_armed_terms(kind, terms);
+    bots.save_config(&app, &cfg);
     bots.configure(cfg);
     Ok(bots.status())
 }
 
+/// The real positions of `kind` that "Close positions and switch" closes
+/// (pure): that bot's own live rows only, never another bot's, never a
+/// paper row.
+pub fn own_live_rows(kind: BotKind, positions: &[OpenPosition]) -> Vec<String> {
+    positions.iter().filter(|p| p.bot_kind == kind && p.live).map(|p| p.signal_id.clone()).collect()
+}
+
+/// The verdict after the closes ran (pure): Paper only once none of the
+/// bot's real positions is left; otherwise it stays a disarmed Live bot and
+/// says how many are still open (`closeNotConfirmed|n`).
+pub fn close_and_paper_verdict(left: usize) -> Result<TradeMode, String> {
+    if left == 0 {
+        Ok(TradeMode::Paper)
+    } else {
+        Err(format!("closeNotConfirmed|{left}"))
+    }
+}
+
+/// "Close positions and switch": the Live bot is disarmed and stopped first
+/// (no new entry while it closes), each of ITS real positions is closed
+/// through the manual close path (`book::close_now`: the close claim, a
+/// reduce-only market order sized from the exchange's own position, the
+/// book updated only on a confirmed fill), and only once none is left the
+/// bot becomes Paper. A close the exchange did not confirm leaves it a
+/// disarmed Live bot (what "Switch later" does) and returns
+/// `closeNotConfirmed|n`. Other bots' positions are never touched.
+#[tauri::command]
+pub async fn bot_close_live_and_paper(app: AppHandle, kind: BotKind) -> Result<BotDeskStatus, String> {
+    let bots = app.state::<BotManager>();
+    let mut cfg = bots.config_for(kind).ok_or_else(|| "botSaveFirst".to_string())?;
+    bots.disarm_and_stop(&app, kind);
+    bots.set_pilot(kind, 0);
+    for id in own_live_rows(kind, &bots.positions_snapshot()) {
+        super::engine::book::close_now(&app, &id, kind, MANUAL_EXIT_REASON).await;
+    }
+    let left = own_live_rows(kind, &bots.positions_snapshot()).len();
+    let verdict = close_and_paper_verdict(left);
+    cfg.live = false;
+    cfg.mode = verdict.clone().unwrap_or(TradeMode::Live);
+    bots.save_config(&app, &cfg);
+    bots.configure(cfg);
+    verdict.map(|_| bots.status())
+}
+
+/// What "Stop all live" did.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LiveStopReport {
+    /// Live signal bots that were running and stopped (every one disarmed).
+    pub signal_stopped: u32,
+    /// Live DCA / Grid bots that were running and stopped (every one disarmed).
+    pub strategy_stopped: u32,
+}
+
+/// The header's "Stop all live": every Live bot stops taking new entries or
+/// cycles and is disarmed (a new start needs the typed LIVE). Open real
+/// positions and cycles stay managed under their exchange stops; closing
+/// them is the Exchange tab's Close all.
+#[tauri::command]
+pub async fn live_stop_all(app: AppHandle) -> Result<LiveStopReport, String> {
+    let bots = app.state::<BotManager>();
+    let mut signal_stopped = 0;
+    for kind in super::ALL_KINDS {
+        if bots.config_for(kind).is_some_and(|c| c.live || c.mode == TradeMode::Live) {
+            if bots.disarm_and_stop(&app, kind) {
+                signal_stopped += 1;
+            }
+            bots.set_pilot(kind, 0);
+        }
+    }
+    let strategy_stopped = super::strategy_live::stop_all_live(&app).await;
+    Ok(LiveStopReport { signal_stopped, strategy_stopped })
+}
+
 /// Ends the pilot of a live bot: entries go back to full size.
 #[tauri::command]
-pub fn bot_end_pilot(bots: State<BotManager>, kind: BotKind) -> BotDeskStatus {
+pub fn bot_end_pilot(app: AppHandle, bots: State<BotManager>, kind: BotKind) -> BotDeskStatus {
     bots.set_pilot(kind, 0);
+    bots.save_pilot_left(&app, kind);
     bots.status()
 }
 
@@ -334,7 +494,7 @@ pub async fn bot_preview_trade(
 }
 
 #[tauri::command]
-pub fn bot_status(bots: State<BotManager>, signals: State<SignalManager>) -> BotDeskStatus {
+pub fn bot_status(app: AppHandle, bots: State<BotManager>, signals: State<SignalManager>) -> BotDeskStatus {
     for veto in signals.drain_pending_vetoes() {
         let key = match veto.kind {
             StreamNoteKind::Veto => "sentinelVeto",
@@ -346,7 +506,9 @@ pub fn bot_status(bots: State<BotManager>, signals: State<SignalManager>) -> Bot
         let detail = (!veto.reason.is_empty()).then_some(veto.reason);
         bots.push_skip(&veto.symbol, key, detail);
     }
-    bots.status()
+    let mut status = bots.status();
+    status.trading_blocked = crate::app::data_health::trading_blocked(&app);
+    status
 }
 
 #[cfg(test)]
@@ -371,6 +533,17 @@ mod tests {
         let mut e = a.clone();
         e.exchange_id = "bybit".into();
         assert!(live_terms_changed(&a, &e), "LIVE named the exchange");
+        // The TradingView bot: its budget and max size are the money LIVE showed.
+        let tv = BotConfig::new_default(BotKind::Tradingview, "binance");
+        let mut f = tv.clone();
+        f.tv.as_mut().unwrap().max_size_usdt += 10.0;
+        assert!(live_terms_changed(&tv, &f));
+        let mut g = tv.clone();
+        g.tv.as_mut().unwrap().budget_usdt += 10.0;
+        assert!(live_terms_changed(&tv, &g));
+        let mut h = tv.clone();
+        h.tv.as_mut().unwrap().stale_s += 10;
+        assert!(!live_terms_changed(&tv, &h), "a guard is not money");
     }
 
     fn live_position(kind: BotKind, exchange: &str) -> OpenPosition {
@@ -516,6 +689,31 @@ mod tests {
         let mut c = a.clone();
         c.max_signal_age_min = 0;
         assert!(settings_changed(&a, &c));
+    }
+
+    #[test]
+    fn close_and_switch_closes_only_this_bots_real_positions() {
+        let mut tv_live = live_position(BotKind::Tradingview, "binance");
+        tv_live.signal_id = "manual-tv-a".into();
+        let mut tv_paper = live_position(BotKind::Tradingview, "binance");
+        (tv_paper.signal_id, tv_paper.live) = ("manual-tv-b".into(), false);
+        let mut fut_live = live_position(BotKind::Futures, "binance");
+        fut_live.signal_id = "sig-1".into();
+        let book = vec![fut_live.clone(), tv_live, tv_paper, fut_live];
+        assert_eq!(own_live_rows(BotKind::Tradingview, &book), vec!["manual-tv-a".to_string()]);
+        assert_eq!(own_live_rows(BotKind::Futures, &book).len(), 2, "the Futures bot's own two");
+        assert!(own_live_rows(BotKind::Spot, &book).is_empty());
+        // Paper only once every one closed; else it stays Live, disarmed.
+        assert_eq!(close_and_paper_verdict(0), Ok(TradeMode::Paper));
+        assert_eq!(close_and_paper_verdict(1), Err("closeNotConfirmed|1".to_string()));
+        // The command closes through the shared close path, one row at a time.
+        let src = include_str!("commands.rs");
+        let body = &src[src.find("pub async fn bot_close_live_and_paper").unwrap()..];
+        let body = &body[..body.find("\n}").unwrap()];
+        assert!(body.contains("disarm_and_stop(&app, kind)"));
+        assert!(body.contains("own_live_rows(kind, &bots.positions_snapshot())"));
+        assert!(body.contains("book::close_now(&app, &id, kind, MANUAL_EXIT_REASON)"));
+        assert!(!body.contains("close_all"), "never a close-all across bots");
     }
 
     #[test]

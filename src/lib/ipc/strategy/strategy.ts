@@ -1,7 +1,9 @@
 /**
- * Strategy-bot IPC bridge (mirrors src-tauri/src/bot/strategy). DCA and Grid
- * bots are PAPER ONLY: no type here can carry a real-money intent, there is
- * no `live` field, and no command reaches an exchange order endpoint.
+ * Strategy-bot IPC bridge (mirrors src-tauri/src/bot/strategy). The strategy
+ * config carries no real-money intent and these commands reach no exchange
+ * order endpoint; a bot's Paper / Live mode and its arm live in
+ * bot/strategy_live.rs (`strategySetLive`, `strategyCreateLive`,
+ * `strategyArmLive` below), each behind the typed LIVE.
  *
  * Rust is the authority for defaults, bounds and validation. The UI renders
  * the codes it returns (`strategy.errors.*`, `strategy.warnings.*`,
@@ -12,6 +14,7 @@
  */
 
 import { devMock, inTauri, invoke } from "../bridge";
+import type { LiveTerms } from "../bot/bot";
 
 export type StrategyKind = "dca" | "grid";
 export type StrategySide = "long" | "short" | "neutral";
@@ -535,6 +538,26 @@ export interface ValidationReport {
 export const strategyValidate = (config: StrategyConfig) =>
   call<ValidationReport>("strategy_validate", { config }, (m) => m.validate(config));
 
+/**
+ * What the budget field shows under itself (Rust strategy_budget_floor).
+ * `minBudget` is the save floor (every order at least `minOrder`);
+ * `liveMinBudget` the floor the Live switch checks on a Binance futures bot,
+ * from the symbol's own exchange minimum (`symbolMinOrder`). `symbolRules`:
+ * "ok" read, "unavailable" the exchange did not answer, "notApplicable" no
+ * Live path (spot or another exchange).
+ */
+export interface BudgetFloor {
+  minBudget: number | null;
+  orders: number;
+  minOrder: number;
+  symbolRules: "ok" | "unavailable" | "notApplicable";
+  symbolMinOrder: number | null;
+  liveMinBudget: number | null;
+}
+
+export const strategyBudgetFloor = (config: StrategyConfig) =>
+  call<BudgetFloor>("strategy_budget_floor", { config }, (m) => m.budgetFloor(config));
+
 export const strategyCreate = (config: StrategyConfig) =>
   call<StrategyBotView>("strategy_create", { config }, (m) => m.create(config));
 
@@ -626,19 +649,52 @@ export interface StrategyLiveView {
   cycleFactor: number;
   /** Exchange the real orders go to. */
   venue: string;
+  /** A Live bot armed this session (it may start new cycles). False after every restart until LIVE is typed. */
+  armed?: boolean;
 }
 
 /** The word typed to switch a DCA / Grid bot to real money. */
 export const STRATEGY_LIVE_WORD = "LIVE";
 
+/** The money the typed LIVE would put at risk for `config` on `venue`. */
+export const strategyLiveTerms = (config: StrategyConfig, venue?: string) =>
+  call<LiveTerms>("strategy_live_terms", { config, venue: venue ?? null }, async () => ({
+    venue: venue ?? "binance",
+    marginAtRiskUsdt: Math.round(config.budget * 100) / 100,
+    maxNotionalUsdt: Math.round(config.budget * Math.max(1, config.leverage) * 100) / 100,
+    leverage: Math.max(1, config.leverage),
+    positions: 1,
+    pilotCount: 3,
+    pilotNotionalUsdt: 100,
+  }));
+
+/**
+ * A NEW bot in Live mode: every go-live check runs before it is saved; it is
+ * saved stopped, Live and armed. Rejects with a code and saves nothing.
+ */
+export const strategyCreateLive = (config: StrategyConfig, confirmation: string, atRiskUsdt: number, venue?: string) =>
+  call<StrategyBotView>("strategy_create_live", { config, confirmation, venue: venue ?? null, atRiskUsdt }, async () => {
+    throw "liveNeedsTradeKey";
+  });
+
+/** The per-session arm of a Live DCA / Grid bot (after a restart or "Stop all live"). */
+export const strategyArmLive = (id: string, confirmation: string, atRiskUsdt: number) =>
+  call<StrategyLiveView[]>("strategy_arm_live", { id, confirmation, atRiskUsdt }, async () => {
+    throw "liveNeedsTradeKey";
+  });
+
 export const strategyLiveStatus = () =>
   call<StrategyLiveView[]>("strategy_live_status", undefined, async () => []);
 
-/** `venue`: the exchange real orders go to (decisions stay on Binance prices). */
-export const strategySetLive = (id: string, enabled: boolean, confirmation: string, venue?: string) =>
-  call<StrategyLiveView[]>("strategy_set_live", { id, enabled, confirmation, venue: venue ?? null }, async () => {
-    throw "liveBuildDisabled";
-  });
+/** "Go live" on a Paper bot, or back to Paper once flat. `venue`: the exchange real orders go to. */
+export const strategySetLive = (id: string, enabled: boolean, confirmation: string, venue?: string, atRiskUsdt?: number) =>
+  call<StrategyLiveView[]>(
+    "strategy_set_live",
+    { id, enabled, confirmation, venue: venue ?? null, atRiskUsdt: atRiskUsdt ?? null },
+    async () => {
+      throw "liveNeedsTradeKey";
+    },
+  );
 
 /** One real fill against the simulated fills it mirrored (strategy_live_report). */
 export interface StrategyDiffRow {

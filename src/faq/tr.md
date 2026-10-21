@@ -14,16 +14,16 @@ Her sayfa aynı düzeni kullanır:
 - **Sol panel:** o sayfanın filtreleri ya da ayarları.
 - **Orta alan:** sayfanın asıl işi; tablolar, formlar, grafikler.
 - **Sağ panel:** özetler ve durum bilgisi. Dar pencerede sağ panel gizlenir; başlıktaki **Özet paneli** düğmesiyle açılır.
-- **Başlık çubuğu (üstte):** sayfa adı ve düğmeleri, mod etiketi (**Simüle** ya da **Simüle + Canlı**), testnet kullanılıyorsa **Testnet borsa** rozeti, uyarı zili, Binance ve Sentinel bağlantı etiketleri, hesabınız.
+- **Başlık çubuğu (üstte):** sayfa adı ve düğmeleri, mod etiketi (**Simülasyon** ya da **Simülasyon + Canlı**), testnet kullanılıyorsa **Testnet borsa** rozeti, uyarı zili, Binance ve Sentinel bağlantı etiketleri, hesabınız.
 - **Durum çubuğu (altta):** borsa bağlantıları ve gecikme, Sentinel sinyal akışı ve son sinyalin yaşı, BTC fiyatı ve rejimi, kasanın durumu (açık ya da kilitli), üyelik durumu ve sürüm numarası.
 
-**"Simüle" etiketi bir düğme mi?** Hayır, yalnızca bilgi gösterir. Bütün botlar simüle (paper) çalışıyorsa **Simüle**, en az bir bot gerçek parayla işlem yapıyorsa **Simüle + Canlı** yazar. Gerçek para her bot için ayrı ayrı açılır.
+**"Simülasyon" etiketi bir düğme mi?** Hayır, yalnızca bilgi gösterir. Bütün botlar simülasyonda çalışıyorsa **Simülasyon**, en az bir bot gerçek parayla işlem yapıyorsa **Simülasyon + Canlı** yazar. Gerçek para her bot için ayrı ayrı açılır.
 
-**Binance ve Sentinel etiketlerindeki noktalar ne anlatır?** Yeşil nokta bağlantının çalıştığını gösterir. Etikete tıklarsanız bağlantı hemen yeniden denetlenir. Binance etiketinde "anahtar yok" yazıyorsa kasada kayıtlı bir Binance anahtarı yoktur; paper botlar için anahtar gerekmez.
+**Binance ve Sentinel etiketlerindeki noktalar ne anlatır?** Yeşil nokta bağlantının çalıştığını gösterir. Etikete tıklarsanız bağlantı hemen yeniden denetlenir. Binance etiketinde "anahtar yok" yazıyorsa kasada kayıtlı bir Binance anahtarı yoktur; simülasyondaki botlar için anahtar gerekmez.
 
 **Uyarı zilindeki sayı ne?** Okunmamış uyarılar: bütçe ya da pozisyon sınırının dolması, zarar durdurma, kapanan işlemler, bugün kapanan DCA/Grid döngüleri, stopla kapanan DCA/Grid döngüleri, sona eren bir DCA/Grid botu, kasanın otomatik kilitlenmesi, sinyal akışının kesilmesi, BTC rejimi değişikliği. Hangi uyarıları göreceğinizi **Ayarlar → Bildirimler** sekmesinden seçersiniz.
 
-**Kenar çubuğundaki sayılar ve noktalar ne?** Bot menülerinin yanındaki sayı çalışan bot sayısıdır. **Pozisyonlar ve emirler** yanındaki sayı açık pozisyon ve açık döngü sayısıdır. **Sinyaller** yanındaki yeşil nokta sinyal akışının bağlı olduğunu gösterir. **Risk ve güvenlik** yanında nokta varsa günlük stop tetiklenmiş ya da BTC rejimi normal değildir; **LIVE** etiketi varsa en az bir bot gerçek parayla çalışıyordur.
+**Kenar çubuğundaki sayılar ve noktalar ne?** Bot menülerinin yanındaki sayı çalışan bot sayısıdır. **Pozisyonlar ve emirler** yanındaki sayı açık pozisyon ve açık döngü sayısıdır. **Sinyaller** yanındaki yeşil nokta sinyal akışının bağlı olduğunu gösterir. **Risk ve güvenlik** yanında nokta varsa günlük stop tetiklenmiş ya da BTC rejimi normal değildir; **Canlı** etiketi varsa en az bir bot gerçek parayla çalışıyordur.
 
 **Temayı nasıl değiştiririm, kenar çubuğunu nasıl daraltırım?** Kenar çubuğunun en altındaki tema düğmesi Açık → Koyu → Yüksek kontrast → Sistem sırasıyla değişir. Yanındaki ok kenar çubuğunu daraltır; klavyeden Ctrl+B de aynı işi yapar.
 
@@ -35,7 +35,7 @@ Her sayfa aynı düzeni kullanır:
 
 Pano, neyin çalıştığını, ne kazandırıp ne kaybettirdiğini ve neyin dikkat istediğini tek ekranda gösterir. Uygulamada olmayan bir rakam tahmin edilmez; veri yoksa alan boş kalır.
 
-- **Sol panel:** **Kapsam** (çalışan simüle ve canlı bot sayısı), **Botlar** (her türden kaç bot çalışıyor), **BTC rejimi** ve **Sinyal akışı** kartları.
+- **Sol panel:** **Kapsam** (simülasyonda ve canlıda çalışan bot sayısı), **Botlar** (her türden kaç bot çalışıyor), **BTC rejimi** ve **Sinyal akışı** kartları.
 - **Orta alan:**
   - **Başlarken** listesi: Sentinel'e giriş, bir botun ayarlanması ve çalışması. Her bot türü sayılır. Henüz bot yoksa liste, testini geçen DCA Long Classic şablonunu önerir. Sinyal akışı adımı ancak bir sinyal botu ayarlandığında görünür. Hepsi tamamlanınca **Listeyi gizle** ile kaldırılır.
   - Özet kutuları: **Anlık açık K/Z**, **Bugün gerçekleşen**, **Net K/Z, tüm zamanlar**, **Kullanılan günlük zarar**, **Kullanılan sermaye**, **Sinyal kazanç oranı**.
@@ -48,7 +48,7 @@ Pano, neyin çalıştığını, ne kazandırıp ne kaybettirdiğini ve neyin dik
 
 **Sinyal kazanç oranının altında "değerlendirmek için az" yazıyor, neden?** 30'dan az sinyal işlemi kapandıysa kazanç oranı güvenilir değildir; uygulama bunu açıkça yazar.
 
-**"Kullanılan günlük zarar" neyi ölçer?** Sinyal botlarının bugün gerçekleşen zararının, günlük stop sınırına oranını. Sınır, Risk ve güvenlik sayfasındaki simüle bakiye ve günlük stop yüzdesinden hesaplanır. Açık pozisyonların henüz gerçekleşmemiş zararı sayılmaz. DCA/Grid döngüleri de sayılmaz: bu botlar günlük stopun dışındadır.
+**"Kullanılan günlük zarar" neyi ölçer?** Sinyal botlarının bugün gerçekleşen zararının, günlük stop sınırına oranını. Sınır, Risk ve güvenlik sayfasındaki simülasyon bakiyesi ve günlük stop yüzdesinden hesaplanır. Açık pozisyonların henüz gerçekleşmemiş zararı sayılmaz. DCA/Grid döngüleri de sayılmaz: bu botlar günlük stopun dışındadır.
 
 ## Tüm botlar {#all-bots}
 
@@ -56,13 +56,13 @@ Pano, neyin çalıştığını, ne kazandırıp ne kaybettirdiğini ve neyin dik
 
 Her türden botu (sinyal, DCA, Grid) tek tabloda gösterir.
 
-- **Sol panel (filtreler):** arama (bot adı ya da sembol), tür, durum, piyasa (Spot/Futures), mod (Paper/LIVE), borsa ve **Filtreleri temizle**. Filtreler adres satırında saklanır.
+- **Sol panel (filtreler):** arama (bot adı ya da sembol), tür, durum, piyasa (Spot/Futures), mod (Simülasyon/Canlı), borsa ve **Filtreleri temizle**. Filtreler adres satırında saklanır.
 - **Orta alan:** sayfadaki botlar için dört kutucuk: **Çalışan** (kaç bottan), **Açık K/Z** (açık pozisyon ve döngülerle), **Gerçekleşen** (ücretler sonrası, tüm zamanlar) ve **Toplam**. Altında sinyal botları ve **DCA ve Grid botları** ayrı bölümlerde. Birden çok sinyal botunu seçip birlikte durdurabilirsiniz. Sinyal botları, DCA botları ve Grid botları sayfaları da kendi botları için aynı dört kutucukla açılır.
 - **Sağ panel:** her bot türü için özet ve **Dikkat gerekenler** listesi: günlük stop yüzünden durmuş sinyal botları, duraklatılmış ya da sona ermiş DCA/Grid botları.
 
 **Yeni bir sinyal botu oluşturabilir miyim?** Hayır. Üç sinyal botu sabittir: **Futures**, **Spot** ve **Pump**. Yalnızca ayarlarını değiştirir, başlatır ya da durdurursunuz. DCA ve Grid botlarından ise en fazla 10 tane oluşturabilirsiniz.
 
-**Bir botu neden silemiyor ya da değiştiremiyorum?** Her paper botun satırında onu silen bir çöp kutusu simgesi vardır. Ayarlar botun kendi sayfasındadır: bot adına tıklayın. Ayrıntılar [DCA botları](#/faq?s=dca-bots) bölümünde.
+**Bir botu neden silemiyor ya da değiştiremiyorum?** Simülasyondaki her botun satırında onu silen bir çöp kutusu simgesi vardır. Ayarlar botun kendi sayfasındadır: bot adına tıklayın. Ayrıntılar [DCA botları](#/faq?s=dca-bots) bölümünde.
 
 ## Piyasa trendi {#market-trend}
 
@@ -84,7 +84,7 @@ Sentinel'in yayınladığı sinyallerle işlem yapan üç bot burada.
 
 - **Futures:** futures sinyallerini alır; long ve short.
 - **Spot:** spot sinyallerini alır; yalnızca long.
-- **Pump:** Sentinel'in pump motorundan gelen ve aynı zamanda yapı kırılımı (MSB ya da CHoCH) ile order block ya da FVG gösteren futures sinyallerini alır. Her risk seviyesinde, o seviyenin sınırları içinde ve yalnızca simüle çalışır. **Test edilmedi** etiketi taşır: bu kural için geçmiş veride ya da ileriye dönük yapılmış bir test yok.
+- **Pump:** Sentinel'in pump motorundan gelen ve aynı zamanda yapı kırılımı (MSB ya da CHoCH) ile order block ya da FVG gösteren futures sinyallerini alır. Her risk seviyesinde, o seviyenin sınırları içinde ve yalnızca simülasyonda çalışır. **Test edilmedi** etiketi taşır: bu kural için geçmiş veride ya da ileriye dönük yapılmış bir test yok.
 
 **Short sinyaller:** Sentinel, önceden yazılmış kendi durdurma kuralı tetiklendiği için 8 Ekim 2026'da short sinyal yayınlamayı durdurdu. Short'lar yine önceden yazılmış bir kuralla geri dönene kadar, **Yön** ayarı **Short** olan bot hiç Sentinel sinyali almaz; Futures ve Pump botları yalnızca long sinyal alır.
 
@@ -107,8 +107,8 @@ Ayar formunun bölümleri:
 
 | Atlama nedeni | Anlamı | Ne yapmalı |
 |---|---|---|
-| Pozisyon tavanının üstünde | Botun pozisyon başına sermayesi, simüle bakiyenin risk seviyesine göre izin verilen payını aşıyor (Temkinli seviyede %2). Böyle bir değer kaydedilirken ve başlatılırken reddedilir; bu atlama, bot çalışırken bakiye ya da seviye düşürüldüyse görülür | **Pozisyon başına sermaye** değerini düşürün ya da Risk ve güvenlik sayfasında bakiyeyi veya seviyeyi yükseltin |
-| Borsanın minimum emrinin altında | Pozisyon yaklaşık 5 USDT'nin, yani Binance'in çoğu paritede kabul ettiği en küçük emrin altında kalacaktı; işlem borsada var olamayacağı için kağıt defter de reddeder. Küçük bakiyelerde sık görülür: Temkinli seviyede 100 USDT, pozisyon başına 2 USDT'ye izin verir | Risk ve güvenlik sayfasında bakiyeyi veya seviyeyi yükseltin ya da **Pozisyon başına sermaye** değerini en az 5 USDT yapın |
+| Pozisyon tavanının üstünde | Botun pozisyon başına sermayesi, simülasyon bakiyesinin risk seviyesine göre izin verilen payını aşıyor (Temkinli seviyede %2). Böyle bir değer kaydedilirken ve başlatılırken reddedilir; bu atlama, bot çalışırken bakiye ya da seviye düşürüldüyse görülür | **Pozisyon başına sermaye** değerini düşürün ya da Risk ve güvenlik sayfasında bakiyeyi veya seviyeyi yükseltin |
+| Borsanın minimum emrinin altında | Pozisyon yaklaşık 5 USDT'nin, yani Binance'in çoğu paritede kabul ettiği en küçük emrin altında kalacaktı; işlem borsada var olamayacağı için simülasyon defteri de reddeder. Küçük bakiyelerde sık görülür: Temkinli seviyede 100 USDT, pozisyon başına 2 USDT'ye izin verir | Risk ve güvenlik sayfasında bakiyeyi veya seviyeyi yükseltin ya da **Pozisyon başına sermaye** değerini en az 5 USDT yapın |
 | Pozisyon limiti doldu | Bu botun açık pozisyon sayısı seviyenin üst sınırına ulaştı (seviye limiti her sinyal botuna ayrı uygulanır: Spot, Futures ve Pump) | Pozisyonların kapanmasını bekleyin ya da seviyeyi yükseltin |
 | Bot pozisyon limiti doldu | Bu botun **Maks eşzamanlı pozisyon** sınırı doldu | Sınırı yükseltin |
 | Başka piyasa için yayınlandı | Spot sinyali Futures botuna (ya da tersi) gelmiş | Bir şey yapmanız gerekmez; her bot kendi piyasasının sinyalini alır |
@@ -120,7 +120,7 @@ Ayar formunun bölümleri:
 
 **Atlanan işlemler** listesi ve Geçmiş sayfasındaki **Atlanan sinyalleri dışa aktar** dosyası her bot, sinyal ve neden için tek satır tutar; satırın zamanı ilk görüldüğü andır.
 
-**Pozisyon başına sermaye ile simüle bakiye arasındaki fark ne?** **Pozisyon başına sermaye** bu botun bir pozisyona ayırdığı tutardır. **Simüle bakiye**, Risk ve güvenlik sayfasındaki toplam bakiyedir ve bütün sınırlar ondan hesaplanır. Örnek: Temkinli seviyede bakiye 5000 USDT ise bir pozisyona en fazla %2'si, yani 100 USDT ayrılabilir. Botun sermayesini 5000 yaparsanız uygulama bunu kaydetmez ve botu başlatmaz. Yeni bir botun sermayesi 100 USDT'dir; tavan daha düşükse tavana indirilir: yeni kurulumda (Temkinli, 1000 USDT bakiye) 20 USDT.
+**Pozisyon başına sermaye ile simülasyon bakiyesi arasındaki fark ne?** **Pozisyon başına sermaye** bu botun bir pozisyona ayırdığı tutardır. **Simülasyon bakiyesi**, Risk ve güvenlik sayfasındaki toplam bakiyedir ve bütün sınırlar ondan hesaplanır. Örnek: Temkinli seviyede bakiye 5000 USDT ise bir pozisyona en fazla %2'si, yani 100 USDT ayrılabilir. Botun sermayesini 5000 yaparsanız uygulama bunu kaydetmez ve botu başlatmaz. Yeni bir botun sermayesi 100 USDT'dir; tavan daha düşükse tavana indirilir: yeni kurulumda (Temkinli, 1000 USDT bakiye) 20 USDT.
 
 **İşlem başına risk nasıl hesaplanır?** Pozisyon büyüklüğü, stop vurulursa sermayenin seçtiğiniz yüzdesi kaybedilecek şekilde hesaplanır. Örnek: sermaye 100 USDT, risk %1, stop %3 uzakta ise yaklaşık 33 USDT'lik pozisyon açılır. Pozisyon hiçbir zaman sermaye × kaldıraçtan büyük olmaz; bu sınıra takılırsa **Sınırlandı** etiketi görünür ve gerçek risk seçtiğinizden azdır.
 
@@ -128,15 +128,15 @@ Ayar formunun bölümleri:
 
 **Sentinel puanı neyi ölçer?** Sentinel'in 0–100 arası sinyal puanıdır: kurulum, indikatörler, kesişim ve BTC rejimi ağırlıklı olarak toplanır. Bir olasılık değildir. Geçmiş sinyallerde test edildi ve kazananı kaybedenden ayırmadı (AUC 0.496). **Min Sentinel puanı** filtresi yine ayarlandığı gibi çalışır.
 
-**Pump botunda neden "Test edilmedi" yazıyor?** Bu botun kuralı için geçmiş veride ya da ileriye dönük yapılmış bir test yok. Her risk seviyesinde, o seviyenin sınırları içinde ve yalnızca simüle çalışır. Botun sayfasında kuralın tamamı yazar. Gerçek paraya alınamaz.
+**Pump botunda neden "Test edilmedi" yazıyor?** Bu botun kuralı için geçmiş veride ya da ileriye dönük yapılmış bir test yok. Her risk seviyesinde, o seviyenin sınırları içinde ve yalnızca simülasyonda çalışır. Botun sayfasında kuralın tamamı yazar. Gerçek paraya alınamaz.
 
-**Simüle bir işlem hangi fiyattan kapanır?** Stoplar, hedefler ve kısmi çıkışlar kendi seviyelerinden yazılır. Stop, uygulama izlemiyorken aşıldıysa (yeniden başlatma, bilgisayarın uyku modu), aradan sonra görülen ilk fiyattan yazılır.
+**Simülasyondaki bir işlem hangi fiyattan kapanır?** Stoplar, hedefler ve kısmi çıkışlar kendi seviyelerinden yazılır. Stop, uygulama izlemiyorken aşıldıysa (yeniden başlatma, bilgisayarın uyku modu), aradan sonra görülen ilk fiyattan yazılır.
 
-**Günlük stop nedir?** Bugün gerçekleşen zarar, simüle bakiyenin seviyeye göre belirlenen yüzdesine ulaşırsa (Temkinli seviyede %2) bütün sinyal botları durur. **Günlük durdurmada pozisyonları kapat** açıksa açık pozisyonlar da kapatılır. Botlar UTC 00:00'dan sonra yeniden başlatılabilir. DCA ve Grid botları günlük stoptan etkilenmez; onların kendi korumaları vardır.
+**Günlük stop nedir?** Bugün gerçekleşen zarar, simülasyon bakiyesinin seviyeye göre belirlenen yüzdesine ulaşırsa (Temkinli seviyede %2) bütün sinyal botları durur. **Günlük durdurmada pozisyonları kapat** açıksa açık pozisyonlar da kapatılır. Botlar UTC 00:00'dan sonra yeniden başlatılabilir. DCA ve Grid botları günlük stoptan etkilenmez; onların kendi korumaları vardır.
 
-**Sinyal botunu gerçek paraya nasıl alırım?** Yalnızca **Futures** botu, yalnızca Binance'te ve yalnızca gerçek para destekli sürümde. Ayar formunun altındaki **Gerçek para** panelinde **Gerçek paraya geç**'e basın, LIVE yazın ve onaylayın. Bunun için kasada doğrulanmış, yalnızca işlem yetkili bir Binance anahtarı gerekir. İlk 3 gerçek giriş, pilot olarak en fazla 50 USDT ile açılır. Bot gerçek paradayken ya da gerçek pozisyon tutarken borsası değiştirilemez. Uygulama yeniden başlayınca sinyal botu kendiliğinden simülasyona döner.
+**Sinyal botunu gerçek paraya nasıl alırım?** Yalnızca **Futures** botu ve TradingView botu, yalnızca Binance'te. Botun **Mod** panelinde **Canlı**'yı seçin, sonra **Gerçek parayla başlat**'a basın: uygulama riskteki parayı gösterir ve LIVE yazmanızı ister. Bunun için kasada doğrulanmış, yalnızca işlem yetkili bir Binance anahtarı gerekir. İlk 3 gerçek giriş, pilot olarak en fazla 50 USDT ile açılır; bu sayı yeniden başlatmada korunur. Bot Canlı'dayken ya da gerçek pozisyon tutarken borsası değiştirilemez. Yeniden başlatmadan sonra Canlı bot durdurulmuş olarak döner ve LIVE'ı yeniden ister. **Simülasyona geç** botun açık gerçek pozisyonlarını listeler: **Pozisyonları kapat ve geç** önce onları kapatır, **Sonra geç** botu durdurur ve pozisyonlar kapanınca Simülasyona geçirir.
 
-**Uygulama yeniden başlayınca sinyal botlarına ne olur?** Çalışan paper botlar kendiliğinden yeniden başlar. Sermayesi pozisyon tavanının üstündeyse, kayıtlı ayarları bir kontrolden geçmiyorsa, kayıtlı verisi okunamıyorsa ya da günlük stop tetiklenmişse bot durmuş kalır; **Atlanan işlemler** listesi nedenini yazar ("Yeniden başlatmadan sonra devam etmedi"). Gerçek paradaki bir bot durmuş ve simüle olarak gelir.
+**Uygulama yeniden başlayınca sinyal botlarına ne olur?** Simülasyonda çalışan botlar kendiliğinden yeniden başlar. Sermayesi pozisyon tavanının üstündeyse, kayıtlı ayarları bir kontrolden geçmiyorsa, kayıtlı verisi okunamıyorsa ya da günlük stop tetiklenmişse bot durmuş kalır; **Atlanan işlemler** listesi nedenini yazar ("Yeniden başlatmadan sonra devam etmedi"). Gerçek paradaki bir bot durmuş ve Simülasyon modunda gelir.
 
 ## Sinyal botunun sayfası {#signal-bot-detail}
 
@@ -144,7 +144,7 @@ Ayar formunun bölümleri:
 
 Tablodaki bot adına tıklayınca açılır. **Genel bakış** sekmesi botun kendi **Açık K/Z**, **Gerçekleşen**, **Toplam** ve **Kayıt** (kapanan tüm işlemleri üzerinden kazanç ve kayıp sayısı, kazanma oranı ve işlem sayısı) kutucuklarıyla, ardından açık pozisyonlarıyla açılır. Sekmeler: **Genel bakış**, **İşlemler** (kapanan işlemler ve CSV), **Emirler** (her açık pozisyonun kâr al ve zarar durdur emirleri), **Ayarlar** ve **Kayıt** (atlama notları).
 
-**Açık bir pozisyonu elle kapatabilir miyim?** Evet, pozisyon satırındaki **Kapat** düğmesiyle. Paper pozisyon anlık fiyattan kapanmış sayılır. Gerçek parayla açılmış bir pozisyonda ise borsaya gerçek bir piyasa emri gider; bu yüzden onay için CLOSE yazmanız istenir.
+**Açık bir pozisyonu elle kapatabilir miyim?** Evet, pozisyon satırındaki **Kapat** düğmesiyle. Simülasyon pozisyonu anlık fiyattan kapanmış sayılır. Gerçek parayla açılmış bir pozisyonda ise borsaya gerçek bir piyasa emri gider; bu yüzden onay için CLOSE yazmanız istenir.
 
 ## DCA botları {#dca-bots}
 
@@ -160,7 +160,7 @@ DCA botu bir döngü boyunca fiyat düştükçe kademeli alım yapar (güvenlik 
 
 Bot adına tıklayınca botun sayfası açılır:
 
-- **Sekmeler:** **Genel bakış**, **Döngüler**, **Emirler**, **Dolumlar**, **Ayarlar**, **Kayıt**. Bot gerçek paraya alındıysa **Gerçek ve paper** sekmesi de eklenir.
+- **Sekmeler:** **Genel bakış**, **Döngüler**, **Emirler**, **Dolumlar**, **Ayarlar**, **Kayıt**. Bot gerçek paraya alındıysa **Gerçek ve simülasyon** sekmesi de eklenir.
 - **Düğmeler:** **Başlat** (hiç çalışmamış bot) ya da **Sürdür**, **Duraklat**, **Döngüyü kapat ve durdur**, **Kopyala**, **Sil**.
 - **Sağ panel:** botun durumu, **Gerçek para** paneli ve strateji bütçesi.
 
@@ -179,31 +179,31 @@ Bot adına tıklayınca botun sayfası açılır:
 
 - **Duraklat:** yeni döngü açılmaz. Açık döngü kâr al ya da stop seviyesine kadar yönetilmeye devam eder.
 - **Döngüyü kapat ve durdur:** açık döngü hemen piyasa fiyatından kapanır (komisyon ve kayma dahil) ve bot durur. Onay için CLOSE yazmanız istenir.
-- **Sil:** botu masadan kaldırır. Döngüleri ve dolumları CSV dışa aktarımında kalır. Onay için DELETE yazmanız istenir.
+- **Sil:** botu listeden kaldırır. Döngüleri ve dolumları CSV dışa aktarımında kalır. Onay için DELETE yazmanız istenir.
 
-**Botu neden silemiyor ya da değiştiremiyorum?** Silme, listede botun satırındaki çöp kutusu simgesi ve botun sayfasındaki **Sil** düğmesidir. Açık bir döngü varsa onay penceresi döngünün büyüklüğünü ve açık kâr/zararını gösterir; DELETE yazınca döngü piyasa fiyatından kapanır, bot durur ve silinir. Döngü açıkken yalnızca ad, başlangıç, yeniden başlatma ve koruma ayarları değişebilir; sembol, bütçe, kaldıraç ve strateji ayarları kilitlidir. Bunları hemen değiştirmek için **Döngüyü kapat ve durdur**'u kullanın, düzenleyin, sonra **Başlat**'a basın. Gerçek paradaki bir bot, paper'a dönmeden silinemez.
+**Botu neden silemiyor ya da değiştiremiyorum?** Silme, listede botun satırındaki çöp kutusu simgesi ve botun sayfasındaki **Sil** düğmesidir. Açık bir döngü varsa onay penceresi döngünün büyüklüğünü ve açık kâr/zararını gösterir; DELETE yazınca döngü piyasa fiyatından kapanır, bot durur ve silinir. Döngü açıkken yalnızca ad, başlangıç, yeniden başlatma ve koruma ayarları değişebilir; sembol, bütçe, kaldıraç ve strateji ayarları kilitlidir. Bunları hemen değiştirmek için **Döngüyü kapat ve durdur**'u kullanın, düzenleyin, sonra **Başlat**'a basın. Gerçek paradaki bir bot, simülasyona dönmeden silinemez.
 
 **"Duraklatıldı: fiyat akışı 3 dakikadan eski" ne demek?** Bot 3 dakikadır yeni fiyat alamadı ve eski fiyatla işlem yapmamak için bekliyor. Genellikle borsanın ya da internet bağlantısının geçici bir kesintisidir. Fiyat gelince bot kendiliğinden devam eder ve kaçırdığı dakikaları sırayla işler; **Sürdür**'e basmak bu durumu çözmez. Bu sırada döngüyü kapatmak da fiyat gelene kadar mümkün olmaz, çünkü uygulama eski fiyatla kapanış yazmaz. Yeni bot kurmak da işe yaramaz: yeni bot aynı fiyat kaynağını kullanır.
 
-**Uygulamayı kapatıp açınca botlarıma ne olur?** Çalışan paper botlar en eskisinden başlayarak kendiliğinden devam eder, ama yalnızca başlatma kontrollerinden yeniden geçerlerse: kaldıraç risk seviyesinin üst sınırını aşmamalı, ayarlar geçerli olmalı, bütçe sınırında ve bakiyede yer olmalı. Bir kontrolden geçemeyen bot durmuş kalır ve sayfası nedenini yazar ("Yeniden başlatmadan sonra devam ettirilmedi"). Açık döngüsü okunamayan bot da durmuş kalır. Gerçek paradaki bir bot durmuş gelir ve sizi bekler. Açık döngüler kaybolmaz; kapalı kalınan süre işlenir ve döngü yönetilmeye devam eder. Yeniden başlatmadan önce fiyat bulamadığı için yapılamayan zorunlu bir kapanış saklanır ve yeniden denenir.
+**Uygulamayı kapatıp açınca botlarıma ne olur?** Simülasyonda çalışan botlar en eskisinden başlayarak kendiliğinden devam eder, ama yalnızca başlatma kontrollerinden yeniden geçerlerse: kaldıraç risk seviyesinin üst sınırını aşmamalı, ayarlar geçerli olmalı, bütçe sınırında ve bakiyede yer olmalı. Bir kontrolden geçemeyen bot durmuş kalır ve sayfası nedenini yazar ("Yeniden başlatmadan sonra devam ettirilmedi"). Açık döngüsü okunamayan bot da durmuş kalır. Gerçek paradaki bir bot durmuş gelir ve sizi bekler. Açık döngüler kaybolmaz; kapalı kalınan süre işlenir ve döngü yönetilmeye devam eder. Yeniden başlatmadan önce fiyat bulamadığı için yapılamayan zorunlu bir kapanış saklanır ve yeniden denenir.
 
-**Bütçe sınırı nedir? "DCA/Grid bütçe sınırı aşıldı" hatası alıyorum.** Bütün DCA ve Grid botlarının bütçelerinin toplamı, simüle bakiyenin risk seviyesine göre belirlenen payını aşamaz:
+**Bütçe sınırı nedir? "DCA/Grid bütçe sınırı aşıldı" hatası alıyorum.** Bütün DCA ve Grid botlarının bütçelerinin toplamı, simülasyon bakiyesinin risk seviyesine göre belirlenen payını aşamaz:
 
-| Risk seviyesi | Temkinli | Sakin | Dengeli | Hırslı | Aç Gözlü |
+| Risk seviyesi | Temkinli | Sakin | Dengeli | Hırslı | Açgözlü |
 |---|---|---|---|---|---|
 | Toplam DCA/Grid bütçesi | %20 | %30 | %40 | %60 | %80 |
 
-Örnek: yeni kurulumda (simüle bakiye 1000 USDT, seviye Temkinli) bütün DCA/Grid botları birlikte en fazla 200 USDT ayırabilir. Hata mesajı boş tutarı ve sınırı gösterir. Sınırı yükseltmek için Risk ve güvenlik sayfasında **Simüle bakiye (USDT)** değerini ya da risk seviyesini yükseltin. Durmuş ve döngüsü olmayan botlar bütçe ayırmaz.
+Örnek: yeni kurulumda (simülasyon bakiyesi 1000 USDT, seviye Temkinli) bütün DCA/Grid botları birlikte en fazla 200 USDT ayırabilir. Hata mesajı boş tutarı ve sınırı gösterir. Sınırı yükseltmek için Risk ve güvenlik sayfasında **Simülasyon bakiyesi (USDT)** değerini ya da risk seviyesini yükseltin. Durmuş ve döngüsü olmayan botlar bütçe ayırmaz.
 
 **Asgari bütçe nedir?** Botun her emrinin en az 5 USDT olduğu en küçük bütçe. **Özet** panelinde **Asgari bütçe** satırında görünür. DCA Long Classic 176,98 USDT, DCA Long Safe 218,10 USDT ister; bu yüzden yeni kurulumda (200 USDT sınır) Safe sığmaz. Oluşturma sayfası, sınırın altında boş kalan tutar asgari bütçeyi karşılıyorsa açılış bütçesini bu tutara indirir; karşılamıyorsa asgari bütçeyi yazan ve Risk ve güvenlik sayfasına giden bir uyarı gösterir.
 
 **"Başka bir bot bu sembolü, piyasayı ve yönü zaten kullanıyor" hatası?** Aynı sembol, piyasa ve yönde aynı anda yalnızca bir bot çalışabilir; aksi halde botların emirleri birbirine karışır. Ya diğer botu duraklatın ya da başka bir sembol seçin.
 
-**Kaldıracı neden yükseltemiyorum?** Kaldıraç, risk seviyesinin izin verdiği en yüksek değerle sınırlıdır: Temkinli 2x, Sakin 3x, Dengeli 5x, Hırslı 10x, Aç Gözlü 20x. Spot her zaman 1x'tir. Seviyeyi bir botun kaldıracının altına düşürürseniz o bot yeni döngüleri bekletir ("Kaldıraç risk seviyenizin üst sınırının üstünde").
+**Kaldıracı neden yükseltemiyorum?** Kaldıraç, risk seviyesinin izin verdiği en yüksek değerle sınırlıdır: Temkinli 2x, Sakin 3x, Dengeli 5x, Hırslı 10x, Açgözlü 20x. Spot her zaman 1x'tir. Seviyeyi bir botun kaldıracının altına düşürürseniz o bot yeni döngüleri bekletir ("Kaldıraç risk seviyenizin üst sınırının üstünde").
 
-**DCA botunu gerçek paraya nasıl alırım?** Yalnızca gerçek para destekli sürümde ve Binance Futures botlarında. Botun sayfasındaki **Gerçek para** panelinde **Gerçek paradan önce** listesindeki üç koşul sağlanmalıdır: doğrulanmış bir Binance işlem anahtarı, bir zarar durdur (ya da düşüş durdurucusu) ve açık paper döngüsünün olmaması. Sonra **Gerçek paraya geç**'e basıp LIVE yazarsınız. İlk 3 döngü pilot olarak küçük boyutla (yaklaşık 100 USDT'lik pozisyon) çalışır; **Pilotu bitir** ile tam boyuta geçilir. Gerçek para, uygulama yeniden başladıktan sonra da açık kalır. Bot gerçek paradayken ya da gerçek pozisyon tutarken borsası değiştirilemez.
+**DCA botunu gerçek paraya nasıl alırım?** Yalnızca gerçek para destekli sürümde ve Binance Futures botlarında. Botun sayfasındaki **Gerçek para** panelinde **Gerçek paradan önce** listesindeki üç koşul sağlanmalıdır: doğrulanmış bir Binance işlem anahtarı, bir zarar durdur (ya da düşüş durdurucusu) ve açık simülasyon döngüsünün olmaması. Sonra **Gerçek paraya geç**'e basıp LIVE yazarsınız. İlk 3 döngü pilot olarak küçük boyutla (yaklaşık 100 USDT'lik pozisyon) çalışır; **Pilotu bitir** ile tam boyuta geçilir. Gerçek para, uygulama yeniden başladıktan sonra da açık kalır. Bot gerçek paradayken ya da gerçek pozisyon tutarken borsası değiştirilemez.
 
-**"Gerçek ve paper" sekmesi neyi gösterir?** Her gerçek dolumu, simülasyonun aynı andaki dolumuyla karşılaştırır: fiyat farkı (kayma), bunun USDT maliyeti ve gecikme. Pozitif kayma maliyettir.
+**"Gerçek ve simülasyon" sekmesi neyi gösterir?** Her gerçek dolumu, simülasyonun aynı andaki dolumuyla karşılaştırır: fiyat farkı (kayma), bunun USDT maliyeti ve gecikme. Pozitif kayma maliyettir.
 
 ## Grid botları {#grid-bots}
 
@@ -225,7 +225,7 @@ Liste, bot sayfası, düğmeler, durumlar, bütçe sınırı ve silme kuralları
 
 ![Yeni bot: üç bot türü](shot:bot-new)
 
-Bot türünü seçtiğiniz sayfa. Üç kart vardır: **Sinyal botu (Sentinel)**, **DCA botu** ve **Grid botu**. Her kart o türün nasıl işlem yaptığını, hangi piyasaya uygun olduğunu, o türdeki **Botlarınız**ı (kaç tane, kaçı çalışıyor) ve DCA ile Grid için **Hazır ayarlar**ından kaçının kontrolleri geçtiğini gösterir. Her kartta **Oluştur** düğmesi vardır; hazır ayarı olan türde ayrıca **Bu türün hazır ayarları** bağlantısı bulunur. Kartların üstündeki satır bu sürümün yalnızca paper işlem yapıp yapmadığını söyler. Klavyede N tuşu da bu sayfayı açar.
+Bot türünü seçtiğiniz sayfa. Üç kart vardır: **Sinyal botu (Sentinel)**, **DCA botu** ve **Grid botu**. Her kart o türün nasıl işlem yaptığını, hangi piyasaya uygun olduğunu, o türdeki **Botlarınız**ı (kaç tane, kaçı çalışıyor) ve DCA ile Grid için **Hazır ayarlar**ından kaçının kontrolleri geçtiğini gösterir. Her kartta **Oluştur** düğmesi vardır; hazır ayarı olan türde ayrıca **Bu türün hazır ayarları** bağlantısı bulunur. Kartların üstündeki satır bu sürümün yalnızca simülasyonda işlem yapıp yapmadığını söyler. Klavyede N tuşu da bu sayfayı açar.
 
 ![DCA botu oluşturma formu](shot:dca-new)
 
@@ -258,7 +258,7 @@ Sentinel'in yayınladığı sinyalleri tablo olarak gösterir. Her satırda ve s
 - **Orta alan:** dört kutucuk: **Şu an aktif** (long ve short), **Son 24 sa** (kaçının süresi dolduğuyla), **Botlarınızda** (botlarınızdan birinde açık pozisyonu olan sinyaller) ve aktif sinyallerin **Medyan R:R** değeri. Ardından tablo: zaman, sembol, zaman dilimi, yön, giriş, TP1–TP3, zarar durdur, **TP1'e** ve **Stopa** (yayınlanan girişten hareket, girişin %'si), **R:R**, **Puan**, kurulum, durum, **Botlarda** (şu an hangi botlarınızda olduğu) ve yaş.
 - **Sağ panel:** seçili sinyalin ayrıntısı: stopu, girişi ve hedefleri tek ölçekte, her seviyenin girişten hareketiyle; ardından risk/ödül, konfluans, **Yönetim planı** ve **Bot kararları**: botlarınızın bu sinyalle ne yaptığı.
 
-**Çalıştır ne yapar?** Sinyal için şu bölümleri sırayla gösteren bir pencere açar. **Bu sinyali şimdi al · simüle** sinyali uygun bir sinyal botunda simüle pozisyon olarak açar: vadeli sinyalde Futures, spot long'da Spot, ayarlıysa ve sinyal vadeliyse Pump. Giriş güncel fiyattan yapılır; sinyalin giriş fiyatı geçilmiş olsa da fiyat stop ile botun hedefi arasındaysa açılır, hedef ya da stop geçildiyse reddedilir. Tıklamadan önce her bot güncel fiyattaki dolumu, sinyalin girişini, dolumdaki ödül:riski yayınlanan değerin yanında (0,5'in altında uyarı: işlem hareket etti), pozisyon büyüklüğünü, stopta zararı ve hedefte kârı (ikisi de komisyon dahil) gösterir. **Pozisyon aç** pozisyonu açar; botun çalışıyor olması gerekmez, kayıtlı ayarı olması yeter. Botun kendi filtreleri atlanır (yaş sınırı, Min. puan, yön, semboller, kurulumlar, motorlar, Pump kuralı): kararı siz verdiniz. Risk limitleri geçerlidir: pozisyon sınırları, pozisyon başı tavan, borsa minimumu, likidasyon kontrolü, günlük stop, funding ve derinlik, BTC koruması. Reddedilirse nedeni yazılır. Pozisyon Pozisyonlar ve emirler, bot sayfası ve Geçmiş'te **Elle** etiketi taşır. Çalıştır gerçek parayla pozisyon açmaz: LIVE'a alınmış bot reddeder. Altında: Sentinel sinyallerini filtreleri içinde kendileri de alan sinyal botlarına bağlantı; sinyalin yönüne uyan DCA ve Grid hazır ayarları (long sinyalde long DCA ile long ya da nötr Grid), her biri kararı ve bot-ay başına test ortalamasıyla; ve boş bir DCA ya da Grid formu. **… ile aç** oluşturma formunu hazır ayarla ve sinyalin paritesiyle doldurur. Kontrolleri geçemeyen hazır ayar önce onay ister. Yalnızca BTC için olan hazır ayar sadece BTCUSDT'de görünür. Hazır ayarlar bu paritede değil kendi paritelerinde test edildi; bot, canlı derleme ve yazılı LIVE onayı olmadan simüle çalışır.
+**Çalıştır ne yapar?** Sinyal için şu bölümleri sırayla gösteren bir pencere açar. **Bu sinyali şimdi al · simülasyon** sinyali uygun bir sinyal botunda simülasyon pozisyonu olarak açar: vadeli sinyalde Futures, spot long'da Spot, ayarlıysa ve sinyal vadeliyse Pump. Giriş güncel fiyattan yapılır; sinyalin giriş fiyatı geçilmiş olsa da fiyat stop ile botun hedefi arasındaysa açılır, hedef ya da stop geçildiyse reddedilir. Tıklamadan önce her bot güncel fiyattaki dolumu, sinyalin girişini, dolumdaki ödül:riski yayınlanan değerin yanında (0,5'in altında uyarı: işlem hareket etti), pozisyon büyüklüğünü, stopta zararı ve hedefte kârı (ikisi de komisyon dahil) gösterir. **Pozisyon aç** pozisyonu açar; botun çalışıyor olması gerekmez, kayıtlı ayarı olması yeter. Botun kendi filtreleri atlanır (yaş sınırı, Min. puan, yön, semboller, kurulumlar, motorlar, Pump kuralı): kararı siz verdiniz. Risk limitleri geçerlidir: pozisyon sınırları, pozisyon başı tavan, borsa minimumu, likidasyon kontrolü, günlük stop, fonlama ve derinlik, BTC koruması. Reddedilirse nedeni yazılır. Pozisyon Pozisyonlar ve emirler, bot sayfası ve Geçmiş'te **Elle** etiketi taşır. Çalıştır gerçek parayla pozisyon açmaz: Canlı'ya alınmış bot reddeder. Altında: Sentinel sinyallerini filtreleri içinde kendileri de alan sinyal botlarına bağlantı; sinyalin yönüne uyan DCA ve Grid hazır ayarları (long sinyalde long DCA ile long ya da nötr Grid), her biri kararı ve bot-ay başına test ortalamasıyla; ve boş bir DCA ya da Grid formu. **… ile aç** oluşturma formunu hazır ayarla ve sinyalin paritesiyle doldurur. Kontrolleri geçemeyen hazır ayar önce onay ister. Yalnızca BTC için olan hazır ayar sadece BTCUSDT'de görünür. Hazır ayarlar bu paritede değil kendi paritelerinde test edildi; bot, canlı derleme ve yazılı LIVE onayı olmadan simülasyonda çalışır.
 
 **Puan bir olasılık mı?** Hayır. Sentinel'in 0–100 arası sinyal puanıdır: kurulum, indikatörler, kesişim ve BTC rejimi ağırlıklı olarak toplanır. Sinyalin hedefe ulaşma olasılığı değildir. Geçmiş sinyallerde test edildi ve kazananı kaybedenden ayırmadı (AUC 0.496).
 
@@ -290,7 +290,7 @@ Bir şablona tıklayınca ayarları, veri dönemlerine göre sonuçları ve test
 
 **Şablonun ayarlarını değiştirirsem ne olur?** Ad ve bütçe serbesttir. Başka bir ayarı değiştirirseniz şablonun test sonuçları artık sizin botunuzu anlatmaz; form bunu bir uyarıyla bildirir ve bot şablon bağlantısı olmadan kaydedilir. Parite de önemlidir. Uyarı satırı, şablonun hangi paritelerde test edildiğini yazar. Yalnızca BTC şablonları BTCUSDT ister; başka paritede bağlantı düşer. Sıralı bir listede test edilen şablonlarda (örneğin hacme göre ilk 5 ya da altcoin şablonunun 6-15. sıradaki pariteleri) uyarı, paritenizin bu listede olup olmadığının denetlenmediğini söyler.
 
-**"8 Ekim tarihinden beri gölge" sütunu nedir?** 8 Ekim 2026'dan beri sunucu 12 şablonun hepsini, testlerindeki simülatör ve ayarlarla 6 saatte bir ileriye doğru çalıştırıyor: her ay parite başına yeni bir 1000 USDT bot, 1x, ayın coin listesi; ücret, kayma ve funding dahil; açık döngüler son kapanıştan değerlenir. İçlerinde kimsenin parası yok; her şablonun testi bittikten sonra nasıl gittiğini gösterir. Sütun, başlangıçtan beri toplam getiridir, aylık değildir; test sütunu ise bot-ay başınadır. İlk 30 gün sütunda gün sayısı görünür (örneğin **3/30 g**) ve hiçbir şey sıralanmaz: birkaç hafta çoğunlukla piyasanın ne yaptığını gösterir. Şablonun kendi sayfası rakamları ilk günden, bu notla gösterir.
+**"8 Ekim tarihinden beri gölge" sütunu nedir?** 8 Ekim 2026'dan beri sunucu 12 şablonun hepsini, testlerindeki simülatör ve ayarlarla 6 saatte bir ileriye doğru çalıştırıyor: her ay parite başına yeni bir 1000 USDT bot, 1x, ayın coin listesi; ücret, kayma ve fonlama dahil; açık döngüler son kapanıştan değerlenir. İçlerinde kimsenin parası yok; her şablonun testi bittikten sonra nasıl gittiğini gösterir. Sütun, başlangıçtan beri toplam getiridir, aylık değildir; test sütunu ise bot-ay başınadır. İlk 30 gün sütunda gün sayısı görünür (örneğin **3/30 g**) ve hiçbir şey sıralanmaz: birkaç hafta çoğunlukla piyasanın ne yaptığını gösterir. Şablonun kendi sayfası rakamları ilk günden, bu notla gösterir.
 
 **Bu sonuçlar gelecekteki kârı gösterir mi?** Hayır. Geçmiş fiyatlar üzerinde, gösterilen masraflarla yapılmış bir simülasyondur; bir işlem kaydı ya da tahmin değildir.
 
@@ -312,7 +312,7 @@ Rapor; net K/Z, kapanan döngüler, en büyük düşüş, ücretler, en derin g�
 
 **Raporda "kapsam" düşük görünüyor, sorun mu?** Kapsam, istenen mumların ne kadarının alınabildiğini gösterir. %95'in altındaysa uyarı çıkar; eksik veriyle test sonucu daha az güvenilirdir.
 
-**Test, botun gerçek sonucunu birebir gösterir mi?** Hayır. Komisyon dahildir, ancak futures'ta funding ödemeleri, BTC kırılımı kuralı ve risk kapıları testte yoktur. Rapor bunu etiketlerle belirtir. Düşüş, seçilen mum aralığının kapanışlarında okunur; simüle botlar ise 1 dakikalık mum kullanır. Uzun aralık düşüşün daha azını gösterir.
+**Test, botun gerçek sonucunu birebir gösterir mi?** Hayır. Komisyon dahildir, ancak vadeli işlemlerde fonlama ödemeleri, BTC kırılımı kuralı ve risk kapıları testte yoktur. Rapor bunu etiketlerle belirtir. Düşüş, seçilen mum aralığının kapanışlarında okunur; simülasyondaki botlar ise 1 dakikalık mum kullanır. Uzun aralık düşüşün daha azını gösterir.
 
 ## Rehber {#guide}
 
@@ -322,11 +322,11 @@ DCA ve Grid botlarının uygulama içi el kitabı: nasıl çalıştıkları, say
 
 ## Pozisyonlar ve emirler {#positions}
 
-![Pozisyonlar ve emirler: Simüle sekmesi](shot:positions)
+![Pozisyonlar ve emirler: Simülasyon sekmesi](shot:positions)
 
-Açık olan her şey burada. Simüle (paper) ve gerçek para ayrı sekmelerdedir ve birbirine karışmaz.
+Açık olan her şey burada. Simülasyon ve gerçek para ayrı sekmelerdedir ve birbirine karışmaz.
 
-- **Simüle sekmesi:** son **Fiyat** ve **Anlık K/Z** ile sinyal botlarının açık pozisyonları ve DCA/Grid botlarının açık döngüleri. Solda sembol, bot ve yön filtreleri; sağda toplamlar, pozisyonların ve döngülerin açık K/Z'si ve beyan edilen bakiyeye göre maruziyet.
+- **Simülasyon sekmesi:** son **Fiyat** ve **Anlık K/Z** ile sinyal botlarının açık pozisyonları ve DCA/Grid botlarının açık döngüleri. Solda sembol, bot ve yön filtreleri; sağda toplamlar, pozisyonların ve döngülerin açık K/Z'si ve beyan edilen bakiyeye göre maruziyet.
 
 **"Anlık K/Z" nedir?** Pozisyon son fiyattan kapansa yazılacak sonuç: ücretler dahil, USDT ve pozisyon sermayesinin %'si olarak; kapanan işlemle aynı hesap. Motor, pozisyon açıkken fiyatı 4 saniyede bir okur; henüz fiyatı okunmamış pozisyonda tahmin değil **Fiyat bekleniyor** yazar. **Stop → hedef** çubuğu fiyatın stop (sol) ile hedef (sağ) arasındaki yerini gösterir; çentik girişi gösterir.
 - **Borsa sekmesi:** anahtarı kasada olan her borsadaki gerçek pozisyonlar.
@@ -335,7 +335,7 @@ Açık olan her şey burada. Simüle (paper) ve gerçek para ayrı sekmelerdedir
 
 **Kapat düğmesi gerçek emir gönderir mi?**
 
-- **Simüle sekmesinde:** hayır. Pozisyon anlık fiyattan kapanmış sayılır. **Tümünü kapat** bütün paper pozisyonları ve DCA/Grid döngülerini kapatır ve onay için CLOSE yazmanızı ister. Gerçek parayla çalışan bir DCA/Grid botu varsa onun Binance pozisyonu da kapatılır; uygulama bunu onay penceresinde ayrıca yazar.
+- **Simülasyon sekmesinde:** hayır. Pozisyon anlık fiyattan kapanmış sayılır. **Tümünü kapat** bütün simülasyon pozisyonlarını ve DCA/Grid döngülerini kapatır ve onay için CLOSE yazmanızı ister. Gerçek parayla çalışan bir DCA/Grid botu varsa onun Binance pozisyonu da kapatılır; uygulama bunu onay penceresinde ayrıca yazar.
 - **Borsa sekmesinde:** evet. Her **Kapat** ve **Tümünü kapat**, pozisyonun bulunduğu borsaya gerçek bir azaltma (reduce-only) piyasa emri gönderir ve CLOSE yazmanızı ister. Binance, Bybit ve OKX'te çalışır. Bu, uygulamanın her sürümünde yapabildiği tek elle yazma işlemidir.
 
 **Kapatma ne zaman tamamlanmış sayılır?** Yalnızca hesap o sembolde sıfır pozisyon gösterdiğinde. Bir kalıntı kalırsa uygulama bir azaltma emri daha gönderir; hesap sıfırlanana kadar stop iptal edilmez ve hiçbir şey kayda geçmez. **Tümünü kapat**, biri başarısız olsa bile her pozisyonu dener ve sonunda hâlâ açık kalanları listeler.
@@ -359,9 +359,9 @@ Kapanan işlemler ve performans istatistikleri.
 - **Sağ panel:** **Seçim** (gösterilen işlemler, dönem, long / short, kazanç / kayıp) ve **Seriler** (şu anki seri, en uzun kazanç ve kayıp serileri).
 - Başlıktaki **CSV dışa aktar** işlemleri, **Atlanan sinyalleri dışa aktar** atlama kaydını dosyaya yazar.
 
-**Rakamlar filtrelere uyar mı?** Evet. Sayfadaki her rakam, toplamlar, grafik ve kırılımlar dahil, filtrelerden geçen işlemler üzerinden, uygulamanın başka yerlerindeki toplamlarla aynı kurallarla hesaplanır. Üstteki toplamlar sinyal işlemlerini kapsar; DCA/Grid döngülerinin toplamları kendi bölümündedir, Dashboard ikisini toplar.
+**Rakamlar filtrelere uyar mı?** Evet. Sayfadaki her rakam, toplamlar, grafik ve kırılımlar dahil, filtrelerden geçen işlemler üzerinden, uygulamanın başka yerlerindeki toplamlarla aynı kurallarla hesaplanır. Üstteki toplamlar sinyal işlemlerini kapsar; DCA/Grid döngülerinin toplamları kendi bölümündedir, Pano ikisini toplar.
 
-**Gerçek ve simüle işlemler birlikte mi sayılıyor?** Hayır. Gerçek para destekli sürümde **İstatistik kapsamı** ile **Simülasyon** ya da **Gerçek para** seçilir; ikisi asla toplanmaz.
+**Gerçek ve simülasyon işlemleri birlikte mi sayılıyor?** Hayır. Gerçek para destekli sürümde **İstatistik kapsamı** ile **Simülasyon** ya da **Gerçek para** seçilir; ikisi asla toplanmaz.
 
 ## Risk ve güvenlik {#risk}
 
@@ -371,9 +371,9 @@ Bütün sınırlar ve güvenlik kontrolleri tek yerde. Değişiklikler hemen uyg
 
 - **Şu anki risk** (üstte): **Bütün stoplar vurursa** (açık pozisyonların mevcut stoplarında yazılacak sonuç, ücretler dahil), **Günlük stopa kalan** (bütün stoplar vurursa tetiklenip tetiklenmeyeceğiyle), **Kullanılan sermaye**, **Kullanılan DCA/Grid bütçesi** ve **Kesiciye kalan**.
 - **Açık risk**: her açık pozisyon mevcut stopuyla (breakeven devreye girdiyse **Girişte**), fiyatın stopa uzaklığı ve orada yazılacak sonuçla. En büyük kayıp önce.
-- Ardından risk seviyesi ve limitleri, günlük stop, BTC rejim kapısı, LIVE kapısı, acil durum kontrolleri ile DCA/Grid bütçesi ve kesici. Sağda: bota göre maruziyet ve telefondan uzaktan kontrol.
+- Ardından risk seviyesi ve limitleri, günlük stop, BTC rejim kapısı, Canlı kapısı, acil durum kontrolleri ile DCA/Grid bütçesi ve kesici. Sağda: bota göre maruziyet ve telefondan uzaktan kontrol.
 
-**"Günlük stopa kalan" nasıl hesaplanır?** Günlük stop, bugün gerçekleşen NET sonuç limite (simüle bakiyenin bir payı) inince tetiklenir. Bugün yapılan kâr alanı büyütür, zarar tüketir. Gerçekleşmemiş zararlar pozisyon kapanana kadar sayılmaz.
+**"Günlük stopa kalan" nasıl hesaplanır?** Günlük stop, bugün gerçekleşen NET sonuç limite (simülasyon bakiyesinin bir payı) inince tetiklenir. Bugün yapılan kâr alanı büyütür, zarar tüketir. Gerçekleşmemiş zararlar pozisyon kapanana kadar sayılmaz.
 
 **Risk seviyeleri neyi değiştirir?**
 
@@ -383,13 +383,13 @@ Bütün sınırlar ve güvenlik kontrolleri tek yerde. Değişiklikler hemen uyg
 | Sakin | 3x | 5 | %4 | %4 | %30 |
 | Dengeli | 5x | 8 | %6 | %6 | %40 |
 | Hırslı | 10x | 12 | %10 | %10 | %60 |
-| Aç Gözlü | 20x | 20 | %15 | %15 | %80 |
+| Açgözlü | 20x | 20 | %15 | %15 | %80 |
 
-Yüzdelerin hepsi **Simüle bakiye (USDT)** üzerinden hesaplanır. Aç Gözlü seviyesini seçerken uygulama bir uyarı gösterir ve **Riski anlıyorum** onayı ister. Seviye Pump botunu kilitlemez: Pump her seviyede, o seviyenin sınırları içinde simüle çalışır.
+Yüzdelerin hepsi **Simülasyon bakiyesi (USDT)** üzerinden hesaplanır. Açgözlü seviyesini seçerken uygulama bir uyarı gösterir ve **Riski anlıyorum** onayı ister. Seviye Pump botunu kilitlemez: Pump her seviyede, o seviyenin sınırları içinde simülasyonda çalışır.
 
 **Kendi günlük zarar sınırımı koyabilir miyim?** Evet, ama yalnızca daha sıkı bir sınır. Seviyenin sınırından gevşek bir değer yazarsanız seviyenin sınırı geçerli kalır.
 
-**Canlıya hazırlık kontrolü ne yapar?** Yalnızca gerçek para destekli sürümde görünür. Gerçek paraya geçmeden önce gereken her şeyi tek seferde okur: canlı sürüm, Binance adresi, yalnızca işlem yetkili anahtar, bilgisayar saatinin Binance'ten farkı, Futures bakiyesi, tek yönlü pozisyon modu, hiçbir botun tutmadığı pozisyonlar, günlük stop, BTC rejimi, üyelik, sinyal akışı ve durmuş canlı botlar. Her satır **Tamam**, **Bak** ya da **Engel** olarak işaretlenir; sorunlu satırda düzeltileceği yere giden **Düzelt** bağlantısı vardır. Kontrol yalnızca okur, hiçbir emir göndermez. **Kontrol et** ile yeniden çalıştırırsınız.
+**Canlıya hazırlık kontrolü ne yapar?** Gerçek paraya geçmeden önce gereken her şeyi tek seferde okur: Binance adresi, yalnızca işlem yetkili anahtar, bilgisayar saatinin Binance'ten farkı, Futures bakiyesi, tek yönlü pozisyon modu, hiçbir botun tutmadığı pozisyonlar, günlük stop, BTC rejimi, üyelik, sinyal akışı ve durmuş canlı botlar. Her satır **Tamam**, **Dikkat** ya da **Engel** olarak işaretlenir; sorunlu satırda düzeltileceği yere giden **Düzelt** bağlantısı vardır. Kontrol yalnızca okur, hiçbir emir göndermez. **Kontrol et** ile yeniden çalıştırırsınız.
 
 **BTC rejim kapısı nedir?** Sentinel'in BTC değerlendirmesi. **Normal**: engel yok. **Kırılım**: yeni long girişler bekletilir, short'lar devam eder. **Bilinmiyor**: rejim bilgisi gereken girişler reddedilir.
 
@@ -411,7 +411,7 @@ Bölümler solda, her birinin güncel durumuyla listelenir (dil ve tema, göster
 - **Bildirimler:** zilin hangi **Uygulama içi uyarılar**ı göstereceği; Güvenlik, Botlar ve işlemler, Piyasa ve bağlantı olarak gruplanır. Her satır uyarının ne zaman çıktığını ve şu an kaç tane olduğunu söyler. Birini gizlemek yalnızca bildirimi gizler; botlar yine buna göre davranır.
 - **Cihazlar:** telefondan uzaktan kontrol için eşleştirme, eşlenen telefonun neler yapıp neler yapamayacağı ve eşleştirmenin nasıl korunduğu.
 - **Borsa anahtarları:** API anahtarlarınız, hangi anahtarın ekleneceği, bağlantı testleri, kasa ve parolası.
-- **Hakkında:** sürüm ve derleme, güncellemeler, kurulum ayrıntıları (sistem, WebView2, uç noktalar, veri klasörü) ve destek için **Tanılama bilgisini kopyala**, verilerinizin nereye gittiği, lisans ve kaynak kod, iletişim. **Tanılama bilgisini kopyala** veri klasörü yolunu ve masaüstü kimliğini içermez.
+- **Hakkında:** sürüm ve derleme, güncellemeler, kurulum ayrıntıları (sistem, WebView2, uç noktalar, veri klasörü) ve destek için **Tanılama bilgisini kopyala**, verilerinizin nereye gittiği, lisans ve kaynak kod, iletişim. **Tanılama bilgisini kopyala** veri klasörü yolunu ve masa kimliğini içermez.
 
 ![Borsa anahtarları sekmesi: kayıtlı anahtarlar ve kasa](shot:accounts)
 
@@ -419,7 +419,7 @@ Bölümler solda, her birinin güncel durumuyla listelenir (dil ve tema, göster
 
 **Hangi borsalarda gerçek emir verilebilir?** Şimdilik yalnızca Binance vadeli işlemleri. Binance emirleri Binance test ağında uçtan uca denendi. Bybit ve OKX bu denemeyi kendi test ağlarında henüz geçmedi: onlar için gerçek parayı açma isteği reddedilir. Anahtarları yine de hesap görünümü ve **Borsa** sekmesinden pozisyon kapatmak için çalışır. Bybit ve OKX'te başabaşa taşıma, borsadaki stopu yerinde değiştirir; diğer tüm emir çağrıları gibi bu da iki borsa gerçek paraya açılmadan önce test ağı denemesinde çalıştırılır. Bitget emir borsası değildir: uygulama izinlerini kontrol edemediği için Bitget anahtarları kabul edilmez. Bot kararları her borsada Binance fiyatlarıyla verilir. Durum çubuğundaki "Borsalar" sayısı fiyat verisi okunan borsaları gösterir.
 
-**Kasa nedir, şifremi unutursam ne olur?** Kasa, anahtarlarınızın bu bilgisayardaki şifreli kaydıdır. Şifre kurtarma yoktur: şifreyi unutursanız **Kasayı sıfırla** ile kasa ve içindeki bütün anahtarlar silinir ve anahtarlarınızı yeniden eklersiniz. Gerçek para açık bir pozisyonu tutarken kasa kilitlenemez, sıfırlanamaz ve anahtarlar değiştirilemez.
+**Kasa nedir, parolasını unutursam ne olur?** Kasa, anahtarlarınızın bu bilgisayardaki şifreli kaydıdır. Parola kurtarma yoktur: parolayı unutursanız **Kasayı sıfırla** ile kasa ve içindeki bütün anahtarlar silinir ve anahtarlarınızı yeniden eklersiniz. Gerçek para açık bir pozisyonu tutarken kasa kilitlenemez, sıfırlanamaz ve anahtarlar değiştirilemez.
 
 **Otomatik kilit süresini nasıl değiştiririm?** **Borsa anahtarları** sekmesindeki **Otomatik kilit** alanından: 5 dk, 15 dk, 30 dk, 1 sa, 4 sa, 8 sa, 12 sa, 24 sa, 1 hafta ya da 1 ay. Süre, penceredeki son işleminizden itibaren sayılır. İçinde anahtar olmayan kasa kilitlenmez. Uzun süreler, bilgisayar açık kaldığı sürece anahtarların da açık kalması demektir.
 
@@ -429,7 +429,7 @@ Bölümler solda, her birinin güncel durumuyla listelenir (dil ve tema, göster
 
 ![Hakkında sekmesi: sürüm ve güncellemeler](shot:settings-about)
 
-**Güncellemeler nasıl gelir?** Uygulama açıldıktan kısa süre sonra ve 6 saatte bir güncelleme denetler. Yeni sürüm varsa **Kur ve yeniden başlat** ile kurulur. Her yeniden başlatmadan sonra pozisyonlar ve döngüler geri yüklenir; çalışan paper botlar başlatma kontrollerinden yeniden geçerlerse kendiliğinden devam eder. Ayrıntılar [DCA botları](#/faq?s=dca-bots) ve [Sinyal botları](#/faq?s=signal-bots) bölümlerinde. Gerçek paradaki bir bot durmuş gelir ve sizi bekler. Her güncelleme kurulmadan önce uygulamanın içindeki imza anahtarıyla doğrulanır. Gerçek para açıkken güncelleme kurulmaz.
+**Güncellemeler nasıl gelir?** Uygulama açıldıktan kısa süre sonra ve 6 saatte bir güncelleme denetler. Yeni sürüm varsa **Kur ve yeniden başlat** ile kurulur. Her yeniden başlatmadan sonra pozisyonlar ve döngüler geri yüklenir; simülasyonda çalışan botlar başlatma kontrollerinden yeniden geçerlerse kendiliğinden devam eder. Ayrıntılar [DCA botları](#/faq?s=dca-bots) ve [Sinyal botları](#/faq?s=signal-bots) bölümlerinde. Gerçek paradaki bir bot durmuş gelir ve sizi bekler. Her güncelleme kurulmadan önce uygulamanın içindeki imza anahtarıyla doğrulanır. Gerçek para açıkken güncelleme kurulmaz.
 
 ## Hesap {#account}
 

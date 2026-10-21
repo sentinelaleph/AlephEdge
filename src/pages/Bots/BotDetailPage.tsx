@@ -23,6 +23,7 @@ import { kindForBotId, signalBotRows } from "./botRows";
 import { BotStateChip } from "./BotsTable";
 import { totalOf, useSignalBotMoney } from "./botMoney";
 import { SignalBotForm } from "./signal/SignalBotForm";
+import { useSignalLive } from "./signal/useSignalLive";
 import { StrategyBotDetail } from "./strategy/StrategyBotDetail";
 import "./bots.css";
 
@@ -85,6 +86,8 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
   const signalMoney = useSignalBotMoney();
   const tab: Tab = (TABS as readonly string[]).includes(tabParam ?? "") ? (tabParam as Tab) : "overview";
   const kind = kindForBotId(botId);
+  // Called before the early returns (hooks keep their order); unused without a kind.
+  const signalLive = useSignalLive(kind ?? "futures");
   const fromAll = from === "/bots";
   const parent = kind
     ? fromAll
@@ -142,11 +145,9 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
           { label: t("table.market"), value: t(`filters.market.${row.market}`) },
           { label: t("table.exchange"), value: row.exchangeId ? exchangeName(row.exchangeId, catalog.exchanges) : NO_VALUE },
           { label: t("table.pairs"), value: row.config ? (row.symbols.length ? row.symbols.join(", ") : t("botsList.allPairs")) : NO_VALUE },
-          ...(row.live
-            ? [{ label: t("table.mode"), value: "LIVE", tone: "danger" as const }]
-            : s.liveTradingEnabled
-              ? [{ label: t("table.mode"), value: t("states.paper") }]
-              : []),
+          row.live
+            ? { label: t("table.mode"), value: row.armed ? t("states.live") : `${t("states.live")} · ${t("liveMode.header.needsArm")}`, tone: "danger" as const }
+            : { label: t("table.mode"), value: t("states.paper") },
           { label: t("table.leverage"), value: row.config ? `${row.config.leverage}x` : NO_VALUE },
           { label: t("table.capital"), value: row.capital !== null ? formatUsdt(row.capital, locale) : NO_VALUE },
           { label: t("table.maxPositions"), value: row.maxPositions ?? NO_VALUE },
@@ -278,7 +279,7 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
                 }
               />
             </KpiGrid>
-            <PositionsTable positions={positions} onClose={desk.closePosition} />
+            <PositionsTable positions={positions} emptyKey="positions.noOpen" onClose={desk.closePosition} />
           </>
         ) : tab === "deals" ? (
           <>
@@ -327,18 +328,7 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
               maxCapitalQuote={risk.state?.maxCapitalQuote ?? null}
               levelMaxPositions={risk.state?.limits.maxConcurrentPositions ?? null}
               exchanges={catalog.exchanges}
-              live={
-                kind === "futures" && s.liveTradingEnabled
-                  ? {
-                      binanceIsProduction: s.binanceIsProduction,
-                      onSetLive: (enabled, confirmation) => desk.setLive("futures", enabled, confirmation),
-                      pilotLeft: desk.status.pilotLeft ?? 0,
-                      onEndPilot: () => desk.endPilot("futures"),
-                      liveVenues: s.liveVenues,
-                      venueSandbox: s.venueSandbox,
-                    }
-                  : undefined
-              }
+              live={signalLive.control}
               onStart={(c) => void desk.configureAndStart(c)}
               onStop={() => void desk.stop(kind)}
             />
@@ -358,6 +348,7 @@ function SignalBotDetailPage({ botId }: { botId: string }) {
           </>
         )}
       </Tabs>
+      {signalLive.dialog}
     </PageShell>
   );
 }

@@ -19,11 +19,3 @@ export function freeStrategyBudget(r: StrategyRiskView | null): number | null {
   if (!r) return null;
   return Math.max(0, (r.balance * r.budgetCapPct) / 100 - r.reservedBudget);
 }
-
-/** What the header's mode chip says: a paper-only build, a live build with nothing live, or bots on real money. */
-export type ScopeState = { kind: "paperBuild" } | { kind: "liveAvailable" } | { kind: "live"; bots: number };
-
-export function scopeState(liveBuild: boolean, liveBots: number): ScopeState {
-  if (!liveBuild) return { kind: "paperBuild" };
-  return liveBots > 0 ? { kind: "live", bots: liveBots } : { kind: "liveAvailable" };
-}

@@ -55,21 +55,29 @@ pub async fn app_check_update(app: AppHandle) -> Result<UpdateCheck, String> {
     check(&app).await
 }
 
+/// Why an install may not run (pure): the typed word, and the TESTNET
+/// identity, which never installs the public feed's build.
+///
+/// No real-money check: since 0.3.19 the feed ships the one build every
+/// install runs (`LIVE_TRADING_ENABLED` is always on, lib.rs), so an update
+/// can no longer put a paper build over a Live install. Installing restarts
+/// the app like any restart: Live bots come back stopped until their typed
+/// LIVE, real positions stay under their exchange stops and are managed
+/// again on the next start.
+pub fn install_refusal(identifier: &str, confirmation: &str) -> Option<String> {
+    if confirmation.trim() != UPDATE_CONFIRMATION {
+        return Some(format!("updateConfirmRequired|{UPDATE_CONFIRMATION}"));
+    }
+    if updates_off(identifier) {
+        return Some("updateOffTestnet".to_string());
+    }
+    None
+}
+
 #[tauri::command]
 pub async fn app_install_update(app: AppHandle, confirmation: String) -> Result<(), String> {
-    if confirmation.trim() != UPDATE_CONFIRMATION {
-        return Err(format!("updateConfirmRequired|{UPDATE_CONFIRMATION}"));
-    }
-    if updates_off(&app.config().identifier) {
-        return Err("updateOffTestnet".to_string());
-    }
-    // The public feed ships the default (paper) build. Installing it over a
-    // live build with real money in play would leave real positions with no
-    // engine managing them. Close them and switch live off first.
-    {
-        if crate::bot::strategy_live::live_exposure(&app) {
-            return Err("updateBlockedLive".to_string());
-        }
+    if let Some(refusal) = install_refusal(&app.config().identifier, &confirmation) {
+        return Err(refusal);
     }
     install(&app).await
 }

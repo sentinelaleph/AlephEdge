@@ -7,11 +7,13 @@ interface FieldShellProps {
   htmlFor?: string;
   hint?: ReactNode;
   error?: string | null;
+  /** A control placed after the error text (e.g. a fix in one click). */
+  errorAction?: ReactNode;
   children: ReactNode;
 }
 
 /** Label, control, then one hint or error line. */
-export function FieldShell({ label, htmlFor, hint, error, children }: FieldShellProps) {
+export function FieldShell({ label, htmlFor, hint, error, errorAction, children }: FieldShellProps) {
   return (
     <div className="ae-sfield" data-invalid={error ? true : undefined}>
       <label className="ae-field__label" htmlFor={htmlFor}>
@@ -21,6 +23,7 @@ export function FieldShell({ label, htmlFor, hint, error, children }: FieldShell
       {error ? (
         <p className="ae-sfield__error" role="alert">
           {error}
+          {errorAction}
         </p>
       ) : hint ? (
         <p className="ae-field__hint">{hint}</p>
@@ -47,13 +50,18 @@ interface NumFieldProps {
   hint?: ReactNode;
   error?: string | null;
   invalidText: string;
+  /** Shown instead of `invalidText` when the field is empty. */
+  emptyText?: string;
+  placeholder?: string;
+  /** See FieldShell. */
+  errorAction?: ReactNode;
 }
 
 /**
  * A number input that keeps what the user types (so "1." or "" can exist
  * mid-edit) and only reports parsed, finite values upward.
  */
-export function NumField({ label, value, onChange, onInvalid, unit, integer, wireMax, step, disabled, hint, error, invalidText }: NumFieldProps) {
+export function NumField({ label, value, onChange, onInvalid, unit, integer, wireMax, step, disabled, hint, error, invalidText, emptyText, placeholder, errorAction }: NumFieldProps) {
   const id = useId();
   const [text, setText] = useState(() => formatDecimalInput(value));
   const [bad, setBad] = useState(false);
@@ -84,7 +92,7 @@ export function NumField({ label, value, onChange, onInvalid, unit, integer, wir
   };
 
   return (
-    <FieldShell label={label} htmlFor={id} hint={hint} error={bad ? invalidText : error}>
+    <FieldShell label={label} htmlFor={id} hint={hint} error={bad ? (emptyText && text.trim() === "" ? emptyText : invalidText) : error} errorAction={errorAction}>
       <span className="ae-sfield__input">
         <input
           id={id}
@@ -92,6 +100,7 @@ export function NumField({ label, value, onChange, onInvalid, unit, integer, wir
           inputMode="decimal"
           value={text}
           step={step}
+          placeholder={placeholder}
           disabled={disabled}
           aria-invalid={bad || !!error || undefined}
           onChange={(e) => change(e.target.value)}

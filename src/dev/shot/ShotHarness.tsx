@@ -79,7 +79,7 @@ export function isShotName(v: string | null): v is ShotName {
 /** The sample-data label in the shot's language (FAQ screenshots are per language). */
 const SAMPLE_LABEL: Record<string, string> = {
   en: "Sample data · simulated fills · not a trading record",
-  tr: "Örnek veri · simüle dolumlar · işlem kaydı değil",
+  tr: "Örnek veri · simülasyon dolumları · işlem kaydı değil",
 };
 
 setBrowserAppInfo(SAMPLE_APP_INFO);

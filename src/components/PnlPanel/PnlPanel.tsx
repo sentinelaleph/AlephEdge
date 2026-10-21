@@ -10,6 +10,8 @@ import { Section } from "@/components/ui/Section/Section";
 import { SegmentedControl } from "@/components/ui/SegmentedControl/SegmentedControl";
 import { Tooltip } from "@/components/ui/Tooltip/Tooltip";
 import { isLiveTrade, type TradeRecord } from "@/lib/ipc/trades/trades";
+import { useDeskContext } from "@/app/DeskProvider";
+import { ordersOnTestnet, scopeLabelKey } from "@/lib/liveMode";
 import type { TradeStats } from "@/lib/tradeStats";
 import { localeForLanguage } from "@/i18n";
 import {
@@ -67,6 +69,8 @@ interface PnlPanelProps {
 export function PnlPanel({ pnl, trades, stats, children }: PnlPanelProps) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
+  const { desk } = useDeskContext();
+  const testnet = ordersOnTestnet(desk.status, desk.loaded);
   const s = stats;
   const costParams = {
     fees: formatNumber(ROUND_TRIP_FEE_FRAC * 100, locale, { minimumFractionDigits: 2 }),
@@ -202,7 +206,7 @@ export function PnlPanel({ pnl, trades, stats, children }: PnlPanelProps) {
             onChange={pnl.setScope}
             options={SCOPES.map((sc) => ({
               value: sc,
-              label: t(`pnl.scope.${sc}`),
+              label: t(scopeLabelKey(sc, testnet)),
               indicator: sc === "real" ? "var(--mode-live)" : undefined,
             }))}
           />

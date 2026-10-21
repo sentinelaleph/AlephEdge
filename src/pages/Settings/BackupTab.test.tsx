@@ -83,8 +83,8 @@ describe("BackupTab", () => {
     const el = await mount();
     expect(el.textContent).toContain("What an update keeps");
     expect(el.textContent).toContain("If the backup fails, the update does not install.");
-    expect(el.textContent).toContain("real money needs LIVE typed again");
-    expect(el.textContent).toContain("A bot on real money comes back stopped; its open cycle stays managed.");
+    expect(el.textContent).toContain("needs LIVE typed again");
+    expect(el.textContent).toContain("A Live bot comes back stopped; its open cycle stays managed.");
   });
 
   it("refuses a file that is not a settings file", async () => {
@@ -115,8 +115,8 @@ describe("BackupTab", () => {
     await pick(el, FILE);
     expect(el.textContent).toContain("2 of 3 applied");
     expect(el.textContent).toContain("Futures signal bot");
-    expect(el.textContent).toContain("Settings replaced, simulated");
-    expect(el.textContent).toContain("Added, stopped, simulated");
+    expect(el.textContent).toContain("Settings replaced, Paper");
+    expect(el.textContent).toContain("Added, stopped, Paper");
     expect(el.textContent).toContain(`Refused: ${i18n.t("strategy.errors.maxBots")}`);
   });
 

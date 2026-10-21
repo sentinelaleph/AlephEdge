@@ -198,7 +198,8 @@
     "kind": {
       "futures": "Futures",
       "spot": "Spot",
-      "pump": "Pump"
+      "pump": "Pump",
+      "tradingview": "TradingView"
     },
     "capital": "Vốn mỗi vị thế (USDT)",
     "maxPositions": "Vị thế đồng thời tối đa",
@@ -243,7 +244,7 @@
       "marketHeld": "Đã có vị thế ở mã và khung thời gian này · sẽ thử lại",
       "invalidatedHeld": "Sentinel vô hiệu tín hiệu đang giữ · giữ nguyên vị thế",
       "vetoClosed": "{{count}} vị thế đã đóng do Sentinel phủ quyết: {{detail}}",
-      "superseded": "Đã thay thế · bằng tín hiệu được tạo lại",
+      "superseded": "Được thay bằng tín hiệu tạo lại",
       "signalResolved": "Tín hiệu đã kết thúc (mục tiêu hoặc stop) · quá muộn để vào",
       "signalStatusUnknown": "Chưa xác nhận trạng thái tín hiệu · bot thật không vào lệnh mù",
       "signalParseError": "Không thể đọc tín hiệu ({{detail}})",
@@ -289,7 +290,14 @@
       "settledPositionDropped": "Đã đóng trong Lịch sử · dòng mở còn sót đã được xóa khi khởi động",
       "belowExchangeMinimum": "Lệnh sẽ là {{detail}} USDT, dưới mức tối thiểu 5 USDT của sàn",
       "manualOpened": "Mở thủ công từ Execute · mô phỏng",
-      "userTradeOpened": "Đã mở lệnh mới · mức của bạn · mô phỏng"
+      "userTradeOpened": "Đã mở lệnh mới · mức của bạn · mô phỏng",
+      "liveDisarmedStopped": "Bot thật đã dừng và hủy kích hoạt: quy mô thay đổi. Khởi động lại bằng LIVE",
+      "liveBotMapped": "Giữ là bot thật: bot đã giao dịch tiền thật trong bản LIVE. Đang dừng chờ LIVE",
+      "liveRowOnPaperBot": "Dòng vị thế thật trên bot giấy bị giữ ngoài sổ",
+      "telegramSettingsUnreadable": "Không đọc được cài đặt Telegram: đã giữ bản sao, Telegram tắt cho đến khi thiết lập lại",
+      "tvAlertOpened": "Mở theo cảnh báo TradingView",
+      "tvLateFillAdopted": "Cảnh báo TradingView: tìm thấy lệnh khớp muộn và đã bảo vệ",
+      "liveLevelsAfterFill": "Giá khớp làm các mức của cảnh báo không dùng được · đã đóng vị thế"
     },
     "exchange": "Sàn giao dịch",
     "signalFilter": "Bộ lọc tín hiệu",
@@ -333,7 +341,7 @@
           "body": "Ngắt lỗ ngày dừng mọi bot · đòn bẩy giới hạn theo mức rủi ro · từ chối vào khi giá đã vượt mục tiêu hoặc stop"
         },
         "localFirst": {
-          "title": "Chìa khóa của bạn, máy của bạn",
+          "title": "Khóa nằm trên máy của bạn",
           "body": "Khóa trong kho mã hóa cục bộ · không lưu ký · lệnh thật tắt mặc định · stop-loss thật nằm trên sàn"
         }
       }
@@ -403,21 +411,10 @@
       "hasSignal": "tín hiệu"
     },
     "live": {
-      "title": "Tiền thật",
-      "stateSimulated": "Mô phỏng",
-      "switchOn": "Chuyển sang tiền thật",
-      "switchOff": "Chuyển sang mô phỏng",
-      "saveFirst": "Chạy bot một lần để lưu cài đặt trước khi chuyển sang tiền thật.",
-      "confirmTitle": "Giao dịch tiền thật với bot này",
+      "switchOff": "Chuyển sang giấy",
       "targetProduction": "Lệnh được gửi tới Binance production, trên tài khoản thật của bạn.",
       "targetTestnet": "Lệnh được gửi tới Binance testnet, không phải production.",
-      "terms": "Cài đặt đã lưu: {{capital}} USDT mỗi vị thế, tối đa {{positions}} vị thế, giới hạn đòn bẩy {{leverage}}x.",
-      "restartNote": "Tiền thật sẽ tắt lại khi ứng dụng khởi động lại.",
-      "typePrompt": "Nhập {{word}} để xác nhận",
-      "confirm": "Xác nhận tiền thật",
-      "cancel": "Hủy",
       "failed": "Không đổi được cài đặt tiền thật.",
-      "sizingTurnedOff": "LIVE đã tắt vì vốn, đòn bẩy hoặc giới hạn vị thế thay đổi. Xác nhận lại kích thước mới bằng LIVE.",
       "pilot": "Thí điểm: còn {{count}} lần vào lệnh thật, mỗi lần tối đa {{cap}} USDT.",
       "endPilot": "Kết thúc thí điểm",
       "targetVenue": "Lệnh được gửi tới {{exchange}}, trên tài khoản thật của bạn.",
@@ -496,8 +493,9 @@
     "commission": "phí {{amount}} USDT",
     "scope": {
       "label": "Phạm vi thống kê",
-      "simulated": "Mô phỏng",
-      "real": "Tiền thật"
+      "simulated": "Giấy",
+      "real": "Tiền thật",
+      "realTestnet": "Testnet"
     },
     "col": {
       "ledger": "Sổ cái %"
@@ -563,8 +561,7 @@
       "botRunningHint": "Khởi động một bot đã cấu hình",
       "firstPreset": "Bot đầu tiên được đề xuất: {{name}} · đã qua kiểm tra"
     },
-    "liveLockedNote": "Giao dịch thật: khóa · Chỉ mô phỏng",
-    "liveAvailableNote": "Giao dịch thật: có sẵn · tắt cho đến khi bật theo từng bot"
+    "liveAvailableNote": "Giao dịch thật: theo từng bot, tắt cho đến khi bạn chọn Thật"
   },
   "nav": {
     "label": "Điều hướng chính",
@@ -615,18 +612,9 @@
     "more": "Thêm",
     "guide": "Hướng dẫn",
     "faq": "Câu hỏi thường gặp",
-    "scope": {
-      "paperBuild": "Chỉ mô phỏng",
-      "liveAvailable": "Mô phỏng · Live tắt",
-      "live": "LIVE · {{n}}"
-    },
-    "scopeTooltip": {
-      "paperBuild": "Bản này chỉ giao dịch mô phỏng: khớp lệnh mô phỏng, không lệnh thật. Nhấn để xem tiền thật hoạt động thế nào.",
-      "liveAvailable": "Bản này có thể giao dịch tiền thật trên Futures của {{venues}}. Hiện không bot nào làm vậy: tất cả ở mô phỏng. Tiền thật được bật theo từng bot (gõ LIVE). Nhấn để xem chi tiết.",
-      "live": "{{n}} bot giao dịch bằng tiền thật. LIVE được bật theo từng bot. Nhấn để xem chi tiết."
-    },
     "beforeYouTrade": "Trước khi giao dịch",
-    "assistant": "Trợ lý"
+    "assistant": "Trợ lý",
+    "tvBot": "Bot TradingView"
   },
   "page": {
     "botNew": "Bot mới",
@@ -635,10 +623,12 @@
     "botDetail": "Bot",
     "presetDetail": "Cấu hình mẫu",
     "backtestReport": "Báo cáo backtest",
-    "notFound": "Không tìm thấy trang"
+    "notFound": "Không tìm thấy trang",
+    "tvBot": "Bot TradingView"
   },
   "states": {
     "paper": "Mô phỏng",
+    "live": "Thật",
     "clearFilters": "Xóa bộ lọc",
     "asOf": "Lúc",
     "cancel": "Hủy",
@@ -713,7 +703,8 @@
     "type": {
       "signal": "Tín hiệu",
       "dca": "DCA",
-      "grid": "Grid"
+      "grid": "Grid",
+      "tradingview": "TradingView"
     },
     "selectAll": "Chọn tất cả bot",
     "selectRow": "Chọn {{name}}",
@@ -721,7 +712,9 @@
     "blocked": {
       "killSwitch": "Từ chối khởi động: dừng ngày đã kích hoạt. Có thể khởi động lại sau 00:00 UTC.",
       "notConfigured": "Cần cài đặt đã lưu: mở bot và lưu cài đặt.",
-      "capitalAboveCap": "Vốn mỗi vị thế vượt trần của mức rủi ro: hãy giảm trong cài đặt của bot."
+      "capitalAboveCap": "Vốn mỗi vị thế vượt trần của mức rủi ro: hãy giảm trong cài đặt của bot.",
+      "tradingBlocked": "Từ chối khởi động: không đọc được cài đặt rủi ro hoặc dữ liệu cục bộ.",
+      "liveArm": "Bot thật: khởi động từ cài đặt của nó, bằng LIVE."
     },
     "totals": {
       "bots": "Bot",
@@ -753,35 +746,37 @@
     "type": {
       "signal": "Bot tín hiệu (Sentinel)",
       "dca": "Bot DCA",
-      "grid": "Bot grid"
+      "grid": "Bot grid",
+      "tradingview": "Bot TradingView"
     },
     "suitsLabel": "Phù hợp",
     "suits": {
       "signal": "Theo tín hiệu",
       "trend": "Xu hướng",
-      "range": "Đi ngang"
+      "range": "Đi ngang",
+      "tradingview": "Cảnh báo của riêng bạn"
     },
     "mode": {
       "title": "Mô phỏng và tiền thật",
-      "liveBuildLine": "Mặc định là mô phỏng; tiền thật được bật theo từng bot, chỉ Futures, sau các kiểm tra live",
+      "liveBuildLine": "Mặc định là giấy; chế độ thật chọn theo từng bot, chỉ Futures, bằng cách gõ LIVE",
       "paperHead": "Mô phỏng: mọi bot mới bắt đầu ở đây",
       "paperBody": "Khớp lệnh mô phỏng theo giá thật, đã gồm phí. Không lệnh nào tới sàn; không thể mất gì.",
-      "realHead": "Tiền thật: theo từng bot, sau khi tạo",
-      "realBody": "Chỉ trên Futures USDT-M của {{venues}}: bot tín hiệu Futures, và bot DCA hoặc Grid đặt ở Futures trên sàn đó. Spot vẫn ở mô phỏng.",
+      "realHead": "Thật: chọn khi tạo bot",
+      "realBody": "Chỉ trên Futures USDT-M của {{venues}}: bot tín hiệu Futures, bot TradingView, và bot DCA hoặc Grid đặt ở Futures trên sàn đó. Spot vẫn ở mô phỏng.",
       "step1": "Một khóa có quyền Futures và Trade trong két:",
       "step2": "Kiểm tra sẵn sàng live đạt:",
-      "step3": "Trên bot, chuyển sang tiền thật và gõ LIVE.",
+      "step3": "Ở màn hình tạo bot, chọn Thật, kiểm tra số tiền rủi ro và gõ LIVE.",
       "step4": "Thử nghiệm: 3 lần vào lệnh thật đầu tiên của bot tín hiệu giới hạn 50 USDT; 3 chu kỳ đầu của bot DCA hoặc Grid khoảng 100 USDT.",
       "preflight": "Sẵn sàng live",
       "notYet": "{{venues}}: tiền thật vẫn tắt cho đến khi chạy thử trên testnet đạt.",
-      "guide": "Tiền thật hoạt động thế nào",
-      "paperOnly": "Mô phỏng: khớp lệnh mô phỏng theo giá trực tiếp, đã tính phí"
+      "guide": "Tiền thật hoạt động thế nào"
     },
     "presetsLink": "Cấu hình mẫu cho loại này",
     "how": {
       "signal": "Mở vị thế với mỗi tín hiệu Sentinel qua bộ lọc của bạn và thoát tại mục tiêu hoặc stop của tín hiệu.",
       "dca": "Mở bằng lệnh cơ sở, thêm lệnh an toàn khi giá đi ngược, và đóng toàn bộ vị thế tại một mức chốt lời tính trên giá trung bình.",
-      "grid": "Đặt lệnh mua và bán tại các mức cố định trong một khoảng giá và giao dịch các biến động giữa chúng."
+      "grid": "Đặt lệnh mua và bán tại các mức cố định trong một khoảng giá và giao dịch các biến động giữa chúng.",
+      "tradingview": "Chạy cảnh báo TradingView của riêng bạn: cảnh báo chỉ báo hoặc chiến lược đến ứng dụng qua relay của Sentinel và mở, đóng hoặc đảo một vị thế futures USDT-M mỗi cặp, trong giới hạn bạn đặt."
     },
     "yours": "Bot của bạn",
     "yoursNone": "Chưa có",
@@ -796,7 +791,6 @@
     "evidenceInfo": "Mô phỏng lịch sử trên nến cũ có phí, đánh giá một lần trên giai đoạn TEST để riêng. Không phải dự báo; trang Mẫu liệt kê các kiểm tra của từng mẫu.",
     "realMoney": "Tiền thật",
     "realFutures": "Futures trên {{venues}}",
-    "realNotInBuild": "Không có trong bản này",
     "openSignal": "Mở bot tín hiệu",
     "fromTemplate": "Từ mẫu",
     "blank": "Trống",
@@ -816,7 +810,10 @@
     "templatesProven": "{{n}} đã chứng minh",
     "templatesExperimental": "{{n}} thử nghiệm",
     "evidenceProven": "Mẫu đã chứng minh {{name}}, TEST lịch sử: {{mean}} mỗi bot-tháng (KTC 95% {{lo}} đến {{hi}}), bot tệ nhất {{dd}}",
-    "startProven": "Bắt đầu với {{name}}"
+    "startProven": "Bắt đầu với {{name}}",
+    "evidenceTradingview": "Sentinel không kiểm thử: kết quả là của chiến lược của bạn.",
+    "templatesTradingview": "Trình tạo tin nhắn trong Cài đặt, TradingView",
+    "openTradingview": "Mở bot TradingView"
   },
   "botDetail": {
     "notFound": "Không tìm thấy bot",
@@ -1097,7 +1094,7 @@
   "positions": {
     "tabPaper": "Mô phỏng",
     "tabExchange": "Sàn",
-    "noPaper": "Không có vị thế mô phỏng đang mở",
+    "noPaper": "Không có vị thế giấy đang mở",
     "noKey": "Không có khóa sàn trong kho",
     "realZone": "Tài khoản sàn thật: thao tác sẽ đặt lệnh thật",
     "totals": "Tổng",
@@ -1115,8 +1112,8 @@
     "closeFailed": "Đóng không thành công.",
     "closeAllPaper": {
       "button": "Đóng tất cả ({{count}})",
-      "title": "Đóng tất cả vị thế mô phỏng",
-      "body": "Dừng {{bots}} bot tín hiệu, đóng {{positions}} vị thế mô phỏng và {{cycles}} chu kỳ DCA / Grid theo giá thị trường, và tạm dừng {{strategyBots}} bot DCA / Grid.",
+      "title": "Đóng tất cả vị thế giấy",
+      "body": "Dừng {{bots}} bot tín hiệu, đóng {{positions}} vị thế giấy và {{cycles}} chu kỳ DCA / Grid theo giá thị trường, và tạm dừng {{strategyBots}} bot DCA / Grid.",
       "realNote": "Không động đến vị thế thật trên sàn: hãy đóng chúng ở tab Sàn.",
       "confirm": "Đóng tất cả",
       "done": "Đã đóng: {{closed}} · chưa đóng: {{failed}}",
@@ -1167,7 +1164,7 @@
       "open": "Mở lệnh mô phỏng",
       "opened": "Đã mở · {{symbol}} ở {{price}} · mô phỏng",
       "refusal": {
-        "manualTakePaperOnly": "Bot này giao dịch bằng tiền thật · Lệnh mới chỉ mở vị thế mô phỏng",
+        "manualTakePaperOnly": "Đây là bot thật: chọn Thật cho giao dịch thật",
         "botNotConfigured": "Hãy lưu cài đặt của bot này trước",
         "marketHeld": "Bot này đã có vị thế trên cặp này",
         "stopPassed": "Giá đã vượt qua stop",
@@ -1180,8 +1177,21 @@
         "tradeTargetWrongSide": "Chốt lời nằm sai phía so với giá hiện tại",
         "tradeStopWrongSide": "Cắt lỗ nằm sai phía so với giá hiện tại",
         "tradeStopInsideFees": "Stop gần hơn cả hai khoản phí · cần hơn {{detail}}",
-        "tradeTargetInsideFees": "Chốt lời gần hơn cả hai khoản phí · cần hơn {{detail}}"
-      }
+        "tradeTargetInsideFees": "Chốt lời gần hơn cả hai khoản phí · cần hơn {{detail}}",
+        "tradeBotIsPaper": "Bot Futures là bot giấy: hãy chuyển sang thật trước"
+      },
+      "notionalMin": "Tối thiểu {{min}} USDT (mức tối thiểu của Binance)"
+    },
+    "liveBotPositions": "Vị thế của bot trên sàn",
+    "noLiveBot": "Không bot nào giữ vị thế thật",
+    "noOpen": "Không có vị thế đang mở",
+    "protection": {
+      "qty": "Khối lượng",
+      "stop": "Stop trên sàn",
+      "tp": "TP trên sàn",
+      "placed": "Lệnh {{id}}",
+      "none": "Không có",
+      "tip": "Lệnh stop và chốt lời bot đã đặt trên sàn, theo id lệnh, từ bản ghi vị thế của chính bot. Tài khoản được kiểm tra mỗi 60 giây; stop hoặc chốt lời đã khớp sẽ đóng dòng này."
     }
   },
   "history": {
@@ -1296,8 +1306,6 @@
       }
     },
     "live": {
-      "notThisBuild": "Bản này không thể đặt lệnh thật.",
-      "build": "Bản có tính năng giao dịch thật",
       "binanceKey": "Khóa giao dịch trong kho",
       "endpoint": "Điểm đặt lệnh",
       "turnOff": "Tắt LIVE",
@@ -1405,7 +1413,7 @@
       "keys": "Khóa API, kho khóa, kết nối",
       "about": "Phiên bản, cập nhật, dữ liệu của bạn",
       "backup": "Bản sao lưu, tệp cài đặt bot",
-      "tradingview": "Cảnh báo thành lệnh mô phỏng"
+      "tradingview": "Cảnh báo tới bot TradingView"
     },
     "navStatus": {
       "alerts": "Hiển thị {{on}} trên {{total}}",
@@ -1582,12 +1590,10 @@
     },
     "about": {
       "tagline": "Ứng dụng máy tính cho bot tín hiệu Sentinel cùng bot DCA và Grid, trong giới hạn rủi ro bạn đặt.",
-      "paperBuild": "Bản dựng mô phỏng",
-      "liveBuild": "Bản dựng thật",
+      "liveBuild": "Một bản dựng",
       "testnetBuild": "Testnet",
       "buildNote": {
-        "paper": "Bản dựng này chỉ giao dịch mô phỏng. Các nút Đóng ở thẻ Sàn là lệnh thật duy nhất nó có thể gửi.",
-        "live": "Bản dựng này có thể đặt lệnh thật trên Binance Futures, theo từng bot, sau khi bạn gõ LIVE."
+        "live": "Mọi bot là giấy trừ khi bạn chọn Thật và gõ LIVE. Các nút Đóng ở tab Sàn gửi lệnh thật."
       },
       "notAdvice": "Phần mềm, không phải lời khuyên tài chính.",
       "installTitle": "Chi tiết cài đặt",
@@ -1652,7 +1658,7 @@
       "failed": "Sao lưu thất bại.",
       "fileTitle": "Tệp cài đặt bot",
       "fileHolds": "Cài đặt bot tín hiệu và cài đặt của mọi bot DCA / Grid trong một tệp JSON. Không có khóa API, kho khóa, token Telegram hay lịch sử giao dịch.",
-      "importRule": "Nhập sẽ thay cài đặt bot tín hiệu và thêm mỗi bot DCA / Grid thành một bot mới đang dừng. Mọi thứ được nhập đều chạy mô phỏng; tiền thật không bao giờ được bật.",
+      "importRule": "Nhập sẽ thay cài đặt bot tín hiệu và thêm mỗi bot DCA / Grid thành một bot mới đang dừng. Mọi thứ được nhập đều chạy giấy; chế độ Thật không bao giờ được bật.",
       "export": "Xuất cài đặt",
       "exporting": "Đang xuất…",
       "import": "Nhập cài đặt",
@@ -1663,8 +1669,8 @@
       "importResult": "Kết quả nhập",
       "importSummary": "Đã áp dụng {{ok}} / {{total}}",
       "importEmpty": "Tệp không chứa bot nào.",
-      "created": "Đã thêm, đang dừng, mô phỏng",
-      "replaced": "Đã thay cài đặt, mô phỏng",
+      "created": "Đã thêm, đang dừng, giấy",
+      "replaced": "Đã thay cài đặt, giấy",
       "refused": "Bị từ chối",
       "signalBot": "Bot tín hiệu {{kind}}",
       "unreadableEntry": "Mục không đọc được",
@@ -1673,8 +1679,8 @@
         "keeps": "Bản cập nhật giữ lại bot, cài đặt, lịch sử giao dịch và khóa sàn trên máy tính này.",
         "backup": "Một bản sao lưu được tạo trước mỗi lần cài đặt. Nếu sao lưu thất bại, bản cập nhật không được cài.",
         "liveBlocks": "Bản cập nhật không bắt đầu khi đang dùng tiền thật: hãy đóng các vị thế thật và tắt tiền thật trước.",
-        "signal": "Sau mọi lần khởi động lại, bot tín hiệu quay về chế độ mô phỏng; tiền thật cần gõ lại LIVE. Bot tín hiệu mô phỏng đang chạy sẽ chạy lại nếu qua được các kiểm tra khởi động.",
-        "strategy": "Bot DCA / Grid mô phỏng đang chạy sẽ chạy lại sau khi khởi động lại nếu qua được các kiểm tra khởi động. Bot dùng tiền thật quay lại ở trạng thái dừng; chu kỳ đang mở của nó vẫn được quản lý."
+        "signal": "Bot tín hiệu Thật quay lại ở trạng thái dừng sau mọi lần khởi động lại và cần gõ lại LIVE. Bot tín hiệu giấy đang chạy sẽ chạy lại nếu qua được các kiểm tra khởi động.",
+        "strategy": "Bot DCA / Grid giấy đang chạy sẽ chạy lại sau khi khởi động lại nếu qua được các kiểm tra khởi động. Bot Thật quay lại ở trạng thái dừng; chu kỳ đang mở của nó vẫn được quản lý."
       }
     },
     "tv": {
@@ -1710,9 +1716,9 @@
       "copyFailed": "Sao chép thất bại",
       "alertsTitle": "Cảnh báo",
       "receive": "Nhận cảnh báo",
-      "receiveDesc": "Đọc cảnh báo từ relay mỗi 5 giây và liệt kê bên dưới. Không thực hiện gì.",
-      "execute": "Thực hiện cảnh báo thành lệnh mô phỏng",
-      "executeDesc": "Mua và bán mở một vị thế mô phỏng qua Lệnh mới, với mọi bước kiểm tra của nó. Đóng sẽ đóng lệnh đang mở của chính bạn trên cặp đó. Cảnh báo cũ hơn 120 giây khi được đọc sẽ không được thực hiện.",
+      "receiveDesc": "Đọc cảnh báo từ relay (máy chủ đẩy, hoặc hỏi mỗi vài giây) và liệt kê bên dưới. Không thực thi gì.",
+      "execute": "Thực thi cảnh báo",
+      "executeDesc": "Cảnh báo futures và chiến lược chạy trên bot TradingView (Giấy) với giới hạn và bảo vệ của nó; cảnh báo spot trên sổ giấy của bot Spot. Đóng chỉ đóng vị thế của chính bot TradingView trên cặp đó.",
       "lastRead": "Lần đọc gần nhất",
       "lastError": "Lỗi gần nhất",
       "howTitle": "Thiết lập trong TradingView",
@@ -1726,13 +1732,13 @@
         "close": "Đóng"
       },
       "field": {
-        "action": "action: buy (long), sell (short, chỉ bot Futures), close (đóng lệnh đang mở của chính bạn trên cặp).",
-        "symbol": "symbol: {{ticker}} hoặc một cặp. BINANCE:BTCUSDT.P, BTCUSDT.P, BTCUSDTPERP và btcusdt đều được đọc là BTCUSDT. Chỉ cặp USDT.",
-        "levels": "tp hoặc tp_pct, và sl hoặc sl_pct: đúng một trong mỗi loại cho mua và bán. tp và sl là giá.",
-        "pct": "tp_pct và sl_pct là khoảng cách phần trăm so với giá trực tiếp lúc thực hiện. Long: tp = giá × (1 + tp_pct/100), sl = giá × (1 − sl_pct/100). Short: tp = giá × (1 − tp_pct/100), sl = giá × (1 + sl_pct/100).",
-        "bot": "bot: futures (mặc định) hoặc spot. Spot chỉ long.",
-        "size": "size_usdt: giá trị danh nghĩa tùy chọn bằng USDT. Không có thì dùng cách tính khối lượng của chính bot.",
-        "stale": "Cảnh báo nhận trước khi ứng dụng đọc hơn 120 giây sẽ không được thực hiện. Văn bản thường hoặc JSON khác được liệt kê là không đọc được."
+        "action": "action: buy (long), sell (short, futures), close (đóng vị thế của chính bot TradingView trên cặp).",
+        "symbol": "symbol: {{ticker}} hoặc một cặp. BINANCE:BTCUSDT.P, BTCUSDT.P và BTCUSDTPERP được đọc là futures BTCUSDT; các cặp đổi tên như 1000PEPEUSDT được khớp. Chỉ cặp USDT.",
+        "levels": "tp hoặc tp_pct, và sl hoặc sl_pct: đúng một mỗi loại cho lệnh vào. tp và sl là giá.",
+        "pct": "tp_pct và sl_pct là khoảng cách phần trăm từ giá: với bot Live tính từ giá khớp thật rồi kiểm tra lại tại đó. Long: tp = giá × (1 + tp_pct/100), sl = giá × (1 − sl_pct/100). Short: ngược lại.",
+        "bot": "bot: futures (mặc định, bot TradingView) hoặc spot (bot Spot, giấy, chỉ long). Ký hiệu .P không thể đi sang spot.",
+        "size": "size_usdt: giá trị danh nghĩa USDT tùy chọn, tối đa bằng mức tối đa mỗi cảnh báo của bot. Không có thì dùng mức tối đa đó.",
+        "stale": "Cảnh báo cũ hơn khung hết hạn của bot theo đồng hồ máy chủ không được chạy. Văn bản thường hoặc JSON khác được ghi là không đọc được."
       },
       "resultsTitle": "Cảnh báo gần đây",
       "resultsEmpty": "Chưa đọc cảnh báo nào.",
@@ -1740,18 +1746,119 @@
         "time": "Thời gian",
         "action": "Hành động",
         "symbol": "Cặp",
-        "outcome": "Kết quả"
+        "outcome": "Kết quả",
+        "bot": "Bot",
+        "qty": "Yêu cầu / khớp",
+        "qtyTip": "Khối lượng tính ở giá hiện tại và khối lượng đã khớp (giấy: như nhau).",
+        "fill": "Giá khớp TB",
+        "slippage": "Trượt giá",
+        "slippageTip": "Giá khớp so với giá của cảnh báo; dương là bất lợi cho giao dịch.",
+        "latency": "Độ trễ",
+        "latencyTip": "Từ lúc relay nhận cảnh báo đến khi khớp, theo đồng hồ máy chủ."
       },
       "outcome": {
         "received": "Đã nhận · không thực hiện (Thực hiện đang tắt)",
-        "opened": "Đã mở · mô phỏng",
-        "closed": "Đã đóng · mô phỏng",
-        "tvExpired": "Không thực hiện · cũ hơn 120 giây khi được đọc",
+        "opened": "Đã mở",
+        "closed": "Đã đóng",
+        "tvExpired": "Không thực thi · cũ hơn khung hết hạn của bot (đồng hồ máy chủ)",
         "tvBadMessage": "Không đọc được · không phải JSON theo định dạng cảnh báo",
         "tvBadLevels": "Cho một trong tp / tp_pct và một trong sl / sl_pct, lớn hơn 0",
-        "tvNothingToClose": "Không có gì để đóng · bạn không có lệnh mở trên cặp và bot này",
-        "tvTestOnly": "Chỉ thử · không đặt lệnh"
-      }
+        "tvNothingToClose": "Không có gì để đóng · bot TradingView không giữ vị thế trên cặp này",
+        "tvTestOnly": "Chỉ thử · không đặt lệnh",
+        "flipped": "Đảo chiều · đã đóng rồi mở",
+        "tvExpiredOffline": "Không thực thi · đến khi ứng dụng ngoại tuyến",
+        "tvServerTimeMissing": "Không thực thi · relay không gửi giờ máy chủ",
+        "tvDuplicate": "Trùng lặp · cùng tin nhắn hoặc id trong 5 phút",
+        "tvPriceMoved": "Không thực thi · giá lệch {{detail}} so với giá của cảnh báo",
+        "tvPriceRequired": "Không thực thi · cảnh báo không có giá mà bot yêu cầu",
+        "tvSizeAboveMax": "Khối lượng vượt mức tối đa mỗi cảnh báo của bot ({{detail}} USDT)",
+        "tvPositionsFull": "Giới hạn vị thế của bot đã đầy ({{detail}})",
+        "tvBudgetFull": "Ngân sách của bot đã đầy · còn {{detail}} USDT",
+        "tvDailyOpensFull": "Đã đạt giới hạn lệnh vào mỗi ngày của bot ({{detail}})",
+        "tvSymbolNotAllowed": "Cặp không có trong danh sách cho phép của bot",
+        "tvPassphraseWrong": "Sai hoặc thiếu cụm mật khẩu",
+        "tvBotRequired": "Không có bot TradingView · tạo trong mục Bot",
+        "tvBotStopped": "Bot TradingView đang dừng",
+        "tvSpotPaperOnly": "Cảnh báo spot vẫn chạy giấy: bị từ chối khi bot TradingView đang Live",
+        "tvCloseNotOwn": "Không đóng · cặp này do bot {{detail}} giữ, không phải bot TradingView",
+        "tvSymbolHeldBy": "Không mở · cặp này do bot {{detail}} giữ (một vị thế thật mỗi cặp)",
+        "tvFlipCloseFailed": "Dừng đảo chiều · lệnh đóng chưa xong, không mở gì",
+        "tvFlipOpenRefused": "Đảo chiều: đã đóng, vị thế mới bị từ chối",
+        "livePending": "Chưa rõ kết quả lệnh · đang tra cứu, không bao giờ gửi lại",
+        "tvAlreadyOpen": "Đã mở theo hướng này · một vị thế mỗi cặp",
+        "tvOppositeOpen": "Vị thế ngược chiều đang mở · gửi close trước, hoặc dùng cảnh báo chiến lược",
+        "tvPartialExit": "Không hỗ trợ thoát một phần · một vị thế đầy đủ mỗi cặp",
+        "tvStrategyMismatch": "Chiến lược về trạng thái phẳng ở phía ngược với vị thế của bot",
+        "tvBadPosition": "market_position phải là long, short hoặc flat",
+        "tvPerpOnSpot": "Ký hiệu vĩnh cửu (.P) không thể đi sang bot spot",
+        "liveLevelsAfterFill": "Giá khớp làm các mức của cảnh báo không dùng được · đã đóng vị thế",
+        "tvBelowSymbolMinimum": "Không thực thi · {{symbol}} cần tối thiểu {{min}} USDT mỗi lệnh; cảnh báo này yêu cầu {{size}} USDT (khối lượng tối đa {{max}} USDT)"
+      },
+      "executeDescLive": "Bot TradingView đang Live: khi đã kích hoạt và đang chạy, cảnh báo futures đặt lệnh thật trên Binance. Cảnh báo spot bị từ chối (spot vẫn chạy giấy).",
+      "bot": "Bot TradingView",
+      "botNone": "Chưa có · tạo một bot",
+      "botRunning": "Đang chạy",
+      "botStopped": "Đã dừng",
+      "link": "Kết nối",
+      "linkState": {
+        "off": "Tắt nhận",
+        "online": "Trực tuyến",
+        "offline": "Ngoại tuyến"
+      },
+      "transport": {
+        "stream": "máy chủ đẩy",
+        "poll": "hỏi định kỳ"
+      },
+      "lastSeen": "Máy chủ thấy lần cuối",
+      "lastSeenInfo": "Ghi nhận của relay về lần đọc cuối hoặc luồng đang mở của ứng dụng. Cảnh báo đến khi ứng dụng ngoại tuyến sẽ không được chạy sau đó.",
+      "pendingOrders": "Lệnh đang tra cứu",
+      "notice": "Thông báo Telegram khi ngoại tuyến",
+      "noticeDesc": "Máy chủ gửi tin Telegram khi có cảnh báo đến mà ứng dụng đã ngoại tuyến hơn {{s}} giây.",
+      "noticeNoTelegram": "Liên kết Telegram trong Thông báo để dùng.",
+      "noticeDefault": "Mặc định bật cho bot TradingView Live. Tắt ở đây thì sẽ giữ tắt.",
+      "holderStrategy": "DCA / Grid",
+      "builder": {
+        "title": "Trình tạo tin nhắn",
+        "mode": "Chế độ",
+        "manual": "Thủ công",
+        "strategy": "Chiến lược",
+        "action": "Hành động",
+        "market": "Thị trường",
+        "levels": "Mức",
+        "levelsPct": "Phần trăm",
+        "levelsPrice": "Giá",
+        "tpPct": "Chốt lời %",
+        "slPct": "Cắt lỗ %",
+        "tpPrice": "Giá chốt lời",
+        "slPrice": "Giá cắt lỗ",
+        "size": "Khối lượng (USDT)",
+        "sizeEmpty": "Mức tối đa của bot",
+        "price": "Thêm giá ({{close}})",
+        "alertMessage": "Thêm alert_message của Pine ({{alertMessage}})",
+        "passphrase": "Cụm mật khẩu",
+        "passphraseHint": "Chỉ nằm trong văn bản đã sao chép; ứng dụng không lưu ở đây.",
+        "id": "Id cảnh báo",
+        "idNone": "Không có",
+        "idTime": "Thời điểm cảnh báo",
+        "idCustom": "Tùy chỉnh",
+        "customId": "Văn bản id",
+        "error": {
+          "levels": "Nhập chốt lời và cắt lỗ trên 0",
+          "pct": "Mức phần trăm: trên 0 và dưới 100",
+          "size": "Khối lượng: ít nhất 5 USDT, hoặc để trống",
+          "spotShort": "Bot spot chỉ long: sell cần futures",
+          "customId": "Id: 1 đến 64 ký tự, không có dấu ngoặc kép"
+        },
+        "note": {
+          "manualMap": "Buy mở long, sell mở short (futures), close đóng vị thế của chính bot TradingView trên cặp.",
+          "strategyMap": "Chế độ chiến lược gửi {{action}} và {{position}}: buy + long mở long, sell + short mở short, sell + flat hoặc buy + flat đóng.",
+          "flip": "Đảo chiều (long sang short, short sang long) đóng trước và chỉ mở khi lệnh đóng đã xác nhận.",
+          "priceGuard": "Có giá thì bot từ chối lệnh vào khi giá hiện tại lệch khỏi {{close}} nhiều hơn mức bảo vệ giá.",
+          "idNote": "Một id như {{timenow}} giúp bộ chống trùng bỏ qua lần giao lặp lại của cùng cảnh báo trong 5 phút.",
+          "alertMessage": "Chỉ khi mọi strategy.entry và strategy.exit đặt alert_message là một đối tượng JSON; nếu không tin nhắn sẽ không đọc được."
+        }
+      },
+      "streamFailed": "luồng lỗi: {{reason}}"
     }
   },
   "accountPage": {
@@ -2612,7 +2719,13 @@
       "budgetCapDetail": "Vượt hạn mức ngân sách DCA/Grid: còn trống {{free}} USDT trên {{limit}} USDT. Tăng số dư mô phỏng hoặc mức rủi ro trong Rủi ro & an toàn.",
       "slBeyondLiquidation": "Cắt lỗ nằm tại hoặc vượt giá thanh lý: sẽ không bao giờ kích hoạt. Dùng mức cắt lỗ gần hơn hoặc đòn bẩy thấp hơn.",
       "budgetBelowMinNotionalMin": "Một lệnh sẽ thấp hơn mức tối thiểu 5 USDT. Ngân sách tối thiểu: {{min}} USDT.",
-      "liveVenueNotDryRun": "Tiền thật chưa dùng được trên sàn này: đường lệnh của sàn chưa qua lần chạy thử trên mạng thử nghiệm của sàn. Vị thế ở đó vẫn có thể đóng."
+      "liveVenueNotDryRun": "Tiền thật chưa dùng được trên sàn này: đường lệnh của sàn chưa qua lần chạy thử trên mạng thử nghiệm của sàn. Vị thế ở đó vẫn có thể đóng.",
+      "liveArmRequired": "Bot thật chưa kích hoạt phiên này: hãy gõ LIVE với số tiền rủi ro trước (bảng Tiền thật).",
+      "liveTermsChanged": "Cài đặt đã thay đổi trong lúc xác nhận (ký quỹ hiện là {{detail}} USDT). Hãy xác nhận lại.",
+      "liveTermsRequired": "Hãy xác nhận số tiền rủi ro trước.",
+      "riskConfigUnreadable": "Không đọc được cài đặt rủi ro: hãy lưu ở trang rủi ro.",
+      "storeSchemaNewer": "Dữ liệu cục bộ do một Aleph Edge mới hơn ghi (lược đồ {{detail}}). Hãy cài phiên bản đó; không có gì bị thay đổi.",
+      "botNotLive": "Bot này không phải bot thật."
     },
     "leverageConfirm": {
       "title": "Có thể bị thanh lý, không có dừng",
@@ -2642,8 +2755,6 @@
       "enable": "Chuyển sang tiền thật",
       "disable": "Quay lại mô phỏng",
       "confirmTitle": "Tiền thật cho {{name}}",
-      "confirmBody": "Mỗi lệnh mua và bán bot này mô phỏng được gửi đến Binance Futures dưới dạng lệnh thị trường trên {{symbol}}, ký quỹ cô lập, {{leverage}}x. Một lệnh stop nằm trên sàn tại mức stop của bot. Nếu vị thế trên Binance thay đổi ngoài bot, bot sẽ dừng. Áp dụng phí taker.",
-      "buildOff": "Bản dựng này chỉ mô phỏng.",
       "futuresOnly": "Tiền thật chỉ có cho bot Binance Futures.",
       "goKeys": "Khóa sàn",
       "goSettings": "Cài đặt bot",
@@ -2659,8 +2770,7 @@
       "pilot": "Thí điểm: còn {{count}} chu kỳ ở {{pct}}% kích thước mô phỏng. Kết thúc sẽ áp dụng từ chu kỳ sau.",
       "endPilot": "Kết thúc thí điểm",
       "venue": "Sàn đặt lệnh",
-      "confirmBodyVenue": "Mỗi lệnh mua bán bot mô phỏng được gửi tới hợp đồng tương lai {{exchange}} dưới dạng lệnh thị trường cho {{symbol}}, ký quỹ riêng, {{leverage}}x. Quyết định vẫn dùng giá Binance. Lệnh dừng nằm trên sàn ở mức dừng của bot. Nếu vị thế thay đổi ngoài bot, bot dừng. Áp dụng phí taker.",
-      "confirmBudget": "Ngân sách bot: {{budget}} USDT, đòn bẩy {{leverage}}x."
+      "confirmBodyVenue": "Mỗi lệnh mua bán bot mô phỏng được gửi tới hợp đồng tương lai {{exchange}} dưới dạng lệnh thị trường cho {{symbol}}, ký quỹ riêng, {{leverage}}x. Quyết định vẫn dùng giá Binance. Lệnh dừng nằm trên sàn ở mức dừng của bot. Nếu vị thế thay đổi ngoài bot, bot dừng. Áp dụng phí taker."
     },
     "report": {
       "title": "Khớp lệnh thật và mô phỏng",
@@ -2689,6 +2799,22 @@
       "matched": "Đã khớp",
       "note": "Trượt giá dương là chi phí: mua đắt hơn, bán rẻ hơn. Một lệnh thị trường có thể phản ánh nhiều lần khớp mô phỏng.",
       "empty": "Chưa có khớp lệnh thật."
+    },
+    "budgetFloor": {
+      "min": "Tối thiểu {{min}} USDT · số lệnh: {{orders}}, lệnh nhỏ nhất {{order}} USDT (mức tối thiểu của Binance)",
+      "fill": "Dùng",
+      "fillLabel": "Đặt ngân sách {{min}} USDT",
+      "loading": "Ngân sách tối thiểu: đang tính",
+      "loadingRules": "Ngân sách tối thiểu: đang đọc quy tắc Binance cho {{symbol}}",
+      "failed": "Không có ngân sách tối thiểu: bước kiểm tra không phản hồi",
+      "fixedSmall": "Mỗi lệnh phải từ {{order}} USDT: hãy tăng kích thước lệnh trước",
+      "live": "Thật: tối thiểu {{min}} USDT. Lệnh {{symbol}} nhỏ nhất trên Binance: {{order}} USDT",
+      "liveFixedSmall": "Thật: mỗi lệnh {{symbol}} trên Binance phải từ {{order}} USDT",
+      "liveUnknown": "Chưa rõ mức tối thiểu cho chế độ Thật: không đọc được quy tắc Binance cho {{symbol}}",
+      "empty": "Nhập ngân sách (tối thiểu {{min}} USDT)",
+      "emptyNoMin": "Nhập ngân sách",
+      "minShort": "Tối thiểu {{min}} USDT.",
+      "below": "Cần tối thiểu {{min}} USDT: chia cho {{orders}} lệnh thì lệnh nhỏ nhất dưới {{order}} USDT"
     }
   },
   "errors": {
@@ -2824,7 +2950,7 @@
     "trendUnavailable": "Không có xu hướng: Binance không phản hồi.",
     "liveVenueNotDryRun": "Tiền thật chưa dùng được trên sàn này: đường lệnh của sàn chưa qua lần chạy thử trên mạng thử nghiệm của sàn. Vị thế ở đó vẫn có thể đóng.",
     "botHasLivePositions": "Bot này đang giữ vị thế thật trên {{detail}}. Hãy đóng chúng trước khi đổi sàn.",
-    "liveExchangeLocked": "Hãy chuyển bot này về mô phỏng trước khi đổi sàn: tiền thật đã được xác nhận cho {{detail}}.",
+    "liveExchangeLocked": "Hãy chuyển bot này về giấy trước khi đổi sàn: tiền thật đã được xác nhận cho {{detail}}.",
     "closeAllPartial": "Đóng tất cả chưa đóng được mọi vị thế. Vẫn mở: {{detail}}. Hãy kiểm tra danh sách và đóng lại, hoặc đóng trên sàn.",
     "closeCleanupFailed": "Đã đóng, nhưng không hủy được lệnh dừng lỗ hoặc chốt lời trên {{detail}}. Hãy hủy chúng trên sàn.",
     "botCapitalAboveCap": "Vốn mỗi vị thế vượt trần {{detail}} USDT của mức rủi ro hiện tại. Hãy giảm vốn, hoặc tăng số dư mô phỏng hay mức rủi ro trong Rủi ro & an toàn.",
@@ -2884,7 +3010,29 @@
     "ed25519NoPendingKey": "Không có cặp khóa nào đang chờ. Hãy tạo cặp khóa, đăng ký khóa công khai trên Binance rồi dán khóa API.",
     "viewThresholdSameDirection": "Cùng chiều: nhập từ 50 đến 100%.",
     "viewThresholdSingleCoin": "Một coin: nhập từ 10 đến 100%.",
-    "viewThresholdStress": "Lỗ khi BTC -20%: nhập từ 1 đến 100%."
+    "viewThresholdStress": "Lỗ khi BTC -20%: nhập từ 1 đến 100%.",
+    "liveArmRequired": "Bot thật chưa kích hoạt phiên này: hãy gõ LIVE với số tiền rủi ro trước.",
+    "liveTermsChanged": "Cài đặt đã thay đổi trong lúc xác nhận (ký quỹ hiện là {{detail}} USDT). Hãy xác nhận lại.",
+    "liveTermsRequired": "Hãy xác nhận số tiền rủi ro trước.",
+    "liveHasPaperPositions": "Bot này đang giữ vị thế giấy: hãy đóng chúng trước khi dùng tiền thật.",
+    "tradeBotIsPaper": "Bot Futures là bot giấy: hãy chuyển sang thật trước.",
+    "riskConfigUnreadable": "Không đọc được cài đặt rủi ro: hãy lưu ở trang rủi ro.",
+    "storeSchemaNewer": "Dữ liệu cục bộ do một Aleph Edge mới hơn ghi (lược đồ {{detail}}). Hãy cài phiên bản đó; không có gì bị thay đổi.",
+    "tgSettingsUnreadable": "Không đọc được cài đặt Telegram đã lưu: hãy thiết lập lại Telegram trước.",
+    "botNotLive": "Bot này không phải bot thật.",
+    "tvBotNameInvalid": "Tên bot TradingView: 1 đến 40 ký tự",
+    "tvBudgetInvalid": "Ngân sách phải trên 0 USDT",
+    "tvMaxSizeInvalid": "Khối lượng tối đa mỗi cảnh báo: ít nhất {{detail}} USDT",
+    "tvOpensPerDayRange": "Lệnh vào mỗi ngày: {{detail}}",
+    "tvStaleRange": "Khung hết hạn: {{detail}} giây",
+    "tvPriceGuardRange": "Bảo vệ giá: {{detail}} %, trên 0",
+    "tvSettingsMissing": "Thiếu cài đặt của bot TradingView",
+    "tvPassphraseTooLong": "Cụm mật khẩu quá dài (tối đa {{detail}} ký tự)",
+    "tvOfflineAfterRange": "Độ trễ ngoại tuyến: {{detail}} giây",
+    "tvStreamRead": "Luồng sự kiện TradingView bị ngắt; đang đọc bằng hỏi định kỳ",
+    "tvStreamOversized": "Luồng sự kiện TradingView gửi khung quá lớn",
+    "tvBotRequired": "Không có bot TradingView · tạo trong mục Bot",
+    "tvStreamIdle": "Luồng sự kiện TradingView không gửi gì trong 45 giây; đang đọc bằng hỏi định kỳ"
   },
   "status": {
     "running": "Đang chạy",
@@ -2963,7 +3111,6 @@
       "fail": "Chưa sẵn sàng"
     },
     "checks": {
-      "build": "Bản giao dịch thật",
       "endpoint": "Địa chỉ {{exchange}}",
       "key": "Khóa chỉ giao dịch",
       "clock": "Đồng hồ so với Binance",
@@ -2980,7 +3127,6 @@
       "keySafety": "Giới hạn IP và tuổi của khóa"
     },
     "codes": {
-      "buildOff": "Bản này không giao dịch tiền thật",
       "production": "Production",
       "testnet": "Testnet: lệnh không phải tiền thật",
       "keyNotVerified": "Khóa chưa xác minh là chỉ giao dịch",
@@ -3707,6 +3853,167 @@
       "orUnavailable": "Không kết nối được OpenRouter.",
       "orBadResponse": "OpenRouter gửi câu trả lời ứng dụng không đọc được.",
       "linkOpenFailed": "Không mở được trình duyệt."
+    }
+  },
+  "liveMode": {
+    "label": "Chế độ",
+    "paper": "Giấy",
+    "live": "Thật",
+    "blockersTitle": "Cần cho chế độ thật",
+    "blockers": {
+      "futuresOnly": "Tiền thật: chỉ Futures trên Binance",
+      "tradingBlocked": "Không đọc được cài đặt rủi ro hoặc dữ liệu cục bộ: không bot nào khởi động được",
+      "key": "Một khóa {{exchange}} đã xác minh, chỉ giao dịch, trong kho đã mở khóa",
+      "paperPositions": "Đóng các vị thế giấy của bot này trước: giấy và tiền thật không dùng chung một bot",
+      "stop": "Cắt lỗ, stop-out lưới hoặc dừng theo sụt giảm",
+      "tradeBotPaper": "Bot Futures là bot giấy: hãy chuyển sang thật trong cài đặt của nó trước",
+      "notArmed": "Bot Futures thật chưa được kích hoạt trong phiên này: hãy khởi động nó bằng LIVE trước"
+    },
+    "terms": {
+      "orders": "Lệnh",
+      "margin": "Ký quỹ rủi ro tối đa",
+      "marginInfo": "Ký quỹ riêng lẻ: số tiền lớn nhất bot này có thể có trên sàn cùng lúc, và lớn nhất có thể mất.",
+      "notional": "Quy mô vị thế lớn nhất",
+      "leverage": "Giới hạn đòn bẩy",
+      "positions": "Số vị thế cùng lúc",
+      "pilot": "Thử nghiệm",
+      "pilotValue": "{{count}} lần đầu giới hạn khoảng {{cap}}",
+      "notionalValue": "{{notional}} · ký quỹ {{margin}}",
+      "notionalInfo": "Một vị thế ở khối lượng đầy đủ: khối lượng tối đa mỗi cảnh báo của bot, hoặc vốn của bot ở mức đòn bẩy tối đa. Giai đoạn thử nghiệm giới hạn các lệnh vào đầu tiên thấp hơn."
+    },
+    "header": {
+      "chip": "Bot thật đang chạy: {{count}}",
+      "tooltip": "Các bot thật đang chạy. Mở để dừng tất cả.",
+      "title": "Bot thật",
+      "none": "Không có bot thật. Mọi bot đều là giấy.",
+      "running": "Đang chạy",
+      "needsArm": "Cần LIVE",
+      "stoppedState": "Đã dừng",
+      "positionsStay": "Các vị thế thật đang mở vẫn có lệnh dừng trên sàn. Đóng chúng ở Vị thế, Sàn.",
+      "stopAll": "Dừng tất cả bot thật",
+      "stopAllBody": "Mọi bot thật ngừng mở lệnh và chu kỳ mới và bị hủy kích hoạt: khởi động lại cần LIVE. Các vị thế thật đang mở vẫn được quản lý với lệnh dừng trên sàn.",
+      "stopped": "Đã dừng: {{count}}",
+      "tooltipNone": "Không có bot thật nào đang chạy. Khởi động một bot ở chế độ Thật để đặt lệnh thật."
+    },
+    "signal": {
+      "armed": "Đã kích hoạt phiên này: lệnh thật cho các tín hiệu tiếp theo.",
+      "needsArm": "Bot thật, chưa kích hoạt phiên này (sau khi khởi động lại sẽ ở trạng thái dừng). Khởi động sẽ hiển thị số tiền rủi ro và yêu cầu LIVE.",
+      "chooseLive": "Khởi động sẽ lưu cài đặt, hiển thị số tiền rủi ro và yêu cầu LIVE.",
+      "toPaperTitle": "Chuyển bot này sang giấy",
+      "toPaperBody": "Bot dừng ngay. Các vị thế thật vẫn được quản lý với lệnh dừng trên sàn; bot thành bot giấy khi không còn vị thế nào mở.",
+      "armTitle": "Kích hoạt {{bot}} cho phiên này",
+      "goLiveTitle": "{{bot}}: tiền thật",
+      "goLiveTitleTestnet": "{{bot}}: lệnh testnet",
+      "toPaperHeld": "Vị thế thật đang mở trên bot này ({{count}}):",
+      "heldLine": "{{symbol}} · {{side}} · {{qty}} @ {{entry}}",
+      "closeAndSwitch": "Đóng vị thế và chuyển",
+      "switchLater": "Chuyển sau",
+      "closeAndSwitchNote": "Đóng vị thế và chuyển gửi một lệnh thị trường chỉ giảm cho mỗi vị thế ở trên, chờ sàn xác nhận rồi chuyển bot sang giấy. Chuyển sau dừng bot ngay; bot thành giấy khi các vị thế này đóng. Không chạm đến vị thế của bot khác."
+    },
+    "startLive": "Khởi động với tiền thật",
+    "restartNote": "Sau khi khởi động lại, bot này ở trạng thái dừng và yêu cầu LIVE lần nữa.",
+    "strategy": {
+      "createNote": "Tạo sẽ kiểm tra khóa, sàn, cặp và lệnh tối thiểu, hiển thị số tiền rủi ro và yêu cầu LIVE. Không lưu gì nếu một bước kiểm tra thất bại.",
+      "createTitle": "Bot thật mới: {{name}}",
+      "mirrorNote": "Mỗi lệnh mua bán bot này mô phỏng trên {{symbol}} được gửi thành lệnh thị trường, ký quỹ riêng lẻ. Một lệnh dừng nằm trên sàn. Sau khi khởi động lại, bot ở trạng thái dừng và yêu cầu LIVE lần nữa.",
+      "createLive": "Tạo bot thật",
+      "createStartLive": "Tạo và khởi động thật",
+      "needsArm": "Chưa kích hoạt phiên này: chu kỳ mới chỉ bắt đầu sau LIVE. Vị thế đang mở và lệnh dừng trên sàn vẫn được quản lý.",
+      "arm": "Kích hoạt bằng LIVE",
+      "armTitle": "Kích hoạt {{name}} cho phiên này"
+    },
+    "trade": {
+      "liveNote": "Lệnh thật trên bot Futures thật, có lệnh dừng và chốt lời trên sàn.",
+      "open": "Mở vị thế thật",
+      "confirmTitle": "Vị thế thật: {{side}} {{symbol}}",
+      "note": "Lệnh thị trường theo giá hiện tại: giá khớp có thể khác bản xem trước. Áp dụng giới hạn thử nghiệm."
+    },
+    "blocked": {
+      "head": "Không bot nào khởi động được:"
+    },
+    "riskUnreadable": {
+      "kept": "Không đọc được cài đặt rủi ro nên đang hiển thị mặc định. Tệp không đọc được đã được giữ lại là {{file}}. Không bot nào khởi động cho đến khi bạn lưu cài đặt rủi ro.",
+      "notKept": "Không đọc được cài đặt rủi ro nên đang hiển thị mặc định. Không bot nào khởi động cho đến khi bạn lưu cài đặt rủi ro.",
+      "keep": "Giữ các cài đặt này"
+    },
+    "heldRows": "Các dòng tiền thật bàn không quản lý ({{count}}): hãy đóng chúng trên sàn.",
+    "telegramUnreadable": {
+      "kept": "Không đọc được cài đặt Telegram đã lưu; một bản sao đã được giữ ({{key}}). Không gửi gì cho đến khi bạn thiết lập lại Telegram.",
+      "notKept": "Không đọc được cài đặt Telegram đã lưu. Không gửi gì cho đến khi bạn thiết lập lại Telegram.",
+      "startOver": "Thiết lập lại"
+    },
+    "startTestnet": "Khởi động trên testnet"
+  },
+  "botsTv": {
+    "now": "Hiện tại",
+    "state": "Trạng thái",
+    "notSaved": "Chưa lưu",
+    "marginUsed": "Ký quỹ đang dùng",
+    "pilot": "Lệnh thí điểm còn lại",
+    "passphrase": "Cụm mật khẩu",
+    "passphraseSet": "Đã đặt",
+    "passphraseNone": "Không có",
+    "toSettings": "URL webhook, trình tạo tin nhắn và kết quả cảnh báo",
+    "rulesTitle": "Kiểm tra ở mỗi cảnh báo",
+    "rule1": "Bật thực thi cảnh báo, bot đang chạy, đúng cụm mật khẩu, và cùng tin nhắn hoặc id chưa thấy trong 5 phút qua.",
+    "rule2": "Tuổi cảnh báo theo đồng hồ máy chủ nằm trong khung hết hạn; cảnh báo đến khi ứng dụng ngoại tuyến không bao giờ được chạy.",
+    "rule3": "Cặp nằm trong danh sách cho phép, khối lượng trong mức tối đa, giới hạn vị thế, ngân sách và giới hạn lệnh vào mỗi ngày.",
+    "rule4": "Giá hiện tại trong ngưỡng bảo vệ giá so với giá của cảnh báo; sau đó mức rủi ro, dừng ngày và với Live: kích hoạt, khóa, sàn và thí điểm.",
+    "save": "Lưu",
+    "general": "Chung",
+    "name": "Tên",
+    "exchangeHint": "Tiền thật: chỉ Binance. Bybit và OKX chạy giấy.",
+    "limits": "Giới hạn",
+    "budget": "Ngân sách",
+    "budgetHint": "Ký quỹ tối đa cùng lúc. Ký quỹ mỗi vị thế: {{margin}}.",
+    "maxSize": "Khối lượng tối đa mỗi cảnh báo",
+    "maxSizeHint": "Giá trị danh nghĩa vị thế. Cảnh báo không có size_usdt dùng mức này.",
+    "leverage": "Đòn bẩy tối đa",
+    "leverageHint": "Mức rủi ro cho phép tối đa {{max}}x.",
+    "opensPerDay": "Số lệnh vào tối đa mỗi ngày",
+    "opensHint": "Ngày UTC; một lần đảo chiều tính lệnh mở của nó.",
+    "allowList": "Danh sách cho phép",
+    "allowListHint": "Các cặp bot được giao dịch, phân cách bằng dấu phẩy. Trống: mọi cặp USDT.",
+    "allowListEmpty": "Mọi cặp",
+    "guards": "Bảo vệ",
+    "stale": "Khung hết hạn",
+    "staleHint": "Cảnh báo cũ hơn mức này theo đồng hồ máy chủ không được chạy. 5–120 giây.",
+    "priceGuard": "Bảo vệ giá",
+    "priceGuardHint": "Từ chối lệnh vào khi giá hiện tại lệch khỏi giá của cảnh báo nhiều hơn mức này.",
+    "requirePrice": "Bắt buộc có giá trong cảnh báo",
+    "requirePriceLive": "Khuyến nghị cho Live: không có giá thì bảo vệ giá không chạy được.",
+    "passphraseHint": "Chỉ lưu dạng băm có muối; cụm mật khẩu trong cảnh báo phải khớp.",
+    "passKeep": "Giữ",
+    "passNone": "Không có",
+    "passSet": "Đặt mới",
+    "passClear": "Xóa",
+    "passNew": "Cụm mật khẩu mới",
+    "error": {
+      "name": "Tên: 1 đến 40 ký tự",
+      "exchange": "Chọn một sàn",
+      "budget": "Ngân sách phải trên 0 USDT",
+      "size": "Khối lượng tối đa: ít nhất {{min}} USDT",
+      "positions": "Vị thế: 1 đến 20",
+      "leverage": "Đòn bẩy: 1 đến {{max}}x",
+      "opens": "Lệnh vào mỗi ngày: 1 đến {{max}}",
+      "stale": "Khung hết hạn: {{min}} đến {{max}} giây",
+      "guard": "Bảo vệ giá: trên 0, tối đa {{max}}%",
+      "allowList": "Danh sách cho phép: chỉ cặp USDT, ví dụ BTCUSDT",
+      "passphrase": "Cụm mật khẩu: 1 đến 64 ký tự",
+      "budgetEmpty": "Nhập ngân sách (tối thiểu {{min}} USDT)",
+      "budgetBelow": "Cần tối thiểu {{min}} USDT: một cảnh báo ở kích thước tối đa ({{size}} USDT, {{leverage}}x) giữ chừng đó ký quỹ",
+      "sizeEmpty": "Nhập kích thước (tối thiểu {{min}} USDT)"
+    },
+    "budgetMin": "Tối thiểu {{min}} USDT: một cảnh báo ở kích thước tối đa ({{size}} USDT, {{leverage}}x). Cả {{positions}} vị thế ở kích thước tối đa: {{full}} USDT.",
+    "maxSizeMin": "Tối thiểu {{min}} USDT (mức tối thiểu của Binance).",
+    "symbolMin": {
+      "label": "Mức tối thiểu của Binance theo cặp",
+      "hint": "Nhập một cặp để xem lệnh nhỏ nhất Binance nhận cho cặp đó lúc này.",
+      "check": "Kiểm tra",
+      "result": "{{symbol}}: tối thiểu {{min}} USDT mỗi lệnh ({{qty}} ở giá {{price}})",
+      "aboveMax": "Cao hơn khối lượng tối đa mỗi cảnh báo của bot này ({{max}} USDT): cảnh báo cho {{symbol}} bị từ chối cho đến khi khối lượng tối đa ít nhất {{min}} USDT.",
+      "unavailable": "Binance không phản hồi. Hãy thử lại.",
+      "invalid": "Nhập một cặp USDT, ví dụ BTCUSDT"
     }
   }
 }

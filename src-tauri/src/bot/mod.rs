@@ -6,14 +6,17 @@ mod close_claim;
 mod commands;
 pub(crate) mod engine;
 mod judged;
+pub(crate) mod restore;
+pub mod live_terms;
 pub mod model;
 pub(crate) mod strategy;
 pub mod strategy_live;
 
 pub(crate) use commands::{apply_config, KeepLive};
+pub use commands::LIVE_CONFIRMATION;
 pub use commands::{
-    bot_close_position, bot_configure, bot_default_config, bot_end_pilot, bot_preview_take, bot_set_live, bot_start,
-    bot_status, bot_stop, bot_take_signal, bot_open_trade, bot_preview_trade,
+    bot_close_live_and_paper, bot_close_position, bot_configure, bot_default_config, bot_end_pilot, bot_live_terms, bot_preview_take, bot_set_live,
+    bot_start, bot_status, bot_stop, bot_take_signal, bot_open_trade, bot_preview_trade, live_stop_all,
 };
 
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -29,7 +32,9 @@ use crate::signal::model::Signal;
 use crate::store::{utc_day_start_ms, StoreManager};
 use close_claim::CloseClaims;
 use judged::JudgeLedger;
-use model::{BotConfig, BotDeskStatus, BotKind, OpenPosition, PositionAtStop, PositionMark, SkipNote, LIVE_TRADING_ENABLED};
+use model::{
+    BotConfig, BotDeskStatus, BotKind, OpenPosition, PositionAtStop, PositionMark, SkipNote, TradeMode, LIVE_TRADING_ENABLED,
+};
 
 const TICK_INTERVAL: Duration = Duration::from_secs(4);
 /// A paper position last evaluated longer ago than this was not watched in
@@ -40,13 +45,46 @@ const SKIP_CAP: usize = 30;
 /// `meta` key holding the UTC day-start millis of the last kill-switch trip.
 const TRIP_KEY: &str = "tripped_day";
 /// Signal bots running when the app last changed one, comma-separated kinds.
-/// A restart resumes them (in paper: `live` is never restored), as DCA/Grid
-/// bots resume, so no signal bot sits stopped after a restart with nothing on
-/// screen saying why no position opened.
+/// A restart resumes them (Paper bots only: a Live bot comes back stopped and
+/// waits for its typed LIVE), as DCA/Grid bots resume, so no signal bot sits
+/// stopped after a restart with nothing on screen saying why no position opened.
 const RUNNING_KEY: &str = "running_kinds";
 
+/// `meta` key prefix of one Live bot's pilot entries left (`pilot_left.<kind>`).
+/// The pilot used to live in memory only: every restart's typed LIVE handed
+/// out a fresh 3 entries. Saved, a re-arm continues the pilot where it was.
+const PILOT_KEY: &str = "pilot_left";
+
+pub(crate) fn pilot_key(kind: BotKind) -> String {
+    format!("{PILOT_KEY}.{}", kind.as_str())
+}
+
+/// The pilot a typed LIVE arms with (pure). `fresh`: the bot was Paper and
+/// goes Live now (a new pilot); otherwise a re-arm of a Live bot (after a
+/// restart or "Stop all live") continues the saved count, a fresh pilot only
+/// when none was ever saved.
+pub fn pilot_at_arm(saved: Option<u32>, fresh: bool) -> u32 {
+    if fresh {
+        model::PILOT_TRADES
+    } else {
+        saved.unwrap_or(model::PILOT_TRADES).min(model::PILOT_TRADES)
+    }
+}
+
+/// The saved pilot count of `kind`, None when never saved or unreadable.
+pub fn load_pilot(store: &StoreManager, dir: &std::path::Path, kind: BotKind) -> Option<u32> {
+    store.get_meta(dir, &pilot_key(kind)).ok().flatten().and_then(|v| v.trim().parse().ok())
+}
+
+pub fn save_pilot(store: &StoreManager, dir: &std::path::Path, kind: BotKind, left: u32) -> Result<(), String> {
+    store.set_meta(dir, &pilot_key(kind), &left.to_string())
+}
+
+/// Every bot kind of the book, in the stored order.
+pub const ALL_KINDS: [BotKind; 4] = [BotKind::Futures, BotKind::Spot, BotKind::Pump, BotKind::Tradingview];
+
 /// `meta` key holding one bot's saved config.
-fn config_key(kind: BotKind) -> String {
+pub(crate) fn config_key(kind: BotKind) -> String {
     format!("bot_config.{}", kind.as_str())
 }
 
@@ -77,6 +115,15 @@ pub struct BotManager {
     watched: Mutex<HashMap<(String, BotKind), u64>>,
     /// Last price the close phase read per open position, with its time (ms).
     marks: Mutex<HashMap<(String, BotKind), (f64, u64)>>,
+    /// Real-money position rows restore could not read ("kind signal_id"):
+    /// money in play the book does not know, shown until a restart reads
+    /// them (`engine::book::load_positions`).
+    live_unreadable: Mutex<Vec<String>>,
+    /// The money each Live bot's typed LIVE confirmed this session
+    /// (`bot_set_live`). An entry re-checks the terms in force against it
+    /// (`live_terms::same_terms`): a risk-level change after the arm refuses
+    /// entries until LIVE is typed for the new terms. Memory only.
+    armed_terms: Mutex<HashMap<BotKind, live_terms::LiveTerms>>,
 }
 
 impl BotManager {
@@ -95,6 +142,8 @@ impl BotManager {
             pilot: Mutex::new(HashMap::new()),
             watched: Mutex::new(HashMap::new()),
             marks: Mutex::new(HashMap::new()),
+            live_unreadable: Mutex::new(Vec::new()),
+            armed_terms: Mutex::new(HashMap::new()),
         }
     }
 
@@ -114,6 +163,42 @@ impl BotManager {
         }
     }
 
+    /// One real entry made under the pilot, and the count left saved, so a
+    /// restart's re-arm does not hand out the used entries again.
+    pub fn pilot_used_saved(&self, app: &AppHandle, kind: BotKind) {
+        self.pilot_used(kind);
+        self.save_pilot_left(app, kind);
+    }
+
+    /// Saves `kind`'s pilot count in memory now.
+    pub fn save_pilot_left(&self, app: &AppHandle, kind: BotKind) {
+        let left = self.pilot_left(kind);
+        let saved = app
+            .path()
+            .app_data_dir()
+            .map_err(|e| e.to_string())
+            .and_then(|dir| save_pilot(&app.state::<StoreManager>(), &dir, kind, left));
+        if let Err(e) = saved {
+            self.push_skip("—", "storeWriteFailed", Some(e));
+        }
+    }
+
+    /// The pilot count saved for `kind` (None: never saved).
+    pub fn saved_pilot(&self, app: &AppHandle, kind: BotKind) -> Option<u32> {
+        let dir = app.path().app_data_dir().ok()?;
+        load_pilot(&app.state::<StoreManager>(), &dir, kind)
+    }
+
+    /// Remembers the terms the typed LIVE confirmed for `kind`.
+    pub fn set_armed_terms(&self, kind: BotKind, terms: live_terms::LiveTerms) {
+        self.armed_terms.lock().expect("bot mutex").insert(kind, terms);
+    }
+
+    /// The terms `kind`'s arm confirmed this session (None: not armed).
+    pub fn armed_terms(&self, kind: BotKind) -> Option<live_terms::LiveTerms> {
+        self.armed_terms.lock().expect("bot mutex").get(&kind).cloned()
+    }
+
     pub fn configure(&self, cfg: BotConfig) {
         self.configs
             .lock()
@@ -122,7 +207,9 @@ impl BotManager {
     }
 
     /// Starts a bot. Refused while today's kill-switch is tripped (manual
-    /// restart only after the next UTC day begins).
+    /// restart only after the next UTC day begins), for a Live bot not armed
+    /// this session (typed LIVE first), and while the risk settings or the
+    /// store could not be read.
     pub fn start(&self, app: AppHandle, kind: BotKind) -> Result<(), String> {
         if self.kill_switch_tripped() {
             return Err("botDailyLossTripped".to_string());
@@ -130,6 +217,12 @@ impl BotManager {
         let Some(cfg) = self.config_for(kind) else {
             return Err("botNotConfigured".to_string());
         };
+        if let Some(code) = start_mode_refusal(&cfg) {
+            return Err(code.to_string());
+        }
+        if let Some(code) = crate::app::data_health::trading_blocked(&app) {
+            return Err(code);
+        }
         // A saved config can predate a tighter rule, and the risk level or
         // balance can change after it was saved: every start re-checks it, so
         // a bot never runs on settings that would skip every signal.
@@ -148,8 +241,8 @@ impl BotManager {
         self.save_running(app);
     }
 
-    /// Only paper bots are saved: a bot on real money comes back stopped and
-    /// waits for the typed LIVE confirmation, as before.
+    /// Only Paper bots are saved: a Live bot comes back stopped and waits for
+    /// the typed LIVE confirmation, as before.
     fn save_running(&self, app: &AppHandle) {
         let paper: HashSet<BotKind> = {
             let configs = self.configs.lock().expect("bot mutex");
@@ -158,7 +251,7 @@ impl BotManager {
                 .expect("bot mutex")
                 .iter()
                 .copied()
-                .filter(|k| configs.get(k).is_some_and(|c| !c.live))
+                .filter(|k| configs.get(k).is_some_and(|c| !c.live && c.mode == TradeMode::Paper))
                 .collect()
         };
         let body = running_body(&paper);
@@ -194,24 +287,35 @@ impl BotManager {
         }
     }
 
-    /// Reloads open positions persisted by a previous run and, if any exist,
-    /// starts the loop so they keep being managed even before a bot starts.
+    /// Reloads configs and open positions persisted by a previous run (see
+    /// `restore::plan`), resumes the Paper bots that were running and, if
+    /// any position exists, starts the loop so they keep being managed even
+    /// before a bot starts.
     pub fn restore(&self, app: AppHandle) {
         self.seed_judged(&app);
         self.restore_trip(&app);
-        self.restore_configs(&app);
+        let Ok(dir) = app.path().app_data_dir() else {
+            return;
+        };
+        let plan = restore::plan(&app.state::<StoreManager>(), &dir);
+        for n in &plan.notes {
+            self.push_skip(&n.symbol, n.key, n.detail.clone());
+        }
+        for cfg in plan.configs {
+            self.configure(cfg);
+        }
         // Positions go into the book BEFORE any bot resumes: a resumed bot's
         // first tick must see the markets it already holds.
-        let restored = engine::book::load_positions(&app);
-        let any = !restored.positions.is_empty();
         {
             let mut ledger = self.ledger.lock().expect("bot mutex");
-            for p in &restored.positions {
+            for p in &plan.positions {
                 ledger.judge(p.bot_kind, &p.signal_id);
             }
         }
-        *self.positions.lock().expect("bot mutex") = restored.positions;
-        self.restore_running(&app, &restored.live_unreadable);
+        let any = !plan.positions.is_empty();
+        *self.positions.lock().expect("bot mutex") = plan.positions;
+        *self.live_unreadable.lock().expect("bot mutex") = plan.held_labels;
+        self.restore_running(&app, &plan.blocked);
         if any {
             self.ensure_loop(app);
         }
@@ -553,33 +657,6 @@ impl BotManager {
         }
     }
 
-    /// Reloads saved configs. `live` is never restored: real-money trading is
-    /// re-confirmed every session, never re-armed from a file on disk. A
-    /// config that parses but fails today's validation is still loaded, so
-    /// restored positions keep the bot's max-loss; `start` refuses it until
-    /// it is saved again, and the feed says why.
-    fn restore_configs(&self, app: &AppHandle) {
-        let Ok(dir) = app.path().app_data_dir() else {
-            return;
-        };
-        let store = app.state::<StoreManager>();
-        for kind in [BotKind::Futures, BotKind::Spot, BotKind::Pump] {
-            let Ok(Some(body)) = store.get_meta(&dir, &config_key(kind)) else {
-                continue;
-            };
-            match serde_json::from_str::<BotConfig>(&body) {
-                Ok(mut cfg) if cfg.kind == kind => {
-                    cfg.live = false;
-                    if let Err(code) = cfg.validate() {
-                        self.push_skip("—", "restoreConfigInvalid", Some(code));
-                    }
-                    self.configure(cfg);
-                }
-                _ => self.push_skip("—", "restoreRowUnreadable", Some(format!("{} config", kind.as_str()))),
-            }
-        }
-    }
-
     /// Reloads a trip recorded earlier today (see `trip_kill_switch`).
     fn restore_trip(&self, app: &AppHandle) {
         let Ok(dir) = app.path().app_data_dir() else {
@@ -596,12 +673,40 @@ impl BotManager {
         }
     }
 
-    /// Real money is in play: an open position or a bot switched to live.
-    /// Reads the raw flags, not `is_live()`, so the answer is the same in
-    /// every build. Updates, vault locks and key changes wait while it holds.
+    /// Real money is in play: an open real position, a bot armed for real
+    /// orders this session, or a real-money position row restore could not
+    /// read (money the book does not know). Reads the raw flags, not
+    /// `is_live()`. Vault locks and key changes wait while it holds.
     pub fn has_live_exposure(&self) -> bool {
         self.positions.lock().expect("bot mutex").iter().any(|p| p.live)
             || self.configs.lock().expect("bot mutex").values().any(|c| c.live)
+            || !self.live_unreadable.lock().expect("bot mutex").is_empty()
+    }
+
+    /// Disarms a Live bot (its mode stays Live) and stops it; positions stay
+    /// managed. Returns whether it was running.
+    pub fn disarm_and_stop(&self, app: &AppHandle, kind: BotKind) -> bool {
+        let was_running = self.running.lock().expect("bot mutex").contains(&kind);
+        if was_running {
+            self.stop(app, kind);
+        }
+        self.disarm(kind);
+        was_running
+    }
+
+    /// Clears the per-session arm and the terms it confirmed (mode kept).
+    pub fn disarm(&self, kind: BotKind) {
+        if let Some(mut cfg) = self.config_for(kind) {
+            cfg.live = false;
+            self.configure(cfg);
+        }
+        self.armed_terms.lock().expect("bot mutex").remove(&kind);
+    }
+
+    /// Test seam: what restore leaves for real-money rows it could not read.
+    #[cfg(test)]
+    pub(crate) fn set_live_unreadable(&self, labels: Vec<String>) {
+        *self.live_unreadable.lock().expect("bot mutex") = labels;
     }
 
     pub fn status(&self) -> BotDeskStatus {
@@ -623,17 +728,23 @@ impl BotManager {
                 }
             })
             .collect();
+        let live_unreadable = self.live_unreadable.lock().expect("bot mutex").clone();
         let configs = self.configs.lock().expect("bot mutex");
         let running = self.running.lock().expect("bot mutex");
         BotDeskStatus {
+            live_unreadable,
+            trading_blocked: None,
             live_trading_enabled: LIVE_TRADING_ENABLED,
             binance_is_production: crate::app::endpoints::binance_is_production(),
             futures: configs.get(&BotKind::Futures).cloned(),
             spot: configs.get(&BotKind::Spot).cloned(),
             pump: configs.get(&BotKind::Pump).cloned(),
+            tradingview: configs.get(&BotKind::Tradingview).cloned(),
             futures_running: running.contains(&BotKind::Futures),
             spot_running: running.contains(&BotKind::Spot),
             pump_running: running.contains(&BotKind::Pump),
+            tradingview_running: running.contains(&BotKind::Tradingview),
+            tradingview_pilot_left: self.pilot_left(BotKind::Tradingview),
             open_positions,
             recent_skips: self
                 .skips
@@ -694,9 +805,34 @@ impl Default for BotManager {
     }
 }
 
+/// Why a configured bot may not start on its mode, or None: a Live bot needs
+/// its typed LIVE this session first (pure).
+pub fn start_mode_refusal(cfg: &BotConfig) -> Option<&'static str> {
+    (cfg.mode == TradeMode::Live && !cfg.live).then_some("liveArmRequired")
+}
+
+/// Splits restored rows into the book's and the real-money rows a Paper bot
+/// cannot hold (pure; `mode_of` = each bot's mode after the mapping).
+pub fn split_foreign_live_rows(
+    positions: Vec<OpenPosition>,
+    mode_of: impl Fn(BotKind) -> TradeMode,
+) -> (Vec<OpenPosition>, Vec<OpenPosition>) {
+    positions.into_iter().partition(|p| !p.live || mode_of(p.bot_kind) == TradeMode::Live)
+}
+
+/// The one-time mapping of a bot saved before modes existed (pure): Live when
+/// a LIVE build left real money on it, otherwise what it already is.
+pub fn mapped_mode(current: TradeMode, stored_live: bool, holds_real_rows: bool) -> TradeMode {
+    if stored_live || holds_real_rows {
+        TradeMode::Live
+    } else {
+        current
+    }
+}
+
 /// `running_kinds` body: the kinds in a fixed order, comma-separated.
 fn running_body(running: &HashSet<BotKind>) -> String {
-    [BotKind::Futures, BotKind::Spot, BotKind::Pump]
+    ALL_KINDS
         .into_iter()
         .filter(|k| running.contains(k))
         .map(BotKind::as_str)
@@ -728,6 +864,29 @@ mod running_tests {
     }
 
     #[test]
+    fn a_re_arm_continues_the_saved_pilot_and_never_refills_it() {
+        use crate::bot::model::PILOT_TRADES;
+        assert_eq!(pilot_at_arm(None, true), PILOT_TRADES, "Paper to Live: a new pilot");
+        assert_eq!(pilot_at_arm(Some(0), true), PILOT_TRADES);
+        assert_eq!(pilot_at_arm(Some(1), false), 1, "a restart's re-arm keeps what was left");
+        assert_eq!(pilot_at_arm(Some(0), false), 0, "a used-up or ended pilot stays ended");
+        assert_eq!(pilot_at_arm(None, false), PILOT_TRADES, "never saved (an older build)");
+        assert_eq!(pilot_at_arm(Some(99), false), PILOT_TRADES, "a hand-edited row never raises it");
+        // Saved per bot, across a new process on the same data folder.
+        let dir = std::env::temp_dir().join(format!("aleph-pilot-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let store = StoreManager::new();
+        assert_eq!(load_pilot(&store, &dir, BotKind::Tradingview), None);
+        save_pilot(&store, &dir, BotKind::Tradingview, 1).unwrap();
+        save_pilot(&store, &dir, BotKind::Futures, 3).unwrap();
+        let reopened = StoreManager::new();
+        assert_eq!(load_pilot(&reopened, &dir, BotKind::Tradingview), Some(1));
+        assert_eq!(load_pilot(&reopened, &dir, BotKind::Futures), Some(3));
+        assert_eq!(pilot_at_arm(load_pilot(&reopened, &dir, BotKind::Tradingview), false), 1);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn running_kinds_round_trip_and_skip_junk() {
         let set: HashSet<BotKind> = [BotKind::Spot, BotKind::Futures].into_iter().collect();
         let body = running_body(&set);
@@ -737,3 +896,6 @@ mod running_tests {
         assert_eq!(parse_running("pump, nonsense"), vec![BotKind::Pump]);
     }
 }
+
+#[cfg(test)]
+mod mode_tests;

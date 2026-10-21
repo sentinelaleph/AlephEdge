@@ -69,6 +69,17 @@ export interface TelegramStatus {
   /** Last failure as an `errors.*` code. */
   lastError: string | null;
   lastSentAt: number | null;
+  /**
+   * The saved Telegram settings could not be read at start: the store key its
+   * copy was kept under ("" = the store itself could not be read). Nothing is
+   * saved over them until `telegramStartOver`. Absent when they were fine.
+   */
+  settingsUnreadable?: string;
+}
+
+/** The answer to unreadable saved settings: start from the defaults (the copy stays). */
+export function telegramStartOver(): Promise<TelegramStatus> {
+  return inTauri() ? invoke<TelegramStatus>("telegram_start_over") : mock((m) => m.mock.status());
 }
 
 export function telegramStatus(): Promise<TelegramStatus> {

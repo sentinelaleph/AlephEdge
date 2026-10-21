@@ -12,7 +12,7 @@ use crate::signal::SignalManager;
 use crate::store::model::TradeRecord;
 use crate::store::StoreManager;
 
-use super::super::model::{BotKind, OpenPosition, LIVE_TRADING_ENABLED};
+use super::super::model::{BotKind, OpenPosition};
 use super::super::BotManager;
 use super::record::stamp_veto_reason;
 use super::{close_price, live_close, live_manage, live_price, management, now_ms};
@@ -328,27 +328,40 @@ fn persist_position(app: &AppHandle, pos: &OpenPosition) {
 #[derive(Default)]
 pub struct RestoredBook {
     pub positions: Vec<OpenPosition>,
-    /// Bots with a real-money row this live build could not read: their real
+    /// Bots with a real-money row restore could not read: their real
     /// position is unknown to the book, so they are not resumed.
     pub live_unreadable: HashSet<BotKind>,
+    /// Those rows, "kind signal_id", for the desk status: money in play the
+    /// book does not manage stays on screen, not only in the feed.
+    pub unreadable_labels: Vec<String>,
 }
 
-/// Positions persisted by a previous run. Nothing is dropped without a note:
-/// a row that no longer parses is named in the feed and left in the store
-/// for a build that can read it, and a row whose close is already in the
-/// trade table (the process ended between the two writes of an older build)
-/// is removed instead of being closed a second time.
-pub fn load_positions(app: &AppHandle) -> RestoredBook {
+/// One feed note restore leaves (`BotManager::push_skip` arguments).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Note {
+    pub symbol: String,
+    pub key: &'static str,
+    pub detail: Option<String>,
+}
+
+impl Note {
+    pub fn new(symbol: &str, key: &'static str, detail: Option<String>) -> Self {
+        Self { symbol: symbol.to_string(), key, detail }
+    }
+}
+
+/// Positions persisted by a previous run (Tauri-free: the store and the
+/// data dir only, the notes collected for the feed). Nothing is dropped
+/// without a note: a row that no longer parses is named in the feed and left
+/// in the store for a build that can read it, and a row whose close is
+/// already in the trade table (the process ended between the two writes of
+/// an older build) is removed instead of being closed a second time.
+pub fn read_book(store: &StoreManager, dir: &std::path::Path, notes: &mut Vec<Note>) -> RestoredBook {
     let mut out = RestoredBook::default();
-    let Ok(dir) = app.path().app_data_dir() else {
-        return out;
-    };
-    let bots = app.state::<BotManager>();
-    let store = app.state::<StoreManager>();
-    let rows = match store.load_positions(&dir) {
+    let rows = match store.load_positions(dir) {
         Ok(rows) => rows,
         Err(e) => {
-            bots.push_skip("—", "storeReadFailed", Some(e));
+            notes.push(Note::new("—", "storeReadFailed", Some(e)));
             return out;
         }
     };
@@ -357,40 +370,34 @@ pub fn load_positions(app: &AppHandle) -> RestoredBook {
             Ok(pos) => pos,
             Err(live) => {
                 let key = if live { "restoreLiveBlocked" } else { "restoreRowUnreadable" };
-                bots.push_skip("—", key, Some(format!("{kind} {signal_id}")));
-                if live && LIVE_TRADING_ENABLED {
+                let label = format!("{kind} {signal_id}");
+                notes.push(Note::new("—", key, Some(label.clone())));
+                if live {
+                    // Left in the store untouched. Its bot is not resumed, and
+                    // the row counts as money in play until a build reads it.
                     if let Some(k) = BotKind::parse(&kind) {
                         out.live_unreadable.insert(k);
                     }
+                    out.unreadable_labels.push(label);
                 }
                 continue;
             }
         };
-        // A build without the `live` feature never manages a real position:
-        // loading the row with `live` cleared would make the paper engine
-        // "close" a real position on paper and forget it while it stays open
-        // on Binance. The row is left out of the book and left in the store
-        // untouched, so a live build picks it up again; the Exchange tab still
-        // shows the real position.
-        if pos.live && !LIVE_TRADING_ENABLED {
-            eprintln!(
-                "real position {} {} kept out of the book: this build cannot trade live",
-                pos.symbol, pos.signal_id
-            );
-            continue;
-        }
-        match store.is_settled(&dir, &pos.signal_id, pos.bot_kind.as_str(), pos.opened_at) {
+        // One build (lib.rs): every build manages its real positions, so no
+        // real row is kept out of the book any more (0.3.18's paper build
+        // kept them out and said so only on stderr).
+        match store.is_settled(dir, &pos.signal_id, pos.bot_kind.as_str(), pos.opened_at) {
             Ok(true) => {
-                if let Err(e) = store.delete_position(&dir, &pos.signal_id, pos.bot_kind.as_str()) {
-                    bots.push_skip(&pos.symbol, "storeWriteFailed", Some(e));
+                if let Err(e) = store.delete_position(dir, &pos.signal_id, pos.bot_kind.as_str()) {
+                    notes.push(Note::new(&pos.symbol, "storeWriteFailed", Some(e)));
                 }
-                bots.push_skip(&pos.symbol, "settledPositionDropped", None);
+                notes.push(Note::new(&pos.symbol, "settledPositionDropped", None));
                 continue;
             }
             Ok(false) => {}
             // Unknown: keep managing it (a missed close costs more than a
             // possible second record of one).
-            Err(e) => bots.push_skip(&pos.symbol, "storeReadFailed", Some(e)),
+            Err(e) => notes.push(Note::new(&pos.symbol, "storeReadFailed", Some(e))),
         }
         out.positions.push(pos);
     }

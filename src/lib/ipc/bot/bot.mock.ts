@@ -8,40 +8,34 @@ import { capitalAboveCap, defaultCapitalWithin, defaultRiskPctFor } from "@/lib/
 import { DEFAULT_RISK_PCT, MAX_RISK_PCT, MIN_RISK_PCT } from "@/lib/sizing";
 import { mock as riskMock } from "../risk/risk.mock";
 import { customPctValid, MAX_CUSTOM_TP_PCT, MIN_CUSTOM_TP_PCT } from "@/lib/takeProfit";
-import { LIVE_CONFIRMATION, type BotConfig, type BotDeskStatus, type BotKind, type TradeRequest } from "./bot";
+import { LIVE_CONFIRMATION, PILOT_NOTIONAL_USDT, type BotConfig, type BotDeskStatus, type BotKind, type LiveTerms, type TradeRequest } from "./bot";
 
 /** Binance's minimum order (Rust `EXCHANGE_MIN_ORDER_USDT`). */
 const MIN_ORDER_USDT = 5;
 
-/** Preview a live build in `npm run dev`: localStorage "ae-mock-live" = "1". */
-function mockLiveBuild(): boolean {
-  try {
-    return globalThis.localStorage?.getItem("ae-mock-live") === "1";
-  } catch {
-    return false;
-  }
-}
-
 export const mock = (() => {
-  const live = mockLiveBuild();
+  // One build: the order path exists; the preview has no vault key, so no
+  // bot can go live here (bot_set_live answers liveNeedsTradeKey).
   const state: BotDeskStatus = {
-    liveTradingEnabled: live,
-    ...(live ? { liveVenues: ["binance"] } : {}),
+    liveTradingEnabled: true,
+    liveVenues: ["binance"],
     binanceIsProduction: true,
     futures: null,
     spot: null,
     pump: null,
+    tradingview: null,
     futuresRunning: false,
     spotRunning: false,
     pumpRunning: false,
+    tradingviewRunning: false,
     openPositions: [],
     recentSkips: [],
     killSwitchTripped: false,
     btcRegime: "unknown",
   };
   const clone = () => Promise.resolve({ ...state, openPositions: [...state.openPositions], recentSkips: [...state.recentSkips] });
-  const configKey = { futures: "futures", spot: "spot", pump: "pump" } as const;
-  const runKey = { futures: "futuresRunning", spot: "spotRunning", pump: "pumpRunning" } as const;
+  const configKey = { futures: "futures", spot: "spot", pump: "pump", tradingview: "tradingview" } as const;
+  const runKey = { futures: "futuresRunning", spot: "spotRunning", pump: "pumpRunning", tradingview: "tradingviewRunning" } as const;
   // Like check_capital_cap in bot/commands.rs, against the preview's risk state.
   const capRefusal = async (capital: number) => {
     const cap = (await riskMock.state()).maxCapitalQuote;
@@ -71,28 +65,76 @@ export const mock = (() => {
           `custom take-profit must be between ${MIN_CUSTOM_TP_PCT}% and ${MAX_CUSTOM_TP_PCT}%`,
         );
       }
-      // Like bot_configure: `live` is kept from the stored config, never taken
-      // from the form.
-      state[configKey[config.kind]] = { ...config, live: state[configKey[config.kind]]?.live ?? false };
+      // Like bot_configure: `live` and `mode` are kept from the stored config,
+      // never taken from the form.
+      const prev = state[configKey[config.kind]];
+      // Like tv_trade::normalize_config: margin per position from the budget,
+      // the passphrase kept as "set" only (the browser preview hashes nothing).
+      let saved: BotConfig = { ...config, live: prev?.live ?? false, mode: prev?.mode ?? "paper" };
+      if (config.kind === "tradingview" && config.tv) {
+        const { passphrase, ...tv } = config.tv;
+        const keep = passphrase === undefined ? prev?.tv?.passphraseSha256 : passphrase.trim() ? "set" : undefined;
+        saved = {
+          ...saved,
+          sizing: "fixed",
+          capital: Math.floor((tv.budgetUsdt / Math.max(1, config.maxPositions)) * 100) / 100,
+          tv: { ...tv, passphraseSha256: keep },
+        };
+      }
+      state[configKey[config.kind]] = saved;
       return clone();
     },
     setLive(kind: BotKind, enabled: boolean, confirmation: string) {
       const cfg = state[configKey[kind]];
       if (!cfg) return Promise.reject("save the bot's settings first");
-      // The browser preview is a simulation-only build, like bot_set_live
-      // with LIVE_TRADING_ENABLED off.
+      // The browser preview holds no vault key: like bot_set_live without a
+      // verified trade-only key.
       if (enabled) {
-        if (confirmation.trim() !== LIVE_CONFIRMATION) {
-          return Promise.reject(`type ${LIVE_CONFIRMATION} to confirm`);
-        }
-        return Promise.reject("this build is simulation-only");
+        if (kind !== "futures" && kind !== "tradingview") return Promise.reject("liveFuturesBinanceOnly");
+        if (confirmation.trim() !== LIVE_CONFIRMATION) return Promise.reject(`liveConfirmRequired|${LIVE_CONFIRMATION}`);
+        return Promise.reject("liveNeedsTradeKey");
       }
-      state[configKey[kind]] = { ...cfg, live: false };
+      const holdsReal = state.openPositions.some((p) => p.botKind === kind && p.live);
+      state[configKey[kind]] = { ...cfg, live: false, mode: holdsReal ? "live" : "paper" };
+      state[runKey[kind]] = false;
       return clone();
+    },
+    liveTerms(kind: BotKind): Promise<LiveTerms> {
+      const cfg = state[configKey[kind]];
+      if (!cfg) return Promise.reject("botSaveFirst");
+      // Like live_terms::signal_terms: the TradingView bot risks its budget,
+      // and its largest position is the max size per alert.
+      const cents = (v: number) => Math.round(v * 100) / 100;
+      const lev = Math.max(1, cfg.leverage);
+      const margin = cfg.tv ? cents(cfg.tv.budgetUsdt) : cents(cfg.capital * cfg.maxPositions);
+      const notional = cfg.tv ? cents(Math.min(cfg.tv.maxSizeUsdt, cfg.tv.budgetUsdt * lev)) : cents(cfg.capital * lev);
+      return Promise.resolve({
+        venue: cfg.exchangeId,
+        marginAtRiskUsdt: margin,
+        maxNotionalUsdt: notional,
+        maxPositionMarginUsdt: cents(notional / lev),
+        leverage: cfg.leverage,
+        positions: cfg.maxPositions,
+        pilotCount: 3,
+        pilotNotionalUsdt: PILOT_NOTIONAL_USDT,
+      });
+    },
+    closeLiveAndPaper(kind: BotKind) {
+      const cfg = state[configKey[kind]];
+      if (!cfg) return Promise.reject("botSaveFirst");
+      // The preview holds no real position; a real row would need the exchange.
+      const left = state.openPositions.filter((p) => p.botKind === kind && p.live).length;
+      state[runKey[kind]] = false;
+      state[configKey[kind]] = { ...cfg, live: false, mode: left > 0 ? "live" : "paper" };
+      return left > 0 ? Promise.reject(`closeNotConfirmed|${left}`) : clone();
+    },
+    stopAllLive() {
+      return Promise.resolve({ signalStopped: 0, strategyStopped: 0 });
     },
     async start(kind: BotKind) {
       const cfg = state[configKey[kind]];
       if (!cfg) return Promise.reject("botNotConfigured");
+      if (cfg.mode === "live" && !cfg.live) return Promise.reject("liveArmRequired");
       const refused = await capRefusal(cfg.capital);
       if (refused) return Promise.reject(refused);
       state[runKey[kind]] = true;
@@ -123,9 +165,16 @@ export const mock = (() => {
       const cfg = state[configKey[r.kind]];
       const symbol = r.symbol.trim().toUpperCase();
       const level = (v: number) => Number.isFinite(v) && v > 0;
+      const liveBot = !!cfg && (cfg.live === true || cfg.mode === "live");
       const refusal = !cfg
         ? "botNotConfigured"
-        : cfg.live
+        : (r.mode ?? "paper") === "live"
+          ? r.kind !== "futures"
+            ? "liveFuturesBinanceOnly"
+            : !liveBot
+              ? "tradeBotIsPaper"
+              : "liveArmRequired"
+          : liveBot
           ? "manualTakePaperOnly"
           : state.killSwitchTripped
             ? "botDailyLossTripped"
@@ -164,6 +213,12 @@ export const mock = (() => {
         takeProfitOverrides: {},
         maxSignalAgeMin: 240,
         live: false,
+        ...(kind === "tradingview"
+          ? {
+              sizing: "fixed" as const,
+              tv: { name: "TradingView", budgetUsdt: 100, maxSizeUsdt: 50, maxOpensPerDay: 10, staleS: 30, priceGuardPct: 0.5, requirePrice: true },
+            }
+          : {}),
       });
     },
   };

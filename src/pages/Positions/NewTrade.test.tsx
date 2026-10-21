@@ -6,7 +6,7 @@ import i18n from "@/i18n";
 import { ManualChip } from "@/components/ui/Chip/Chip";
 import { isUserTradeId, type BotConfig, type BotDeskStatus, type TradePreview } from "@/lib/ipc/bot/bot";
 import { mock as botMock } from "@/lib/ipc/bot/bot.mock";
-import { NewTradeForm, NewTradePreview, PREVIEW_DEBOUNCE_MS, tradeRequest, useNewTrade, type TradeForm } from "./NewTrade";
+import { liveTradeBlockers, NewTradeForm, NewTradePreview, PREVIEW_DEBOUNCE_MS, tradeRequest, tradeTerms, useNewTrade, type TradeForm } from "./NewTrade";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 window.matchMedia ??= ((query: string) =>
@@ -14,6 +14,10 @@ window.matchMedia ??= ((query: string) =>
 
 const ipc = vi.hoisted(() => ({ preview: vi.fn(), open: vi.fn() }));
 vi.mock("@/lib/ipc/bot/bot", async (orig) => ({ ...(await orig<object>()), botPreviewTrade: ipc.preview, botOpenTrade: ipc.open }));
+// The Live confirmation reads the desk for where orders go (production Binance here).
+vi.mock("@/app/DeskProvider", () => ({
+  useDeskContext: () => ({ desk: { status: { binanceIsProduction: true, venueSandbox: false } }, catalog: { exchanges: null } }),
+}));
 vi.mock("@/lib/ipc/exchange/exchange", async (orig) => ({
   ...(await orig<object>()),
   exchangeSymbols: () => Promise.resolve(["BTCUSDT", "ETHUSDT", "SOLUSDT"]),
@@ -68,7 +72,7 @@ function Harness({ s }: { s: BotDeskStatus }) {
   return (
     <>
       <NewTradeForm ctl={ctl} status={s} />
-      <NewTradePreview ctl={ctl} onClose={() => {}} />
+      <NewTradePreview ctl={ctl} status={s} onClose={() => {}} />
     </>
   );
 }
@@ -122,7 +126,7 @@ afterEach(async () => {
 });
 
 describe("tradeRequest", () => {
-  const base: TradeForm = { kind: "futures", symbol: "solusdt", direction: "long", sizing: "bot", notional: "", takeProfit: "110", stopLoss: "95" };
+  const base: TradeForm = { mode: "paper", kind: "futures", symbol: "solusdt", direction: "long", sizing: "bot", notional: "", takeProfit: "110", stopLoss: "95" };
   it("waits for the required fields, refuses non-numbers, sends the size only when set", () => {
     expect(tradeRequest({ ...base, symbol: " " })).toBe("incomplete");
     expect(tradeRequest({ ...base, stopLoss: "" })).toBe("incomplete");
@@ -173,7 +177,7 @@ describe("New trade form", () => {
     const cases: [string, string][] = [
       ["tradeStopInsideFees|0.10%", "Stop closer than both fees · needs more than 0.10%"],
       ["tradeTargetWrongSide", "Take-profit on the wrong side of the live price"],
-      ["manualTakePaperOnly", "This bot trades real money · New trade opens paper positions only"],
+      ["manualTakePaperOnly", "This is a Live bot: choose Live for a real trade"],
       ["belowExchangeMinimum|4.00", "Order would be 4.00 USDT, under the exchange minimum of 5 USDT"],
       ["btcGuardUnknown", "BTC regime unknown · entry refused"],
     ];
@@ -194,6 +198,65 @@ describe("New trade form", () => {
     await act(async () => [...el.querySelectorAll<HTMLButtonElement>("[role=radio]")].find((b) => b.textContent?.startsWith("Spot"))!.click());
     const short = [...el.querySelectorAll<HTMLButtonElement>("[role=radio]")].find((b) => b.textContent === "Short")!;
     expect(short.disabled || short.getAttribute("aria-disabled") === "true").toBe(true);
+  });
+});
+
+describe("Paper or Live on New trade", () => {
+  const radio = (el: HTMLElement, text: string) => [...el.querySelectorAll<HTMLButtonElement>("[role=radio]")].find((b) => b.textContent === text)!;
+  const armed: BotConfig = { ...futures, mode: "live", live: true };
+
+  it("Paper is the default; Live is offered only on the Live Futures bot armed this session, and says why not", async () => {
+    expect(liveTradeBlockers(status()).map((b) => b.key)).toEqual(["liveMode.blockers.tradeBotPaper"]);
+    expect(liveTradeBlockers(status({ futures: { ...futures, mode: "live", live: false } })).map((b) => b.key)).toEqual(["liveMode.blockers.notArmed"]);
+    expect(liveTradeBlockers(status({ futures: armed }))).toEqual([]);
+    expect(liveTradeBlockers(status({ futures: armed, tradingBlocked: "riskConfigUnreadable" })).map((b) => b.key)).toEqual(["liveMode.blockers.tradingBlocked"]);
+
+    const el = await mount(<Harness s={status()} />);
+    expect(radio(el, "Paper").getAttribute("aria-checked")).toBe("true");
+    expect(radio(el, "Live").disabled).toBe(true);
+    expect(el.textContent).toContain("The Futures bot is a Paper bot");
+    // A paper trade never carries a mode or a word.
+    await fill(el);
+    await settle();
+    await act(async () => button("Open paper trade")!.click());
+    expect(ipc.open).toHaveBeenCalledWith(expect.not.objectContaining({ mode: "live" }));
+  });
+
+  it("a Live trade shows the money at risk, needs the typed LIVE and sends mode and word", async () => {
+    ipc.open.mockResolvedValue({ symbol: "SOLUSDT", entry: 100.1 });
+    const el = await mount(<Harness s={status({ futures: armed, pilotLeft: 3 })} />);
+    await act(async () => radio(el, "Live").click());
+    expect(radio(el, "Live").getAttribute("aria-checked")).toBe("true");
+    expect([...el.querySelectorAll<HTMLButtonElement>("[role=radio]")].find((b) => b.textContent?.startsWith("Spot"))!.disabled).toBe(true);
+    await fill(el);
+    await settle();
+    expect(ipc.preview).toHaveBeenLastCalledWith(expect.objectContaining({ mode: "live", kind: "futures" }));
+    await act(async () => button("Open real position")!.click());
+    expect(ipc.open).not.toHaveBeenCalled();
+    const dialog = document.querySelector<HTMLElement>(".ae-dialog")!;
+    expect(dialog.textContent).toContain("Most margin at risk");
+    expect(dialog.textContent).toContain("100.00 USDT");
+    expect(dialog.textContent).toContain("Orders go to Binance production");
+    const confirm = dialog.querySelector<HTMLButtonElement>(".ae-dialog__confirm")!;
+    expect(confirm.disabled).toBe(true);
+    const input = dialog.querySelector<HTMLInputElement>("input")!;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    await act(async () => {
+      setter.call(input, "LIVE");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(confirm.disabled).toBe(false);
+    await act(async () => confirm.click());
+    expect(ipc.open).toHaveBeenCalledWith(expect.objectContaining({ mode: "live", confirmation: "LIVE", kind: "futures", symbol: "SOLUSDT" }));
+    // The margin the confirmation showed goes back: Rust re-plans and refuses `liveTermsChanged` when it moved.
+    expect(ipc.open).toHaveBeenCalledWith(expect.objectContaining({ confirmedMarginUsdt: PREVIEW.capital }));
+  });
+
+  it("the pilot caps the size the confirmation shows", () => {
+    const t = tradeTerms(PREVIEW, "binance", 2);
+    expect(t.maxNotionalUsdt).toBe(50);
+    expect(t.marginAtRiskUsdt).toBe(100);
+    expect(tradeTerms(PREVIEW, "binance", 0).maxNotionalUsdt).toBe(500);
   });
 });
 

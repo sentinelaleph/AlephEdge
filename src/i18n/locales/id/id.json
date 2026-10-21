@@ -198,7 +198,8 @@
     "kind": {
       "futures": "Futures",
       "spot": "Spot",
-      "pump": "Pump"
+      "pump": "Pump",
+      "tradingview": "TradingView"
     },
     "capital": "Modal per posisi (USDT)",
     "maxPositions": "Posisi bersamaan maks",
@@ -243,7 +244,7 @@
       "marketHeld": "Posisi sudah terbuka di simbol dan timeframe ini · akan dicoba lagi",
       "invalidatedHeld": "Sentinel membatalkan sinyal yang dipegang · posisi dipertahankan",
       "vetoClosed": "{{count}} posisi ditutup akibat veto Sentinel: {{detail}}",
-      "superseded": "Digantikan · diganti sinyal yang dibuat ulang",
+      "superseded": "Diganti sinyal yang dibuat ulang",
       "signalResolved": "Sinyal sudah selesai (target atau stop) · terlambat untuk masuk",
       "signalStatusUnknown": "Status sinyal belum terkonfirmasi · bot live tidak masuk tanpa data",
       "signalParseError": "Sinyal tidak dapat dibaca ({{detail}})",
@@ -289,7 +290,14 @@
       "settledPositionDropped": "Sudah tertutup di Riwayat · baris terbuka yang tersisa dihapus saat mulai",
       "belowExchangeMinimum": "Order akan sebesar {{detail}} USDT, di bawah minimum bursa 5 USDT",
       "manualOpened": "Dibuka manual dari Execute · simulasi",
-      "userTradeOpened": "Trade baru dibuka · level Anda · simulasi"
+      "userTradeOpened": "Trade baru dibuka · level Anda · simulasi",
+      "liveDisarmedStopped": "Bot Live berhenti dan di-disarm: ukurannya berubah. Mulai lagi dengan LIVE",
+      "liveBotMapped": "Tetap sebagai bot Live: bot ini memakai uang nyata di build LIVE. Menunggu berhenti untuk LIVE",
+      "liveRowOnPaperBot": "Baris posisi nyata pada bot Paper ditahan di luar buku",
+      "telegramSettingsUnreadable": "Pengaturan Telegram tidak terbaca: salinan disimpan, Telegram mati sampai diatur lagi",
+      "tvAlertOpened": "Alert TradingView dibuka",
+      "tvLateFillAdopted": "Alert TradingView: fill terlambat ditemukan dan dilindungi",
+      "liveLevelsAfterFill": "Fill membuat level alert tak terpakai · posisi ditutup"
     },
     "exchange": "Bursa",
     "signalFilter": "Filter sinyal",
@@ -333,7 +341,7 @@
           "body": "Kill switch rugi harian menghentikan semua bot · leverage dibatasi level risiko · masuk ditolak jika harga sudah melewati target atau stop"
         },
         "localFirst": {
-          "title": "Kunci Anda, mesin Anda",
+          "title": "Kunci tetap di komputer Anda",
           "body": "Kunci di brankas lokal terenkripsi · non-kustodian · order live mati secara bawaan · stop-loss live ada di bursa"
         }
       }
@@ -403,21 +411,10 @@
       "hasSignal": "sinyal"
     },
     "live": {
-      "title": "Uang nyata",
-      "stateSimulated": "Simulasi",
-      "switchOn": "Beralih ke uang nyata",
-      "switchOff": "Beralih ke simulasi",
-      "saveFirst": "Jalankan bot sekali untuk menyimpan pengaturannya sebelum beralih ke uang nyata.",
-      "confirmTitle": "Trading dengan uang nyata pada bot ini",
+      "switchOff": "Beralih ke Paper",
       "targetProduction": "Order dikirim ke Binance produksi, di akun nyata Anda.",
       "targetTestnet": "Order dikirim ke testnet Binance, bukan ke produksi.",
-      "terms": "Pengaturan tersimpan: {{capital}} USDT per posisi, hingga {{positions}} posisi, batas leverage {{leverage}}x.",
-      "restartNote": "Uang nyata dimatikan lagi saat aplikasi dimulai ulang.",
-      "typePrompt": "Ketik {{word}} untuk mengonfirmasi",
-      "confirm": "Konfirmasi uang nyata",
-      "cancel": "Batal",
       "failed": "Tidak dapat mengubah pengaturan uang nyata.",
-      "sizingTurnedOff": "LIVE dimatikan karena modal, leverage, atau batas posisi berubah. Konfirmasi ukuran baru dengan LIVE lagi.",
       "pilot": "Pilot: tersisa {{count}} entri nyata, masing-masing paling banyak {{cap}} USDT.",
       "endPilot": "Akhiri pilot",
       "targetVenue": "Order dikirim ke {{exchange}}, di akun nyata Anda.",
@@ -496,8 +493,9 @@
     "commission": "biaya {{amount}} USDT",
     "scope": {
       "label": "Cakupan statistik",
-      "simulated": "Simulasi",
-      "real": "Uang nyata"
+      "simulated": "Paper",
+      "real": "Uang nyata",
+      "realTestnet": "Testnet"
     },
     "col": {
       "ledger": "Katalog %"
@@ -563,8 +561,7 @@
       "botRunningHint": "Mulai bot yang sudah dikonfigurasi",
       "firstPreset": "Bot pertama yang disarankan: {{name}} · lolos pengujiannya"
     },
-    "liveLockedNote": "Trading live: terkunci · Hanya simulasi",
-    "liveAvailableNote": "Trading live: tersedia · mati sampai diaktifkan per bot"
+    "liveAvailableNote": "Trading Live: per bot, mati sampai Anda memilih Live"
   },
   "nav": {
     "label": "Navigasi utama",
@@ -615,18 +612,9 @@
     "more": "Lainnya",
     "guide": "Panduan",
     "faq": "FAQ",
-    "scope": {
-      "paperBuild": "Hanya simulasi",
-      "liveAvailable": "Simulasi · Live mati",
-      "live": "LIVE · {{n}}"
-    },
-    "scopeTooltip": {
-      "paperBuild": "Versi ini hanya berdagang dalam simulasi: pengisian simulasi, tanpa order nyata. Klik untuk cara kerja uang sungguhan.",
-      "liveAvailable": "Versi ini bisa berdagang dengan uang sungguhan di Futures {{venues}}. Saat ini tidak ada bot yang melakukannya: semua dalam simulasi. Uang sungguhan dinyalakan per bot (ketik LIVE). Klik untuk detail.",
-      "live": "{{n}} bot berdagang dengan uang sungguhan. LIVE dinyalakan per bot. Klik untuk detail."
-    },
     "beforeYouTrade": "Sebelum trading",
-    "assistant": "Asisten"
+    "assistant": "Asisten",
+    "tvBot": "Bot TradingView"
   },
   "page": {
     "botNew": "Bot baru",
@@ -635,10 +623,12 @@
     "botDetail": "Bot",
     "presetDetail": "Preset",
     "backtestReport": "Laporan backtest",
-    "notFound": "Halaman tidak ditemukan"
+    "notFound": "Halaman tidak ditemukan",
+    "tvBot": "Bot TradingView"
   },
   "states": {
     "paper": "Simulasi",
+    "live": "Live",
     "clearFilters": "Hapus filter",
     "asOf": "Per",
     "cancel": "Batal",
@@ -713,7 +703,8 @@
     "type": {
       "signal": "Sinyal",
       "dca": "DCA",
-      "grid": "Grid"
+      "grid": "Grid",
+      "tradingview": "TradingView"
     },
     "selectAll": "Pilih semua bot",
     "selectRow": "Pilih {{name}}",
@@ -721,7 +712,9 @@
     "blocked": {
       "killSwitch": "Mulai ditolak: stop harian terpicu. Bisa dimulai lagi setelah 00:00 UTC.",
       "notConfigured": "Perlu pengaturan tersimpan: buka bot dan simpan pengaturannya.",
-      "capitalAboveCap": "Modal per posisi di atas batas level risiko: turunkan di pengaturan bot."
+      "capitalAboveCap": "Modal per posisi di atas batas level risiko: turunkan di pengaturan bot.",
+      "tradingBlocked": "Mulai ditolak: pengaturan risiko atau data lokal tidak terbaca.",
+      "liveArm": "Bot Live: mulai dari pengaturannya, dengan LIVE."
     },
     "totals": {
       "bots": "Bot",
@@ -753,35 +746,37 @@
     "type": {
       "signal": "Bot sinyal (Sentinel)",
       "dca": "Bot DCA",
-      "grid": "Bot grid"
+      "grid": "Bot grid",
+      "tradingview": "Bot TradingView"
     },
     "suitsLabel": "Cocok untuk",
     "suits": {
       "signal": "Berbasis sinyal",
       "trend": "Tren",
-      "range": "Sideways"
+      "range": "Sideways",
+      "tradingview": "Alert Anda sendiri"
     },
     "mode": {
       "title": "Simulasi dan uang sungguhan",
-      "liveBuildLine": "Simulasi secara bawaan; uang sungguhan dinyalakan per bot, hanya Futures, setelah pemeriksaan live",
+      "liveBuildLine": "Paper secara bawaan; Live dipilih per bot, hanya Futures, dengan mengetik LIVE",
       "paperHead": "Simulasi: setiap bot baru mulai di sini",
       "paperBody": "Pengisian simulasi pada harga live, termasuk biaya. Tidak ada order ke bursa; tidak ada yang bisa hilang.",
-      "realHead": "Uang sungguhan: per bot, setelah dibuat",
-      "realBody": "Hanya di Futures USDT-M {{venues}}: bot sinyal Futures, serta bot DCA atau Grid yang diatur ke Futures di bursa itu. Spot tetap disimulasikan.",
+      "realHead": "Live: dipilih saat bot dibuat",
+      "realBody": "Hanya di Futures USDT-M {{venues}}: bot sinyal Futures, bot TradingView, serta bot DCA atau Grid yang diatur ke Futures di bursa itu. Spot tetap disimulasikan.",
       "step1": "Kunci dengan akses Futures dan Trade di brankas:",
       "step2": "Pemeriksaan kesiapan live lulus:",
-      "step3": "Di bot, beralih ke uang sungguhan dan ketik LIVE.",
+      "step3": "Di layar pembuatan bot pilih Live, periksa uang berisiko, dan ketik LIVE.",
       "step4": "Pilot: 3 entri nyata pertama bot sinyal dibatasi 50 USDT; 3 siklus pertama bot DCA atau Grid sekitar 100 USDT.",
       "preflight": "Kesiapan live",
       "notYet": "{{venues}}: uang sungguhan tetap mati sampai uji testnet-nya lulus.",
-      "guide": "Cara kerja uang sungguhan",
-      "paperOnly": "Simulasi: eksekusi simulasi di harga live, termasuk biaya"
+      "guide": "Cara kerja uang sungguhan"
     },
     "presetsLink": "Preset untuk jenis ini",
     "how": {
       "signal": "Membuka posisi pada setiap sinyal Sentinel yang lolos filter Anda dan keluar di target atau stop sinyal.",
       "dca": "Dibuka dengan order dasar, menambah safety order saat harga bergerak berlawanan, dan menutup seluruh posisi di satu take profit dari harga rata-rata.",
-      "grid": "Memasang order beli dan jual di level tetap dalam rentang harga dan memperdagangkan pergerakan di antaranya."
+      "grid": "Memasang order beli dan jual di level tetap dalam rentang harga dan memperdagangkan pergerakan di antaranya.",
+      "tradingview": "Menjalankan alert TradingView Anda sendiri: alert indikator atau strategi sampai ke aplikasi melalui relay Sentinel dan membuka, menutup, atau membalik satu posisi futures USDT-M per pair, dalam batas yang Anda tetapkan."
     },
     "yours": "Bot Anda",
     "yoursNone": "Belum ada",
@@ -796,7 +791,6 @@
     "evidenceInfo": "Simulasi historis pada candle lama dengan biaya, dinilai sekali pada periode TEST yang disisihkan. Bukan ramalan; Templat mencantumkan pemeriksaan tiap templat.",
     "realMoney": "Uang sungguhan",
     "realFutures": "Futures di {{venues}}",
-    "realNotInBuild": "Tidak di versi ini",
     "openSignal": "Buka bot sinyal",
     "fromTemplate": "Dari templat",
     "blank": "Kosong",
@@ -816,7 +810,10 @@
     "templatesProven": "{{n}} terbukti",
     "templatesExperimental": "{{n}} eksperimental",
     "evidenceProven": "Template terbukti {{name}}, TEST historis: {{mean}} per bot-bulan (CI 95% {{lo}} hingga {{hi}}), bot terburuk {{dd}}",
-    "startProven": "Mulai dengan {{name}}"
+    "startProven": "Mulai dengan {{name}}",
+    "evidenceTradingview": "Tidak diuji oleh Sentinel: hasilnya milik strategi Anda.",
+    "templatesTradingview": "Pembuat pesan di Pengaturan, TradingView",
+    "openTradingview": "Buka bot TradingView"
   },
   "botDetail": {
     "notFound": "Bot tidak ditemukan",
@@ -1097,7 +1094,7 @@
   "positions": {
     "tabPaper": "Simulasi",
     "tabExchange": "Exchange",
-    "noPaper": "Tidak ada posisi simulasi terbuka",
+    "noPaper": "Tidak ada posisi Paper terbuka",
     "noKey": "Tidak ada kunci bursa di brankas",
     "realZone": "Akun exchange nyata: aksi mengirim order nyata",
     "totals": "Total",
@@ -1115,8 +1112,8 @@
     "closeFailed": "Gagal menutup.",
     "closeAllPaper": {
       "button": "Tutup semua ({{count}})",
-      "title": "Tutup semua posisi simulasi",
-      "body": "Menghentikan {{bots}} bot sinyal, menutup {{positions}} posisi simulasi dan {{cycles}} siklus DCA / Grid di harga pasar, dan menjeda {{strategyBots}} bot DCA / Grid.",
+      "title": "Tutup semua posisi Paper",
+      "body": "Menghentikan {{bots}} bot sinyal, menutup {{positions}} posisi Paper dan {{cycles}} siklus DCA / Grid di harga pasar, dan menjeda {{strategyBots}} bot DCA / Grid.",
       "realNote": "Posisi nyata di exchange tidak disentuh: tutup di tab Exchange.",
       "confirm": "Tutup semua",
       "done": "Ditutup: {{closed}} · tidak tertutup: {{failed}}",
@@ -1167,7 +1164,7 @@
       "open": "Buka trade simulasi",
       "opened": "Dibuka · {{symbol}} di {{price}} · simulasi",
       "refusal": {
-        "manualTakePaperOnly": "Bot ini memakai uang sungguhan · Trade baru hanya membuka posisi simulasi",
+        "manualTakePaperOnly": "Ini bot Live: pilih Live untuk trade nyata",
         "botNotConfigured": "Simpan dulu pengaturan bot ini",
         "marketHeld": "Bot ini sudah memegang posisi pada pasangan ini",
         "stopPassed": "Harga sudah melewati stop",
@@ -1180,8 +1177,21 @@
         "tradeTargetWrongSide": "Take-profit di sisi yang salah dari harga live",
         "tradeStopWrongSide": "Stop-loss di sisi yang salah dari harga live",
         "tradeStopInsideFees": "Stop lebih dekat dari kedua biaya · perlu lebih dari {{detail}}",
-        "tradeTargetInsideFees": "Take-profit lebih dekat dari kedua biaya · perlu lebih dari {{detail}}"
-      }
+        "tradeTargetInsideFees": "Take-profit lebih dekat dari kedua biaya · perlu lebih dari {{detail}}",
+        "tradeBotIsPaper": "Bot Futures adalah bot Paper: jadikan Live dulu"
+      },
+      "notionalMin": "Minimum {{min}} USDT (minimum Binance)"
+    },
+    "liveBotPositions": "Posisi bot di bursa",
+    "noLiveBot": "Tidak ada bot yang memegang posisi nyata",
+    "noOpen": "Tidak ada posisi terbuka",
+    "protection": {
+      "qty": "Jumlah",
+      "stop": "Stop di bursa",
+      "tp": "TP di bursa",
+      "placed": "Order {{id}}",
+      "none": "Tidak ada",
+      "tip": "Order stop dan take-profit yang dipasang bot di bursa, menurut id order, dari catatan posisi bot sendiri. Akun diperiksa setiap 60 detik; stop atau take-profit yang terpicu menutup baris ini."
     }
   },
   "history": {
@@ -1296,8 +1306,6 @@
       }
     },
     "live": {
-      "notThisBuild": "Versi ini tidak bisa mengirim order nyata.",
-      "build": "Versi memiliki fitur live",
       "binanceKey": "Kunci trading di brankas",
       "endpoint": "Endpoint order",
       "turnOff": "Matikan LIVE",
@@ -1405,7 +1413,7 @@
       "keys": "Kunci API, brankas, koneksi",
       "about": "Versi, pembaruan, data Anda",
       "backup": "Cadangan, file pengaturan bot",
-      "tradingview": "Peringatan jadi trade simulasi"
+      "tradingview": "Alert ke bot TradingView"
     },
     "navStatus": {
       "alerts": "{{on}} dari {{total}} ditampilkan",
@@ -1582,12 +1590,10 @@
     },
     "about": {
       "tagline": "Aplikasi desktop untuk bot sinyal Sentinel serta bot DCA dan Grid, dalam batas risiko yang Anda tetapkan.",
-      "paperBuild": "Build simulasi",
-      "liveBuild": "Build nyata",
+      "liveBuild": "Satu build",
       "testnetBuild": "Testnet",
       "buildNote": {
-        "paper": "Build ini hanya bertransaksi secara simulasi. Tombol Tutup di tab Exchange adalah satu-satunya order nyata yang bisa dikirimnya.",
-        "live": "Build ini dapat menempatkan order nyata di Binance Futures, per bot, setelah Anda mengetik LIVE."
+        "live": "Setiap bot adalah Paper kecuali Anda memilih Live dan mengetik LIVE. Tombol Tutup di tab Bursa mengirim order nyata."
       },
       "notAdvice": "Perangkat lunak, bukan nasihat keuangan.",
       "installTitle": "Detail instalasi",
@@ -1652,7 +1658,7 @@
       "failed": "Pencadangan gagal.",
       "fileTitle": "File pengaturan bot",
       "fileHolds": "Pengaturan bot sinyal dan setiap bot DCA / Grid dalam satu file JSON. Tanpa kunci API, brankas, token Telegram, atau riwayat transaksi.",
-      "importRule": "Impor mengganti pengaturan bot sinyal dan menambahkan setiap bot DCA / Grid sebagai bot baru yang berhenti. Semua yang diimpor berjalan tersimulasi; uang nyata tidak pernah diaktifkan.",
+      "importRule": "Impor mengganti pengaturan bot sinyal dan menambahkan setiap bot DCA / Grid sebagai bot baru yang berhenti. Semua yang diimpor berjalan sebagai Paper; Live tidak pernah diaktifkan.",
       "export": "Ekspor pengaturan",
       "exporting": "Mengekspor…",
       "import": "Impor pengaturan",
@@ -1663,8 +1669,8 @@
       "importResult": "Hasil impor",
       "importSummary": "{{ok}} dari {{total}} diterapkan",
       "importEmpty": "File tidak berisi bot.",
-      "created": "Ditambahkan, berhenti, tersimulasi",
-      "replaced": "Pengaturan diganti, tersimulasi",
+      "created": "Ditambahkan, berhenti, Paper",
+      "replaced": "Pengaturan diganti, Paper",
       "refused": "Ditolak",
       "signalBot": "Bot sinyal {{kind}}",
       "unreadableEntry": "Entri tidak terbaca",
@@ -1673,8 +1679,8 @@
         "keeps": "Pembaruan mempertahankan bot, pengaturan, riwayat transaksi, dan kunci bursa di komputer ini.",
         "backup": "Cadangan dibuat sebelum setiap pemasangan. Jika pencadangan gagal, pembaruan tidak dipasang.",
         "liveBlocks": "Pembaruan tidak dimulai selama uang nyata digunakan: tutup dulu posisi nyata dan matikan uang nyata.",
-        "signal": "Bot sinyal kembali tersimulasi setelah setiap mulai ulang; uang nyata perlu LIVE diketik lagi. Bot sinyal tersimulasi yang sedang berjalan mulai lagi jika lolos pemeriksaan mulai.",
-        "strategy": "Bot DCA / Grid tersimulasi yang sedang berjalan mulai lagi setelah mulai ulang jika lolos pemeriksaan mulai. Bot dengan uang nyata kembali dalam keadaan berhenti; siklus terbukanya tetap dikelola."
+        "signal": "Bot sinyal Live kembali dalam keadaan berhenti setelah setiap mulai ulang dan perlu LIVE diketik lagi. Bot sinyal Paper yang sedang berjalan mulai lagi jika lolos pemeriksaan mulai.",
+        "strategy": "Bot DCA / Grid Paper yang sedang berjalan mulai lagi setelah mulai ulang jika lolos pemeriksaan mulai. Bot Live kembali dalam keadaan berhenti; siklus terbukanya tetap dikelola."
       }
     },
     "tv": {
@@ -1710,9 +1716,9 @@
       "copyFailed": "Gagal menyalin",
       "alertsTitle": "Peringatan",
       "receive": "Terima peringatan",
-      "receiveDesc": "Membaca peringatan dari relay setiap 5 dtk dan mencantumkannya di bawah. Tidak ada yang dieksekusi.",
-      "execute": "Eksekusi peringatan sebagai trade simulasi",
-      "executeDesc": "Beli dan jual membuka satu posisi simulasi lewat Trade baru, dengan semua pemeriksaannya. Tutup menutup trade terbuka milik Anda di pair itu. Peringatan yang lebih tua dari 120 dtk saat dibaca tidak dieksekusi.",
+      "receiveDesc": "Membaca alert dari relay (dorongan server, atau polling tiap beberapa detik) dan menampilkannya di bawah. Tidak ada yang dijalankan.",
+      "execute": "Jalankan alert",
+      "executeDesc": "Alert futures dan strategi berjalan di bot TradingView (Paper) dengan batas dan penjaganya; alert spot di buku paper bot Spot. Tutup hanya menutup posisi milik bot TradingView di pair itu.",
       "lastRead": "Terakhir dibaca",
       "lastError": "Galat terakhir",
       "howTitle": "Atur di TradingView",
@@ -1726,13 +1732,13 @@
         "close": "Tutup"
       },
       "field": {
-        "action": "action: buy (long), sell (short, hanya bot Futures), close (menutup trade terbuka milik Anda di pair itu).",
-        "symbol": "symbol: {{ticker}} atau sebuah pair. BINANCE:BTCUSDT.P, BTCUSDT.P, BTCUSDTPERP dan btcusdt semuanya dibaca BTCUSDT. Hanya pair USDT.",
-        "levels": "tp atau tp_pct, dan sl atau sl_pct: tepat satu dari masing-masing untuk beli dan jual. tp dan sl adalah harga.",
-        "pct": "tp_pct dan sl_pct adalah jarak persen dari harga live saat eksekusi. Long: tp = harga × (1 + tp_pct/100), sl = harga × (1 − sl_pct/100). Short: tp = harga × (1 − tp_pct/100), sl = harga × (1 + sl_pct/100).",
-        "bot": "bot: futures (bawaan) atau spot. Spot hanya long.",
-        "size": "size_usdt: nosional opsional dalam USDT. Tanpa itu, ukuran dari bot itu sendiri yang berlaku.",
-        "stale": "Peringatan yang diterima lebih dari 120 dtk sebelum dibaca aplikasi tidak dieksekusi. Teks biasa atau JSON lain dicantumkan sebagai tak terbaca."
+        "action": "action: buy (long), sell (short, futures), close (menutup posisi milik bot TradingView di pair itu).",
+        "symbol": "symbol: {{ticker}} atau sebuah pair. BINANCE:BTCUSDT.P, BTCUSDT.P, dan BTCUSDTPERP dibaca sebagai futures BTCUSDT; pair yang berganti nama seperti 1000PEPEUSDT dicocokkan. Hanya pair USDT.",
+        "levels": "tp atau tp_pct, dan sl atau sl_pct: tepat satu dari masing-masing untuk entri. tp dan sl adalah harga.",
+        "pct": "tp_pct dan sl_pct adalah jarak persen dari harga: di bot Live dari fill nyata, lalu diperiksa ulang di sana. Long: tp = harga × (1 + tp_pct/100), sl = harga × (1 − sl_pct/100). Short: sebaliknya.",
+        "bot": "bot: futures (bawaan, bot TradingView) atau spot (bot Spot, paper, hanya long). Simbol .P tidak bisa ke spot.",
+        "size": "size_usdt: nosional opsional dalam USDT, maksimal batas per alert bot. Tanpa itu, batas tersebut.",
+        "stale": "Alert yang lebih tua dari jendela kedaluwarsa bot menurut jam server tidak dijalankan. Teks biasa atau JSON lain dicatat sebagai tak terbaca."
       },
       "resultsTitle": "Peringatan terbaru",
       "resultsEmpty": "Belum ada peringatan yang dibaca.",
@@ -1740,18 +1746,119 @@
         "time": "Waktu",
         "action": "Aksi",
         "symbol": "Pair",
-        "outcome": "Hasil"
+        "outcome": "Hasil",
+        "bot": "Bot",
+        "qty": "Diminta / terisi",
+        "qtyTip": "Kuantitas yang dihitung pada harga live, dan yang terisi (paper: sama).",
+        "fill": "Rata-rata fill",
+        "slippage": "Slippage",
+        "slippageTip": "Fill dibanding harga alert; positif lebih buruk bagi trade.",
+        "latency": "Latensi",
+        "latencyTip": "Dari relay menerima alert sampai fill, menurut jam server."
       },
       "outcome": {
         "received": "Diterima · tidak dieksekusi (Eksekusi mati)",
-        "opened": "Dibuka · simulasi",
-        "closed": "Ditutup · simulasi",
-        "tvExpired": "Tidak dieksekusi · lebih tua dari 120 dtk saat dibaca",
+        "opened": "Dibuka",
+        "closed": "Ditutup",
+        "tvExpired": "Tidak dijalankan · lebih tua dari jendela kedaluwarsa bot (jam server)",
         "tvBadMessage": "Tak terbaca · bukan JSON dalam format peringatan",
         "tvBadLevels": "Berikan satu dari tp / tp_pct dan satu dari sl / sl_pct, di atas 0",
-        "tvNothingToClose": "Tidak ada yang ditutup · tidak ada trade terbuka Anda di pair dan bot ini",
-        "tvTestOnly": "Hanya uji · tanpa order"
-      }
+        "tvNothingToClose": "Tidak ada yang ditutup · bot TradingView tidak punya posisi di pair ini",
+        "tvTestOnly": "Hanya uji · tanpa order",
+        "flipped": "Dibalik · ditutup, lalu dibuka",
+        "tvExpiredOffline": "Tidak dijalankan · datang saat aplikasi offline",
+        "tvServerTimeMissing": "Tidak dijalankan · relay tidak mengirim waktu server",
+        "tvDuplicate": "Duplikat · pesan atau id sama dalam 5 menit",
+        "tvPriceMoved": "Tidak dijalankan · harga bergerak {{detail}} dari harga alert",
+        "tvPriceRequired": "Tidak dijalankan · alert tanpa harga dan bot mewajibkannya",
+        "tvSizeAboveMax": "Ukuran di atas batas per alert bot ({{detail}} USDT)",
+        "tvPositionsFull": "Batas posisi bot penuh ({{detail}})",
+        "tvBudgetFull": "Anggaran bot penuh · sisa {{detail}} USDT",
+        "tvDailyOpensFull": "Batas entri harian bot tercapai ({{detail}})",
+        "tvSymbolNotAllowed": "Pair tidak ada di daftar izin bot",
+        "tvPassphraseWrong": "Frasa sandi salah atau tidak ada",
+        "tvBotRequired": "Tidak ada bot TradingView · buat di Bot",
+        "tvBotStopped": "Bot TradingView berhenti",
+        "tvSpotPaperOnly": "Alert spot tetap paper: ditolak selama bot TradingView Live",
+        "tvCloseNotOwn": "Tidak ditutup · pair ini dipegang bot {{detail}}, bukan bot TradingView",
+        "tvSymbolHeldBy": "Tidak dibuka · pair ini dipegang bot {{detail}} (satu posisi nyata per pair)",
+        "tvFlipCloseFailed": "Pembalikan dihentikan · penutupan tidak selesai, tidak ada yang dibuka",
+        "tvFlipOpenRefused": "Pembalikan: ditutup, posisi baru ditolak",
+        "livePending": "Hasil order tidak diketahui · sedang dicek, tidak pernah dikirim ulang",
+        "tvAlreadyOpen": "Sudah terbuka ke arah ini · satu posisi per pair",
+        "tvOppositeOpen": "Posisi berlawanan terbuka · kirim close dulu, atau pakai alert strategi",
+        "tvPartialExit": "Keluar sebagian tidak didukung · satu posisi penuh per pair",
+        "tvStrategyMismatch": "Strategi flat di sisi berlawanan dari posisi bot",
+        "tvBadPosition": "market_position harus long, short, atau flat",
+        "tvPerpOnSpot": "Simbol perpetual (.P) tidak bisa ke bot spot",
+        "liveLevelsAfterFill": "Fill membuat level alert tak terpakai · posisi ditutup",
+        "tvBelowSymbolMinimum": "Tidak dijalankan · {{symbol}} perlu minimal {{min}} USDT per order; alert ini meminta {{size}} USDT (ukuran maks {{max}} USDT)"
+      },
+      "executeDescLive": "Bot TradingView Live: selama di-arm dan berjalan, alert futures menempatkan order nyata di Binance. Alert spot ditolak (spot tetap paper).",
+      "bot": "Bot TradingView",
+      "botNone": "Belum ada · buat satu",
+      "botRunning": "Berjalan",
+      "botStopped": "Berhenti",
+      "link": "Tautan",
+      "linkState": {
+        "off": "Terima mati",
+        "online": "Online",
+        "offline": "Offline"
+      },
+      "transport": {
+        "stream": "dorongan server",
+        "poll": "polling"
+      },
+      "lastSeen": "Terakhir dilihat server",
+      "lastSeenInfo": "Catatan relay atas baca terakhir atau stream terbuka aplikasi. Alert yang datang saat aplikasi offline tidak dijalankan kemudian.",
+      "pendingOrders": "Order sedang dicek",
+      "notice": "Notifikasi Telegram saat offline",
+      "noticeDesc": "Server mengirim pesan Telegram saat alert datang dan aplikasi sudah offline lebih dari {{s}} dtk.",
+      "noticeNoTelegram": "Tautkan Telegram di Notifikasi untuk memakainya.",
+      "noticeDefault": "Aktif secara bawaan untuk bot TradingView Live. Bila dimatikan di sini, tetap mati.",
+      "holderStrategy": "DCA / Grid",
+      "builder": {
+        "title": "Pembuat pesan",
+        "mode": "Mode",
+        "manual": "Manual",
+        "strategy": "Strategi",
+        "action": "Aksi",
+        "market": "Pasar",
+        "levels": "Level",
+        "levelsPct": "Persen",
+        "levelsPrice": "Harga",
+        "tpPct": "Take-profit %",
+        "slPct": "Stop-loss %",
+        "tpPrice": "Harga take-profit",
+        "slPrice": "Harga stop-loss",
+        "size": "Ukuran (USDT)",
+        "sizeEmpty": "Maksimum bot",
+        "price": "Tambah harga ({{close}})",
+        "alertMessage": "Tambah alert_message Pine ({{alertMessage}})",
+        "passphrase": "Frasa sandi",
+        "passphraseHint": "Hanya masuk ke teks yang disalin; aplikasi tidak menyimpannya di sini.",
+        "id": "Id alert",
+        "idNone": "Tidak ada",
+        "idTime": "Waktu alert",
+        "idCustom": "Kustom",
+        "customId": "Teks id",
+        "error": {
+          "levels": "Isi take-profit dan stop-loss di atas 0",
+          "pct": "Level persen: di atas 0 dan di bawah 100",
+          "size": "Ukuran: minimal 5 USDT, atau kosong",
+          "spotShort": "Bot spot hanya long: sell perlu futures",
+          "customId": "Id: 1 sampai 64 karakter, tanpa tanda kutip"
+        },
+        "note": {
+          "manualMap": "Buy membuka long, sell short (futures), close menutup posisi milik bot TradingView di pair itu.",
+          "strategyMap": "Mode strategi mengirim {{action}} dan {{position}}: buy + long membuka long, sell + short membuka short, sell + flat atau buy + flat menutup.",
+          "flip": "Pembalikan (long ke short, short ke long) menutup dulu dan baru membuka setelah penutupan terkonfirmasi.",
+          "priceGuard": "Dengan harga, bot menolak entri bila harga live bergerak melebihi penjaga harganya dari {{close}}.",
+          "idNote": "Id seperti {{timenow}} membuat penjaga duplikat membuang pengiriman ulang alert yang sama dalam 5 menit.",
+          "alertMessage": "Hanya bila setiap strategy.entry dan strategy.exit mengisi alert_message dengan objek JSON; jika tidak, pesan tak terbaca."
+        }
+      },
+      "streamFailed": "stream gagal: {{reason}}"
     }
   },
   "accountPage": {
@@ -2612,7 +2719,13 @@
       "budgetCapDetail": "Melebihi batas anggaran DCA/Grid: {{free}} USDT tersedia dari {{limit}} USDT. Naikkan saldo simulasi atau level risiko di Risiko & keamanan.",
       "slBeyondLiquidation": "Stop loss berada di harga likuidasi atau melewatinya: tidak akan pernah terpicu. Gunakan stop yang lebih dekat atau leverage lebih rendah.",
       "budgetBelowMinNotionalMin": "Sebuah order akan di bawah minimum 5 USDT. Anggaran minimum: {{min}} USDT.",
-      "liveVenueNotDryRun": "Uang nyata belum tersedia di bursa ini: jalur order-nya belum lulus uji di jaringan uji bursa. Posisi di sana tetap bisa ditutup."
+      "liveVenueNotDryRun": "Uang nyata belum tersedia di bursa ini: jalur order-nya belum lulus uji di jaringan uji bursa. Posisi di sana tetap bisa ditutup.",
+      "liveArmRequired": "Bot Live belum di-arm sesi ini: ketik LIVE dengan uang berisiko dulu (panel Uang nyata).",
+      "liveTermsChanged": "Pengaturan berubah saat konfirmasi (margin kini {{detail}} USDT). Konfirmasi lagi.",
+      "liveTermsRequired": "Konfirmasi uang berisiko dulu.",
+      "riskConfigUnreadable": "Pengaturan risiko tidak terbaca: simpan di halaman risiko.",
+      "storeSchemaNewer": "Data lokal ditulis oleh Aleph Edge yang lebih baru (skema {{detail}}). Pasang versi itu; tidak ada yang diubah.",
+      "botNotLive": "Bot ini bukan Live."
     },
     "leverageConfirm": {
       "title": "Likuidasi mungkin terjadi, tanpa stop",
@@ -2642,8 +2755,6 @@
       "enable": "Beralih ke uang nyata",
       "disable": "Kembali ke simulasi",
       "confirmTitle": "Uang nyata untuk {{name}}",
-      "confirmBody": "Setiap beli dan jual yang disimulasikan bot ini dikirim ke Binance Futures sebagai order pasar pada {{symbol}}, margin terisolasi, {{leverage}}x. Sebuah stop tetap di bursa pada level stop bot. Jika posisi di Binance berubah di luar bot, bot berhenti. Biaya taker berlaku.",
-      "buildOff": "Build ini hanya simulasi.",
       "futuresOnly": "Uang nyata hanya tersedia untuk bot Binance Futures.",
       "goKeys": "Kunci exchange",
       "goSettings": "Pengaturan bot",
@@ -2659,8 +2770,7 @@
       "pilot": "Pilot: tersisa {{count}} siklus pada {{pct}}% dari ukuran simulasi. Mengakhirinya berlaku mulai siklus berikutnya.",
       "endPilot": "Akhiri pilot",
       "venue": "Bursa order",
-      "confirmBodyVenue": "Setiap beli dan jual yang disimulasikan bot ini dikirim ke futures {{exchange}} sebagai order pasar pada {{symbol}}, margin terisolasi, {{leverage}}x. Keputusan tetap memakai harga Binance. Stop tetap di bursa pada level stop bot. Jika posisi berubah di luar bot, bot berhenti. Biaya taker berlaku.",
-      "confirmBudget": "Anggaran bot: {{budget}} USDT, leverage {{leverage}}x."
+      "confirmBodyVenue": "Setiap beli dan jual yang disimulasikan bot ini dikirim ke futures {{exchange}} sebagai order pasar pada {{symbol}}, margin terisolasi, {{leverage}}x. Keputusan tetap memakai harga Binance. Stop tetap di bursa pada level stop bot. Jika posisi berubah di luar bot, bot berhenti. Biaya taker berlaku."
     },
     "report": {
       "title": "Eksekusi nyata vs simulasi",
@@ -2689,6 +2799,22 @@
       "matched": "Eksekusi cocok",
       "note": "Slippage positif adalah biaya: membayar lebih saat beli, menerima lebih sedikit saat jual. Satu order pasar dapat mencerminkan beberapa eksekusi simulasi.",
       "empty": "Belum ada eksekusi nyata."
+    },
+    "budgetFloor": {
+      "min": "Minimum {{min}} USDT · order: {{orders}}, terkecil {{order}} USDT (minimum Binance)",
+      "fill": "Pakai",
+      "fillLabel": "Atur anggaran ke {{min}} USDT",
+      "loading": "Anggaran minimum: menghitung",
+      "loadingRules": "Anggaran minimum: membaca aturan Binance untuk {{symbol}}",
+      "failed": "Anggaran minimum tidak tersedia: pemeriksaan tidak menjawab",
+      "fixedSmall": "Setiap order minimal {{order}} USDT: naikkan ukuran order terlebih dahulu",
+      "live": "Live: minimum {{min}} USDT. Order terkecil {{symbol}} di Binance: {{order}} USDT",
+      "liveFixedSmall": "Live: setiap order {{symbol}} di Binance minimal {{order}} USDT",
+      "liveUnknown": "Minimum Live tidak diketahui: aturan Binance untuk {{symbol}} tidak terbaca",
+      "empty": "Masukkan anggaran (minimum {{min}} USDT)",
+      "emptyNoMin": "Masukkan anggaran",
+      "minShort": "Minimum {{min}} USDT.",
+      "below": "Perlu minimal {{min}} USDT: dibagi ke {{orders}} order, yang terkecil di bawah {{order}} USDT"
     }
   },
   "errors": {
@@ -2824,7 +2950,7 @@
     "trendUnavailable": "Tren tidak tersedia: Binance tidak menjawab.",
     "liveVenueNotDryRun": "Uang nyata belum tersedia di bursa ini: jalur order-nya belum lulus uji di jaringan uji bursa. Posisi di sana tetap bisa ditutup.",
     "botHasLivePositions": "Bot ini memegang posisi nyata di {{detail}}. Tutup dulu sebelum mengganti bursanya.",
-    "liveExchangeLocked": "Kembalikan bot ini ke simulasi sebelum mengganti bursanya: uang nyata dikonfirmasi untuk {{detail}}.",
+    "liveExchangeLocked": "Kembalikan bot ini ke Paper sebelum mengganti bursanya: uang nyata dikonfirmasi untuk {{detail}}.",
     "closeAllPartial": "Tutup semua tidak menutup setiap posisi. Masih terbuka: {{detail}}. Periksa daftar dan tutup lagi, atau di bursa.",
     "closeCleanupFailed": "Tertutup, tetapi order stop atau take-profit di {{detail}} tidak bisa dibatalkan. Batalkan di bursa.",
     "botCapitalAboveCap": "Modal per posisi di atas batas {{detail}} USDT untuk level risiko Anda. Turunkan, atau naikkan saldo simulasi atau level risiko di Risiko & keamanan.",
@@ -2884,7 +3010,29 @@
     "ed25519NoPendingKey": "Tidak ada pasangan kunci yang menunggu. Buat pasangan kunci, daftarkan kunci publiknya di Binance, lalu tempel kunci API.",
     "viewThresholdSameDirection": "Satu arah: masukkan 50 sampai 100%.",
     "viewThresholdSingleCoin": "Satu koin: masukkan 10 sampai 100%.",
-    "viewThresholdStress": "Kerugian pada BTC -20%: masukkan 1 sampai 100%."
+    "viewThresholdStress": "Kerugian pada BTC -20%: masukkan 1 sampai 100%.",
+    "liveArmRequired": "Bot Live belum di-arm sesi ini: ketik LIVE dengan uang berisiko dulu.",
+    "liveTermsChanged": "Pengaturan berubah saat konfirmasi (margin kini {{detail}} USDT). Konfirmasi lagi.",
+    "liveTermsRequired": "Konfirmasi uang berisiko dulu.",
+    "liveHasPaperPositions": "Bot ini memegang posisi paper: tutup sebelum uang nyata.",
+    "tradeBotIsPaper": "Bot Futures adalah bot Paper: jadikan Live dulu.",
+    "riskConfigUnreadable": "Pengaturan risiko tidak terbaca: simpan di halaman risiko.",
+    "storeSchemaNewer": "Data lokal ditulis oleh Aleph Edge yang lebih baru (skema {{detail}}). Pasang versi itu; tidak ada yang diubah.",
+    "tgSettingsUnreadable": "Pengaturan Telegram tersimpan tidak terbaca: atur Telegram lagi dulu.",
+    "botNotLive": "Bot ini bukan Live.",
+    "tvBotNameInvalid": "Nama bot TradingView: 1 sampai 40 karakter",
+    "tvBudgetInvalid": "Anggaran harus di atas 0 USDT",
+    "tvMaxSizeInvalid": "Ukuran maks per alert: minimal {{detail}} USDT",
+    "tvOpensPerDayRange": "Entri per hari: {{detail}}",
+    "tvStaleRange": "Jendela kedaluwarsa: {{detail}} dtk",
+    "tvPriceGuardRange": "Penjaga harga: {{detail}} %, di atas 0",
+    "tvSettingsMissing": "Pengaturan bot TradingView tidak ada",
+    "tvPassphraseTooLong": "Frasa sandi terlalu panjang (maks {{detail}} karakter)",
+    "tvOfflineAfterRange": "Jeda offline: {{detail}} dtk",
+    "tvStreamRead": "Stream event TradingView terputus; membaca lewat polling",
+    "tvStreamOversized": "Stream event TradingView mengirim frame terlalu besar",
+    "tvBotRequired": "Tidak ada bot TradingView · buat di Bot",
+    "tvStreamIdle": "Stream event TradingView tidak mengirim apa pun selama 45 detik; membaca lewat polling"
   },
   "status": {
     "running": "Berjalan",
@@ -2963,7 +3111,6 @@
       "fail": "Belum siap"
     },
     "checks": {
-      "build": "Versi live",
       "endpoint": "Endpoint {{exchange}}",
       "key": "Kunci khusus trading",
       "clock": "Jam vs Binance",
@@ -2980,7 +3127,6 @@
       "keySafety": "Pembatasan IP dan usia kunci"
     },
     "codes": {
-      "buildOff": "Versi ini tidak trading uang nyata",
       "production": "Produksi",
       "testnet": "Testnet: order bukan uang nyata",
       "keyNotVerified": "Kunci belum terverifikasi khusus trading",
@@ -3707,6 +3853,167 @@
       "orUnavailable": "OpenRouter tidak dapat dihubungi.",
       "orBadResponse": "OpenRouter mengirim jawaban yang tidak bisa dibaca aplikasi ini.",
       "linkOpenFailed": "Peramban tidak dapat dibuka."
+    }
+  },
+  "liveMode": {
+    "label": "Mode",
+    "paper": "Paper",
+    "live": "Live",
+    "blockersTitle": "Syarat Live",
+    "blockers": {
+      "futuresOnly": "Uang nyata: hanya Futures Binance",
+      "tradingBlocked": "Pengaturan risiko atau data lokal tidak terbaca: tidak ada bot yang bisa mulai",
+      "key": "Kunci {{exchange}} terverifikasi khusus trading di vault yang terbuka",
+      "paperPositions": "Tutup dulu posisi paper bot ini: paper dan uang nyata tidak pernah berbagi bot",
+      "stop": "Stop loss, stop-out grid, atau stop drawdown",
+      "tradeBotPaper": "Bot Futures adalah bot Paper: jadikan Live di pengaturannya dulu",
+      "notArmed": "Bot Futures Live belum di-arm di sesi ini: mulai dulu dengan LIVE"
+    },
+    "terms": {
+      "orders": "Order",
+      "margin": "Margin maksimum berisiko",
+      "marginInfo": "Margin terisolasi: jumlah terbesar yang bisa dimiliki bot ini di bursa sekaligus, dan terbesar yang bisa hilang.",
+      "notional": "Ukuran posisi terbesar",
+      "leverage": "Batas leverage",
+      "positions": "Posisi sekaligus",
+      "pilot": "Pilot",
+      "pilotValue": "{{count}} pertama dibatasi sekitar {{cap}}",
+      "notionalValue": "{{notional}} · margin {{margin}}",
+      "notionalInfo": "Satu posisi pada ukuran penuh: ukuran maks bot per alert, atau modalnya pada batas leverage. Pilot membatasi entri pertama lebih rendah."
+    },
+    "header": {
+      "chip": "Live berjalan: {{count}}",
+      "tooltip": "Bot Live yang berjalan sekarang. Buka untuk menghentikan semua.",
+      "title": "Bot Live",
+      "none": "Tidak ada bot Live. Semua bot Paper.",
+      "running": "Berjalan",
+      "needsArm": "Perlu LIVE",
+      "stoppedState": "Berhenti",
+      "positionsStay": "Posisi nyata yang terbuka tetap di bawah stop bursa. Tutup di Posisi, Bursa.",
+      "stopAll": "Hentikan semua Live",
+      "stopAllBody": "Setiap bot Live berhenti mengambil entri dan siklus baru dan di-disarm: memulai lagi perlu LIVE. Posisi nyata yang terbuka tetap dikelola di bawah stop bursa.",
+      "stopped": "Dihentikan: {{count}}",
+      "tooltipNone": "Tidak ada bot Live yang berjalan. Mulai bot dalam mode Live untuk mengirim order nyata."
+    },
+    "signal": {
+      "armed": "Di-arm sesi ini: order nyata pada sinyal berikutnya.",
+      "needsArm": "Bot Live, belum di-arm sesi ini (kembali berhenti setelah restart). Mulai menampilkan uang berisiko dan meminta LIVE.",
+      "chooseLive": "Mulai menyimpan pengaturan, menampilkan uang berisiko, dan meminta LIVE.",
+      "toPaperTitle": "Ubah bot ini ke paper",
+      "toPaperBody": "Bot berhenti sekarang. Posisi nyatanya tetap dikelola di bawah stop bursa; menjadi bot Paper setelah tidak ada yang terbuka.",
+      "armTitle": "Arm {{bot}} untuk sesi ini",
+      "goLiveTitle": "{{bot}}: uang nyata",
+      "goLiveTitleTestnet": "{{bot}}: order testnet",
+      "toPaperHeld": "Posisi nyata yang terbuka di bot ini ({{count}}):",
+      "heldLine": "{{symbol}} · {{side}} · {{qty}} @ {{entry}}",
+      "closeAndSwitch": "Tutup posisi dan beralih",
+      "switchLater": "Beralih nanti",
+      "closeAndSwitchNote": "Tutup posisi dan beralih mengirim order pasar reduce-only untuk setiap posisi di atas, menunggu konfirmasi bursa, lalu menjadikan bot Paper. Beralih nanti menghentikan bot sekarang; bot menjadi Paper setelah posisi ini tertutup. Posisi bot lain tidak disentuh."
+    },
+    "startLive": "Mulai dengan uang nyata",
+    "restartNote": "Setelah restart bot ini kembali berhenti dan meminta LIVE lagi.",
+    "strategy": {
+      "createNote": "Buat memeriksa kunci, bursa, simbol, dan order minimum, menampilkan uang berisiko, dan meminta LIVE. Tidak ada yang disimpan jika pemeriksaan gagal.",
+      "createTitle": "Bot Live baru: {{name}}",
+      "mirrorNote": "Setiap beli dan jual yang disimulasikan bot ini pada {{symbol}} dikirim sebagai order market, margin terisolasi. Stop tetap di bursa. Setelah restart bot kembali berhenti dan meminta LIVE lagi.",
+      "createLive": "Buat bot Live",
+      "createStartLive": "Buat dan mulai Live",
+      "needsArm": "Belum di-arm sesi ini: siklus baru hanya mulai setelah LIVE. Posisi terbuka dan stop bursanya tetap dikelola.",
+      "arm": "Arm dengan LIVE",
+      "armTitle": "Arm {{name}} untuk sesi ini"
+    },
+    "trade": {
+      "liveNote": "Order nyata pada bot Futures Live, dengan stop dan take-profit di bursa.",
+      "open": "Buka posisi nyata",
+      "confirmTitle": "Posisi nyata: {{side}} {{symbol}}",
+      "note": "Order market pada harga live: eksekusi bisa berbeda dari pratinjau. Batas pilot berlaku."
+    },
+    "blocked": {
+      "head": "Tidak ada bot yang bisa mulai:"
+    },
+    "riskUnreadable": {
+      "kept": "Pengaturan risiko tidak terbaca, jadi nilai bawaan ditampilkan. File yang tidak terbaca disimpan sebagai {{file}}. Tidak ada bot yang mulai sampai Anda menyimpan pengaturan risiko.",
+      "notKept": "Pengaturan risiko tidak terbaca, jadi nilai bawaan ditampilkan. Tidak ada bot yang mulai sampai Anda menyimpan pengaturan risiko.",
+      "keep": "Simpan pengaturan ini"
+    },
+    "heldRows": "Baris uang nyata yang tidak dikelola meja ({{count}}): tutup di bursa.",
+    "telegramUnreadable": {
+      "kept": "Pengaturan Telegram tersimpan tidak terbaca; salinan disimpan ({{key}}). Tidak ada yang dikirim sampai Anda mengatur Telegram lagi.",
+      "notKept": "Pengaturan Telegram tersimpan tidak terbaca. Tidak ada yang dikirim sampai Anda mengatur Telegram lagi.",
+      "startOver": "Atur ulang"
+    },
+    "startTestnet": "Mulai di testnet"
+  },
+  "botsTv": {
+    "now": "Sekarang",
+    "state": "Status",
+    "notSaved": "Belum disimpan",
+    "marginUsed": "Margin terpakai",
+    "pilot": "Sisa entri pilot",
+    "passphrase": "Frasa sandi",
+    "passphraseSet": "Diatur",
+    "passphraseNone": "Tidak ada",
+    "toSettings": "URL webhook, pembuat pesan, dan hasil alert",
+    "rulesTitle": "Diperiksa pada setiap alert",
+    "rule1": "Jalankan alert aktif, bot berjalan, frasa sandi cocok, dan pesan atau id yang sama tidak terlihat dalam 5 menit terakhir.",
+    "rule2": "Umur alert menurut jam server dalam jendela kedaluwarsa; alert yang datang saat aplikasi offline tidak pernah dijalankan.",
+    "rule3": "Pair-nya ada di daftar izin, ukurannya dalam batas maksimum, batas posisi, anggaran, dan batas entri harian.",
+    "rule4": "Harga live dalam batas penjaga harga dari harga alert; lalu level risiko, stop harian, dan untuk Live: arm, kunci, bursa, dan pilot.",
+    "save": "Simpan",
+    "general": "Umum",
+    "name": "Nama",
+    "exchangeHint": "Uang nyata: hanya Binance. Bybit dan OKX berjalan paper.",
+    "limits": "Batas",
+    "budget": "Anggaran",
+    "budgetHint": "Margin terbanyak sekaligus. Margin per posisi: {{margin}}.",
+    "maxSize": "Ukuran maks per alert",
+    "maxSizeHint": "Nilai nosional posisi. Alert tanpa size_usdt memakai ukuran ini.",
+    "leverage": "Leverage maks",
+    "leverageHint": "Level risiko mengizinkan hingga {{max}}x.",
+    "opensPerDay": "Entri maks per hari",
+    "opensHint": "Hari UTC; pembalikan menghitung pembukaannya.",
+    "allowList": "Daftar izin",
+    "allowListHint": "Pair yang boleh diperdagangkan bot, dipisah koma. Kosong: semua pair USDT.",
+    "allowListEmpty": "Semua pair",
+    "guards": "Penjaga",
+    "stale": "Jendela kedaluwarsa",
+    "staleHint": "Alert yang lebih tua dari ini menurut jam server tidak dijalankan. 5–120 dtk.",
+    "priceGuard": "Penjaga harga",
+    "priceGuardHint": "Tolak entri bila harga live bergerak lebih dari ini dari harga alert.",
+    "requirePrice": "Wajibkan harga di alert",
+    "requirePriceLive": "Disarankan untuk Live: tanpa harga penjaga harga tidak bisa berjalan.",
+    "passphraseHint": "Hanya disimpan sebagai hash bergaram; frasa sandi di alert harus cocok.",
+    "passKeep": "Pertahankan",
+    "passNone": "Tidak ada",
+    "passSet": "Atur baru",
+    "passClear": "Hapus",
+    "passNew": "Frasa sandi baru",
+    "error": {
+      "name": "Nama: 1 sampai 40 karakter",
+      "exchange": "Pilih bursa",
+      "budget": "Anggaran harus di atas 0 USDT",
+      "size": "Ukuran maks: minimal {{min}} USDT",
+      "positions": "Posisi: 1 sampai 20",
+      "leverage": "Leverage: 1 sampai {{max}}x",
+      "opens": "Entri per hari: 1 sampai {{max}}",
+      "stale": "Jendela kedaluwarsa: {{min}} sampai {{max}} dtk",
+      "guard": "Penjaga harga: di atas 0, maksimal {{max}}%",
+      "allowList": "Daftar izin: hanya pair USDT, mis. BTCUSDT",
+      "passphrase": "Frasa sandi: 1 sampai 64 karakter",
+      "budgetEmpty": "Masukkan anggaran (minimum {{min}} USDT)",
+      "budgetBelow": "Perlu minimal {{min}} USDT: satu alert pada ukuran maksimum ({{size}} USDT, {{leverage}}x) menahan margin sebesar itu",
+      "sizeEmpty": "Masukkan ukuran (minimum {{min}} USDT)"
+    },
+    "budgetMin": "Minimum {{min}} USDT: satu alert pada ukuran maksimum ({{size}} USDT, {{leverage}}x). Semua {{positions}} posisi pada ukuran maksimum: {{full}} USDT.",
+    "maxSizeMin": "Minimum {{min}} USDT (minimum Binance).",
+    "symbolMin": {
+      "label": "Minimum Binance per pair",
+      "hint": "Ketik pair untuk melihat order terkecil yang diterima Binance saat ini.",
+      "check": "Periksa",
+      "result": "{{symbol}}: minimal {{min}} USDT per order ({{qty}} pada {{price}})",
+      "aboveMax": "Di atas ukuran maks per alert bot ini ({{max}} USDT): alert untuk {{symbol}} ditolak sampai ukuran maks minimal {{min}} USDT.",
+      "unavailable": "Binance tidak menjawab. Coba lagi.",
+      "invalid": "Masukkan pair USDT, mis. BTCUSDT"
     }
   }
 }

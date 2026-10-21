@@ -37,7 +37,7 @@ impl DeskBridge {
     /// Maps a `BotSelector` to Aleph Edge's bot kinds.
     fn kinds(sel: BotSelector) -> Vec<BotKind> {
         match sel {
-            BotSelector::All => vec![BotKind::Futures, BotKind::Spot, BotKind::Pump],
+            BotSelector::All => crate::bot::ALL_KINDS.to_vec(),
             BotSelector::Futures => vec![BotKind::Futures],
             BotSelector::Spot => vec![BotKind::Spot],
             BotSelector::Pump => vec![BotKind::Pump],
@@ -50,6 +50,8 @@ impl DeskBridge {
             BotKind::Futures => BotSelector::Futures,
             BotKind::Spot => BotSelector::Spot,
             BotKind::Pump => BotSelector::Pump,
+            // Never started from the phone (see `start`); "all" stops it.
+            BotKind::Tradingview => BotSelector::All,
         }
     }
 
@@ -126,7 +128,9 @@ impl DeskControl for DeskBridge {
             return Err(AckReply::new(ack_code::KILL_SWITCH_TRIPPED));
         }
         let mut started = Vec::new();
-        for k in Self::kinds(bot) {
+        // The TradingView bot executes the user's own alerts: started on the
+        // desk only, never from the phone.
+        for k in Self::kinds(bot).into_iter().filter(|k| *k != BotKind::Tradingview) {
             if bots.config_for(k).is_some() {
                 bots.start(self.app.clone(), k).map_err(|e| start_refusal(&e))?;
                 started.push(Self::selector(k));
@@ -161,6 +165,9 @@ impl DeskControl for DeskBridge {
         }
         if st.pump_running {
             bots_running.push("pump".to_string());
+        }
+        if st.tradingview_running {
+            bots_running.push("tradingview".to_string());
         }
         bots_running.extend(strategy.running_kinds().into_iter().map(|k| k.as_str().to_string()));
 
@@ -400,7 +407,7 @@ mod tests {
 
     #[test]
     fn bot_selector_maps_to_kinds() {
-        assert_eq!(DeskBridge::kinds(BotSelector::All).len(), 3);
+        assert_eq!(DeskBridge::kinds(BotSelector::All).len(), 4, "a remote stop-all reaches the TradingView bot too");
         assert_eq!(DeskBridge::kinds(BotSelector::Spot), vec![BotKind::Spot]);
         assert_eq!(
             DeskBridge::kinds(BotSelector::Futures),

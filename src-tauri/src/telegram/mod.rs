@@ -229,6 +229,12 @@ pub struct TelegramStatus {
     pub prefs: Prefs,
     pub last_error: Option<String>,
     pub last_sent_at: Option<u64>,
+    /// The saved Telegram row could not be read at start: the meta key its
+    /// copy was kept under ("" = the store itself could not be read). Nothing
+    /// is saved over it until the user sets Telegram up again
+    /// (`telegram_start_over`). Absent when the row was fine.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub settings_unreadable: Option<String>,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -312,6 +318,8 @@ pub(crate) struct Inner {
     pub official_unavailable: bool,
     pub official_queued: usize,
     pub official_check_error: Option<String>,
+    /// See `TelegramStatus::settings_unreadable`.
+    pub settings_unreadable: Option<String>,
 }
 
 impl Inner {
@@ -355,6 +363,7 @@ impl Inner {
             prefs: Prefs { enabled: s.enabled, commands_enabled: s.commands_enabled, categories: s.categories },
             last_error: self.last_error.as_ref().map(|(e, _)| e.clone()),
             last_sent_at: self.last_sent_at,
+            settings_unreadable: self.settings_unreadable.clone(),
         }
     }
 
@@ -435,15 +444,10 @@ impl Inner {
     }
 }
 
-/// One line to the linked chat, under the Paper header, when notifications
-/// and `category` are on; nothing otherwise. Used by the TradingView link
-/// for an alert that was not executed.
-pub(crate) async fn send_line(app: &tauri::AppHandle, category: notify::Category, body: &str) {
-    send_line_for(app, category, body, false).await;
-}
-
-/// `send_line` under the Paper or LIVE header (`live`): the portfolio risk
-/// view says which book crossed a threshold.
+/// One line to the linked chat, under the Paper or LIVE header (`live`),
+/// when notifications and `category` are on; nothing otherwise. The
+/// portfolio risk view says which book crossed a threshold; the TradingView
+/// link sends its live opens, refusals and failures.
 pub(crate) async fn send_line_for(app: &tauri::AppHandle, category: notify::Category, body: &str, live: bool) {
     use tauri::Manager;
     let target = {
@@ -469,6 +473,10 @@ pub struct TelegramManager {
     pub(crate) official: official::OfficialApi,
     /// Official-mode lines waiting for the relay. Held across a drain.
     pub(crate) outbox: tokio::sync::Mutex<official::Outbox>,
+    /// The saved row could not be read: no write may replace it until the
+    /// user starts over. Apart from `inner`, so `save_settings` reads it
+    /// whatever lock its caller holds.
+    pub(crate) hold_unreadable: std::sync::atomic::AtomicBool,
 }
 
 impl TelegramManager {
@@ -479,6 +487,7 @@ impl TelegramManager {
             api: api::Api::new(api::api_base()),
             official: official::OfficialApi::new(),
             outbox: tokio::sync::Mutex::new(official::Outbox::default()),
+            hold_unreadable: std::sync::atomic::AtomicBool::new(false),
         }
     }
 

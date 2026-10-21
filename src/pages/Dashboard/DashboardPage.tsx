@@ -33,7 +33,8 @@ import {
 import type { PnlStats, TradeRecord } from "@/lib/ipc/trades/trades";
 import { isActive, type StrategyBotView, type StrategyKind, type StrategyPnlTotals } from "@/lib/ipc/strategy/strategy";
 import { runActionKey, runStateText } from "@/lib/strategyText";
-import { signalBotRows, type BotRow } from "@/pages/Bots/botRows";
+import { allBotRows, botRowName, type BotRow } from "@/pages/Bots/botRows";
+import { ordersOnTestnet, scopeLabelKey } from "@/lib/liveMode";
 import { BotStateChip, SignalRowAction } from "@/pages/Bots/BotsTable";
 import { runStatusKind } from "@/pages/Bots/strategy/StrategyBotsTable";
 import { marksByPosition, openPnl } from "@/lib/positionMarks";
@@ -105,7 +106,8 @@ export function DashboardPage() {
   );
 
   const s = desk.status;
-  const rows = desk.loaded ? signalBotRows(s, risk.state?.maxCapitalQuote ?? null) : [];
+  // Every bot of the book: the signal bots and the TradingView bot.
+  const rows = desk.loaded ? allBotRows(s, risk.state?.maxCapitalQuote ?? null) : [];
   const configured = rows.filter((r) => r.config);
   const running = rows.filter((r) => r.running);
   const liveBots = rows.filter((r) => r.live);
@@ -163,7 +165,7 @@ export function DashboardPage() {
         r.signal ? (
           <span className="ae-namecell">
             <Link to={`/bots/${r.id}`} className="ae-link">
-              {t(`bots.kind.${r.signal.kind}`)}
+              {botRowName(t, r.signal)}
             </Link>
             {r.signal.live ? <LiveChip /> : null}
           </span>
@@ -177,7 +179,7 @@ export function DashboardPage() {
       id: "type",
       header: t("table.type"),
       priority: 2,
-      cell: (r) => t(`botsList.type.${r.signal ? "signal" : r.bot?.kind}`),
+      cell: (r) => t(`botsList.type.${r.signal ? r.signal.type : r.bot?.kind}`),
     },
     {
       id: "state",
@@ -258,7 +260,7 @@ export function DashboardPage() {
       cell: (tr) => t(`pnl.exit.${tr.exitReason}`, { defaultValue: tr.exitReason }),
     },
   ];
-  const scopeNote = pnl.split ? t(`pnl.scope.${pnl.scope}`) : t("states.paper");
+  const scopeNote = pnl.split ? t(scopeLabelKey(pnl.scope, ordersOnTestnet(s, desk.loaded))) : t("states.paper");
 
   const dismiss = () => {
     setDismissed(true);
@@ -293,8 +295,26 @@ export function DashboardPage() {
             <Link to="/bots/signal" className="ae-link">
               {t("nav.signalBots")}
             </Link>
-            <span className="tabular">{t("dashboard.runningOf", { running: running.length, total: configured.length })}</span>
+            <span className="tabular">
+              {t("dashboard.runningOf", {
+                running: running.filter((r) => r.type === "signal").length,
+                total: configured.filter((r) => r.type === "signal").length,
+              })}
+            </span>
           </li>
+          {configured.some((r) => r.type === "tradingview") ? (
+            <li>
+              <Link to="/bots/tradingview" className="ae-link">
+                {t("botsList.type.tradingview")}
+              </Link>
+              <span className="tabular">
+                {t("dashboard.runningOf", {
+                  running: running.filter((r) => r.type === "tradingview").length,
+                  total: configured.filter((r) => r.type === "tradingview").length,
+                })}
+              </span>
+            </li>
+          ) : null}
           <li>
             <Link to="/bots/dca" className="ae-link">
               {t("nav.dcaBots")}

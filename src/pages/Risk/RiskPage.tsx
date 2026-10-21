@@ -15,7 +15,7 @@ import { Section } from "@/components/ui/Section/Section";
 import { StatusChip } from "@/components/ui/StatusChip/StatusChip";
 import { localeForLanguage } from "@/i18n";
 import { formatNumber } from "@/lib/format";
-import type { BotKind } from "@/lib/ipc/bot/bot";
+import { ALL_KINDS, kindRunning, type BotKind } from "@/lib/ipc/bot/bot";
 import { exchangeName } from "@/lib/ipc/exchange/exchange";
 import { linkState, type LinkStateView } from "@/lib/ipc/link/link";
 import { RISK_LEVELS, RISK_LIMITS_TABLE, type RiskLevel } from "@/lib/ipc/risk/risk";
@@ -36,8 +36,10 @@ import { RiskSummary } from "./RiskSummary";
 import "@/pages/Settings/SettingsPage.css";
 import "./RiskPage.css";
 import { useStrategyLive } from "@/pages/Bots/strategy/useStrategyLive";
+import { LiveUnreadableNotice, RiskConfigNotice } from "@/components/LiveMode/DataNotices";
+import { botMode } from "@/lib/ipc/bot/bot";
 
-const KINDS: BotKind[] = ["futures", "spot", "pump"];
+const KINDS = ALL_KINDS;
 const SECTIONS = ["summary", "preflight", "portfolio", "replay", "level", "open", "killSwitch", "regime", "live", "emergency", "strategy"] as const;
 type SectionId = (typeof SECTIONS)[number];
 const SECTION_ICONS: Record<SectionId, IconName> = {
@@ -55,13 +57,11 @@ const SECTION_ICONS: Record<SectionId, IconName> = {
 };
 
 /**
- * The page's sections. Live readiness audits a real-money setup, so only a
- * build that can place real orders shows it; in the paper build every check
- * would be a permanent red "Not ready" that no setting clears. The LIVE gate
- * section still says this build places no real orders.
+ * The page's sections. One build: every install can make a Live bot, so Live
+ * readiness sits right under the risk summary, before any setting.
  */
-export function riskSections(liveBuild: boolean): (typeof SECTIONS)[number][] {
-  return SECTIONS.filter((id) => liveBuild || id !== "preflight");
+export function riskSections(): (typeof SECTIONS)[number][] {
+  return [...SECTIONS];
 }
 
 /**
@@ -74,14 +74,13 @@ export function RiskPage() {
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const { risk, desk, vault, endpoints, strategy, catalog, foreignFill, riskView } = useDeskContext();
   const s = desk.status;
-  const liveBuild = desk.loaded && s.liveTradingEnabled;
   const [liveError, setLiveError] = useState<string | null>(null);
   const level = risk.state?.limits.level;
   // Only a verified trade-only key can switch a bot to real money.
   const tradeKeys = tradeVenues(vault.credentials);
   const { liveIds: strategyLiveIds } = useStrategyLive();
   const strategyLiveBots = (strategy.bots ?? []).filter((b) => strategyLiveIds.has(b.id));
-  const running = KINDS.filter((k) => (k === "futures" ? s.futuresRunning : k === "spot" ? s.spotRunning : s.pumpRunning));
+  const running = KINDS.filter((k) => kindRunning(s, k));
   const capital = s.openPositions.reduce((n, p) => n + p.capital, 0);
   const balance = risk.state?.balance ?? null;
   // `?s=<section>` opens the page at that section (links from the live panels).
@@ -115,7 +114,7 @@ export function RiskPage() {
   };
 
   const stops = stopRisk(s.openPositions, s.atStop);
-  const liveCount = KINDS.filter((k) => s[k]?.live).length + strategyLiveBots.length;
+  const liveCount = KINDS.filter((k) => botMode(s[k]) === "live").length + strategyLiveBots.length;
   const sectionStatus: Partial<Record<SectionId, { text: string; attention?: boolean }>> = {
     summary: s.openPositions.length
       ? { text: t("safety.nav.atStops", { value: formatPnl(stops.atStops, locale, { unit: "none" }).text }) }
@@ -134,18 +133,14 @@ export function RiskPage() {
         : { text: t("safety.killSwitch.ok") }
       : undefined,
     regime: desk.loaded ? { text: t(`safety.nav.regime.${s.btcRegime}`), attention: s.btcRegime !== "normal" } : undefined,
-    live: desk.loaded
-      ? !liveBuild
-        ? { text: t("settings.about.paperBuild") }
-        : { text: t("safety.nav.live", { count: liveCount }), attention: liveCount > 0 }
-      : undefined,
+    live: desk.loaded ? { text: t("safety.nav.live", { count: liveCount }), attention: liveCount > 0 } : undefined,
     strategy: strategy.risk ? { text: t("safety.nav.budget", { reserved: formatUsdt(strategy.risk.reservedBudget, locale, 0) }), attention: strategy.risk.tripped } : undefined,
   };
 
   const left = (
     <nav className="ae-setnav" aria-label={t("safety.sections")}>
       <ul>
-        {riskSections(liveBuild).map((id) => {
+        {riskSections().map((id) => {
           const st = sectionStatus[id];
           return (
             <li key={id}>
@@ -201,16 +196,16 @@ export function RiskPage() {
 
   return (
     <PageShell title={t("nav.risk")} crumbs={[{ label: t("nav.groups.control") }]} left={left} leftLabel={t("safety.sections")} right={right}>
+      <RiskConfigNotice />
+      <LiveUnreadableNotice />
       <section id="risk-summary" className="ae-risk-section">
         <RiskSummary />
       </section>
 
-      {liveBuild ? (
-        <section id="risk-preflight" className="ae-risk-section">
-          <LivePreflight />
-          <ForeignFillPanel />
-        </section>
-      ) : null}
+      <section id="risk-preflight" className="ae-risk-section">
+        <LivePreflight />
+        <ForeignFillPanel />
+      </section>
 
       <section id="risk-portfolio" className="ae-risk-section">
         <PortfolioRisk />
@@ -252,13 +247,10 @@ export function RiskPage() {
         <Panel title={t("safety.section.live")} tone={KINDS.some((k) => s[k]?.live) ? "live" : "default"}>
           {!desk.loaded ? (
             <p className="ae-subtle">{t("workspace.loading")}</p>
-          ) : !s.liveTradingEnabled ? (
-            <p className="ae-muted">{t("safety.live.notThisBuild")}</p>
           ) : (
             <>
               <FactList
                 rows={[
-                  { label: t("safety.live.build"), value: t("safety.yes") },
                   {
                     label: t("safety.live.binanceKey"),
                     value: tradeKeys.length ? (
@@ -280,9 +272,10 @@ export function RiskPage() {
                 {KINDS.map((k) => (
                   <li key={k}>
                     <span>{t(`bots.kind.${k}`)}</span>
-                    {s[k]?.live ? (
+                    {botMode(s[k]) === "live" ? (
                       <span className="ae-toolbar">
                         <LiveChip />
+                        {s[k]?.live !== true ? <span className="ae-subtle">{t("liveMode.header.needsArm")}</span> : null}
                         <Button variant="secondary" size="xs" disabled={desk.busy} onClick={() => void turnOff(k)}>
                           {t("safety.live.turnOff")}
                         </Button>

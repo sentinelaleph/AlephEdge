@@ -120,7 +120,7 @@ describe("Settings", () => {
     const text = el.textContent ?? "";
     expect(text).toContain("Windows x64");
     expect(text).toContain("141.0.3537.71");
-    expect(text).toContain("Paper build");
+    expect(text).toContain("One build");
     expect(text).not.toContain("Testnet");
 
     await click(button(el, "Source code"));
@@ -129,12 +129,12 @@ describe("Settings", () => {
     expect(about.openDir).toHaveBeenCalledTimes(1);
   });
 
-  it("marks a live or testnet build", async () => {
+  it("marks the one build and a testnet build", async () => {
     about.info = { ...INFO, liveBuild: true, identifier: "com.sentinelaleph.edge.testnet" };
     window.location.hash = "#/settings?tab=about";
     const el = await mount();
     const chips = [...el.querySelectorAll(".ae-about .ae-chip")].map((c) => c.textContent);
-    expect(chips).toContain("Live build");
+    expect(chips).toContain("One build");
     expect(chips).toContain("Testnet");
   });
 

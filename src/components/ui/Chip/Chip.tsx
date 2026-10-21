@@ -67,12 +67,12 @@ export function ManualChip({ signalId }: { signalId?: string }) {
   );
 }
 
-/** "LIVE": real orders. The word stays untranslated on purpose. */
+/** Live mode: real orders. The typed confirmation word "LIVE" is separate and never translated. */
 export function LiveChip() {
   const { t } = useTranslation();
   return (
     <Chip tone="live" title={t("common.realBadgeTooltip")}>
-      LIVE
+      {t("states.live")}
     </Chip>
   );
 }

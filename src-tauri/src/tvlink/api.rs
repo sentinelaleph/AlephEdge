@@ -7,6 +7,14 @@
 //! - `GET    /api/edge/tv-webhook/events`  `?after=<id>&limit=<1..50>`
 //! - `POST   /api/edge/tv-webhook/test`    one test alert on the active URL
 //!   (5 an hour); it arrives through the events read with `"test":true`
+//! - `GET    /api/edge/tv-webhook/events/stream`  the same events as SSE
+//!   (`?after=` / `Last-Event-ID`; see sse.rs)
+//! - `GET|PATCH /api/edge/tv-webhook/settings`   the server's offline
+//!   notice: `notify_offline`, `offline_after_s`, Telegram linked or not
+//!
+//! Every events read (poll or open stream) counts as the app's heartbeat on
+//! the server; the replies carry the server's `now`, which the stale guard
+//! measures against (never the PC clock).
 //!
 //! The base is the membership's (`MembershipManager::base_url`, itself
 //! `app::endpoints::api_base()`); tests pass their own local base. The
@@ -73,6 +81,31 @@ pub struct ServerStatus {
     pub last_received_at: Option<u64>,
     pub received_24h: u64,
     pub pending: u64,
+    /// The server sends a Telegram notice for an alert that arrives while
+    /// the app is offline (the user's switch, set from the app).
+    pub notify_offline: Option<bool>,
+    pub offline_after_s: Option<u32>,
+    /// The app's last events read or open stream, on the server's clock.
+    pub last_seen_at: Option<u64>,
+}
+
+/// `GET|PATCH /api/edge/tv-webhook/settings`.
+#[derive(Debug, Clone, Serialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerSettings {
+    pub notify_offline: bool,
+    pub offline_after_s: u32,
+    /// `linked` | `not_linked` | `unavailable` | `unknown`.
+    pub telegram: String,
+}
+
+/// One events reply (poll or stream frame).
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct EventsPage {
+    pub events: Vec<Event>,
+    /// The server's time when it answered (UNIX ms); None from an older
+    /// server: then no alert is executed (`tvServerTimeMissing`).
+    pub now: Option<u64>,
 }
 
 /// One stored alert.
@@ -84,6 +117,8 @@ pub struct Event {
     pub body: String,
     /// The relay's `"test": true` (a test alert). Only a JSON `true` counts.
     pub test: bool,
+    /// The relay received it while the app was offline (its notice went out).
+    pub app_offline: bool,
 }
 
 /// A time field: RFC3339 text, or UNIX seconds / ms as a number.
@@ -125,6 +160,19 @@ pub fn parse_status(body: &str) -> Result<ServerStatus, ApiError> {
         last_received_at: time_ms(o.get("lastReceivedAt")),
         received_24h: count(o.get("received24h")),
         pending: count(o.get("pending")),
+        notify_offline: o.get("notifyOffline").and_then(Value::as_bool),
+        offline_after_s: o.get("offlineAfterS").and_then(Value::as_u64).map(|v| v as u32),
+        last_seen_at: time_ms(o.get("lastSeenAt")),
+    })
+}
+
+pub fn parse_settings(body: &str) -> Result<ServerSettings, ApiError> {
+    let v: Value = serde_json::from_str(body).map_err(|_| bad())?;
+    let o = v.as_object().ok_or_else(bad)?;
+    Ok(ServerSettings {
+        notify_offline: o.get("notify_offline").and_then(Value::as_bool).ok_or_else(bad)?,
+        offline_after_s: o.get("offline_after_s").and_then(Value::as_u64).ok_or_else(bad)? as u32,
+        telegram: o.get("telegram").and_then(Value::as_str).unwrap_or("unknown").to_string(),
     })
 }
 
@@ -134,10 +182,11 @@ pub fn parse_created(body: &str) -> Result<CreatedUrl, ApiError> {
     Ok(CreatedUrl { url: url.to_string(), created_at: time_ms(v.get("createdAt")) })
 }
 
-pub fn parse_events(body: &str) -> Result<Vec<Event>, ApiError> {
+pub fn parse_events(body: &str) -> Result<EventsPage, ApiError> {
     let v: Value = serde_json::from_str(body).map_err(|_| bad())?;
     let list = v.get("events").and_then(Value::as_array).ok_or_else(bad)?;
-    Ok(list
+    let now = time_ms(v.get("now"));
+    let events = list
         .iter()
         .filter_map(|e| {
             let id = id_text(e.get("id")?)?;
@@ -148,9 +197,11 @@ pub fn parse_events(body: &str) -> Result<Vec<Event>, ApiError> {
                 Some(other) => other.to_string(),
             };
             let test = e.get("test") == Some(&Value::Bool(true));
-            Some(Event { id, received_at: time_ms(e.get("receivedAt")), body, test })
+            let app_offline = e.get("appOffline") == Some(&Value::Bool(true));
+            Some(Event { id, received_at: time_ms(e.get("receivedAt")), body, test, app_offline })
         })
-        .collect())
+        .collect();
+    Ok(EventsPage { events, now })
 }
 
 fn bad() -> ApiError {
@@ -170,6 +221,9 @@ fn status_error(status: StatusCode) -> ApiError {
 /// The relay client. Holds no token and no URL.
 pub struct Api {
     http: Client,
+    /// No total timeout: a stream lives up to the server's 5 minutes; each
+    /// read is bounded by `sse::IDLE_LIMIT` instead.
+    stream_http: Client,
 }
 
 impl Default for Api {
@@ -180,7 +234,10 @@ impl Default for Api {
 
 impl Api {
     pub fn new() -> Self {
-        Self { http: Client::builder().timeout(CALL_TIMEOUT).build().unwrap_or_default() }
+        Self {
+            http: Client::builder().timeout(CALL_TIMEOUT).build().unwrap_or_default(),
+            stream_http: Client::builder().connect_timeout(CALL_TIMEOUT).build().unwrap_or_default(),
+        }
     }
 
     async fn send(&self, req: reqwest::RequestBuilder) -> Result<String, ApiError> {
@@ -245,8 +302,95 @@ impl Api {
         }
     }
 
+    /// The offline-notice settings. 404: no active webhook (`tvNoUrl`).
+    pub async fn settings(&self, base: &str, token: &str) -> Result<ServerSettings, ApiError> {
+        let req = self.http.get(format!("{base}{PATH}/settings")).bearer_auth(token);
+        match self.send(req).await {
+            Ok(body) => parse_settings(&body),
+            Err(ApiError::Code(c)) if c == "tvHttp|404" => Err(ApiError::Code("tvNoUrl".into())),
+            Err(e) => Err(e),
+        }
+    }
+
+    /// Changes the offline-notice settings (`None` keeps a field).
+    pub async fn set_settings(&self, base: &str, token: &str, notify_offline: Option<bool>, offline_after_s: Option<u32>) -> Result<ServerSettings, ApiError> {
+        let mut body = serde_json::Map::new();
+        if let Some(n) = notify_offline {
+            body.insert("notify_offline".into(), Value::Bool(n));
+        }
+        if let Some(s) = offline_after_s {
+            body.insert("offline_after_s".into(), Value::from(s));
+        }
+        let req = self
+            .http
+            .patch(format!("{base}{PATH}/settings"))
+            .bearer_auth(token)
+            .header("Content-Type", "application/json")
+            .body(Value::Object(body).to_string());
+        match self.send(req).await {
+            Ok(body) => parse_settings(&body),
+            Err(ApiError::Code(c)) if c == "tvHttp|404" => Err(ApiError::Code("tvNoUrl".into())),
+            Err(e) => Err(e),
+        }
+    }
+
+    /// One stream session: connects with the last id, hands every frame to
+    /// `on_item` in order, and returns how it ended. Each read waits at
+    /// most `sse::IDLE_LIMIT`.
+    pub async fn stream<F, Fut>(&self, base: &str, token: &str, after: Option<&str>, mut on_item: F) -> Result<super::sse::End, ApiError>
+    where
+        F: FnMut(super::sse::Item) -> Fut,
+        Fut: std::future::Future<Output = bool>,
+    {
+        use futures_util::StreamExt;
+        let mut req = self
+            .stream_http
+            .get(format!("{base}{PATH}/events/stream"))
+            .bearer_auth(token)
+            .header("Accept", "text/event-stream");
+        if let Some(a) = after {
+            req = req.query(&[("after", a)]).header("Last-Event-ID", a);
+        }
+        // The reply's headers may come only with the first frame (a proxy
+        // or a server that flushes on the first event or ping, at most 15 s
+        // later): wait the stream's own idle limit, not the 10 s call
+        // timeout, or every stream would fail into the poll.
+        let res = tokio::time::timeout(super::sse::IDLE_LIMIT, req.send())
+            .await
+            .map_err(|_| ApiError::Code("tvTimeout".into()))?
+            .map_err(|_| ApiError::Code("sentinelUnreachable".into()))?;
+        let status = res.status();
+        if !status.is_success() {
+            return Err(status_error(status));
+        }
+        let mut decoder = super::sse::Decoder::default();
+        let mut bytes = res.bytes_stream();
+        loop {
+            let chunk = match tokio::time::timeout(super::sse::IDLE_LIMIT, bytes.next()).await {
+                Err(_) => return Ok(super::sse::End::Idle),
+                Ok(None) => return Ok(super::sse::End::Closed),
+                Ok(Some(Err(_))) => return Ok(super::sse::End::Failed("tvStreamRead".into())),
+                Ok(Some(Ok(c))) => c,
+            };
+            let frames = match decoder.push(&chunk) {
+                Ok(f) => f,
+                Err(code) => return Ok(super::sse::End::Failed(code.into())),
+            };
+            for frame in frames {
+                match super::sse::item(&frame) {
+                    Ok(item) => {
+                        if !on_item(item).await {
+                            return Ok(super::sse::End::Stopped);
+                        }
+                    }
+                    Err(code) => return Ok(super::sse::End::Failed(code.into())),
+                }
+            }
+        }
+    }
+
     /// Events after `after` (none: from the oldest kept), oldest first.
-    pub async fn events(&self, base: &str, token: &str, after: Option<&str>) -> Result<Vec<Event>, ApiError> {
+    pub async fn events(&self, base: &str, token: &str, after: Option<&str>) -> Result<EventsPage, ApiError> {
         let mut query: Vec<(&str, String)> = vec![("limit", PAGE.to_string())];
         if let Some(a) = after {
             query.push(("after", a.to_string()));
@@ -403,13 +547,13 @@ mod tests {
             match (m, p.split('?').next().unwrap()) {
                 ("GET", "/api/edge/tv-webhook") => (
                     200,
-                    r#"{"active":true,"createdAt":"2026-10-16T09:00:00.5+03:00","lastReceivedAt":null,"received24h":4,"pending":1}"#.into(),
+                    r#"{"active":true,"createdAt":"2026-10-16T09:00:00.5+03:00","lastReceivedAt":null,"received24h":4,"pending":1,"notifyOffline":true,"offlineAfterS":30,"lastSeenAt":"2026-10-16T09:00:00Z"}"#.into(),
                 ),
                 ("GET", "/api/edge/tv-webhook/events") => (
                     200,
                     r#"{"events":[{"id":7,"receivedAt":"2026-10-16T09:00:01Z","contentType":"text/plain","body":"hello","test":false},
-                                  {"id":"8","receivedAt":1760605202,"contentType":"application/json","body":{"action":"close"},"test":true},
-                                  {"receivedAt":"x","body":"no id: dropped"}]}"#
+                                  {"id":"8","receivedAt":1760605202,"contentType":"application/json","body":{"action":"close"},"test":true,"appOffline":true},
+                                  {"receivedAt":"x","body":"no id: dropped"}],"now":1792141260000}"#
                         .into(),
                 ),
                 ("DELETE", "/api/edge/tv-webhook") => (200, r#"{"revoked":true}"#.into()),
@@ -418,10 +562,25 @@ mod tests {
         }));
         let api = Api::new();
         let st = run(api.status(&base, "acc")).unwrap();
-        assert_eq!(st, ServerStatus { active: true, created_at: Some(1_792_130_400_500), last_received_at: None, received_24h: 4, pending: 1 });
-        let ev = run(api.events(&base, "acc", Some("6"))).unwrap();
+        assert_eq!(
+            st,
+            ServerStatus {
+                active: true,
+                created_at: Some(1_792_130_400_500),
+                last_received_at: None,
+                received_24h: 4,
+                pending: 1,
+                notify_offline: Some(true),
+                offline_after_s: Some(30),
+                last_seen_at: Some(1_792_141_200_000),
+            }
+        );
+        let page = run(api.events(&base, "acc", Some("6"))).unwrap();
+        assert_eq!(page.now, Some(1_792_141_260_000), "the server's time comes with the events");
+        let ev = page.events;
         assert_eq!(ev.len(), 2);
-        assert_eq!(ev[0], Event { id: "7".into(), received_at: Some(1_792_141_201_000), body: "hello".into(), test: false });
+        assert_eq!(ev[0], Event { id: "7".into(), received_at: Some(1_792_141_201_000), body: "hello".into(), test: false, app_offline: false });
+        assert!(ev[1].app_offline);
         assert_eq!(ev[1].id, "8");
         assert!(ev[1].test, "the relay's test flag is read");
         assert_eq!(ev[1].received_at, Some(1_760_605_202_000), "UNIX seconds read as such");
@@ -456,8 +615,9 @@ mod tests {
         // A reply that does not confirm a test is not taken as one.
         assert_eq!(run(api.send_test(&base, "acc")).unwrap_err().code(), "tvBadResponse");
         // "test" must be the JSON true.
-        let evs = parse_events(r#"{"events":[{"id":1,"body":"x","test":"true"},{"id":2,"body":"x"}]}"#).unwrap();
-        assert!(evs.iter().all(|e| !e.test));
+        let evs = parse_events(r#"{"events":[{"id":1,"body":"x","test":"true","appOffline":"true"},{"id":2,"body":"x"}]}"#).unwrap();
+        assert!(evs.events.iter().all(|e| !e.test && !e.app_offline));
+        assert_eq!(evs.now, None, "an older server sends no time");
     }
 
     #[test]
@@ -477,6 +637,124 @@ mod tests {
         assert_eq!(run(api.status(&dead, "acc")).unwrap_err().code(), "sentinelUnreachable");
         assert_eq!(parse_status("nope").unwrap_err().code(), "tvBadResponse");
         assert_eq!(parse_created(r#"{"url":"javascript:x"}"#).unwrap_err().code(), "tvBadResponse");
+    }
+
+    /// A server that sees the whole request head: (head, body) -> (status,
+    /// content type, body).
+    type RawHandler = dyn Fn(&str, &str) -> (u16, &'static str, String) + Send + Sync;
+
+    fn serve_raw(handler: Arc<RawHandler>) -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let addr = listener.local_addr().expect("addr");
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(mut stream) = stream else { continue };
+                let handler = handler.clone();
+                std::thread::spawn(move || {
+                    let mut reader = BufReader::new(stream.try_clone().expect("clone"));
+                    let mut head = String::new();
+                    let mut len = 0usize;
+                    loop {
+                        let mut h = String::new();
+                        if reader.read_line(&mut h).is_err() || h == "\r\n" || h.is_empty() {
+                            break;
+                        }
+                        if let Some(v) = h.to_ascii_lowercase().strip_prefix("content-length:") {
+                            len = v.trim().parse().unwrap_or(0);
+                        }
+                        head.push_str(&h);
+                    }
+                    let mut body = vec![0u8; len];
+                    let _ = reader.read_exact(&mut body);
+                    let (status, ctype, out) = handler(&head, &String::from_utf8_lossy(&body));
+                    let resp = format!(
+                        "HTTP/1.1 {status} X\r\nContent-Type: {ctype}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{out}",
+                        out.len()
+                    );
+                    let _ = stream.write_all(resp.as_bytes());
+                });
+            }
+        });
+        format!("http://{addr}")
+    }
+
+    #[test]
+    fn settings_read_and_patch_json() {
+        let seen = Arc::new(Mutex::new(Vec::<String>::new()));
+        let log = seen.clone();
+        let base = serve_raw(Arc::new(move |head, body| {
+            log.lock().unwrap().push(format!("{}|{body}", head.lines().next().unwrap_or_default()));
+            let lower = head.to_ascii_lowercase();
+            if head.starts_with("PATCH") {
+                assert!(lower.contains("content-type: application/json"), "{head}");
+                return (200, "application/json", r#"{"notify_offline":false,"offline_after_s":45,"telegram":"linked"}"#.into());
+            }
+            if lower.contains("authorization: bearer gone") {
+                return (404, "application/json", r#"{"error":"no active webhook"}"#.into());
+            }
+            (200, "application/json", r#"{"notify_offline":true,"offline_after_s":30,"telegram":"not_linked"}"#.into())
+        }));
+        let api = Api::new();
+        let s = run(api.settings(&base, "acc")).unwrap();
+        assert_eq!(s, ServerSettings { notify_offline: true, offline_after_s: 30, telegram: "not_linked".into() });
+        let s = run(api.set_settings(&base, "acc", Some(false), Some(45))).unwrap();
+        assert_eq!((s.notify_offline, s.offline_after_s, s.telegram.as_str()), (false, 45, "linked"));
+        run(api.set_settings(&base, "acc", Some(true), None)).unwrap();
+        assert_eq!(run(api.settings(&base, "gone")).unwrap_err().code(), "tvNoUrl");
+        let log = seen.lock().unwrap();
+        assert!(log.iter().any(|l| l == r#"PATCH /api/edge/tv-webhook/settings HTTP/1.1|{"notify_offline":false,"offline_after_s":45}"#), "{log:?}");
+        assert!(log.iter().any(|l| l == r#"PATCH /api/edge/tv-webhook/settings HTTP/1.1|{"notify_offline":true}"#), "only the field changed: {log:?}");
+    }
+
+    #[test]
+    fn the_stream_hands_over_frames_and_reconnects_with_the_last_id() {
+        let heads = Arc::new(Mutex::new(Vec::<String>::new()));
+        let log = heads.clone();
+        let base = serve_raw(Arc::new(move |head, _| {
+            log.lock().unwrap().push(head.to_string());
+            if head.contains("Bearer busy") {
+                return (429, "application/json", r#"{"error":"too many streams"}"#.into());
+            }
+            let body = "retry: 3000\n\nid: 9\nevent: events\ndata: {\"events\":[{\"id\":9,\"receivedAt\":1760000000000,\"body\":\"x\"}],\"now\":1760000000400}\n\nevent: ping\ndata: {\"now\":1760000015000}\n\n";
+            (200, "text/event-stream", body.into())
+        }));
+        let api = Api::new();
+        let got = Arc::new(Mutex::new(Vec::new()));
+        let sink = got.clone();
+        let end = run(api.stream(&base, "acc", Some("8"), |item| {
+            sink.lock().unwrap().push(item);
+            async { true }
+
+        }))
+        .unwrap();
+        // The server closed it (its cap): reconnect at once.
+        assert_eq!(end, super::super::sse::End::Closed);
+        assert_eq!(super::super::sse::next_mode(&end, 0).0, super::super::sse::Mode::Stream);
+        let items = got.lock().unwrap().clone();
+        assert_eq!(items.len(), 3, "{items:?}");
+        match &items[1] {
+            super::super::sse::Item::Events { id, page } => {
+                assert_eq!(id.as_deref(), Some("9"));
+                assert_eq!(page.now, Some(1_760_000_000_400));
+                assert_eq!(page.events[0].id, "9");
+            }
+            other => panic!("{other:?}"),
+        }
+        let head = heads.lock().unwrap()[0].clone();
+        assert!(head.starts_with("GET /api/edge/tv-webhook/events/stream?after=8 "), "{head}");
+        assert!(head.to_ascii_lowercase().contains("last-event-id: 8"), "{head}");
+        assert!(head.to_ascii_lowercase().contains("accept: text/event-stream"), "{head}");
+        // Three streams already open for the account: refused, the poll takes over.
+        let refused = run(api.stream(&base, "busy", None, |_| async { true })).unwrap_err();
+        assert_eq!(refused.code(), "tvRateLimited");
+        let end = super::super::sse::End::Failed(refused.code());
+        assert_eq!(super::super::sse::next_mode(&end, 1).0, super::super::sse::Mode::Poll(super::super::sse::POLL_SPELL));
+        // Nothing listening: a failure, not a hang.
+        let dead = {
+            let l = TcpListener::bind("127.0.0.1:0").unwrap();
+            format!("http://{}", l.local_addr().unwrap())
+        };
+        assert_eq!(run(api.stream(&dead, "acc", None, |_| async { true })).unwrap_err().code(), "sentinelUnreachable");
     }
 
     struct FakeSession {

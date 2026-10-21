@@ -7,6 +7,7 @@ export type NavItemId =
   | "assistant"
   | "bots"
   | "signalBots"
+  | "tvBot"
   | "dcaBots"
   | "gridBots"
   | "signals"
@@ -55,6 +56,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "bots", path: "/bots", labelKey: "nav.allBots", icon: "bots" },
       { id: "signalBots", path: "/bots/signal", labelKey: "nav.signalBots", icon: "signal" },
+      { id: "tvBot", path: "/bots/tradingview", labelKey: "nav.tvBot", icon: "signals" },
       { id: "dcaBots", path: "/bots/dca", labelKey: "nav.dcaBots", icon: "dca" },
       { id: "gridBots", path: "/bots/grid", labelKey: "nav.gridBots", icon: "grid" },
     ],
@@ -102,6 +104,7 @@ const DIRECT: Partial<Record<RouteId, NavItemId>> = {
   bots: "bots",
   botNew: "botNew",
   signalBots: "signalBots",
+  tvBot: "tvBot",
   dcaBots: "dcaBots",
   dcaNew: "dcaBots",
   gridBots: "gridBots",

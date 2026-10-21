@@ -16,7 +16,7 @@ import { StrategyBotsTable } from "./strategy/StrategyBotsTable";
 import { StrategyRiskPanel } from "./strategy/StrategyRiskPanel";
 import { useStrategyActions } from "./strategy/useStrategyActions";
 import { MarketTrendPanel } from "@/components/Desk/MarketTrend";
-import { modeKey } from "./BotNewPage";
+import { MODE_LINE_KEY } from "./BotNewPage";
 
 /**
  * #/bots/dca and #/bots/grid. PAPER ONLY. Rows come from Rust's
@@ -25,8 +25,7 @@ import { modeKey } from "./BotNewPage";
 export function StrategyBotsPage({ kind }: { kind: StrategyKind }) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
-  const { strategy, desk } = useDeskContext();
-  const liveBuild = desk.loaded && desk.status.liveTradingEnabled;
+  const { strategy } = useDeskContext();
   const actions = useStrategyActions();
   const [exported, setExported] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -59,9 +58,7 @@ export function StrategyBotsPage({ kind }: { kind: StrategyKind }) {
               value: rows ? formatSignedUsdt(total, locale) : NO_VALUE,
               tone: rows ? pnlToneAttr(total) : undefined,
             },
-            liveBuild
-              ? { label: t("botsList.liveOrders"), value: t(modeKey(true)) }
-              : { label: t("table.mode"), value: t(modeKey(false)) },
+            { label: t("botsList.liveOrders"), value: t(MODE_LINE_KEY) },
           ]}
         />
       </Panel>
@@ -103,7 +100,7 @@ export function StrategyBotsPage({ kind }: { kind: StrategyKind }) {
       ) : rows.length === 0 ? (
         <EmptyState
           title={t(`botsList.${kind}.empty`)}
-          detail={t(liveBuild ? "strategy.live.listLine" : modeKey(false))}
+          detail={t("strategy.live.listLine")}
           actions={
             <Button variant="secondary" size="sm" onClick={() => navigate(`/presets?type=${kind}`)}>
               {t(`botsList.${kind}.presets`)}

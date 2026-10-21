@@ -9,7 +9,6 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
 use crate::bot::engine::btc_break::BtcRegime;
-use crate::bot::model::LIVE_TRADING_ENABLED;
 use crate::bot::strategy_live::{owns_symbol, StrategyLiveManager};
 use crate::bot::BotManager;
 use crate::exchange::model::{BinanceKeyCheckError as E, FuturesAccount};
@@ -65,7 +64,6 @@ pub struct Inputs {
     pub venue: String,
     /// The ccxt venues talk to their test networks (`ALEPH_EDGE_VENUE_SANDBOX=1`).
     pub sandbox: bool,
-    pub live_build: bool,
     pub production: bool,
     pub vault: Option<VaultState>,
     pub key: Option<CredentialPermission>,
@@ -103,11 +101,6 @@ pub fn evaluate(i: &Inputs) -> Vec<Check> {
     use Verdict::{Fail, Warn};
     let ok = Verdict::Ok;
     let mut out = Vec::new();
-    out.push(if i.live_build {
-        check("build", ok, None, None)
-    } else {
-        check("build", Fail, Some("buildOff"), None)
-    });
     out.push(if i.production {
         check("endpoint", ok, Some("production"), None)
     } else {
@@ -249,7 +242,6 @@ pub async fn live_preflight(app: AppHandle, venue: Option<String>) -> Result<Pre
     let mut i = Inputs {
         venue: venue.clone(),
         sandbox,
-        live_build: LIVE_TRADING_ENABLED,
         production,
         vault: crate::vault::vault_path(&app).ok().map(|p| vault.status(&p).state),
         kill_switch: status.kill_switch_tripped,
@@ -310,7 +302,6 @@ mod tests {
         Inputs {
             venue: "binance".into(),
             sandbox: false,
-            live_build: true,
             production: true,
             vault: Some(VaultState::Unlocked),
             key: Some(CredentialPermission::TradeOnly),

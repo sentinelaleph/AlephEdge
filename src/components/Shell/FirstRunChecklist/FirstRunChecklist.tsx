@@ -88,7 +88,7 @@ export function FirstRunChecklist({ desk, strategyBots, streamConnected, onDismi
               placeholder status would claim "locked" in a live build. */}
           {desk.loaded ? (
             <p className="ae-checklist__note">
-              {t(s.liveTradingEnabled ? "checklist.liveAvailableNote" : "checklist.liveLockedNote")}
+              {t("checklist.liveAvailableNote")}
             </p>
           ) : null}
           {allDone && onDismiss ? (

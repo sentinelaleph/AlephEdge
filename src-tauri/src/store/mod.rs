@@ -73,19 +73,16 @@ impl StoreManager {
             // for holes.
             crate::vault::secure_file::restrict_to_owner(&db)
                 .map_err(|_| "storePermissionsFailed".to_string())?;
-            trades::migrate(&conn)?;
-            meta::migrate(&conn)?;
-            positions::migrate(&conn)?;
-            skips::migrate(&conn)?;
-            // Desktop-only strategy (DCA/Grid, paper) tables.
-            strategy::migrate(&conn)?;
-            // Desktop-only backtest runs (newest 50).
-            backtest::migrate(&conn)?;
-            // Desktop-only marks of hand-opened trades (Execute).
-            manual::migrate(&conn)?;
+            migrate_all(&conn)?;
             *guard = Some(conn);
         }
         f(guard.as_ref().expect("store conn"))
+    }
+
+    /// Why the store cannot be used now (it could not be opened or migrated,
+    /// or a newer build wrote it), as an i18n code; None when it opens.
+    pub fn open_error(&self, dir: &Path) -> Option<String> {
+        self.with_conn(dir, |_| Ok(())).err()
     }
 
     /// Records a closed position's trade and deletes its open row in ONE
@@ -187,6 +184,47 @@ impl StoreManager {
     }
 }
 
+/// The schema this build writes, stored in SQLite's `user_version` header.
+/// 0 = written before versions existed (0.3.18 and older); this build reads
+/// those and stamps them. Raise it with every migration that changes what an
+/// older build could misread, and keep the migrations additive.
+pub const SCHEMA_VERSION: i64 = 1;
+
+/// Why this build may not open a file at `found` (pure): only a newer
+/// build's schema is refused. Code `storeSchemaNewer|<found>`.
+pub fn schema_refusal(found: i64) -> Option<String> {
+    (found > SCHEMA_VERSION).then(|| format!("storeSchemaNewer|{found}"))
+}
+
+/// Brings `conn` to `SCHEMA_VERSION` in ONE transaction: every table and
+/// column lands and the version is stamped, or nothing changes (a process
+/// exit mid-migration leaves the old file as it was). A file a newer build
+/// wrote is refused before anything is touched.
+pub(crate) fn migrate_all(conn: &Connection) -> Result<(), String> {
+    let found: i64 = conn
+        .query_row("PRAGMA user_version", [], |r| r.get(0))
+        .map_err(|_| "storeOpenFailed".to_string())?;
+    if let Some(refusal) = schema_refusal(found) {
+        return Err(refusal);
+    }
+    let tx = conn.unchecked_transaction().map_err(|_| "storeMigrationFailed".to_string())?;
+    trades::migrate(&tx)?;
+    meta::migrate(&tx)?;
+    positions::migrate(&tx)?;
+    skips::migrate(&tx)?;
+    // Desktop-only strategy (DCA/Grid, paper) tables.
+    strategy::migrate(&tx)?;
+    // Desktop-only backtest runs (newest 50).
+    backtest::migrate(&tx)?;
+    // Desktop-only marks of hand-opened trades (Execute).
+    manual::migrate(&tx)?;
+    if found != SCHEMA_VERSION {
+        tx.pragma_update(None, "user_version", SCHEMA_VERSION)
+            .map_err(|_| "storeMigrationFailed".to_string())?;
+    }
+    tx.commit().map_err(|_| "storeMigrationFailed".to_string())
+}
+
 /// SQLite's `VACUUM INTO`: a complete, compacted copy of the open database
 /// as one transaction's snapshot.
 pub(crate) fn vacuum_into(conn: &Connection, dest: &Path) -> Result<(), String> {
@@ -229,3 +267,15 @@ mod fixtures_tests;
 mod positions_tests;
 #[cfg(test)]
 mod trades_tests;
+#[cfg(test)]
+pub(crate) mod update_common;
+#[cfg(test)]
+mod update_gen;
+#[cfg(test)]
+mod update_persist_tests;
+#[cfg(test)]
+mod update_gen_live;
+#[cfg(test)]
+mod update_live_tests;
+#[cfg(test)]
+mod schema_tests;

@@ -2,7 +2,7 @@
 
 This guide is for someone who has never used a DCA or Grid bot. You do not need to read it all: the first two sections are enough to start, the rest is for when you need it.
 
-> DCA and Grid bots run **simulated (paper)** by default: no order reaches the exchange and you cannot lose money. Real money exists only in the live build, for a Binance Futures bot, after you type **LIVE** for that bot. Details: [Real money](#/guide?s=real-money).
+> DCA and Grid bots run **simulated (paper)** by default: no order reaches the exchange and you cannot lose money. Real money exists only for a bot you make **Live** (Binance Futures), after you type **LIVE** with the money at risk shown. Details: [Real money](#/guide?s=real-money).
 
 ## Start in 5 minutes {#start}
 
@@ -41,7 +41,7 @@ A **1x long futures** position is very close to buying spot: no liquidation, onl
 
 ## How DCA works {#dca}
 
-DCA (Dollar Cost Averaging) rests on one idea: if you buy a little more as price falls, your average buy price falls too. Even a small bounce then puts you in profit.
+DCA (Dollar Cost Averaging) buys a little more as price falls, so the average buy price falls too. Even a small bounce then puts the position in profit.
 
 A DCA bot works in **cycles**:
 
@@ -66,16 +66,16 @@ The `dca_long_classic` template, 1,000 USDT budget, 1x, coin price 100. 8 safety
 | Safety 7 | 43.96% | 56.04 | 212.7 | 702.2 | 70.55 | 71.96 |
 | Safety 8 | 59.64% | 40.36 | 297.8 | 1,000.0 | 57.69 | 58.85 |
 
-Four things follow from this table:
+From the table:
 
-- **Small drops close fast.** If price falls to 94.25 and comes back to 98.77, the cycle closes in profit, still below the starting price.
-- **Most of the budget waits deep down.** The first three orders use only 15% of the budget; the last two use 51%.
-- **The ladder covers a 59.6% drop.** Past that the bot cannot buy more; it holds the position and waits for a recovery.
-- **Profit is small but frequent.** Each cycle earns about 2% of what it invested. The return comes from many short cycles.
+- Small drops close fast. If price falls to 94.25 and comes back to 98.77, the cycle closes in profit, still below the starting price.
+- Most of the budget waits deep down. The first three orders use only 15% of the budget; the last two use 51%.
+- The ladder covers a 59.6% drop. Past that the bot cannot buy more; it holds the position and waits for a recovery.
+- Each cycle earns about 2% of what it invested, so the return comes from many short cycles.
 
 ### The risk in DCA
 
-DCA has one big risk: **price falling for a long time without coming back.** With no stop the bot keeps holding: the budget stays locked and an unrealised loss shows. In our tests the longest cycle stayed open 329 days.
+The main risk in DCA is a long fall without a recovery. With no stop the bot keeps holding: the budget stays locked and an unrealised loss shows. In our tests the longest cycle stayed open 329 days.
 
 Leverage turns that risk into liquidation. A 1x long cannot be liquidated; a 5x long is liquidated about 20% below its average entry. A short can be liquidated even at 1x, when price roughly doubles. That is why the app asks you to confirm ("Liquidation possible, no stop") whenever the Summary shows a liquidation price and no stop sits before it: a DCA with the stop loss off, or a grid with **Stop beyond range** off.
 
@@ -117,10 +117,10 @@ Nobody knows the market's direction for sure. This table is a starting point, no
 | Slowly rising | Grid long with trailing up | The range follows price upward | Did not pass the test |
 | Very volatile altcoin | DCA long, altcoin template, small budget | A wide ladder lasts through sharp moves | Did not pass the test; the coin may not recover |
 
-**General rules:**
+General rules:
 
 - Start with large, liquid coins. Templates tested on the top 5 coins do not behave the same on small coins.
-- Start at 1x. Leverage enlarges risk, not profit.
+- Start at 1x: leverage raises the risk.
 - Do not run several bots on one coin. The app allows one bot per coin, market and side.
 
 ## Templates and their test results {#templates}
@@ -153,7 +153,7 @@ A template that misses even one is marked **Did not pass**, with the checks it m
 
 **Re-run on 9 October 2026.** On the same test window (to 27 September) both still pass; the figures above are from that re-run. With October added, both miss one check, "every test month positive": in October's first 8.5 days, with the majors down 1 to 15% and every deal still open, Classic was at −0.44% and Safe at −0.14% per bot-month. They are marked **Under review** and the checks are read again on 1 November, when October is complete. No other template passed, and none of the six new candidates tested that day became a template.
 
-What the others teach:
+The other templates:
 
 - **DCA Long Quick** did very well in the test period (+5.63% per bot-month) but lost 6.84% per bot-month in validation. A short ladder spends the budget early in a sharp drop.
 - **DCA Long BTC** made money in two periods and lost slightly in validation.
@@ -237,7 +237,7 @@ Check **"Profit per grid after fees"** in the Summary panel. Below 0.3% the step
 | Hold new cycles on a BTC break | No new cycle while Sentinel reports a BTC break |
 | Portfolio breaker | Closes every bot inside it once their combined loss reaches 15% |
 
-**Protection cuts both ways in DCA.** DCA earns by holding through the drop and selling the bounce. Any protection that closes at the bottom can miss that bounce. In the `dca_long_classic` test the 2-year result fell from +41.5% to +29.8% with the portfolio breaker on. Turning protection on is your risk choice: less profit, a capped loss.
+**In DCA, protection has a cost.** DCA earns by holding through the drop and selling the bounce. Any protection that closes at the bottom can miss that bounce. In the `dca_long_classic` test the 2-year result fell from +41.5% to +29.8% with the portfolio breaker on. Turning protection on is your risk choice: less profit, a capped loss.
 
 ## Work out your risk {#risk}
 
@@ -297,11 +297,11 @@ The [Backtest](#/backtest) page runs a setting on past prices with the same engi
 
 ## Real money {#real-money}
 
-Real money is optional and switched on per bot. Run the bot on paper first and watch how it behaves.
+Every bot is **Paper** or **Live**, chosen in the **Mode** panel of its creation screen (Paper is the default). Run a bot on paper first and watch how it behaves. A Paper bot can go Live later through the same checks, and goes back to Paper once it holds no real position.
 
 **What it needs**
 
-1. The live build (the default build trades on paper only).
+1. Choose **Live** in the Mode panel; it is offered only when the points below hold, and lists what is missing.
 2. A verified **Binance trade key** in [Settings → Exchange keys](#/settings?tab=keys): Futures on, withdrawals off. Keys that can withdraw are refused. Real money is Binance only for now: Bybit and OKX have not yet passed an end-to-end run on their own test networks, so switching real money on for them is refused. Their keys still work for the account view and for closing positions.
 3. The bot's market must be **Futures**.
 4. A protective level: a stop loss for DCA, a stop-out for Grid, or a drawdown stop for either. The exchange stop rests at that level.
@@ -311,7 +311,9 @@ Real money is optional and switched on per bot. Run the bot on paper first and w
 
 - The bot decides on 1-minute bars exactly as on paper. Every buy, sell and close goes to Binance as a **market order** (isolated margin, the bot's leverage). Taker fees apply, and waiting for the bar to close can add 1–2 minutes of delay.
 - A **stop** always rests on Binance for the position. It protects the position even while the app is closed.
-- The **Real money** panel on the bot page shows the real position, entry, exchange stop, realized result and last sync time. A **LIVE** badge shows in the top bar.
+- Before the first real order the screen shows the **money at risk**: most margin at risk, largest position, leverage cap and the pilot. Type **LIVE** to confirm.
+- **After a restart** a Live bot comes back **stopped** and asks for LIVE again before it starts (its real position and exchange stop stay managed meanwhile).
+- The **Real money** panel on the bot page shows the real position, entry, exchange stop, realized result and last sync time. The top bar shows **Live running: N**; open it for **Stop all live**, which stops and disarms every Live bot (open positions stay under their exchange stops).
 
 **Pilot: small first steps**
 
@@ -339,7 +341,7 @@ A DCA or Grid bot on real money gets a **Real vs paper** tab on its page. It com
 ## Common mistakes {#mistakes}
 
 1. **Raising leverage with the stop off.** One sharp drop takes the whole budget by liquidation.
-2. **A trailing deviation close to or above the take profit.** A cycle that reached its take profit can close at a loss. The form now refuses equal or larger values.
+2. **A trailing deviation close to or above the take profit.** A cycle that reached its take profit can close at a loss. The form refuses equal or larger values.
 3. **DCA on a small, newly listed coin.** These coins can head toward zero without recovering.
 4. **A short ladder.** A 4-order ladder covering 15% runs out in an ordinary crypto drop.
 5. **Grid in a trending market.** When the range breaks, the grid closes at a loss at the stop or holds inventory losing value.
@@ -353,9 +355,9 @@ A DCA or Grid bot on real money gets a **Real vs paper** tab on its page. It com
 
 **Why is the bot not opening a new cycle?** Check the notes on the bot page. Possible reasons: price range guard, end time, cycle limit, BTC break hold, portfolio breaker, budget cap, leverage above your risk level's maximum, the bot was not resumed after a restart, or a price feed older than 3 minutes.
 
-**Why can't I delete or edit my bot?** Delete and settings are not in the bot list but on the bot's own page: click the bot's name; settings are on the **Settings** tab, **Delete** is among the buttons at the top. While a cycle is open, that is while the bot holds a position, delete is off and settings that would break the cycle, such as symbol and budget, are locked. Close the cycle first with **Close cycle**; then **Delete** is available. You can also create a new bot without deleting, if the budget cap has room and no other bot runs on the same symbol.
+**Why can't I delete or edit my bot?** Delete and settings are not in the bot list but on the bot's own page: click the bot's name; settings are on the **Settings** tab, **Delete** is among the buttons at the top. While a cycle is open, that is while the bot holds a position, delete is off and settings that would break the cycle, such as symbol and budget, are locked. Close the cycle first with **Close cycle and stop**; then **Delete** is available. You can also create a new bot without deleting, if the budget cap has room and no other bot runs on the same symbol.
 
-**What does "Paused: Price feed older than 3 minutes" mean?** The bot has had no new price for 3 minutes and waits rather than trade on an old one. It is usually a short outage of the exchange or the internet connection. The bot resumes by itself when prices return; pressing **Resume** does not fix it. If you press **Close cycle** meanwhile, the close also waits for a price, because the app never books a close at an old price. A new bot does not help during the wait: it uses the same price source.
+**What does "Paused: Price feed older than 3 minutes" mean?** The bot has had no new price for 3 minutes and waits rather than trade on an old one. It is usually a short outage of the exchange or the internet connection. The bot resumes by itself when prices return; pressing **Resume** does not fix it. If you press **Close cycle and stop** meanwhile, the close also waits for a price, because the app never books a close at an old price. A new bot does not help during the wait: it uses the same price source.
 
 **Why does profit look small?** DCA and Grid make small but frequent profits. Look at the monthly return, not one cycle.
 

@@ -18,6 +18,7 @@ import { AccountPage } from "@/pages/Account/AccountPage";
 import { BotNewPage } from "@/pages/Bots/BotNewPage";
 import { BotsPage } from "@/pages/Bots/BotsPage";
 import { SignalBotsPage } from "@/pages/Bots/SignalBotsPage";
+import { TvBotPage } from "@/pages/Bots/tradingview/TvBotPage";
 import { StrategyBotsPage } from "@/pages/Bots/StrategyBotsPage";
 import { StrategyCreatePage } from "@/pages/Bots/StrategyCreatePage";
 import { DashboardPage } from "@/pages/Dashboard/DashboardPage";
@@ -29,6 +30,7 @@ import { SettingsPage } from "@/pages/Settings/SettingsPage";
 import { SignalsPage } from "@/pages/Signals/SignalsPage";
 import { AlertsDrawer } from "./AlertsDrawer";
 import { UpdateBanner } from "./UpdateBanner";
+import { TradingBlockedBanner } from "@/components/LiveMode/DataNotices";
 import { useUpdateChecks } from "@/app/update";
 import { useStrategyLivePolling } from "@/pages/Bots/strategy/useStrategyLive";
 import { useVaultActivity } from "@/components/Vault/vaultActivity";
@@ -108,6 +110,8 @@ export function renderRoute(route: ParsedRoute): ReactNode {
       return <BotNewPage />;
     case "signalBots":
       return <SignalBotsPage />;
+    case "tvBot":
+      return <TvBotPage />;
     case "dcaBots":
       return <StrategyBotsPage kind="dca" />;
     case "gridBots":
@@ -335,6 +339,7 @@ export function AppShell() {
         />
         <main className="ae-shell__main" tabIndex={-1}>
           <UpdateBanner />
+          <TradingBlockedBanner />
           <Suspense fallback={<p className="ae-shell__loading">{t("workspace.loading")}</p>}>
             {heading ? <div key={route.path} className="ae-shell__page">{renderRoute(route)}</div> : null}
           </Suspense>

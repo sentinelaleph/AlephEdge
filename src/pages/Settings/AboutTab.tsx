@@ -84,15 +84,13 @@ export function AboutTab({ info }: { info: AppInfo | null }) {
               {t("app.name")}
             </h2>
             {info && !browser ? <span className="ae-about__version tabular">v{info.version}</span> : null}
-            <Chip tone={info?.liveBuild ? "live" : "paper"}>
-              {t(info?.liveBuild ? "settings.about.liveBuild" : "settings.about.paperBuild")}
-            </Chip>
+            <Chip tone="neutral">{t("settings.about.liveBuild")}</Chip>
             {info && isTestnetBuild(info) ? <Chip tone="warn">{t("settings.about.testnetBuild")}</Chip> : null}
             <Chip tone="neutral">{t("app.betaBadge")}</Chip>
           </div>
           <p className="ae-about__tagline">{t("settings.about.tagline")}</p>
           <p className="ae-subtle">
-            {t(info?.liveBuild ? "settings.about.buildNote.live" : "settings.about.buildNote.paper")} {t("settings.about.notAdvice")}
+            {t("settings.about.buildNote.live")} {t("settings.about.notAdvice")}
           </p>
         </div>
       </section>

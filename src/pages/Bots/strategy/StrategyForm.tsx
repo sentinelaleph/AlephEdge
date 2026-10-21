@@ -13,6 +13,7 @@ import { errorMessage } from "@/lib/ipc/bridge";
 import { exchangeSymbols } from "@/lib/ipc/exchange/exchange";
 import {
   parseStrategyError,
+  strategyBudgetFloor,
   strategyPreview,
   strategyValidate,
   type DcaParams,
@@ -27,6 +28,8 @@ import {
 } from "@/lib/ipc/strategy/strategy";
 import { configErrorText, presetName, strategyErrorText, universeText } from "@/lib/strategyText";
 import { CheckRow, FieldShell, NumField, Segmented } from "./formControls";
+import { budgetErrors, liveLine, minimumLine, saveMinimum, type FloorState } from "./budgetFloor";
+import { formatDecimalInput } from "@/lib/decimal";
 import { StrategyLevelsTable } from "./StrategyPreviewPanel";
 import { GridSuggest } from "./GridSuggest";
 import { pairListText, presetPairCheck } from "./presetPair";
@@ -263,6 +266,34 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
   }, [cfg, invalid.size]);
 
 
+  // The minimum budget under the Budget field (Rust strategy_budget_floor).
+  // The budget itself never moves it, so typing a budget asks nothing; a
+  // new pair shows "loading" until its Binance rules are read, any other
+  // change keeps the last figure on screen while it is re-asked.
+  const [floor, setFloor] = useState<FloorState>({ status: "loading" });
+  const floorKey = JSON.stringify({ ...cfg, budget: 0, name: "" });
+  const venueKey = `${cfg.exchangeId}|${cfg.market}|${cfg.symbol}`;
+  const floorVenue = useRef<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (floorVenue.current !== venueKey) {
+      floorVenue.current = venueKey;
+      setFloor({ status: "loading" });
+    }
+    const timer = window.setTimeout(() => {
+      strategyBudgetFloor(JSON.parse(floorKey) as StrategyConfig)
+        .then((f) => alive && setFloor({ status: "ready", floor: f }))
+        .catch(() => alive && setFloor({ status: "failed" }));
+    }, 250);
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
+  }, [floorKey, venueKey]);
+  // Bumped by "Use" so the field shows the minimum even when the stored
+  // budget already equals it (the text was cleared after a fill).
+  const [budgetFieldKey, setBudgetFieldKey] = useState(0);
+
   const set = (patch: Partial<StrategyConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const setDca = (patch: Partial<DcaParams>) =>
     setCfg((c) => (c.params.kind === "dca" ? { ...c, params: { ...c.params, ...patch } } : c));
@@ -341,6 +372,46 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
   };
   const submitField = submitError ? parseStrategyError(submitError).field : null;
   const fieldError = (field: string) => err(field) ?? (submitField === field && submitError ? strategyErrorText(t, submitError) : null);
+
+  const floorMin = saveMinimum(floor);
+  const floorErrors = budgetErrors(t, floor, locale);
+  const budgetError = (() => {
+    if (rustError?.field === "budget" && rustError.code === "budgetBelowMinNotional" && floorErrors.below) return floorErrors.below;
+    if (rustError?.field === "budget" && rustError.code === "budgetInvalid" && floorMin !== null) return floorErrors.empty;
+    return fieldError("budget");
+  })();
+  const budgetShort = invalid.has("budget") || (floorMin !== null && cfg.budget < floorMin - 1e-9);
+  const fillBudget = () => {
+    if (floorMin === null) return;
+    set({ budget: floorMin });
+    setBudgetFieldKey((k) => k + 1);
+  };
+  const fillButton =
+    floorMin !== null && budgetShort && !paramLocked ? (
+      <button
+        type="button"
+        className="ae-sfield__fill"
+        aria-label={t("strategy.budgetFloor.fillLabel", { min: formatNumber(floorMin, locale, { maximumFractionDigits: 2 }) })}
+        onClick={fillBudget}
+      >
+        {t("strategy.budgetFloor.fill")}
+      </button>
+    ) : null;
+  const budgetHint = (
+    <>
+      <span className="ae-sfield__line">
+        {minimumLine(t, floor, locale, cfg.exchangeId === "binance" && cfg.market === "futures" ? cfg.symbol : null)}
+        {fillButton}
+      </span>
+      {(() => {
+        const live = liveLine(t, floor, locale, cfg.symbol);
+        return live ? <span className="ae-sfield__line">{live}</span> : null;
+      })()}
+      {available !== null && !backtest ? (
+        <span className="ae-sfield__line">{t("strategy.hint.budgetAvailable", { value: usdt(Math.max(0, available)) })}</span>
+      ) : null}
+    </>
+  );
 
   const canSubmit = invalid.size === 0 && !saving && verdict === null && (!edit || dirty) && budgetFits;
   const canStart = canSubmit && startFits;
@@ -507,15 +578,19 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
               </datalist>
             </FieldShell>
             <NumField
+              key={budgetFieldKey}
               label={t("strategy.field.budget")}
               unit="USDT"
               value={cfg.budget}
               disabled={paramLocked}
               onChange={(budget) => set({ budget })}
               onInvalid={inv("budget")}
-              invalidText={invalidText}
-              error={fieldError("budget") ?? budgetCapText}
-              hint={available !== null && !backtest ? t("strategy.hint.budgetAvailable", { value: usdt(Math.max(0, available)) }) : undefined}
+              invalidText={floorErrors.notANumber}
+              emptyText={floorErrors.empty}
+              placeholder={floorMin !== null ? formatDecimalInput(floorMin) : undefined}
+              error={budgetError ?? budgetCapText}
+              errorAction={fillButton}
+              hint={budgetHint}
             />
             {!spot ? (
               <>

@@ -3,14 +3,15 @@
  *
  * The webhook URL comes back once, from `tvCreateUrl`, and is never stored:
  * Rust does not keep it and the server keeps only its hash. Losing it means
- * rotating. Everything else here is the relay's status, the two switches and
- * the last results the background reader recorded.
+ * rotating. Everything else here is the relay's status, the two switches,
+ * the server's offline notice and the last results the background reader
+ * recorded. Alerts run on the TradingView bot (bot kind `tradingview`).
  *
  * Outside Tauri, `npm run dev` gets an in-memory preview through `devMock`;
  * the released bundle contains neither the mock nor its values.
  */
 
-import { devMock, inTauri, invoke } from "../bridge";
+import { devMock, inTauri, invoke, listenEvent, type Unlisten } from "../bridge";
 
 type Mock = typeof import("./tvlink.mock");
 const mock = <T>(run: (m: Mock) => Promise<T>) => devMock(() => import("./tvlink.mock"), run);
@@ -22,16 +23,28 @@ export interface TvServerStatus {
   lastReceivedAt: number | null;
   received24h: number;
   pending: number;
+  /** The server's Telegram notice for an alert that arrives while the app is offline. */
+  notifyOffline: boolean | null;
+  offlineAfterS: number | null;
+  /** The app's last events read or open stream, on the server's clock. */
+  lastSeenAt: number | null;
+}
+
+/** `GET|PATCH /api/edge/tv-webhook/settings`. */
+export interface TvNotice {
+  notifyOffline: boolean;
+  offlineAfterS: number;
+  telegram: "linked" | "not_linked" | "unavailable" | "unknown";
 }
 
 export interface TvPrefs {
   /** Read alerts and record them. */
   receive: boolean;
-  /** Run them as paper trades (implies receive). Off by default. */
+  /** Run them on the TradingView bot (implies receive). Off by default. */
   execute: boolean;
 }
 
-/** `received`, `opened`, `closed`, or a refusal code (`key|detail`). */
+/** `received`, `opened`, `closed`, `flipped`, `livePending|…`, or a refusal code (`key|detail`). */
 export interface TvAlertResult {
   eventId: string;
   receivedAt: number | null;
@@ -43,6 +56,21 @@ export interface TvAlertResult {
   positionId: string | null;
   /** A test alert ("Send test alert"): recorded as `tvTestOnly`, never executed. */
   test: boolean;
+  /** The bot that handled it (its name) and how. */
+  botName?: string | null;
+  mode?: "paper" | "live" | null;
+  /** Quantity sized at the live price, and what filled. */
+  requestedQty?: number | null;
+  filledQty?: number | null;
+  avgFill?: number | null;
+  /** The alert's `price` ({{close}}). */
+  alertPrice?: number | null;
+  /** (fill − alert price) / alert price in %, positive = worse for the trade. */
+  slippagePct?: number | null;
+  /** Relay receive to fill, on the server's clock. */
+  latencyMs?: number | null;
+  /** Strategy alerts: "buy long", "sell flat"… */
+  strategy?: string | null;
 }
 
 export interface TvStatus {
@@ -56,6 +84,42 @@ export interface TvStatus {
   /** Last failed read of the background reader. */
   lastError: string | null;
   lastPollAt: number | null;
+  /** `stream` (server push) or `poll`; null while not reading. */
+  transport?: "stream" | "poll" | null;
+  /** Reading now: an open stream, or a read in the last 15 s. */
+  online?: boolean;
+  notice?: TvNotice | null;
+  /** The user set the notice by hand: the app no longer turns it on itself. */
+  noticeTouched?: boolean;
+  /** Real entries whose outcome is still being looked up by client id. */
+  pending?: number;
+  /** Why the event stream last failed (`errors.*` code) while the poll reads; null once it streams. */
+  streamError?: string | null;
+}
+
+/** The smallest order a Binance USDT-M pair takes now (mirrors `SymbolMinimum`). */
+export interface TvSymbolMinimum {
+  symbol: string;
+  /** `ok`, `unavailable` (Binance or its price did not answer), `invalid` (not a USDT pair). */
+  status: "ok" | "unavailable" | "invalid";
+  price: number | null;
+  minQty: number | null;
+  minNotional: number | null;
+  /** Lot size and MIN_NOTIONAL at the live price, rounded up to the cent. */
+  minUsdt: number | null;
+}
+
+/** The smallest order `symbol` takes on Binance futures now (public exchange rules, live price). */
+export function tvSymbolMinimum(symbol: string): Promise<TvSymbolMinimum> {
+  return inTauri() ? invoke<TvSymbolMinimum>("tv_symbol_minimum", { symbol }) : mock((m) => m.mock.symbolMinimum(symbol));
+}
+
+/** Rust's `RESULT_EVENT`: an alert's row was written or updated (payload: its event id). */
+export const TV_RESULT_EVENT = "tvlink:result";
+
+/** Subscribes to new or updated alert rows (a no-op outside Tauri). */
+export function onTvResult(handler: (eventId: string) => void): Promise<Unlisten> {
+  return listenEvent<string>(TV_RESULT_EVENT, handler);
 }
 
 /** Shown once, right after create / rotate. */
@@ -93,10 +157,13 @@ export function tvResults(): Promise<TvAlertResult[]> {
   return inTauri() ? invoke<TvAlertResult[]>("tv_results") : mock((m) => m.mock.results());
 }
 
-/** The alert message, one per action. `{{ticker}}` is TradingView's own placeholder. */
-export const TV_TEMPLATES = {
-  buy: '{"action":"buy","symbol":"{{ticker}}","tp_pct":3,"sl_pct":1.5,"bot":"futures"}',
-  sell: '{"action":"sell","symbol":"{{ticker}}","tp_pct":3,"sl_pct":1.5,"bot":"futures"}',
-  close: '{"action":"close","symbol":"{{ticker}}","bot":"futures"}',
-} as const;
-export type TvTemplate = keyof typeof TV_TEMPLATES;
+/**
+ * The server's offline notice (Telegram through @SentinelAleph_bot). Set by
+ * hand here, the app no longer turns it on by itself for a Live bot.
+ * Refusals: `tvNoUrl`, `tvOfflineAfterRange|10–600`.
+ */
+export function tvSetNotice(notifyOffline?: boolean, offlineAfterS?: number): Promise<TvStatus> {
+  return inTauri()
+    ? invoke<TvStatus>("tv_set_notice", { notifyOffline, offlineAfterS })
+    : mock((m) => m.mock.setNotice(notifyOffline, offlineAfterS));
+}

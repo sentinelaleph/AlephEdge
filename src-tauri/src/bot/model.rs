@@ -7,13 +7,34 @@ use serde::{Deserialize, Serialize};
 
 use crate::signal::model::{Direction, ManagementPlan};
 
-/// Live order sending stays behind a feature flag: the cargo feature `live`
-/// (off by default, so the public build is simulation-only); a live build is a
-/// deliberate `--features live`. While false, fills are simulated at the live
-/// market price — the full pipeline (prechecks, risk limits, management plan,
-/// persistence) is real. The bot farm compiles this file too and has no
+/// Whether this binary contains the real-money order path: the cargo feature
+/// `live`. The desktop app is ONE build and always has it (src-tauri/src/lib.rs
+/// refuses to compile without it); every bot is still Paper unless the user
+/// made it Live (`TradeMode`). The bot farm compiles this file too and has no
 /// such feature: it is never live.
 pub const LIVE_TRADING_ENABLED: bool = cfg!(feature = "live");
+
+/// How a bot trades, chosen when the bot is made and stored with it. Paper is
+/// the default and what every config saved before 0.3.19 reads as (except the
+/// one-time mapping of a LIVE build's data, `BotManager::restore`).
+///
+/// Live is a stored property, not "real orders now": a Live signal bot also
+/// needs its per-session arm (`BotConfig::live`, the typed LIVE with the money
+/// at risk shown) before it may start. Paper and Live never share a bot: a
+/// Live bot takes no paper trade and a Paper bot no real one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TradeMode {
+    #[default]
+    Paper,
+    Live,
+}
+
+impl TradeMode {
+    pub fn is_paper(&self) -> bool {
+        *self == TradeMode::Paper
+    }
+}
 
 /// Taker fees used for NET PnL simulation, per side, as a fraction of
 /// notional: Binance USDⓈ-M VIP0 taker 0.05%, the same 0.10% round trip
@@ -82,6 +103,11 @@ pub enum BotKind {
     /// only and marked untested (no replay or forward test exists); the risk
     /// level does not unlock it, so choosing it loosens no other bot's limits.
     Pump,
+    /// Trades the user's own TradingView alerts (tvlink), never Sentinel's
+    /// signals: USDT-M futures, Paper or Live. Its alert limits are in
+    /// `BotConfig::tv`. Real money only on a venue whose order path passed
+    /// its test-network run (Binance), like the Futures bot.
+    Tradingview,
 }
 
 impl BotKind {
@@ -90,19 +116,114 @@ impl BotKind {
             BotKind::Futures => "futures",
             BotKind::Spot => "spot",
             BotKind::Pump => "pump",
+            BotKind::Tradingview => "tradingview",
         }
     }
 
     /// Inverse of `as_str` (the stored `bot_kind` column).
     pub fn parse(s: &str) -> Option<Self> {
-        [BotKind::Futures, BotKind::Spot, BotKind::Pump]
+        [BotKind::Futures, BotKind::Spot, BotKind::Pump, BotKind::Tradingview]
             .into_iter()
             .find(|k| k.as_str() == s)
     }
 
-    /// Pump and Futures both trade the leveraged USDT-M futures market.
+    /// Pump, Futures and the TradingView bot trade the leveraged USDT-M
+    /// futures market.
     pub fn uses_futures_market(self) -> bool {
-        matches!(self, BotKind::Futures | BotKind::Pump)
+        matches!(self, BotKind::Futures | BotKind::Pump | BotKind::Tradingview)
+    }
+
+    /// The kinds whose entries may be real orders: the Futures bot and the
+    /// TradingView bot (both USDT-M futures). Spot and Pump are never live.
+    pub fn live_capable(self) -> bool {
+        matches!(self, BotKind::Futures | BotKind::Tradingview)
+    }
+}
+
+/// Alert limits of the TradingView bot (`BotKind::Tradingview`), enforced
+/// by the backend on every alert (tvlink), not only shown by the form. The
+/// bot's own `max_positions` is its open-position cap, `leverage` its
+/// leverage cap (clamped to the risk level), `symbols` its allow list, and
+/// `capital` = `budget_usdt / max_positions` (margin per position), so the
+/// money a Live arm confirms (`live_terms::signal_terms`) is the budget.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct TvSettings {
+    /// The name the alert results show.
+    pub name: String,
+    /// Most margin the bot holds at once (USDT).
+    pub budget_usdt: f64,
+    /// Largest `size_usdt` (position notional) one alert may ask for; also
+    /// the size of an alert without `size_usdt`.
+    pub max_size_usdt: f64,
+    /// Most alert entries per UTC day (a flip counts its open leg).
+    pub max_opens_per_day: u32,
+    /// An alert older than this on the server's clock is never executed.
+    pub stale_s: u32,
+    /// Refuse when the live price is more than this % from the alert's
+    /// `price` (`{{close}}`).
+    pub price_guard_pct: f64,
+    /// Refuse an entry without `price` (the price guard cannot run).
+    pub require_price: bool,
+    /// Salted SHA-256 of the optional passphrase (hex); the passphrase itself
+    /// is never stored.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub passphrase_sha256: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub passphrase_salt: Option<String>,
+    /// From the form only: Some(text) sets the passphrase, Some("") clears
+    /// it, None keeps it. Never written to disk or sent back.
+    #[serde(skip_serializing)]
+    pub passphrase: Option<String>,
+}
+
+pub const TV_STALE_DEFAULT_S: u32 = 30;
+pub const TV_STALE_MIN_S: u32 = 5;
+pub const TV_STALE_MAX_S: u32 = 120;
+pub const TV_PRICE_GUARD_DEFAULT_PCT: f64 = 0.5;
+pub const TV_PRICE_GUARD_MAX_PCT: f64 = 10.0;
+pub const TV_MAX_OPENS_PER_DAY: u32 = 200;
+
+impl Default for TvSettings {
+    fn default() -> Self {
+        Self {
+            name: "TradingView".to_string(),
+            budget_usdt: 100.0,
+            max_size_usdt: 50.0,
+            max_opens_per_day: 10,
+            stale_s: TV_STALE_DEFAULT_S,
+            price_guard_pct: TV_PRICE_GUARD_DEFAULT_PCT,
+            require_price: true,
+            passphrase_sha256: None,
+            passphrase_salt: None,
+            passphrase: None,
+        }
+    }
+}
+
+impl TvSettings {
+    /// Refuses values outside the declared ranges (no silent clamp).
+    pub fn validate(&self) -> Result<(), String> {
+        let pos = |v: f64| v.is_finite() && v > 0.0;
+        if self.name.trim().is_empty() || self.name.chars().count() > 40 {
+            return Err("tvBotNameInvalid".to_string());
+        }
+        if !pos(self.budget_usdt) {
+            return Err("tvBudgetInvalid".to_string());
+        }
+        if !pos(self.max_size_usdt) || self.max_size_usdt < EXCHANGE_MIN_ORDER_USDT {
+            return Err(format!("tvMaxSizeInvalid|{EXCHANGE_MIN_ORDER_USDT}"));
+        }
+        if !(1..=TV_MAX_OPENS_PER_DAY).contains(&self.max_opens_per_day) {
+            return Err(format!("tvOpensPerDayRange|1–{TV_MAX_OPENS_PER_DAY}"));
+        }
+        if !(TV_STALE_MIN_S..=TV_STALE_MAX_S).contains(&self.stale_s) {
+            return Err(format!("tvStaleRange|{TV_STALE_MIN_S}–{TV_STALE_MAX_S}"));
+        }
+        if !(self.price_guard_pct.is_finite() && self.price_guard_pct > 0.0 && self.price_guard_pct <= TV_PRICE_GUARD_MAX_PCT) {
+            return Err(format!("tvPriceGuardRange|0–{TV_PRICE_GUARD_MAX_PCT}"));
+        }
+        Ok(())
     }
 }
 
@@ -210,11 +331,16 @@ pub struct BotConfig {
     /// which is exactly what Sentinel's per-engine ledger is keyed on.
     #[serde(default)]
     pub engines: Vec<String>,
-    /// Per-bot LIVE opt-in. Real orders require BOTH this and the compile-time
-    /// LIVE_TRADING_ENABLED master switch — two deliberate flips, either alone
-    /// does nothing. Defaults false; absent in every stored config today.
+    /// Armed for real orders THIS session: set only by the typed LIVE
+    /// (`bot_set_live`) on a bot whose `mode` is Live, never restored from disk
+    /// (`BotManager::restore_configs` clears it). Real orders need this, the
+    /// Live mode and the binary's order path (`LIVE_TRADING_ENABLED`).
     #[serde(default)]
     pub live: bool,
+    /// Paper or Live, stored with the bot. Written only when Live, so a paper
+    /// config is byte for byte what it was before modes existed.
+    #[serde(default, skip_serializing_if = "TradeMode::is_paper")]
+    pub mode: TradeMode,
     /// The user's own per-position loss tolerance in percent of the bot's
     /// CAPITAL, after leverage and fees (e.g. 2.0 = close once the unrealized
     /// NET loss reaches −2% of capital: a 0.57% price move at fixed 3x; in
@@ -241,6 +367,11 @@ pub struct BotConfig {
     /// The desktop always walks signals newest first. 0 = no age limit.
     #[serde(default = "default_max_signal_age_min")]
     pub max_signal_age_min: u32,
+    /// The TradingView bot's alert limits (`BotKind::Tradingview` only).
+    /// Left out of the JSON when absent, so every other config is written
+    /// byte for byte as before.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tv: Option<TvSettings>,
 }
 
 impl BotConfig {
@@ -279,12 +410,14 @@ impl BotConfig {
             combos: Vec::new(),
             engines: Vec::new(),
             live: false,
+            mode: TradeMode::Paper,
             max_loss_pct: None,
             sizing: SizingMode::Risk,
             risk_per_trade_pct: default_risk_pct(),
             take_profit: TakeProfitTarget::Tp1,
             take_profit_overrides: BTreeMap::new(),
             max_signal_age_min: DEFAULT_MAX_SIGNAL_AGE_MIN,
+            tv: (kind == BotKind::Tradingview).then(TvSettings::default),
         }
     }
 
@@ -344,6 +477,11 @@ impl BotConfig {
             if !target.pct_in_bounds() {
                 return Err(format!("botTakeProfitRange|{symbol}: {}", tp_bounds()));
             }
+        }
+        match (self.kind, &self.tv) {
+            (BotKind::Tradingview, Some(tv)) => tv.validate()?,
+            (BotKind::Tradingview, None) => return Err("tvSettingsMissing".to_string()),
+            _ => {}
         }
         Ok(())
     }
@@ -471,10 +609,11 @@ fn default_tp_target() -> String {
 }
 
 impl OpenPosition {
-    /// Whether this position may touch the real venue. BOTH the compile-time
-    /// master switch and the per-position flag have to say yes: the flag alone
-    /// is a line in a file any local process can edit, so no close, manage or
-    /// reconcile path may trust it by itself.
+    /// Whether this position may touch the real venue. BOTH the binary's
+    /// order path and the per-position flag have to say yes (the bot farm has
+    /// no order path). The flag is a line in a file any local process can
+    /// edit: restore holds a real row of a Paper bot out of the book
+    /// (`split_foreign_live_rows`), so only a Live bot's rows get here.
     pub fn is_live(&self) -> bool {
         LIVE_TRADING_ENABLED && self.live
     }
@@ -505,9 +644,17 @@ pub struct BotDeskStatus {
     pub futures: Option<BotConfig>,
     pub spot: Option<BotConfig>,
     pub pump: Option<BotConfig>,
+    /// The TradingView bot (alerts, tvlink), when one was made.
+    #[serde(default)]
+    pub tradingview: Option<BotConfig>,
     pub futures_running: bool,
     pub spot_running: bool,
     pub pump_running: bool,
+    #[serde(default)]
+    pub tradingview_running: bool,
+    /// Real entries left in the TradingView bot's own pilot.
+    #[serde(default)]
+    pub tradingview_pilot_left: u32,
     pub open_positions: Vec<OpenPosition>,
     pub recent_skips: Vec<SkipNote>,
     /// Set when the daily loss kill-switch tripped today (UTC); bots cannot
@@ -539,6 +686,15 @@ pub struct BotDeskStatus {
     /// What each open position would book if its current stop filled.
     #[serde(default)]
     pub at_stop: Vec<PositionAtStop>,
+    /// Real-money position rows the last restore could not read ("kind
+    /// signal_id"). Money in play the book does not manage: shown until a
+    /// restart reads them, and counted as live exposure.
+    #[serde(default)]
+    pub live_unreadable: Vec<String>,
+    /// Why no bot may start now (risk settings or the store unreadable), an
+    /// i18n code, or None. Filled by `bot_status`.
+    #[serde(default)]
+    pub trading_blocked: Option<String>,
 }
 
 /// An open position at its current stop (the entry once breakeven has

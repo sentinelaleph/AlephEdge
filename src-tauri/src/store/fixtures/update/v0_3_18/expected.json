@@ -1,0 +1,4536 @@
+{
+  "version": "0.3.18",
+  "memory": {
+    "bots": [
+      {
+        "id": "sb_arundcaxxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_arundcaxxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDAUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "inCycle",
+        "createdAt": 1791996360000,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1000.0227935758094,
+        "maxDdQuote": -11.101596996408603,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 1,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 46010.235026535134,
+          "commitBars": 179999.99999999997,
+          "bars": 180.0
+        },
+        "archivedAt": null
+      },
+      {
+        "id": "sb_brungridxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd grid",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDBUSDT",
+          "side": "neutral",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "grid",
+            "range": {
+              "type": "relative",
+              "lowerPct": 6.0,
+              "upperPct": 6.0
+            },
+            "nGrids": 12,
+            "spacing": "geom",
+            "stopOutPct": 5.0,
+            "trailingUp": false,
+            "trailUpLimit": null,
+            "takeProfitPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "inCycle",
+        "createdAt": 1791996360001,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1032.0242906729368,
+        "maxDdQuote": -5.791428995579281,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 1,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 25804.420605312407,
+          "commitBars": 180000.0,
+          "bars": 180.0
+        },
+        "archivedAt": null
+      },
+      {
+        "id": "sb_cstopdcaxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_cstopdcaxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDCUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "stopped",
+        "createdAt": 1791996360002,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1000.0227935758094,
+        "maxDdQuote": -11.101596996408603,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 1,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 46010.235026535134,
+          "commitBars": 179999.99999999997,
+          "bars": 180.0
+        },
+        "archivedAt": null
+      },
+      {
+        "id": "sb_dpausedcxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_dpausedcxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDDUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "paused",
+        "createdAt": 1791996360003,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1000.0227935758094,
+        "maxDdQuote": -11.101596996408603,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 1,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 46010.235026535134,
+          "commitBars": 179999.99999999997,
+          "bars": 180.0
+        },
+        "archivedAt": null
+      },
+      {
+        "id": "sb_earmeddcxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_earmeddcxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDEUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "priceCross",
+            "price": 1000000.0,
+            "direction": "up"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "armed",
+        "createdAt": 1791996360004,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1000.0,
+        "maxDdQuote": 0.0,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 0,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 0.0,
+          "commitBars": 0.0,
+          "bars": 0.0
+        },
+        "archivedAt": null
+      },
+      {
+        "id": "sb_flivedcaxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_flivedcaxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDFUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "inCycle",
+        "createdAt": 1791996360005,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1000.0227935758095,
+        "maxDdQuote": -11.101596996408603,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 1,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 46010.235026535134,
+          "commitBars": 179999.99999999997,
+          "bars": 180.0
+        },
+        "archivedAt": null
+      }
+    ],
+    "cycles": {
+      "sb_arundcaxxxxx": {
+        "core": {
+          "botId": "sb_arundcaxxxxx",
+          "seq": 1,
+          "kind": "dca",
+          "side": "long",
+          "openedAt": 1791999960000,
+          "anchorPrice": 100.0,
+          "sizeFactor": 1.0,
+          "budget": 1000.0,
+          "leverage": 2.0,
+          "costs": {
+            "maker": 0.0002,
+            "taker": 0.0005,
+            "slippage": 0.0002,
+            "mmr": 0.005,
+            "funding": true
+          },
+          "cash": -0.22270659590598935,
+          "fees": 0.22270659590598935,
+          "funding": 0.0,
+          "fills": 3,
+          "maxMargin": 379.0750568612584,
+          "maxNotional": 758.1501137225168,
+          "maxAdverseQuote": -11.078803420599272,
+          "open": true,
+          "exit": null,
+          "legs": 540,
+          "nowMs": 1792010759999,
+          "barOpenMs": 1792010700000,
+          "deadlineMs": null,
+          "prevClose": 97.60188732501044,
+          "lastBarCloseMs": 1792010759999,
+          "fundingUnknown": false,
+          "events": []
+        },
+        "engine": {
+          "engine": "dca",
+          "s": 1.0,
+          "q": 7.662980586645608,
+          "n": 758.1501137225168,
+          "m": 379.0750568612584,
+          "a": 98.93671335195035,
+          "tp": 100.42076405222959,
+          "sl": null,
+          "liq": 49.71694138288962,
+          "soPx": [
+            99.0,
+            98.0,
+            97.0,
+            96.0,
+            95.0
+          ],
+          "soNot": [
+            236.92191053828654,
+            284.3062926459438,
+            341.1675511751326,
+            409.40106141015906,
+            491.28127369219095
+          ],
+          "maxSo": 5,
+          "nso": 2,
+          "tpPct": 1.5,
+          "trPct": null,
+          "slPct": null,
+          "committed": 999.9999999999997,
+          "trailOn": false,
+          "peak": null,
+          "trailPx": null,
+          "tpLeg": 311
+        }
+      },
+      "sb_brungridxxxx": {
+        "core": {
+          "botId": "sb_brungridxxxx",
+          "seq": 1,
+          "kind": "grid",
+          "side": "neutral",
+          "openedAt": 1791999960000,
+          "anchorPrice": 50.025,
+          "sizeFactor": 1.0,
+          "budget": 1000.0,
+          "leverage": 2.0,
+          "costs": {
+            "maker": 0.0002,
+            "taker": 0.0005,
+            "slippage": 0.0002,
+            "mmr": 0.005,
+            "funding": true
+          },
+          "cash": 31.99081005456453,
+          "fees": 1.3661682061971014,
+          "funding": 0.0,
+          "fills": 41,
+          "maxMargin": 253.6398063006447,
+          "maxNotional": 507.2796126012894,
+          "maxAdverseQuote": -5.78858648862205,
+          "open": true,
+          "exit": null,
+          "legs": 540,
+          "nowMs": 1792010759999,
+          "barOpenMs": 1792010700000,
+          "deadlineMs": null,
+          "prevClose": 50.63801178536903,
+          "lastBarCloseMs": 1792010759999,
+          "fundingUnknown": false,
+          "events": []
+        },
+        "engine": {
+          "engine": "grid",
+          "levels": [
+            47.0235,
+            47.49666522271865,
+            47.97459158248558,
+            48.45732698735682,
+            48.944919827454285,
+            49.437418979816485,
+            49.93487381329804,
+            50.43733419351849,
+            50.944850487860926,
+            51.4574735705208,
+            51.97525482760575,
+            52.49824616228655,
+            53.02649999999996
+          ],
+          "side": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "qty": [
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018
+          ],
+          "orderNo": [
+            0,
+            1,
+            2,
+            3,
+            51,
+            52,
+            53,
+            48,
+            47,
+            46,
+            10,
+            11,
+            12
+          ],
+          "placedLeg": [
+            0,
+            0,
+            0,
+            0,
+            524,
+            530,
+            536,
+            467,
+            458,
+            452,
+            0,
+            0,
+            0
+          ],
+          "nextOrderNo": 54,
+          "n": 12,
+          "geom": true,
+          "r": 1.010062314007223,
+          "d": 0.50025,
+          "x": 5.0,
+          "trailingUp": false,
+          "trailLimit": null,
+          "loStop": 44.672324999999994,
+          "hiStop": 55.677825,
+          "tpTotal": null,
+          "lower": 47.0235,
+          "upper": 53.0265,
+          "pos": -3.31903131951018,
+          "a": 50.43733419351849,
+          "closes": 20,
+          "shifts": 0,
+          "liq": 359.57080641565136
+        }
+      },
+      "sb_cstopdcaxxxx": {
+        "core": {
+          "botId": "sb_cstopdcaxxxx",
+          "seq": 1,
+          "kind": "dca",
+          "side": "long",
+          "openedAt": 1791999960000,
+          "anchorPrice": 200.0,
+          "sizeFactor": 1.0,
+          "budget": 1000.0,
+          "leverage": 2.0,
+          "costs": {
+            "maker": 0.0002,
+            "taker": 0.0005,
+            "slippage": 0.0002,
+            "mmr": 0.005,
+            "funding": true
+          },
+          "cash": -0.22270659590598935,
+          "fees": 0.22270659590598935,
+          "funding": 0.0,
+          "fills": 3,
+          "maxMargin": 379.0750568612584,
+          "maxNotional": 758.1501137225168,
+          "maxAdverseQuote": -11.078803420599272,
+          "open": true,
+          "exit": null,
+          "legs": 540,
+          "nowMs": 1792010759999,
+          "barOpenMs": 1792010700000,
+          "deadlineMs": null,
+          "prevClose": 195.20377465002088,
+          "lastBarCloseMs": 1792010759999,
+          "fundingUnknown": false,
+          "events": []
+        },
+        "engine": {
+          "engine": "dca",
+          "s": 1.0,
+          "q": 3.831490293322804,
+          "n": 758.1501137225168,
+          "m": 379.0750568612584,
+          "a": 197.8734267039007,
+          "tp": 200.84152810445917,
+          "sl": null,
+          "liq": 99.43388276577925,
+          "soPx": [
+            198.0,
+            196.0,
+            194.0,
+            192.0,
+            190.0
+          ],
+          "soNot": [
+            236.92191053828654,
+            284.3062926459438,
+            341.1675511751326,
+            409.40106141015906,
+            491.28127369219095
+          ],
+          "maxSo": 5,
+          "nso": 2,
+          "tpPct": 1.5,
+          "trPct": null,
+          "slPct": null,
+          "committed": 999.9999999999997,
+          "trailOn": false,
+          "peak": null,
+          "trailPx": null,
+          "tpLeg": 311
+        }
+      },
+      "sb_dpausedcxxxx": {
+        "core": {
+          "botId": "sb_dpausedcxxxx",
+          "seq": 1,
+          "kind": "dca",
+          "side": "long",
+          "openedAt": 1791999960000,
+          "anchorPrice": 25.0,
+          "sizeFactor": 1.0,
+          "budget": 1000.0,
+          "leverage": 2.0,
+          "costs": {
+            "maker": 0.0002,
+            "taker": 0.0005,
+            "slippage": 0.0002,
+            "mmr": 0.005,
+            "funding": true
+          },
+          "cash": -0.22270659590598935,
+          "fees": 0.22270659590598935,
+          "funding": 0.0,
+          "fills": 3,
+          "maxMargin": 379.0750568612584,
+          "maxNotional": 758.1501137225168,
+          "maxAdverseQuote": -11.078803420599272,
+          "open": true,
+          "exit": null,
+          "legs": 540,
+          "nowMs": 1792010759999,
+          "barOpenMs": 1792010700000,
+          "deadlineMs": null,
+          "prevClose": 24.40047183125261,
+          "lastBarCloseMs": 1792010759999,
+          "fundingUnknown": false,
+          "events": []
+        },
+        "engine": {
+          "engine": "dca",
+          "s": 1.0,
+          "q": 30.65192234658243,
+          "n": 758.1501137225168,
+          "m": 379.0750568612584,
+          "a": 24.734178337987586,
+          "tp": 25.105191013057397,
+          "sl": null,
+          "liq": 12.429235345722406,
+          "soPx": [
+            24.75,
+            24.5,
+            24.25,
+            24.0,
+            23.75
+          ],
+          "soNot": [
+            236.92191053828654,
+            284.3062926459438,
+            341.1675511751326,
+            409.40106141015906,
+            491.28127369219095
+          ],
+          "maxSo": 5,
+          "nso": 2,
+          "tpPct": 1.5,
+          "trPct": null,
+          "slPct": null,
+          "committed": 999.9999999999997,
+          "trailOn": false,
+          "peak": null,
+          "trailPx": null,
+          "tpLeg": 311
+        }
+      },
+      "sb_earmeddcxxxx": null,
+      "sb_flivedcaxxxx": {
+        "core": {
+          "botId": "sb_flivedcaxxxx",
+          "seq": 1,
+          "kind": "dca",
+          "side": "long",
+          "openedAt": 1791999960000,
+          "anchorPrice": 300.0,
+          "sizeFactor": 1.0,
+          "budget": 1000.0,
+          "leverage": 2.0,
+          "costs": {
+            "maker": 0.0002,
+            "taker": 0.0005,
+            "slippage": 0.0002,
+            "mmr": 0.005,
+            "funding": true
+          },
+          "cash": -0.22270659590598935,
+          "fees": 0.22270659590598935,
+          "funding": 0.0,
+          "fills": 3,
+          "maxMargin": 379.0750568612584,
+          "maxNotional": 758.1501137225168,
+          "maxAdverseQuote": -11.078803420599158,
+          "open": true,
+          "exit": null,
+          "legs": 540,
+          "nowMs": 1792010759999,
+          "barOpenMs": 1792010700000,
+          "deadlineMs": null,
+          "prevClose": 292.8056619750313,
+          "lastBarCloseMs": 1792010759999,
+          "fundingUnknown": false,
+          "events": []
+        },
+        "engine": {
+          "engine": "dca",
+          "s": 1.0,
+          "q": 2.554326862215203,
+          "n": 758.1501137225168,
+          "m": 379.0750568612584,
+          "a": 296.81014005585104,
+          "tp": 301.2622921566888,
+          "sl": null,
+          "liq": 149.15082414866885,
+          "soPx": [
+            297.0,
+            294.0,
+            291.0,
+            288.0,
+            285.0
+          ],
+          "soNot": [
+            236.92191053828654,
+            284.3062926459438,
+            341.1675511751326,
+            409.40106141015906,
+            491.28127369219095
+          ],
+          "maxSo": 5,
+          "nso": 2,
+          "tpPct": 1.5,
+          "trPct": null,
+          "slPct": null,
+          "committed": 999.9999999999997,
+          "trailOn": false,
+          "peak": null,
+          "trailPx": null,
+          "tpLeg": 311
+        }
+      }
+    }
+  },
+  "readBack": {
+    "bots": [
+      {
+        "id": "sb_arundcaxxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_arundcaxxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDAUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "inCycle",
+        "createdAt": 1791996360000,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1000.0227935758094,
+        "maxDdQuote": -11.101596996408603,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 1,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 46010.235026535134,
+          "commitBars": 179999.99999999997,
+          "bars": 180.0
+        },
+        "archivedAt": null
+      },
+      {
+        "id": "sb_brungridxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd grid",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDBUSDT",
+          "side": "neutral",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "grid",
+            "range": {
+              "type": "relative",
+              "lowerPct": 6.0,
+              "upperPct": 6.0
+            },
+            "nGrids": 12,
+            "spacing": "geom",
+            "stopOutPct": 5.0,
+            "trailingUp": false,
+            "trailUpLimit": null,
+            "takeProfitPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "inCycle",
+        "createdAt": 1791996360001,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1032.0242906729368,
+        "maxDdQuote": -5.791428995579281,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 1,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 25804.420605312407,
+          "commitBars": 180000.0,
+          "bars": 180.0
+        },
+        "archivedAt": null
+      },
+      {
+        "id": "sb_cstopdcaxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_cstopdcaxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDCUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "stopped",
+        "createdAt": 1791996360002,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1000.0227935758094,
+        "maxDdQuote": -11.101596996408603,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 1,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 46010.235026535134,
+          "commitBars": 179999.99999999997,
+          "bars": 180.0
+        },
+        "archivedAt": null
+      },
+      {
+        "id": "sb_dpausedcxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_dpausedcxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDDUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "paused",
+        "createdAt": 1791996360003,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1000.0227935758094,
+        "maxDdQuote": -11.101596996408603,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 1,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 46010.235026535134,
+          "commitBars": 179999.99999999997,
+          "bars": 180.0
+        },
+        "archivedAt": null
+      },
+      {
+        "id": "sb_earmeddcxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_earmeddcxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDEUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "priceCross",
+            "price": 1000000.0,
+            "direction": "up"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "armed",
+        "createdAt": 1791996360004,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1000.0,
+        "maxDdQuote": 0.0,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 0,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 0.0,
+          "commitBars": 0.0,
+          "bars": 0.0
+        },
+        "archivedAt": null
+      },
+      {
+        "id": "sb_flivedcaxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_flivedcaxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDFUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "inCycle",
+        "createdAt": 1791996360005,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1000.0227935758095,
+        "maxDdQuote": -11.101596996408603,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 1,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 46010.235026535134,
+          "commitBars": 179999.99999999997,
+          "bars": 180.0
+        },
+        "archivedAt": null
+      }
+    ],
+    "openCycles": [
+      {
+        "core": {
+          "botId": "sb_arundcaxxxxx",
+          "seq": 1,
+          "kind": "dca",
+          "side": "long",
+          "openedAt": 1791999960000,
+          "anchorPrice": 100.0,
+          "sizeFactor": 1.0,
+          "budget": 1000.0,
+          "leverage": 2.0,
+          "costs": {
+            "maker": 0.0002,
+            "taker": 0.0005,
+            "slippage": 0.0002,
+            "mmr": 0.005,
+            "funding": true
+          },
+          "cash": -0.22270659590598935,
+          "fees": 0.22270659590598935,
+          "funding": 0.0,
+          "fills": 3,
+          "maxMargin": 379.0750568612584,
+          "maxNotional": 758.1501137225168,
+          "maxAdverseQuote": -11.078803420599272,
+          "open": true,
+          "exit": null,
+          "legs": 540,
+          "nowMs": 1792010759999,
+          "barOpenMs": 1792010700000,
+          "deadlineMs": null,
+          "prevClose": 97.60188732501044,
+          "lastBarCloseMs": 1792010759999,
+          "fundingUnknown": false,
+          "events": []
+        },
+        "engine": {
+          "engine": "dca",
+          "s": 1.0,
+          "q": 7.662980586645608,
+          "n": 758.1501137225168,
+          "m": 379.0750568612584,
+          "a": 98.93671335195035,
+          "tp": 100.42076405222959,
+          "sl": null,
+          "liq": 49.71694138288962,
+          "soPx": [
+            99.0,
+            98.0,
+            97.0,
+            96.0,
+            95.0
+          ],
+          "soNot": [
+            236.92191053828654,
+            284.3062926459438,
+            341.1675511751326,
+            409.40106141015906,
+            491.28127369219095
+          ],
+          "maxSo": 5,
+          "nso": 2,
+          "tpPct": 1.5,
+          "trPct": null,
+          "slPct": null,
+          "committed": 999.9999999999997,
+          "trailOn": false,
+          "peak": null,
+          "trailPx": null,
+          "tpLeg": 311
+        }
+      },
+      {
+        "core": {
+          "botId": "sb_brungridxxxx",
+          "seq": 1,
+          "kind": "grid",
+          "side": "neutral",
+          "openedAt": 1791999960000,
+          "anchorPrice": 50.025,
+          "sizeFactor": 1.0,
+          "budget": 1000.0,
+          "leverage": 2.0,
+          "costs": {
+            "maker": 0.0002,
+            "taker": 0.0005,
+            "slippage": 0.0002,
+            "mmr": 0.005,
+            "funding": true
+          },
+          "cash": 31.99081005456453,
+          "fees": 1.3661682061971014,
+          "funding": 0.0,
+          "fills": 41,
+          "maxMargin": 253.6398063006447,
+          "maxNotional": 507.2796126012894,
+          "maxAdverseQuote": -5.78858648862205,
+          "open": true,
+          "exit": null,
+          "legs": 540,
+          "nowMs": 1792010759999,
+          "barOpenMs": 1792010700000,
+          "deadlineMs": null,
+          "prevClose": 50.63801178536903,
+          "lastBarCloseMs": 1792010759999,
+          "fundingUnknown": false,
+          "events": []
+        },
+        "engine": {
+          "engine": "grid",
+          "levels": [
+            47.0235,
+            47.49666522271865,
+            47.97459158248558,
+            48.45732698735682,
+            48.944919827454285,
+            49.437418979816485,
+            49.93487381329804,
+            50.43733419351849,
+            50.944850487860926,
+            51.4574735705208,
+            51.97525482760575,
+            52.49824616228655,
+            53.02649999999996
+          ],
+          "side": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "qty": [
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018
+          ],
+          "orderNo": [
+            0,
+            1,
+            2,
+            3,
+            51,
+            52,
+            53,
+            48,
+            47,
+            46,
+            10,
+            11,
+            12
+          ],
+          "placedLeg": [
+            0,
+            0,
+            0,
+            0,
+            524,
+            530,
+            536,
+            467,
+            458,
+            452,
+            0,
+            0,
+            0
+          ],
+          "nextOrderNo": 54,
+          "n": 12,
+          "geom": true,
+          "r": 1.010062314007223,
+          "d": 0.50025,
+          "x": 5.0,
+          "trailingUp": false,
+          "trailLimit": null,
+          "loStop": 44.672324999999994,
+          "hiStop": 55.677825,
+          "tpTotal": null,
+          "lower": 47.0235,
+          "upper": 53.0265,
+          "pos": -3.31903131951018,
+          "a": 50.43733419351849,
+          "closes": 20,
+          "shifts": 0,
+          "liq": 359.57080641565136
+        }
+      },
+      {
+        "core": {
+          "botId": "sb_cstopdcaxxxx",
+          "seq": 1,
+          "kind": "dca",
+          "side": "long",
+          "openedAt": 1791999960000,
+          "anchorPrice": 200.0,
+          "sizeFactor": 1.0,
+          "budget": 1000.0,
+          "leverage": 2.0,
+          "costs": {
+            "maker": 0.0002,
+            "taker": 0.0005,
+            "slippage": 0.0002,
+            "mmr": 0.005,
+            "funding": true
+          },
+          "cash": -0.22270659590598935,
+          "fees": 0.22270659590598935,
+          "funding": 0.0,
+          "fills": 3,
+          "maxMargin": 379.0750568612584,
+          "maxNotional": 758.1501137225168,
+          "maxAdverseQuote": -11.078803420599272,
+          "open": true,
+          "exit": null,
+          "legs": 540,
+          "nowMs": 1792010759999,
+          "barOpenMs": 1792010700000,
+          "deadlineMs": null,
+          "prevClose": 195.20377465002088,
+          "lastBarCloseMs": 1792010759999,
+          "fundingUnknown": false,
+          "events": []
+        },
+        "engine": {
+          "engine": "dca",
+          "s": 1.0,
+          "q": 3.831490293322804,
+          "n": 758.1501137225168,
+          "m": 379.0750568612584,
+          "a": 197.8734267039007,
+          "tp": 200.84152810445917,
+          "sl": null,
+          "liq": 99.43388276577925,
+          "soPx": [
+            198.0,
+            196.0,
+            194.0,
+            192.0,
+            190.0
+          ],
+          "soNot": [
+            236.92191053828654,
+            284.3062926459438,
+            341.1675511751326,
+            409.40106141015906,
+            491.28127369219095
+          ],
+          "maxSo": 5,
+          "nso": 2,
+          "tpPct": 1.5,
+          "trPct": null,
+          "slPct": null,
+          "committed": 999.9999999999997,
+          "trailOn": false,
+          "peak": null,
+          "trailPx": null,
+          "tpLeg": 311
+        }
+      },
+      {
+        "core": {
+          "botId": "sb_dpausedcxxxx",
+          "seq": 1,
+          "kind": "dca",
+          "side": "long",
+          "openedAt": 1791999960000,
+          "anchorPrice": 25.0,
+          "sizeFactor": 1.0,
+          "budget": 1000.0,
+          "leverage": 2.0,
+          "costs": {
+            "maker": 0.0002,
+            "taker": 0.0005,
+            "slippage": 0.0002,
+            "mmr": 0.005,
+            "funding": true
+          },
+          "cash": -0.22270659590598935,
+          "fees": 0.22270659590598935,
+          "funding": 0.0,
+          "fills": 3,
+          "maxMargin": 379.0750568612584,
+          "maxNotional": 758.1501137225168,
+          "maxAdverseQuote": -11.078803420599272,
+          "open": true,
+          "exit": null,
+          "legs": 540,
+          "nowMs": 1792010759999,
+          "barOpenMs": 1792010700000,
+          "deadlineMs": null,
+          "prevClose": 24.40047183125261,
+          "lastBarCloseMs": 1792010759999,
+          "fundingUnknown": false,
+          "events": []
+        },
+        "engine": {
+          "engine": "dca",
+          "s": 1.0,
+          "q": 30.65192234658243,
+          "n": 758.1501137225168,
+          "m": 379.0750568612584,
+          "a": 24.734178337987586,
+          "tp": 25.105191013057397,
+          "sl": null,
+          "liq": 12.429235345722406,
+          "soPx": [
+            24.75,
+            24.5,
+            24.25,
+            24.0,
+            23.75
+          ],
+          "soNot": [
+            236.92191053828654,
+            284.3062926459438,
+            341.1675511751326,
+            409.40106141015906,
+            491.28127369219095
+          ],
+          "maxSo": 5,
+          "nso": 2,
+          "tpPct": 1.5,
+          "trPct": null,
+          "slPct": null,
+          "committed": 999.9999999999997,
+          "trailOn": false,
+          "peak": null,
+          "trailPx": null,
+          "tpLeg": 311
+        }
+      },
+      {
+        "core": {
+          "botId": "sb_flivedcaxxxx",
+          "seq": 1,
+          "kind": "dca",
+          "side": "long",
+          "openedAt": 1791999960000,
+          "anchorPrice": 300.0,
+          "sizeFactor": 1.0,
+          "budget": 1000.0,
+          "leverage": 2.0,
+          "costs": {
+            "maker": 0.0002,
+            "taker": 0.0005,
+            "slippage": 0.0002,
+            "mmr": 0.005,
+            "funding": true
+          },
+          "cash": -0.22270659590598935,
+          "fees": 0.22270659590598935,
+          "funding": 0.0,
+          "fills": 3,
+          "maxMargin": 379.0750568612584,
+          "maxNotional": 758.1501137225168,
+          "maxAdverseQuote": -11.078803420599158,
+          "open": true,
+          "exit": null,
+          "legs": 540,
+          "nowMs": 1792010759999,
+          "barOpenMs": 1792010700000,
+          "deadlineMs": null,
+          "prevClose": 292.8056619750313,
+          "lastBarCloseMs": 1792010759999,
+          "fundingUnknown": false,
+          "events": []
+        },
+        "engine": {
+          "engine": "dca",
+          "s": 1.0,
+          "q": 2.554326862215203,
+          "n": 758.1501137225168,
+          "m": 379.0750568612584,
+          "a": 296.81014005585104,
+          "tp": 301.2622921566888,
+          "sl": null,
+          "liq": 149.15082414866885,
+          "soPx": [
+            297.0,
+            294.0,
+            291.0,
+            288.0,
+            285.0
+          ],
+          "soNot": [
+            236.92191053828654,
+            284.3062926459438,
+            341.1675511751326,
+            409.40106141015906,
+            491.28127369219095
+          ],
+          "maxSo": 5,
+          "nso": 2,
+          "tpPct": 1.5,
+          "trPct": null,
+          "slPct": null,
+          "committed": 999.9999999999997,
+          "trailOn": false,
+          "peak": null,
+          "trailPx": null,
+          "tpLeg": 311
+        }
+      }
+    ],
+    "openOrders": {
+      "sb_arundcaxxxxx": [
+        {
+          "clientId": "aearundcax-1-so3",
+          "role": {
+            "role": "safety",
+            "index": 3
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 97.0,
+          "qty": 3.517191249228171,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aearundcax-1-so4",
+          "role": {
+            "role": "safety",
+            "index": 4
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 96.0,
+          "qty": 4.264594389689157,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aearundcax-1-so5",
+          "role": {
+            "role": "safety",
+            "index": 5
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 95.0,
+          "qty": 5.171381828338852,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aearundcax-1-tp2",
+          "role": {
+            "role": "takeProfit"
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 100.42076405222959,
+          "qty": 7.662980586645608,
+          "activeFromLeg": 312,
+          "state": "open"
+        }
+      ],
+      "sb_brungridxxxx": [
+        {
+          "clientId": "aebrungrid-1-b0",
+          "role": {
+            "role": "gridBuy",
+            "index": 0
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 47.0235,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-b1",
+          "role": {
+            "role": "gridBuy",
+            "index": 1
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 47.49666522271865,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-b2",
+          "role": {
+            "role": "gridBuy",
+            "index": 2
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 47.97459158248558,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-b3",
+          "role": {
+            "role": "gridBuy",
+            "index": 3
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 48.45732698735682,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-b51",
+          "role": {
+            "role": "gridBuy",
+            "index": 4
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 48.944919827454285,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 525,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-b52",
+          "role": {
+            "role": "gridBuy",
+            "index": 5
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 49.437418979816485,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 531,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-b53",
+          "role": {
+            "role": "gridBuy",
+            "index": 6
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 49.93487381329804,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 537,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-s10",
+          "role": {
+            "role": "gridSell",
+            "index": 10
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 51.97525482760575,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-s11",
+          "role": {
+            "role": "gridSell",
+            "index": 11
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 52.49824616228655,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-s12",
+          "role": {
+            "role": "gridSell",
+            "index": 12
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 53.02649999999996,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-s46",
+          "role": {
+            "role": "gridSell",
+            "index": 9
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 51.4574735705208,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 453,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-s47",
+          "role": {
+            "role": "gridSell",
+            "index": 8
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 50.944850487860926,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 459,
+          "state": "open"
+        }
+      ],
+      "sb_cstopdcaxxxx": [
+        {
+          "clientId": "aecstopdca-1-so3",
+          "role": {
+            "role": "safety",
+            "index": 3
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 194.0,
+          "qty": 1.7585956246140855,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aecstopdca-1-so4",
+          "role": {
+            "role": "safety",
+            "index": 4
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 192.0,
+          "qty": 2.1322971948445786,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aecstopdca-1-so5",
+          "role": {
+            "role": "safety",
+            "index": 5
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 190.0,
+          "qty": 2.585690914169426,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aecstopdca-1-tp2",
+          "role": {
+            "role": "takeProfit"
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 200.84152810445917,
+          "qty": 3.831490293322804,
+          "activeFromLeg": 312,
+          "state": "open"
+        }
+      ],
+      "sb_dpausedcxxxx": [
+        {
+          "clientId": "aedpausedc-1-so3",
+          "role": {
+            "role": "safety",
+            "index": 3
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 24.25,
+          "qty": 14.068764996912684,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aedpausedc-1-so4",
+          "role": {
+            "role": "safety",
+            "index": 4
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 24.0,
+          "qty": 17.05837755875663,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aedpausedc-1-so5",
+          "role": {
+            "role": "safety",
+            "index": 5
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 23.75,
+          "qty": 20.685527313355408,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aedpausedc-1-tp2",
+          "role": {
+            "role": "takeProfit"
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 25.105191013057397,
+          "qty": 30.65192234658243,
+          "activeFromLeg": 312,
+          "state": "open"
+        }
+      ],
+      "sb_earmeddcxxxx": [],
+      "sb_flivedcaxxxx": [
+        {
+          "clientId": "aeflivedca-1-so3",
+          "role": {
+            "role": "safety",
+            "index": 3
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 291.0,
+          "qty": 1.172397083076057,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aeflivedca-1-so4",
+          "role": {
+            "role": "safety",
+            "index": 4
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 288.0,
+          "qty": 1.421531463229719,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aeflivedca-1-so5",
+          "role": {
+            "role": "safety",
+            "index": 5
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 285.0,
+          "qty": 1.7237939427796174,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aeflivedca-1-tp2",
+          "role": {
+            "role": "takeProfit"
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 301.2622921566888,
+          "qty": 2.554326862215203,
+          "activeFromLeg": 312,
+          "state": "open"
+        }
+      ]
+    },
+    "cursors": {
+      "UPDAUSDT": [
+        1792010759999,
+        97.60188732501044
+      ],
+      "UPDBUSDT": [
+        1792010759999,
+        50.63801178536903
+      ],
+      "UPDCUSDT": [
+        1792010759999,
+        195.20377465002088
+      ],
+      "UPDDUSDT": [
+        1792010759999,
+        24.40047183125261
+      ],
+      "UPDEUSDT": [
+        1792010759999,
+        97.60188732501044
+      ],
+      "UPDFUSDT": [
+        1792010759999,
+        292.8056619750313
+      ]
+    },
+    "tableCounts": {
+      "backtest_runs": 0,
+      "manual_trades": 0,
+      "meta": 11,
+      "open_positions": 3,
+      "signal_skips": 0,
+      "strategy_bots": 6,
+      "strategy_cursors": 6,
+      "strategy_cycles": 5,
+      "strategy_equity": 900,
+      "strategy_fills": 53,
+      "strategy_orders": 82,
+      "trades": 1
+    },
+    "tableColumns": {
+      "backtest_runs": [
+        "id",
+        "created_at",
+        "kind",
+        "name",
+        "symbol",
+        "market",
+        "interval",
+        "start_ms",
+        "end_ms",
+        "total_pnl_pct",
+        "max_drawdown_pct",
+        "closed_cycles",
+        "open_at_end",
+        "coverage_pct",
+        "run_json"
+      ],
+      "manual_trades": [
+        "signal_id",
+        "bot_kind",
+        "opened_at"
+      ],
+      "meta": [
+        "key",
+        "value"
+      ],
+      "open_positions": [
+        "signal_id",
+        "bot_kind",
+        "body",
+        "updated_at"
+      ],
+      "signal_skips": [
+        "id",
+        "at_ms",
+        "bot_kind",
+        "signal_id",
+        "symbol",
+        "direction",
+        "market",
+        "combo",
+        "reason",
+        "detail"
+      ],
+      "strategy_bots": [
+        "id",
+        "kind",
+        "name",
+        "exchange_id",
+        "market",
+        "symbol",
+        "side",
+        "config_json",
+        "runtime_json",
+        "run_state",
+        "budget",
+        "realized_quote",
+        "peak_equity",
+        "cycles_done",
+        "dead_reason",
+        "paper",
+        "created_at",
+        "updated_at",
+        "archived_at"
+      ],
+      "strategy_cursors": [
+        "exchange_id",
+        "market",
+        "symbol",
+        "last_close_ms",
+        "last_close"
+      ],
+      "strategy_cycles": [
+        "bot_id",
+        "seq",
+        "opened_at",
+        "closed_at",
+        "exit_reason",
+        "anchor_price",
+        "size_factor",
+        "avg_entry",
+        "max_qty",
+        "max_notional",
+        "so_filled",
+        "grid_closing_fills",
+        "realized_quote",
+        "fees_quote",
+        "funding_quote",
+        "pnl_pct_budget",
+        "max_adverse_pct",
+        "funding_unknown",
+        "state_json"
+      ],
+      "strategy_equity": [
+        "bot_id",
+        "ts",
+        "equity_quote",
+        "margin_quote",
+        "reserved_quote"
+      ],
+      "strategy_fills": [
+        "id",
+        "client_id",
+        "bot_id",
+        "seq",
+        "ts",
+        "price",
+        "qty",
+        "liquidity",
+        "fee_quote",
+        "realized_quote",
+        "kind"
+      ],
+      "strategy_orders": [
+        "client_id",
+        "bot_id",
+        "seq",
+        "role",
+        "side",
+        "type",
+        "price",
+        "qty",
+        "state",
+        "active_from_leg",
+        "exchange_order_id",
+        "created_at",
+        "updated_at"
+      ],
+      "trades": [
+        "id",
+        "signal_id",
+        "bot_kind",
+        "exchange_id",
+        "symbol",
+        "direction",
+        "entry",
+        "exit",
+        "leverage",
+        "capital",
+        "pnl_pct",
+        "pnl_quote",
+        "exit_reason",
+        "fr_at_open",
+        "ld_at_open",
+        "opened_at",
+        "closed_at",
+        "unlevered_net_pct",
+        "live",
+        "fill_entry",
+        "fill_exit",
+        "commission_usdt",
+        "sizing_mode",
+        "risk_pct",
+        "notional_usdt",
+        "effective_leverage",
+        "risk_capped",
+        "veto_reason_code",
+        "veto_reason_text",
+        "tp_target",
+        "tp_fallback_from"
+      ]
+    },
+    "meta": {
+      "bot_config.futures": "{\"kind\":\"futures\",\"exchangeId\":\"binance\",\"maxPositions\":5,\"capital\":150.0,\"leverage\":5,\"minConfidence\":0.75,\"direction\":null,\"symbols\":[],\"combos\":[],\"engines\":[],\"live\":false,\"maxLossPct\":5.0,\"sizing\":\"risk\",\"riskPerTradePct\":2.0,\"takeProfit\":{\"kind\":\"tp2\"},\"takeProfitOverrides\":{},\"maxSignalAgeMin\":240}",
+      "bot_config.pump": "{\"kind\":\"pump\",\"exchangeId\":\"binance\",\"maxPositions\":3,\"capital\":100.0,\"leverage\":3,\"minConfidence\":null,\"direction\":null,\"symbols\":[],\"combos\":[],\"engines\":[],\"live\":true,\"maxLossPct\":null,\"sizing\":\"risk\",\"riskPerTradePct\":1.0,\"takeProfit\":{\"kind\":\"tp1\"},\"takeProfitOverrides\":{},\"maxSignalAgeMin\":240}",
+      "bot_config.spot": "{\"kind\":\"spot\",\"exchangeId\":\"binance\",\"maxPositions\":5,\"capital\":200.0,\"leverage\":1,\"minConfidence\":0.75,\"direction\":null,\"symbols\":[],\"combos\":[],\"engines\":[],\"live\":false,\"maxLossPct\":null,\"sizing\":\"risk\",\"riskPerTradePct\":2.0,\"takeProfit\":{\"kind\":\"tp2\"},\"takeProfitOverrides\":{},\"maxSignalAgeMin\":240}",
+      "running_kinds": "futures,spot",
+      "strategy_live_state": "{\"sb_arundcaxxxxx\":{\"enabled\":false,\"syncedQty\":0.0,\"seq\":0,\"orderN\":0,\"preparedSeq\":0,\"stopAlgoId\":null,\"stopPx\":null,\"halted\":null,\"lastRealQty\":0.0,\"lastEntryPrice\":0.0,\"lastUnrealized\":0.0,\"lastSyncMs\":0,\"pendingCheck\":false,\"closedSeq\":null,\"blindSince\":null,\"failCount\":0,\"symbol\":\"UPDAUSDT\",\"unprotected\":false,\"pilotCyclesLeft\":0,\"cycleFactor\":0.0,\"venue\":\"binance\"},\"sb_flivedcaxxxx\":{\"enabled\":true,\"syncedQty\":0.0,\"seq\":1,\"orderN\":0,\"preparedSeq\":0,\"stopAlgoId\":null,\"stopPx\":null,\"halted\":null,\"lastRealQty\":0.0,\"lastEntryPrice\":0.0,\"lastUnrealized\":0.0,\"lastSyncMs\":0,\"pendingCheck\":false,\"closedSeq\":null,\"blindSince\":null,\"failCount\":0,\"symbol\":\"UPDFUSDT\",\"unprotected\":false,\"pilotCyclesLeft\":0,\"cycleFactor\":0.0,\"venue\":\"binance\"}}",
+      "strategy_portfolio_peak": "1234.5",
+      "strategy_portfolio_tripped_day": "0",
+      "strategy_risk": "{\"portfolioDdPct\":12.0,\"budgetCapPct\":40.0}",
+      "telegram.settings": "{\"mode\":\"official\",\"enabled\":true,\"commandsEnabled\":false,\"chatId\":424242424,\"chatLabel\":\"Upd Test Chat\",\"botUsername\":null,\"categories\":{\"killSwitch\":true,\"botError\":true,\"stopLoss\":true,\"dealClosed\":true},\"cursors\":{\"tradeId\":0,\"cycleClosedAt\":0,\"skipAtMs\":0,\"foreignAtMs\":0},\"updateOffset\":77,\"officialLinked\":true,\"officialChatLabel\":\"Upd Test Chat\",\"officialLinkedAt\":1791999960000}",
+      "tripped_day": "1791740760000",
+      "tvlink.state": "{\"opaque\":\"kept byte for byte\"}"
+    },
+    "trades": [
+      {
+        "id": 1,
+        "signalId": "upd-sig-closed-1",
+        "botKind": "futures",
+        "exchangeId": "binance",
+        "symbol": "DOGEUSDT",
+        "direction": "short",
+        "entry": 0.04052,
+        "exit": 0.03714903,
+        "leverage": 5,
+        "capital": 200.0,
+        "pnlPct": 2.5398523729158664,
+        "pnlQuote": 5.079704745831733,
+        "exitReason": "tp",
+        "frAtOpen": 0.005,
+        "ldAtOpen": 386188.54,
+        "openedAt": 1792001760000,
+        "closedAt": 1792005360000,
+        "unleveredNetPct": 8.239274432379075,
+        "live": false,
+        "fillEntry": null,
+        "fillExit": null,
+        "commissionUsdt": null,
+        "sizingMode": "risk",
+        "riskPct": 2.0,
+        "notionalUsdt": 61.80234992301393,
+        "effectiveLeverage": 0.30901174961506966,
+        "riskCapped": false,
+        "pnlUsdt": 5.079704745831733,
+        "pnlPctOfCapital": 2.5398523729158664,
+        "vetoReasonCode": null,
+        "vetoReasonText": null,
+        "tpTarget": "tp2",
+        "tpFallbackFrom": null
+      }
+    ],
+    "stats": {
+      "totalTrades": 1,
+      "wins": 1,
+      "losses": 0,
+      "winRate": 1.0,
+      "netPnlQuote": 5.079704745831733,
+      "avgPnlPct": 2.5398523729158664,
+      "profitFactor": null,
+      "maxDrawdownQuote": 0.0,
+      "todayPnlQuote": 5.079704745831733
+    },
+    "positionRows": [
+      [
+        "upd-sig-futures-1",
+        "futures",
+        "{\"signalId\":\"upd-sig-futures-1\",\"botKind\":\"futures\",\"exchangeId\":\"binance\",\"symbol\":\"KASUSDT\",\"timeframe\":\"4h\",\"direction\":\"short\",\"entry\":0.04052,\"tp\":0.03714903,\"sl\":0.04309393,\"signalEntry\":0.04041,\"riskR\":0.002683930000000001,\"plan\":{\"breakeven_at_r\":0.5,\"partial_at_r\":1.0,\"partial_fraction\":0.5},\"breakevenArmed\":true,\"partialFraction\":0.0,\"partialPrice\":null,\"horizonMs\":1792604760000,\"leverage\":5,\"capital\":200.0,\"frAtOpen\":0.005,\"ldAtOpen\":386188.54,\"openedAt\":1792001760000,\"live\":false,\"qty\":1525.2307483468392,\"entryOrderId\":null,\"stopAlgoId\":null,\"tpAlgoId\":null,\"stopAtBreakeven\":false,\"unprotected\":false,\"partialQty\":0.0,\"sizingMode\":\"risk\",\"riskPct\":2.0,\"notionalUsdt\":61.80234992301393,\"effectiveLeverage\":0.30901174961506966,\"riskCapped\":false,\"tpTarget\":\"tp2\",\"tpFallbackFrom\":null}"
+      ],
+      [
+        "upd-sig-spot-1",
+        "spot",
+        "{\"signalId\":\"upd-sig-spot-1\",\"botKind\":\"spot\",\"exchangeId\":\"binance\",\"symbol\":\"SOLUSDT\",\"timeframe\":\"1h\",\"direction\":\"long\",\"entry\":150.0,\"tp\":160.0,\"sl\":145.0,\"signalEntry\":149.8,\"riskR\":5.0,\"plan\":{\"breakeven_at_r\":0.5,\"partial_at_r\":1.0,\"partial_fraction\":0.5},\"breakevenArmed\":true,\"partialFraction\":0.5,\"partialPrice\":155.0,\"horizonMs\":1792604760000,\"leverage\":1,\"capital\":200.0,\"frAtOpen\":0.005,\"ldAtOpen\":386188.54,\"openedAt\":1792001760000,\"live\":false,\"qty\":0.5,\"entryOrderId\":null,\"stopAlgoId\":null,\"tpAlgoId\":null,\"stopAtBreakeven\":true,\"unprotected\":false,\"partialQty\":0.5,\"sizingMode\":\"risk\",\"riskPct\":2.0,\"notionalUsdt\":61.80234992301393,\"effectiveLeverage\":0.30901174961506966,\"riskCapped\":false,\"tpTarget\":\"tp2\",\"tpFallbackFrom\":null}"
+      ],
+      [
+        "upd-sig-live-1",
+        "futures",
+        "{\"signalId\":\"upd-sig-live-1\",\"botKind\":\"futures\",\"exchangeId\":\"binance\",\"symbol\":\"BTCUSDT\",\"timeframe\":\"4h\",\"direction\":\"short\",\"entry\":0.04052,\"tp\":0.03714903,\"sl\":0.04309393,\"signalEntry\":0.04041,\"riskR\":0.002683930000000001,\"plan\":{\"breakeven_at_r\":0.5,\"partial_at_r\":1.0,\"partial_fraction\":0.5},\"breakevenArmed\":true,\"partialFraction\":0.0,\"partialPrice\":null,\"horizonMs\":1792604760000,\"leverage\":5,\"capital\":200.0,\"frAtOpen\":0.005,\"ldAtOpen\":386188.54,\"openedAt\":1792001760000,\"live\":true,\"qty\":1525.2307483468392,\"entryOrderId\":111,\"stopAlgoId\":222,\"tpAlgoId\":null,\"stopAtBreakeven\":false,\"unprotected\":false,\"partialQty\":0.0,\"sizingMode\":\"risk\",\"riskPct\":2.0,\"notionalUsdt\":61.80234992301393,\"effectiveLeverage\":0.30901174961506966,\"riskCapped\":false,\"tpTarget\":\"tp2\",\"tpFallbackFrom\":null}"
+      ]
+    ]
+  },
+  "signal": {
+    "configs": {
+      "futures": {
+        "kind": "futures",
+        "exchangeId": "binance",
+        "maxPositions": 5,
+        "capital": 150.0,
+        "leverage": 5,
+        "minConfidence": 0.75,
+        "direction": null,
+        "symbols": [],
+        "combos": [],
+        "engines": [],
+        "live": false,
+        "maxLossPct": 5.0,
+        "sizing": "risk",
+        "riskPerTradePct": 2.0,
+        "takeProfit": {
+          "kind": "tp2"
+        },
+        "takeProfitOverrides": {},
+        "maxSignalAgeMin": 240
+      },
+      "spot": {
+        "kind": "spot",
+        "exchangeId": "binance",
+        "maxPositions": 5,
+        "capital": 200.0,
+        "leverage": 1,
+        "minConfidence": 0.75,
+        "direction": null,
+        "symbols": [],
+        "combos": [],
+        "engines": [],
+        "live": false,
+        "maxLossPct": null,
+        "sizing": "risk",
+        "riskPerTradePct": 2.0,
+        "takeProfit": {
+          "kind": "tp2"
+        },
+        "takeProfitOverrides": {},
+        "maxSignalAgeMin": 240
+      },
+      "pump": {
+        "kind": "pump",
+        "exchangeId": "binance",
+        "maxPositions": 3,
+        "capital": 100.0,
+        "leverage": 3,
+        "minConfidence": null,
+        "direction": null,
+        "symbols": [],
+        "combos": [],
+        "engines": [],
+        "live": true,
+        "maxLossPct": null,
+        "sizing": "risk",
+        "riskPerTradePct": 1.0,
+        "takeProfit": {
+          "kind": "tp1"
+        },
+        "takeProfitOverrides": {},
+        "maxSignalAgeMin": 240
+      }
+    },
+    "positions": [
+      {
+        "signalId": "upd-sig-futures-1",
+        "botKind": "futures",
+        "exchangeId": "binance",
+        "symbol": "KASUSDT",
+        "timeframe": "4h",
+        "direction": "short",
+        "entry": 0.04052,
+        "tp": 0.03714903,
+        "sl": 0.04309393,
+        "signalEntry": 0.04041,
+        "riskR": 0.002683930000000001,
+        "plan": {
+          "breakeven_at_r": 0.5,
+          "partial_at_r": 1.0,
+          "partial_fraction": 0.5
+        },
+        "breakevenArmed": true,
+        "partialFraction": 0.0,
+        "partialPrice": null,
+        "horizonMs": 1792604760000,
+        "leverage": 5,
+        "capital": 200.0,
+        "frAtOpen": 0.005,
+        "ldAtOpen": 386188.54,
+        "openedAt": 1792001760000,
+        "live": false,
+        "qty": 1525.2307483468392,
+        "entryOrderId": null,
+        "stopAlgoId": null,
+        "tpAlgoId": null,
+        "stopAtBreakeven": false,
+        "unprotected": false,
+        "partialQty": 0.0,
+        "sizingMode": "risk",
+        "riskPct": 2.0,
+        "notionalUsdt": 61.80234992301393,
+        "effectiveLeverage": 0.30901174961506966,
+        "riskCapped": false,
+        "tpTarget": "tp2",
+        "tpFallbackFrom": null
+      },
+      {
+        "signalId": "upd-sig-spot-1",
+        "botKind": "spot",
+        "exchangeId": "binance",
+        "symbol": "SOLUSDT",
+        "timeframe": "1h",
+        "direction": "long",
+        "entry": 150.0,
+        "tp": 160.0,
+        "sl": 145.0,
+        "signalEntry": 149.8,
+        "riskR": 5.0,
+        "plan": {
+          "breakeven_at_r": 0.5,
+          "partial_at_r": 1.0,
+          "partial_fraction": 0.5
+        },
+        "breakevenArmed": true,
+        "partialFraction": 0.5,
+        "partialPrice": 155.0,
+        "horizonMs": 1792604760000,
+        "leverage": 1,
+        "capital": 200.0,
+        "frAtOpen": 0.005,
+        "ldAtOpen": 386188.54,
+        "openedAt": 1792001760000,
+        "live": false,
+        "qty": 0.5,
+        "entryOrderId": null,
+        "stopAlgoId": null,
+        "tpAlgoId": null,
+        "stopAtBreakeven": true,
+        "unprotected": false,
+        "partialQty": 0.5,
+        "sizingMode": "risk",
+        "riskPct": 2.0,
+        "notionalUsdt": 61.80234992301393,
+        "effectiveLeverage": 0.30901174961506966,
+        "riskCapped": false,
+        "tpTarget": "tp2",
+        "tpFallbackFrom": null
+      },
+      {
+        "signalId": "upd-sig-live-1",
+        "botKind": "futures",
+        "exchangeId": "binance",
+        "symbol": "BTCUSDT",
+        "timeframe": "4h",
+        "direction": "short",
+        "entry": 0.04052,
+        "tp": 0.03714903,
+        "sl": 0.04309393,
+        "signalEntry": 0.04041,
+        "riskR": 0.002683930000000001,
+        "plan": {
+          "breakeven_at_r": 0.5,
+          "partial_at_r": 1.0,
+          "partial_fraction": 0.5
+        },
+        "breakevenArmed": true,
+        "partialFraction": 0.0,
+        "partialPrice": null,
+        "horizonMs": 1792604760000,
+        "leverage": 5,
+        "capital": 200.0,
+        "frAtOpen": 0.005,
+        "ldAtOpen": 386188.54,
+        "openedAt": 1792001760000,
+        "live": true,
+        "qty": 1525.2307483468392,
+        "entryOrderId": 111,
+        "stopAlgoId": 222,
+        "tpAlgoId": null,
+        "stopAtBreakeven": false,
+        "unprotected": false,
+        "partialQty": 0.0,
+        "sizingMode": "risk",
+        "riskPct": 2.0,
+        "notionalUsdt": 61.80234992301393,
+        "effectiveLeverage": 0.30901174961506966,
+        "riskCapped": false,
+        "tpTarget": "tp2",
+        "tpFallbackFrom": null
+      }
+    ]
+  },
+  "settings": {
+    "risk": {
+      "limits": {
+        "level": "balanced",
+        "maxLeverage": 5,
+        "maxConcurrentPositions": 8,
+        "maxCapitalPct": 6.0,
+        "dailyLossLimitPct": 6.0,
+        "frThresholdPct": 0.1,
+        "maxDepthSharePct": 10.0
+      },
+      "balance": 2500.0,
+      "closeOnStop": false,
+      "maxCapitalQuote": 150.0,
+      "dailyLossOverridePct": 3.0,
+      "effectiveDailyLossPct": 3.0,
+      "dailyLossOverrideCapped": false,
+      "viewThresholds": {
+        "sameDirectionPct": 80.0,
+        "singleCoinPct": 40.0,
+        "stress20Pct": 25.0
+      }
+    },
+    "telegram": {
+      "mode": "official",
+      "enabled": true,
+      "commandsEnabled": false,
+      "chatId": 424242424,
+      "chatLabel": "Upd Test Chat",
+      "botUsername": null,
+      "categories": {
+        "killSwitch": true,
+        "botError": true,
+        "stopLoss": true,
+        "dealClosed": true
+      },
+      "cursors": {
+        "tradeId": 0,
+        "cycleClosedAt": 0,
+        "skipAtMs": 0,
+        "foreignAtMs": 0
+      },
+      "updateOffset": 77,
+      "officialLinked": true,
+      "officialChatLabel": "Upd Test Chat",
+      "officialLinkedAt": 1791999960000
+    },
+    "deskId": "desk-b5fc083cb3404b1a96b268c28991b01c"
+  },
+  "continuation": {
+    "fills": [
+      [
+        "sb_arundcaxxxxx",
+        1,
+        {
+          "clientId": "aearundcax-1-tp2",
+          "ts": 1792014900000,
+          "price": 100.42076405222959,
+          "qty": -7.662980586645608,
+          "liquidity": "maker",
+          "feeQuote": 0.1539044730856709,
+          "realizedQuote": 11.372251705837584,
+          "barOpenMs": 1792014900000,
+          "leg": 749,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_arundcaxxxxx",
+        2,
+        {
+          "clientId": "aearundcax-2-base",
+          "ts": 1792014960000,
+          "price": 100.47422665071939,
+          "qty": 2.3580366670738657,
+          "liquidity": "taker",
+          "feeQuote": 0.11846095526914327,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792014960000,
+          "leg": 0,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_arundcaxxxxx",
+        2,
+        {
+          "clientId": "aearundcax-2-tp0",
+          "ts": 1792015980000,
+          "price": 101.98134005048018,
+          "qty": -2.3580366670738657,
+          "liquidity": "maker",
+          "feeQuote": 0.048095147839272163,
+          "realizedQuote": 3.5538286580742806,
+          "barOpenMs": 1792015980000,
+          "leg": 53,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_arundcaxxxxx",
+        3,
+        {
+          "clientId": "aearundcax-3-base",
+          "ts": 1792016040000,
+          "price": 102.04004914158476,
+          "qty": 2.3218521799175895,
+          "liquidity": "taker",
+          "feeQuote": 0.11846095526914327,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792016040000,
+          "leg": 0,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_arundcaxxxxx",
+        3,
+        {
+          "clientId": "aearundcax-3-so1",
+          "ts": 1792017660000,
+          "price": 100.99944876041684,
+          "qty": 2.3457742932864374,
+          "liquidity": "maker",
+          "feeQuote": 0.04738438210765731,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792017660000,
+          "leg": 83,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_arundcaxxxxx",
+        3,
+        {
+          "clientId": "aearundcax-3-so2",
+          "ts": 1792018080000,
+          "price": 99.97925230829141,
+          "qty": 2.8436529188002933,
+          "liquidity": "maker",
+          "feeQuote": 0.05686125852918877,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792018080000,
+          "leg": 104,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_arundcaxxxxx",
+        3,
+        {
+          "clientId": "aearundcax-3-tp2",
+          "ts": 1792020420000,
+          "price": 102.4489072058088,
+          "qty": -7.511279392004321,
+          "liquidity": "maker",
+          "feeQuote": 0.1539044730856709,
+          "realizedQuote": 11.372251705837698,
+          "barOpenMs": 1792020420000,
+          "leg": 221,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_arundcaxxxxx",
+        4,
+        {
+          "clientId": "aearundcax-4-base",
+          "ts": 1792020480000,
+          "price": 102.47508892514135,
+          "qty": 2.3119951690050193,
+          "liquidity": "taker",
+          "feeQuote": 0.11846095526914327,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792020480000,
+          "leg": 0,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_arundcaxxxxx",
+        4,
+        {
+          "clientId": "aearundcax-4-so1",
+          "ts": 1792021620000,
+          "price": 101.43005202548484,
+          "qty": 2.3358157252917375,
+          "liquidity": "maker",
+          "feeQuote": 0.04738438210765731,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792021620000,
+          "leg": 59,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_arundcaxxxxx",
+        4,
+        {
+          "clientId": "aearundcax-4-so2",
+          "ts": 1792022040000,
+          "price": 100.40550604542945,
+          "qty": 2.8315806955577383,
+          "liquidity": "maker",
+          "feeQuote": 0.05686125852918877,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792022040000,
+          "leg": 80,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s47",
+          "ts": 1792010820000,
+          "price": 50.944850487860926,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.033817510867394776,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792010820000,
+          "leg": 545,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s46",
+          "ts": 1792011120000,
+          "price": 51.4574735705208,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.034157793280685175,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792011120000,
+          "leg": 560,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b55",
+          "ts": 1792011540000,
+          "price": 50.944850487860926,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.033817510867394776,
+          "realizedQuote": 0.0056498634559300764,
+          "barOpenMs": 1792011540000,
+          "leg": 581,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b54",
+          "ts": 1792011720000,
+          "price": 50.43733419351849,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03348061837217792,
+          "realizedQuote": 1.6901123395402269,
+          "barOpenMs": 1792011720000,
+          "leg": 590,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b53",
+          "ts": 1792011900000,
+          "price": 49.93487381329804,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03314708202442499,
+          "realizedQuote": 3.3577940783048867,
+          "barOpenMs": 1792011900000,
+          "leg": 599,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b52",
+          "ts": 1792012020000,
+          "price": 49.437418979816485,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032816868389951584,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792012020000,
+          "leg": 605,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b51",
+          "ts": 1792012200000,
+          "price": 48.944919827454285,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032489944367647114,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792012200000,
+          "leg": 614,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s60",
+          "ts": 1792013040000,
+          "price": 49.437418979816485,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032816868389951584,
+          "realizedQuote": 0.8173100557611785,
+          "barOpenMs": 1792013040000,
+          "leg": 656,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s59",
+          "ts": 1792013160000,
+          "price": 49.93487381329804,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03314708202442499,
+          "realizedQuote": 2.468378228128181,
+          "barOpenMs": 1792013160000,
+          "leg": 662,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s58",
+          "ts": 1792013280000,
+          "price": 50.43733419351849,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03348061837217792,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792013280000,
+          "leg": 668,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s57",
+          "ts": 1792013460000,
+          "price": 50.944850487860926,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.033817510867394776,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792013460000,
+          "leg": 677,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s56",
+          "ts": 1792013700000,
+          "price": 51.4574735705208,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.034157793280685175,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792013700000,
+          "leg": 689,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b65",
+          "ts": 1792014240000,
+          "price": 50.944850487860926,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.033817510867394776,
+          "realizedQuote": 0.0056498634559300764,
+          "barOpenMs": 1792014240000,
+          "leg": 716,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b64",
+          "ts": 1792014360000,
+          "price": 50.43733419351849,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03348061837217792,
+          "realizedQuote": 1.6901123395402269,
+          "barOpenMs": 1792014360000,
+          "leg": 722,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b63",
+          "ts": 1792014540000,
+          "price": 49.93487381329804,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03314708202442499,
+          "realizedQuote": 3.3577940783048867,
+          "barOpenMs": 1792014540000,
+          "leg": 731,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b62",
+          "ts": 1792014660000,
+          "price": 49.437418979816485,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032816868389951584,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792014660000,
+          "leg": 737,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b61",
+          "ts": 1792014840000,
+          "price": 48.944919827454285,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032489944367647114,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792014840000,
+          "leg": 746,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s70",
+          "ts": 1792015680000,
+          "price": 49.437418979816485,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032816868389951584,
+          "realizedQuote": 0.8173100557611785,
+          "barOpenMs": 1792015680000,
+          "leg": 788,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s69",
+          "ts": 1792015800000,
+          "price": 49.93487381329804,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03314708202442499,
+          "realizedQuote": 2.468378228128181,
+          "barOpenMs": 1792015800000,
+          "leg": 794,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s68",
+          "ts": 1792015920000,
+          "price": 50.43733419351849,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03348061837217792,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792015920000,
+          "leg": 800,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s67",
+          "ts": 1792016100000,
+          "price": 50.944850487860926,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.033817510867394776,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792016100000,
+          "leg": 809,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s66",
+          "ts": 1792016400000,
+          "price": 51.4574735705208,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.034157793280685175,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792016400000,
+          "leg": 824,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b75",
+          "ts": 1792016820000,
+          "price": 50.944850487860926,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.033817510867394776,
+          "realizedQuote": 0.0056498634559300764,
+          "barOpenMs": 1792016820000,
+          "leg": 845,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b74",
+          "ts": 1792017000000,
+          "price": 50.43733419351849,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03348061837217792,
+          "realizedQuote": 1.6901123395402269,
+          "barOpenMs": 1792017000000,
+          "leg": 854,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b73",
+          "ts": 1792017180000,
+          "price": 49.93487381329804,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03314708202442499,
+          "realizedQuote": 3.3577940783048867,
+          "barOpenMs": 1792017180000,
+          "leg": 863,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b72",
+          "ts": 1792017300000,
+          "price": 49.437418979816485,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032816868389951584,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792017300000,
+          "leg": 869,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b71",
+          "ts": 1792017480000,
+          "price": 48.944919827454285,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032489944367647114,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792017480000,
+          "leg": 878,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s80",
+          "ts": 1792018320000,
+          "price": 49.437418979816485,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032816868389951584,
+          "realizedQuote": 0.8173100557611785,
+          "barOpenMs": 1792018320000,
+          "leg": 920,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s79",
+          "ts": 1792018440000,
+          "price": 49.93487381329804,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03314708202442499,
+          "realizedQuote": 2.468378228128181,
+          "barOpenMs": 1792018440000,
+          "leg": 926,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s78",
+          "ts": 1792018560000,
+          "price": 50.43733419351849,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03348061837217792,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792018560000,
+          "leg": 932,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s77",
+          "ts": 1792018740000,
+          "price": 50.944850487860926,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.033817510867394776,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792018740000,
+          "leg": 941,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s76",
+          "ts": 1792018980000,
+          "price": 51.4574735705208,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.034157793280685175,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792018980000,
+          "leg": 953,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b85",
+          "ts": 1792019520000,
+          "price": 50.944850487860926,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.033817510867394776,
+          "realizedQuote": 0.0056498634559300764,
+          "barOpenMs": 1792019520000,
+          "leg": 980,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b84",
+          "ts": 1792019640000,
+          "price": 50.43733419351849,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03348061837217792,
+          "realizedQuote": 1.6901123395402269,
+          "barOpenMs": 1792019640000,
+          "leg": 986,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b83",
+          "ts": 1792019820000,
+          "price": 49.93487381329804,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03314708202442499,
+          "realizedQuote": 3.3577940783048867,
+          "barOpenMs": 1792019820000,
+          "leg": 995,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b82",
+          "ts": 1792019940000,
+          "price": 49.437418979816485,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032816868389951584,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792019940000,
+          "leg": 1001,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b81",
+          "ts": 1792020120000,
+          "price": 48.944919827454285,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032489944367647114,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792020120000,
+          "leg": 1010,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s90",
+          "ts": 1792020960000,
+          "price": 49.437418979816485,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032816868389951584,
+          "realizedQuote": 0.8173100557611785,
+          "barOpenMs": 1792020960000,
+          "leg": 1052,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s89",
+          "ts": 1792021080000,
+          "price": 49.93487381329804,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03314708202442499,
+          "realizedQuote": 2.468378228128181,
+          "barOpenMs": 1792021080000,
+          "leg": 1058,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s88",
+          "ts": 1792021200000,
+          "price": 50.43733419351849,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03348061837217792,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792021200000,
+          "leg": 1064,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s87",
+          "ts": 1792021380000,
+          "price": 50.944850487860926,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.033817510867394776,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792021380000,
+          "leg": 1073,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s86",
+          "ts": 1792021620000,
+          "price": 51.4574735705208,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.034157793280685175,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792021620000,
+          "leg": 1085,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b95",
+          "ts": 1792022100000,
+          "price": 50.944850487860926,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.033817510867394776,
+          "realizedQuote": 0.0056498634559300764,
+          "barOpenMs": 1792022100000,
+          "leg": 1109,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b94",
+          "ts": 1792022280000,
+          "price": 50.43733419351849,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03348061837217792,
+          "realizedQuote": 1.6901123395402269,
+          "barOpenMs": 1792022280000,
+          "leg": 1118,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b93",
+          "ts": 1792022460000,
+          "price": 49.93487381329804,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03314708202442499,
+          "realizedQuote": 3.3577940783048867,
+          "barOpenMs": 1792022460000,
+          "leg": 1127,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b92",
+          "ts": 1792022580000,
+          "price": 49.437418979816485,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032816868389951584,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792022580000,
+          "leg": 1133,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b91",
+          "ts": 1792022760000,
+          "price": 48.944919827454285,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032489944367647114,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792022760000,
+          "leg": 1142,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s100",
+          "ts": 1792023600000,
+          "price": 49.437418979816485,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.032816868389951584,
+          "realizedQuote": 0.8173100557611785,
+          "barOpenMs": 1792023600000,
+          "leg": 1184,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s99",
+          "ts": 1792023720000,
+          "price": 49.93487381329804,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03314708202442499,
+          "realizedQuote": 2.468378228128181,
+          "barOpenMs": 1792023720000,
+          "leg": 1190,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s98",
+          "ts": 1792023840000,
+          "price": 50.43733419351849,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03348061837217792,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792023840000,
+          "leg": 1196,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s97",
+          "ts": 1792024020000,
+          "price": 50.944850487860926,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.033817510867394776,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792024020000,
+          "leg": 1205,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-s96",
+          "ts": 1792024260000,
+          "price": 51.4574735705208,
+          "qty": -3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.034157793280685175,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792024260000,
+          "leg": 1217,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b105",
+          "ts": 1792024800000,
+          "price": 50.944850487860926,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.033817510867394776,
+          "realizedQuote": 0.0056498634559300764,
+          "barOpenMs": 1792024800000,
+          "leg": 1244,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b104",
+          "ts": 1792024920000,
+          "price": 50.43733419351849,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03348061837217792,
+          "realizedQuote": 1.6901123395402269,
+          "barOpenMs": 1792024920000,
+          "leg": 1250,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_brungridxxxx",
+        1,
+        {
+          "clientId": "aebrungrid-1-b103",
+          "ts": 1792025100000,
+          "price": 49.93487381329804,
+          "qty": 3.31903131951018,
+          "liquidity": "maker",
+          "feeQuote": 0.03314708202442499,
+          "realizedQuote": 3.3577940783048867,
+          "barOpenMs": 1792025100000,
+          "leg": 1259,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_cstopdcaxxxx",
+        1,
+        {
+          "clientId": "aecstopdca-1-tp2",
+          "ts": 1792014900000,
+          "price": 200.84152810445917,
+          "qty": -3.831490293322804,
+          "liquidity": "maker",
+          "feeQuote": 0.1539044730856709,
+          "realizedQuote": 11.372251705837584,
+          "barOpenMs": 1792014900000,
+          "leg": 749,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_dpausedcxxxx",
+        1,
+        {
+          "clientId": "aedpausedc-1-tp2",
+          "ts": 1792014900000,
+          "price": 25.105191013057397,
+          "qty": -30.65192234658243,
+          "liquidity": "maker",
+          "feeQuote": 0.1539044730856709,
+          "realizedQuote": 11.372251705837584,
+          "barOpenMs": 1792014900000,
+          "leg": 749,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_dpausedcxxxx",
+        2,
+        {
+          "clientId": "aedpausedc-2-base",
+          "ts": 1792014960000,
+          "price": 25.118556662679847,
+          "qty": 9.432146668295463,
+          "liquidity": "taker",
+          "feeQuote": 0.11846095526914327,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792014960000,
+          "leg": 0,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_dpausedcxxxx",
+        2,
+        {
+          "clientId": "aedpausedc-2-tp0",
+          "ts": 1792015980000,
+          "price": 25.495335012620046,
+          "qty": -9.432146668295463,
+          "liquidity": "maker",
+          "feeQuote": 0.048095147839272163,
+          "realizedQuote": 3.5538286580742806,
+          "barOpenMs": 1792015980000,
+          "leg": 53,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_dpausedcxxxx",
+        3,
+        {
+          "clientId": "aedpausedc-3-base",
+          "ts": 1792016040000,
+          "price": 25.51001228539619,
+          "qty": 9.287408719670358,
+          "liquidity": "taker",
+          "feeQuote": 0.11846095526914327,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792016040000,
+          "leg": 0,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_dpausedcxxxx",
+        3,
+        {
+          "clientId": "aedpausedc-3-so1",
+          "ts": 1792017660000,
+          "price": 25.24986219010421,
+          "qty": 9.38309717314575,
+          "liquidity": "maker",
+          "feeQuote": 0.04738438210765731,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792017660000,
+          "leg": 83,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_dpausedcxxxx",
+        3,
+        {
+          "clientId": "aedpausedc-3-so2",
+          "ts": 1792018080000,
+          "price": 24.994813077072852,
+          "qty": 11.374611675201173,
+          "liquidity": "maker",
+          "feeQuote": 0.05686125852918877,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792018080000,
+          "leg": 104,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_dpausedcxxxx",
+        3,
+        {
+          "clientId": "aedpausedc-3-tp2",
+          "ts": 1792020420000,
+          "price": 25.6122268014522,
+          "qty": -30.045117568017282,
+          "liquidity": "maker",
+          "feeQuote": 0.1539044730856709,
+          "realizedQuote": 11.372251705837698,
+          "barOpenMs": 1792020420000,
+          "leg": 221,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_dpausedcxxxx",
+        4,
+        {
+          "clientId": "aedpausedc-4-base",
+          "ts": 1792020480000,
+          "price": 25.618772231285337,
+          "qty": 9.247980676020077,
+          "liquidity": "taker",
+          "feeQuote": 0.11846095526914327,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792020480000,
+          "leg": 0,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_dpausedcxxxx",
+        4,
+        {
+          "clientId": "aedpausedc-4-so1",
+          "ts": 1792021620000,
+          "price": 25.35751300637121,
+          "qty": 9.34326290116695,
+          "liquidity": "maker",
+          "feeQuote": 0.04738438210765731,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792021620000,
+          "leg": 59,
+          "kind": "fill"
+        }
+      ],
+      [
+        "sb_dpausedcxxxx",
+        4,
+        {
+          "clientId": "aedpausedc-4-so2",
+          "ts": 1792022040000,
+          "price": 25.101376511357362,
+          "qty": 11.326322782230953,
+          "liquidity": "maker",
+          "feeQuote": 0.05686125852918877,
+          "realizedQuote": 0.0,
+          "barOpenMs": 1792022040000,
+          "leg": 80,
+          "kind": "fill"
+        }
+      ]
+    ],
+    "bots": {
+      "sb_arundcaxxxxx": {
+        "id": "sb_arundcaxxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_arundcaxxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDAUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "inCycle",
+        "createdAt": 1791996360000,
+        "cyclesDone": 3,
+        "realizedQuote": 25.378553828657825,
+        "peakEquity": 1034.6980227314455,
+        "maxDdQuote": -14.687665425256,
+        "deadReason": null,
+        "nextDecisionMs": 1792020480000,
+        "chainCycles": 4,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 117442.19105382793,
+          "commitBars": 416999.99999999994,
+          "bars": 420.0
+        },
+        "archivedAt": null
+      },
+      "sb_brungridxxxx": {
+        "id": "sb_brungridxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd grid",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDBUSDT",
+          "side": "neutral",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "grid",
+            "range": {
+              "type": "relative",
+              "lowerPct": 6.0,
+              "upperPct": 6.0
+            },
+            "nGrids": 12,
+            "spacing": "geom",
+            "stopOutPct": 5.0,
+            "trailingUp": false,
+            "trailUpLimit": null,
+            "takeProfitPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "inCycle",
+        "createdAt": 1791996360001,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1076.9063091616242,
+        "maxDdQuote": -5.797322781211051,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 1,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 61480.27110698663,
+          "commitBars": 420000.0,
+          "bars": 420.0
+        },
+        "archivedAt": null
+      },
+      "sb_cstopdcaxxxx": {
+        "id": "sb_cstopdcaxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_cstopdcaxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDCUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "stopped",
+        "createdAt": 1791996360002,
+        "cyclesDone": 1,
+        "realizedQuote": 10.995640636845923,
+        "peakEquity": 1010.9956406368459,
+        "maxDdQuote": -11.101596996408603,
+        "deadReason": null,
+        "nextDecisionMs": 1792014960000,
+        "chainCycles": 1,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 72166.41394996185,
+          "commitBars": 248999.99999999997,
+          "bars": 250.0
+        },
+        "archivedAt": null
+      },
+      "sb_dpausedcxxxx": {
+        "id": "sb_dpausedcxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_dpausedcxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDDUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "immediately"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "inCycle",
+        "createdAt": 1791996360003,
+        "cyclesDone": 3,
+        "realizedQuote": 25.378553828657825,
+        "peakEquity": 1034.6980227314455,
+        "maxDdQuote": -14.687665425256,
+        "deadReason": null,
+        "nextDecisionMs": 1792020480000,
+        "chainCycles": 4,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 117442.19105382793,
+          "commitBars": 416999.99999999994,
+          "bars": 420.0
+        },
+        "archivedAt": null
+      },
+      "sb_earmeddcxxxx": {
+        "id": "sb_earmeddcxxxx",
+        "cfg": {
+          "schemaVersion": 1,
+          "name": "Upd sb_earmeddcxxxx",
+          "exchangeId": "binance",
+          "market": "futures",
+          "symbol": "UPDEUSDT",
+          "side": "long",
+          "budget": 1000.0,
+          "leverage": 2,
+          "start": {
+            "type": "priceCross",
+            "price": 1000000.0,
+            "direction": "up"
+          },
+          "restart": {
+            "cooldownMin": 0,
+            "maxCycles": null,
+            "afterStop": true,
+            "afterLiquidation": false,
+            "priceBand": null,
+            "endAtMs": null
+          },
+          "maxDrawdownPct": null,
+          "pauseOnBtcBreak": false,
+          "portfolioBreaker": false,
+          "params": {
+            "kind": "dca",
+            "baseOrder": null,
+            "safetyOrder": null,
+            "baseWeight": 1.0,
+            "safetyWeight": 1.0,
+            "maxSo": 5,
+            "soStepPct": 1.0,
+            "stepScale": 1.0,
+            "volumeScale": 1.2,
+            "tpPct": 1.5,
+            "trailingPct": null,
+            "slPct": null,
+            "maxDurationMin": null
+          },
+          "presetId": null
+        },
+        "state": "armed",
+        "createdAt": 1791996360004,
+        "cyclesDone": 0,
+        "realizedQuote": 0.0,
+        "peakEquity": 1000.0,
+        "maxDdQuote": 0.0,
+        "deadReason": null,
+        "nextDecisionMs": 0,
+        "chainCycles": 0,
+        "startTriggered": false,
+        "util": {
+          "marginBars": 0.0,
+          "commitBars": 0.0,
+          "bars": 0.0
+        },
+        "archivedAt": null
+      }
+    },
+    "cycles": {
+      "sb_arundcaxxxxx": {
+        "core": {
+          "botId": "sb_arundcaxxxxx",
+          "seq": 4,
+          "kind": "dca",
+          "side": "long",
+          "openedAt": 1792020480000,
+          "anchorPrice": 102.45459800554025,
+          "sizeFactor": 1.0,
+          "budget": 1000.0,
+          "leverage": 2.0,
+          "costs": {
+            "maker": 0.0002,
+            "taker": 0.0005,
+            "slippage": 0.0002,
+            "mmr": 0.005,
+            "funding": true
+          },
+          "cash": -0.22270659590598935,
+          "fees": 0.22270659590598935,
+          "funding": 0.0,
+          "fills": 3,
+          "maxMargin": 379.0750568612584,
+          "maxNotional": 758.1501137225168,
+          "maxAdverseQuote": -14.37212105355529,
+          "open": true,
+          "exit": null,
+          "legs": 234,
+          "nowMs": 1792025159999,
+          "barOpenMs": 1792025100000,
+          "deadlineMs": null,
+          "prevClose": 102.59937148621188,
+          "lastBarCloseMs": 1792025159999,
+          "fundingUnknown": false,
+          "events": []
+        },
+        "engine": {
+          "engine": "dca",
+          "s": 1.0,
+          "q": 7.479391589854496,
+          "n": 758.1501137225168,
+          "m": 379.0750568612584,
+          "a": 101.36521194463438,
+          "tp": 102.88569012380388,
+          "sl": null,
+          "liq": 50.937292434489635,
+          "soPx": [
+            101.43005202548484,
+            100.40550604542945,
+            99.38096006537404,
+            98.35641408531863,
+            97.33186810526323
+          ],
+          "soNot": [
+            236.92191053828654,
+            284.3062926459438,
+            341.1675511751326,
+            409.40106141015906,
+            491.28127369219095
+          ],
+          "maxSo": 5,
+          "nso": 2,
+          "tpPct": 1.5,
+          "trPct": null,
+          "slPct": null,
+          "committed": 999.9999999999997,
+          "trailOn": false,
+          "peak": null,
+          "trailPx": null,
+          "tpLeg": 80
+        }
+      },
+      "sb_brungridxxxx": {
+        "core": {
+          "botId": "sb_brungridxxxx",
+          "seq": 1,
+          "kind": "grid",
+          "side": "neutral",
+          "openedAt": 1791999960000,
+          "anchorPrice": 50.025,
+          "sizeFactor": 1.0,
+          "budget": 1000.0,
+          "leverage": 2.0,
+          "costs": {
+            "maker": 0.0002,
+            "taker": 0.0005,
+            "slippage": 0.0002,
+            "mmr": 0.005,
+            "funding": true
+          },
+          "cash": 76.9063091616243,
+          "fees": 3.200448206390332,
+          "funding": 0.0,
+          "fills": 96,
+          "maxMargin": 253.6398063006447,
+          "maxNotional": 507.2796126012894,
+          "maxAdverseQuote": -5.78858648862205,
+          "open": true,
+          "exit": null,
+          "legs": 1260,
+          "nowMs": 1792025159999,
+          "barOpenMs": 1792025100000,
+          "deadlineMs": null,
+          "prevClose": 49.73705065184103,
+          "lastBarCloseMs": 1792025159999,
+          "fundingUnknown": false,
+          "events": []
+        },
+        "engine": {
+          "engine": "grid",
+          "levels": [
+            47.0235,
+            47.49666522271865,
+            47.97459158248558,
+            48.45732698735682,
+            48.944919827454285,
+            49.437418979816485,
+            49.93487381329804,
+            50.43733419351849,
+            50.944850487860926,
+            51.4574735705208,
+            51.97525482760575,
+            52.49824616228655,
+            53.02649999999996
+          ],
+          "side": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "qty": [
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018,
+            3.31903131951018
+          ],
+          "orderNo": [
+            0,
+            1,
+            2,
+            3,
+            101,
+            102,
+            103,
+            108,
+            107,
+            106,
+            10,
+            11,
+            12
+          ],
+          "placedLeg": [
+            0,
+            0,
+            0,
+            0,
+            1184,
+            1190,
+            1196,
+            1259,
+            1250,
+            1244,
+            0,
+            0,
+            0
+          ],
+          "nextOrderNo": 109,
+          "n": 12,
+          "geom": true,
+          "r": 1.010062314007223,
+          "d": 0.50025,
+          "x": 5.0,
+          "trailingUp": false,
+          "trailLimit": null,
+          "loStop": 44.672324999999994,
+          "hiStop": 55.677825,
+          "tpTotal": null,
+          "lower": 47.0235,
+          "upper": 53.0265,
+          "pos": 0.0,
+          "a": 0.0,
+          "closes": 48,
+          "shifts": 0,
+          "liq": null
+        }
+      },
+      "sb_cstopdcaxxxx": null,
+      "sb_dpausedcxxxx": {
+        "core": {
+          "botId": "sb_dpausedcxxxx",
+          "seq": 4,
+          "kind": "dca",
+          "side": "long",
+          "openedAt": 1792020480000,
+          "anchorPrice": 25.613649501385062,
+          "sizeFactor": 1.0,
+          "budget": 1000.0,
+          "leverage": 2.0,
+          "costs": {
+            "maker": 0.0002,
+            "taker": 0.0005,
+            "slippage": 0.0002,
+            "mmr": 0.005,
+            "funding": true
+          },
+          "cash": -0.22270659590598935,
+          "fees": 0.22270659590598935,
+          "funding": 0.0,
+          "fills": 3,
+          "maxMargin": 379.0750568612584,
+          "maxNotional": 758.1501137225168,
+          "maxAdverseQuote": -14.37212105355529,
+          "open": true,
+          "exit": null,
+          "legs": 234,
+          "nowMs": 1792025159999,
+          "barOpenMs": 1792025100000,
+          "deadlineMs": null,
+          "prevClose": 25.64984287155297,
+          "lastBarCloseMs": 1792025159999,
+          "fundingUnknown": false,
+          "events": []
+        },
+        "engine": {
+          "engine": "dca",
+          "s": 1.0,
+          "q": 29.917566359417982,
+          "n": 758.1501137225168,
+          "m": 379.0750568612584,
+          "a": 25.341302986158595,
+          "tp": 25.72142253095097,
+          "sl": null,
+          "liq": 12.734323108622409,
+          "soPx": [
+            25.35751300637121,
+            25.101376511357362,
+            24.84524001634351,
+            24.58910352132966,
+            24.332967026315806
+          ],
+          "soNot": [
+            236.92191053828654,
+            284.3062926459438,
+            341.1675511751326,
+            409.40106141015906,
+            491.28127369219095
+          ],
+          "maxSo": 5,
+          "nso": 2,
+          "tpPct": 1.5,
+          "trPct": null,
+          "slPct": null,
+          "committed": 999.9999999999997,
+          "trailOn": false,
+          "peak": null,
+          "trailPx": null,
+          "tpLeg": 80
+        }
+      },
+      "sb_earmeddcxxxx": null
+    },
+    "openOrders": {
+      "sb_arundcaxxxxx": [
+        {
+          "clientId": "aearundcax-4-so3",
+          "role": {
+            "role": "safety",
+            "index": 3
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 99.38096006537404,
+          "qty": 3.4329266989442275,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aearundcax-4-so4",
+          "role": {
+            "role": "safety",
+            "index": 4
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 98.35641408531863,
+          "qty": 4.162423622469875,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aearundcax-4-so5",
+          "role": {
+            "role": "safety",
+            "index": 5
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 97.33186810526323,
+          "qty": 5.047486329563471,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aearundcax-4-tp2",
+          "role": {
+            "role": "takeProfit"
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 102.88569012380388,
+          "qty": 7.479391589854496,
+          "activeFromLeg": 81,
+          "state": "open"
+        }
+      ],
+      "sb_brungridxxxx": [
+        {
+          "clientId": "aebrungrid-1-b0",
+          "role": {
+            "role": "gridBuy",
+            "index": 0
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 47.0235,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-b1",
+          "role": {
+            "role": "gridBuy",
+            "index": 1
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 47.49666522271865,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-b101",
+          "role": {
+            "role": "gridBuy",
+            "index": 4
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 48.944919827454285,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1185,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-b102",
+          "role": {
+            "role": "gridBuy",
+            "index": 5
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 49.437418979816485,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1191,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-b2",
+          "role": {
+            "role": "gridBuy",
+            "index": 2
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 47.97459158248558,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-b3",
+          "role": {
+            "role": "gridBuy",
+            "index": 3
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 48.45732698735682,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-s10",
+          "role": {
+            "role": "gridSell",
+            "index": 10
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 51.97525482760575,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-s106",
+          "role": {
+            "role": "gridSell",
+            "index": 9
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 51.4574735705208,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1245,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-s107",
+          "role": {
+            "role": "gridSell",
+            "index": 8
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 50.944850487860926,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1251,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-s108",
+          "role": {
+            "role": "gridSell",
+            "index": 7
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 50.43733419351849,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1260,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-s11",
+          "role": {
+            "role": "gridSell",
+            "index": 11
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 52.49824616228655,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        },
+        {
+          "clientId": "aebrungrid-1-s12",
+          "role": {
+            "role": "gridSell",
+            "index": 12
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 53.02649999999996,
+          "qty": 3.31903131951018,
+          "activeFromLeg": 1,
+          "state": "open"
+        }
+      ],
+      "sb_cstopdcaxxxx": [],
+      "sb_dpausedcxxxx": [
+        {
+          "clientId": "aedpausedc-4-so3",
+          "role": {
+            "role": "safety",
+            "index": 3
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 24.84524001634351,
+          "qty": 13.73170679577691,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aedpausedc-4-so4",
+          "role": {
+            "role": "safety",
+            "index": 4
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 24.58910352132966,
+          "qty": 16.6496944898795,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aedpausedc-4-so5",
+          "role": {
+            "role": "safety",
+            "index": 5
+          },
+          "side": "buy",
+          "kind": "limit",
+          "price": 24.332967026315806,
+          "qty": 20.189945318253883,
+          "activeFromLeg": 0,
+          "state": "open"
+        },
+        {
+          "clientId": "aedpausedc-4-tp2",
+          "role": {
+            "role": "takeProfit"
+          },
+          "side": "sell",
+          "kind": "limit",
+          "price": 25.72142253095097,
+          "qty": 29.917566359417982,
+          "activeFromLeg": 81,
+          "state": "open"
+        }
+      ],
+      "sb_earmeddcxxxx": []
+    }
+  }
+}

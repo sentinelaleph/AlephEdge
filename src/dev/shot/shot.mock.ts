@@ -33,12 +33,12 @@ const noop = () => Promise.resolve();
 
 /** About screen sample: a typical Windows installation, the user folder anonymised. */
 export const SAMPLE_APP_INFO = {
-  version: "0.3.18",
+  version: "0.3.19",
   os: "windows",
   arch: "x86_64",
   tauri: "2.11.5",
   webview: "141.0.3537.71",
-  liveBuild: false,
+  liveBuild: true,
   identifier: "com.sentinelaleph.edge",
   dataDir: "C:\\Users\\you\\AppData\\Roaming\\com.sentinelaleph.edge",
 };
@@ -200,7 +200,7 @@ export const SAMPLE_MARKS: PositionMark[] = [
 ];
 
 export const SAMPLE_DESK_STATUS: BotDeskStatus = {
-  liveTradingEnabled: false,
+  liveTradingEnabled: true,
   binanceIsProduction: true,
   futures: SAMPLE_FUTURES_CONFIG,
   spot: SAMPLE_SPOT_CONFIG,
@@ -229,10 +229,14 @@ export const SAMPLE_DESK: BotDeskController = {
   busy: false,
   error: null,
   configureAndStart: noop,
+  configure: () => Promise.resolve(null),
+  start: () => Promise.resolve(null),
   stop: noop,
+  refresh: noop,
   setLive: () => Promise.resolve(null),
   endPilot: () => Promise.resolve(null),
   closePosition: () => Promise.resolve(null),
+  closeLiveAndPaper: () => Promise.resolve(null),
 };
 
 export const SAMPLE_RISK_STATE: RiskState = {
@@ -711,7 +715,7 @@ export const SAMPLE_DESK_CONTEXT: DeskContextValue = {
     binanceFuturesBase: "https://fapi.binance.com",
     binanceIsProduction: true,
   },
-  version: "0.3.18",
+  version: "0.3.19",
   keyedExchanges: SAMPLE_EXCHANGES,
   accountExchanges: ["binance"],
   accountExchange: "binance",

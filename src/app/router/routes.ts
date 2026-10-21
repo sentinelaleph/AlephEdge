@@ -14,6 +14,7 @@ export type RouteId =
   | "bots"
   | "botNew"
   | "signalBots"
+  | "tvBot"
   | "dcaBots"
   | "dcaNew"
   | "gridBots"
@@ -47,6 +48,7 @@ export const ROUTES: RouteDef[] = [
   { id: "assistant", pattern: "/assistant", titleKey: "nav.assistant" },
   { id: "botNew", pattern: "/bots/new", titleKey: "page.botNew" },
   { id: "signalBots", pattern: "/bots/signal", titleKey: "nav.signalBots" },
+  { id: "tvBot", pattern: "/bots/tradingview", titleKey: "page.tvBot" },
   { id: "dcaNew", pattern: "/bots/dca/new", titleKey: "page.dcaNew" },
   { id: "dcaBots", pattern: "/bots/dca", titleKey: "nav.dcaBots" },
   { id: "gridNew", pattern: "/bots/grid/new", titleKey: "page.gridNew" },

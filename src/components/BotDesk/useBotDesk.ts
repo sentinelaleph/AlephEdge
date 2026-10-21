@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  botCloseLiveAndPaper,
   botClosePosition,
   botConfigure,
   botEndPilot,
@@ -44,13 +45,20 @@ export interface BotDeskController {
   busy: boolean;
   error: string | null;
   configureAndStart: (config: BotConfig) => Promise<void>;
+  /** Saves a config without starting; the rejection text or null. Never throws. */
+  configure: (config: BotConfig) => Promise<string | null>;
+  /** Starts a configured bot; the rejection text or null. Never throws. */
+  start: (kind: BotKind) => Promise<string | null>;
   stop: (kind: BotKind) => Promise<void>;
+  /** Reads the desk now (after an action elsewhere, e.g. "Stop all live"). */
+  refresh: () => Promise<void>;
   /**
-   * Switches real money on/off for one bot. Resolves to the rejection text
-   * (shown next to the control that asked) or null on success; it never
-   * throws and never touches the desk-wide `error`.
+   * Real money for one bot: "Go live", the per-session arm, or off.
+   * `atRiskUsdt` is the margin the confirmation showed (Rust re-checks it).
+   * Resolves to the rejection text (shown next to the control that asked) or
+   * null on success; it never throws and never touches the desk-wide `error`.
    */
-  setLive: (kind: BotKind, enabled: boolean, confirmation: string) => Promise<string | null>;
+  setLive: (kind: BotKind, enabled: boolean, confirmation: string, atRiskUsdt?: number) => Promise<string | null>;
   /** Ends a live bot's pilot (full-size entries again); the rejection text or null. */
   endPilot: (kind: BotKind) => Promise<string | null>;
   /**
@@ -59,6 +67,12 @@ export interface BotDeskController {
    * book; never throws and never touches the desk-wide `error`.
    */
   closePosition: (signalId: string, kind: BotKind) => Promise<string | null>;
+  /**
+   * "Close positions and switch": closes the Live bot's own real positions
+   * (reduce-only market orders), then makes it Paper. The rejection text
+   * (some still open: the bot stays a disarmed Live bot) or null.
+   */
+  closeLiveAndPaper: (kind: BotKind) => Promise<string | null>;
 }
 
 /** Polls the bot desk and exposes configure/start/stop actions. */
@@ -117,11 +131,38 @@ export function useBotDesk(): BotDeskController {
   );
   const stop = useCallback((kind: BotKind) => run(() => botStop(kind)), [run]);
 
-  const setLive = useCallback(
-    async (kind: BotKind, enabled: boolean, confirmation: string) => {
+  /** One awaited call whose rejection is returned as text, not put in `error`. */
+  const attempt = useCallback(
+    async (action: () => Promise<BotDeskStatus>, fallback: string) => {
       setBusy(true);
       try {
-        const s = await botSetLive(kind, enabled, confirmation);
+        const s = await action();
+        if (alive.current) setStatus(s);
+        return null;
+      } catch (e) {
+        return errorMessage(e, fallback);
+      } finally {
+        if (alive.current) setBusy(false);
+      }
+    },
+    [],
+  );
+  const configure = useCallback((config: BotConfig) => attempt(() => botConfigure(config), t("bots.actionFailed")), [attempt, t]);
+  const start = useCallback((kind: BotKind) => attempt(() => botStart(kind), t("bots.actionFailed")), [attempt, t]);
+  const refresh = useCallback(async () => {
+    try {
+      const s = await botStatus();
+      if (alive.current) setStatus(s);
+    } catch {
+      /* the poll retries */
+    }
+  }, []);
+
+  const setLive = useCallback(
+    async (kind: BotKind, enabled: boolean, confirmation: string, atRiskUsdt?: number) => {
+      setBusy(true);
+      try {
+        const s = await botSetLive(kind, enabled, confirmation, atRiskUsdt);
         if (alive.current) setStatus(s);
         return null;
       } catch (e) {
@@ -163,5 +204,24 @@ export function useBotDesk(): BotDeskController {
     [t],
   );
 
-  return { status, loaded, busy, error, configureAndStart, stop, setLive, endPilot, closePosition };
+  const closeLiveAndPaper = useCallback(
+    async (kind: BotKind) => {
+      setBusy(true);
+      try {
+        const s = await botCloseLiveAndPaper(kind);
+        if (alive.current) setStatus(s);
+        return null;
+      } catch (e) {
+        botStatus()
+          .then((s) => alive.current && setStatus(s))
+          .catch(() => undefined);
+        return errorMessage(e, t("positions.closeFailed"));
+      } finally {
+        if (alive.current) setBusy(false);
+      }
+    },
+    [t],
+  );
+
+  return { status, loaded, busy, error, configureAndStart, configure, start, stop, refresh, setLive, endPilot, closePosition, closeLiveAndPaper };
 }

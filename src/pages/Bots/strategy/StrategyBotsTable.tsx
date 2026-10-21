@@ -55,9 +55,8 @@ export function runStatusKind(v: StrategyBotView): StatusKind {
 export function StrategyBotsTable({ rows, actions, showType }: Props) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
-  const { strategy, desk } = useDeskContext();
-  const { liveIds } = useStrategyLive();
-  const liveBuild = desk.loaded && desk.status.liveTradingEnabled;
+  const { strategy } = useDeskContext();
+  const { liveIds, viewFor } = useStrategyLive();
 
   const columns: DataColumn<StrategyBotView>[] = [
     {
@@ -68,7 +67,18 @@ export function StrategyBotsTable({ rows, actions, showType }: Props) {
           <Link to={`/bots/${v.id}`} className="ae-link">
             {v.name}
           </Link>
-          {liveIds.has(v.id) ? <> <LiveChip /></> : liveBuild ? <> <PaperChip /></> : null}
+          {liveIds.has(v.id) ? (
+            <>
+              {" "}
+              <LiveChip />
+              {viewFor(v.id)?.enabled && viewFor(v.id)?.armed !== true ? <span className="ae-subtle"> {t("liveMode.header.needsArm")}</span> : null}
+            </>
+          ) : (
+            <>
+              {" "}
+              <PaperChip />
+            </>
+          )}
         </>
       ),
     },

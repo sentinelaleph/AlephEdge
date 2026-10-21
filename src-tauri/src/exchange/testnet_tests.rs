@@ -4,7 +4,7 @@
 //!
 //!   ALEPH_TESTNET_VENUE=binance|bybit|okx ALEPH_TESTNET_KEY=... \
 //!     ALEPH_TESTNET_SECRET=... [ALEPH_TESTNET_PASSPHRASE=... (OKX)] \
-//!     cargo test --features live testnet_dry_run -- --ignored --nocapture
+//!     cargo test testnet_dry_run -- --ignored --nocapture
 //!
 //! Binance: the futures base is forced to the testnet, and the run refuses
 //! to send anything if it resolves to production. Bybit / OKX: the run sets

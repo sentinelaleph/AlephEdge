@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { LiveConfirmDialog, ModePicker } from "@/components/LiveMode/LiveMode";
+import { Panel } from "@/components/ui/Panel/Panel";
+import { LiveChip, PaperChip } from "@/components/ui/Chip/Chip";
+import type { LiveTerms, TradeMode } from "@/lib/ipc/bot/bot";
+import { exchangeName } from "@/lib/ipc/exchange/exchange";
+import { hasProtectiveLevel, liveBlockers } from "@/lib/liveMode";
+import { liveVenueAllowed, tradeVenues } from "@/lib/venues";
+import { strategyErrorText } from "@/lib/strategyText";
 import { useTranslation } from "react-i18next";
 import { useDeskContext } from "@/app/DeskProvider";
 import { Link, navigate, useRoute } from "@/app/router/router";
@@ -10,6 +18,8 @@ import { formatNumber } from "@/lib/format";
 import { errorMessage } from "@/lib/ipc/bridge";
 import {
   strategyCreate,
+  strategyCreateLive,
+  strategyLiveTerms,
   strategyDefault,
   strategyDetail,
   strategyPresets,
@@ -71,13 +81,20 @@ export function presetStartConfig(p: Preset, kind: StrategyKind, symbol: string 
  * ?symbol=<pair> on a preset or a blank form).
  * Defaults come from Rust (strategy_default), a preset from strategy_presets,
  * a clone from strategy_detail. The bot is created Stopped unless the user
- * picks "Create and start". PAPER ONLY.
+ * picks "Create and start". Paper by default; Live is chosen in the Mode
+ * panel and confirmed with the typed LIVE and the money at risk
+ * (`strategy_create_live` runs every go-live check before the bot is saved).
  */
 export function StrategyCreatePage({ kind }: { kind: StrategyKind }) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const route = useRoute();
-  const { strategy } = useDeskContext();
+  const { strategy, desk, vault, catalog } = useDeskContext();
+  const [mode, setMode] = useState<TradeMode>("paper");
+  /** A Live create waiting for the typed LIVE: its config, start flag and answer. */
+  const [pending, setPending] = useState<{ cfg: StrategyConfig; startAfter: boolean; terms: LiveTerms } | null>(null);
+  const answer = useRef<((e: string | null) => void) | null>(null);
+  const [liveBusy, setLiveBusy] = useState(false);
   const presetId = route.query.get("preset");
   const from = route.query.get("from");
   const symbol = querySymbol(route.query.get("symbol"));
@@ -160,8 +177,71 @@ export function StrategyCreatePage({ kind }: { kind: StrategyKind }) {
     setShortfall(fit.short && loaded.minBudget !== null ? { min: loaded.minBudget, free: Math.max(0, free) } : null);
   }, [loaded, initial, risk, riskFailed]);
 
+  // Real orders go to the first venue with a verified trade-only key that
+  // passed its dry run (Binance first); decisions use Binance prices.
+  const venues = tradeVenues(vault.credentials);
+  const venue = venues.find((v) => liveVenueAllowed(desk.status.liveVenues, v)) ?? venues[0] ?? "binance";
+  const draft = summary?.cfg ?? initial;
+  const blockers = draft
+    ? liveBlockers({
+        futures: draft.market === "futures" && draft.exchangeId === "binance",
+        keyOk: venues.includes(venue),
+        venueOk: liveVenueAllowed(desk.status.liveVenues, venue),
+        venueName: exchangeName(venue, catalog.exchanges),
+        tradingBlocked: desk.status.tradingBlocked ?? null,
+        extra: hasProtectiveLevel(draft) ? [] : [{ key: "liveMode.blockers.stop" }],
+      })
+    : [];
+  // A Live choice the form no longer allows (e.g. switched to spot) falls back to Paper.
+  useEffect(() => {
+    if (mode === "live" && blockers.length > 0) setMode("paper");
+  }, [mode, blockers.length]);
+
+  const finish = useCallback(
+    async (id: string, startAfter: boolean) => {
+      let startErr: string | null = null;
+      if (startAfter) {
+        try {
+          await strategyStart(id);
+        } catch (e) {
+          startErr = errorMessage(e, "botUnknown");
+        }
+      }
+      await strategy.refresh();
+      navigate(startErr ? `/bots/${id}?err=${encodeURIComponent(startErr)}` : `/bots/${id}`);
+    },
+    [strategy],
+  );
+
+  const confirmLive = async (typed: string) => {
+    if (!pending) return;
+    setLiveBusy(true);
+    try {
+      const view = await strategyCreateLive(pending.cfg, typed, pending.terms.marginAtRiskUsdt, venue);
+      setPending(null);
+      answer.current?.(null);
+      await finish(view.id, pending.startAfter);
+    } catch (e) {
+      setPending(null);
+      answer.current?.(strategyErrorText(t, errorMessage(e, "botUnknown")));
+    } finally {
+      setLiveBusy(false);
+    }
+  };
+
   const onSubmit = useCallback(
     async (cfg: StrategyConfig, startAfter: boolean): Promise<string | null> => {
+      if (mode === "live") {
+        try {
+          const terms = await strategyLiveTerms(cfg, venue);
+          return await new Promise<string | null>((resolve) => {
+            answer.current = resolve;
+            setPending({ cfg, startAfter, terms });
+          });
+        } catch (e) {
+          return errorMessage(e, "botUnknown");
+        }
+      }
       try {
         const view = await strategyCreate(cfg);
         let startErr: string | null = null;
@@ -179,7 +259,7 @@ export function StrategyCreatePage({ kind }: { kind: StrategyKind }) {
         return errorMessage(e, "botUnknown");
       }
     },
-    [strategy],
+    [strategy, mode, venue],
   );
 
   const title = t(kind === "dca" ? "page.dcaNew" : "page.gridNew");
@@ -251,6 +331,24 @@ export function StrategyCreatePage({ kind }: { kind: StrategyKind }) {
           </Link>
         </p>
       ) : null}
+      {initial ? (
+        <Panel title={t("liveMode.label")} tone={mode === "live" ? "live" : "default"} aside={mode === "live" ? <LiveChip /> : <PaperChip />}>
+          <ModePicker value={mode} onChange={setMode} blockers={blockers} liveNote={t("liveMode.strategy.createNote")} />
+        </Panel>
+      ) : null}
+      <LiveConfirmDialog
+        open={pending !== null}
+        title={t("liveMode.strategy.createTitle", { name: pending?.cfg.name ?? "" })}
+        terms={pending?.terms ?? null}
+        note={t("liveMode.strategy.mirrorNote", { symbol: pending?.cfg.symbol ?? "" })}
+        confirmLabel={t(pending?.startAfter ? "liveMode.strategy.createStartLive" : "liveMode.strategy.createLive")}
+        busy={liveBusy}
+        onConfirm={(typed) => void confirmLive(typed)}
+        onCancel={() => {
+          setPending(null);
+          answer.current?.(null);
+        }}
+      />
       {initial ? (
         <StrategyForm
           key={`${presetId ?? ""}|${from ?? ""}|${symbol ?? ""}`}

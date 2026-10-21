@@ -36,6 +36,7 @@ pub mod reconcile;
 pub mod record;
 pub mod sizing;
 pub mod take_profit;
+pub mod tv_trade;
 pub mod user_trade;
 
 pub(crate) use book::force_close_kinds;
@@ -191,7 +192,7 @@ async fn kill_switch_phase(app: &AppHandle) {
 }
 
 /// The bots the daily stop covers (strategy bots are outside it).
-const SIGNAL_KINDS: [BotKind; 3] = [BotKind::Futures, BotKind::Spot, BotKind::Pump];
+const SIGNAL_KINDS: [BotKind; 4] = crate::bot::ALL_KINDS;
 
 /// Whether a tick after the trip must close again: the stop tripped, the
 /// user's preference is to close, and signal positions are still open. The
@@ -205,7 +206,7 @@ pub fn retry_daily_stop_close(tripped: bool, close_on_stop: bool, open_positions
 fn live_mode_active(bots: &BotManager) -> bool {
     LIVE_TRADING_ENABLED
         && (bots.positions_snapshot().iter().any(|p| p.is_live())
-            || [BotKind::Futures, BotKind::Spot, BotKind::Pump]
+            || crate::bot::ALL_KINDS
                 .into_iter()
                 .filter_map(|k| bots.running_config(k))
                 .any(|c| c.live))

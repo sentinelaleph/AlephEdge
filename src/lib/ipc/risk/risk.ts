@@ -42,6 +42,12 @@ export interface RiskState {
   dailyLossOverrideCapped: boolean;
   /** Portfolio risk view thresholds (Risk page chips and alerts). */
   viewThresholds: ViewThresholds;
+  /**
+   * The stored settings file could not be read at start: these are the
+   * defaults, the bad file was kept under this name ("" = not copied), and no
+   * bot starts until the user saves the risk settings. Absent when fine.
+   */
+  configUnreadable?: string | null;
 }
 
 /** Portfolio risk view thresholds, % each (Rust `ViewThresholds`). */

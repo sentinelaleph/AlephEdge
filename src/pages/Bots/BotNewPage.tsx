@@ -9,6 +9,7 @@ import { FactList, Panel, type Fact } from "@/components/ui/Panel/Panel";
 import { InfoTip } from "@/components/ui/InfoTip/InfoTip";
 import { localeForLanguage } from "@/i18n";
 import { formatSignedPercent, formatUsdt, NO_VALUE } from "@/lib/format";
+import { botMode } from "@/lib/ipc/bot/bot";
 import { exchangeName } from "@/lib/ipc/exchange/exchange";
 import { isActive, type Preset, type StrategyKind } from "@/lib/ipc/strategy/strategy";
 import { presetName } from "@/lib/strategyText";
@@ -19,7 +20,7 @@ import { useStrategyLive } from "./strategy/useStrategyLive";
 import "./bots.css";
 
 interface TypeCard {
-  id: "signal" | StrategyKind;
+  id: "signal" | "tradingview" | StrategyKind;
   markets: ("spot" | "futures")[];
   suitsKey: string;
 }
@@ -28,21 +29,18 @@ const CARDS: TypeCard[] = [
   { id: "signal", markets: ["spot", "futures"], suitsKey: "botCreate.suits.signal" },
   { id: "dca", markets: ["spot", "futures"], suitsKey: "botCreate.suits.trend" },
   { id: "grid", markets: ["spot", "futures"], suitsKey: "botCreate.suits.range" },
+  { id: "tradingview", markets: ["futures"], suitsKey: "botCreate.suits.tradingview" },
 ];
+
+const TV_BOT_PATH = "/bots/tradingview";
 
 const GUIDE_REAL_MONEY = "/guide?s=real-money";
 const PREFLIGHT_PATH = "/risk?s=preflight";
 /** Exchanges with a real-money order path in the code; real money stays off on each until its test-network run passes. */
 const PENDING_VENUES = ["bybit", "okx"];
 
-/**
- * The mode line of a bot type. Real money is offered only by a build that
- * can place real orders (`--features live`); the public build is paper only
- * and says so, without advertising an opt-in it does not have.
- */
-export function modeKey(liveTradingEnabled: boolean): string {
-  return liveTradingEnabled ? "botCreate.mode.liveBuildLine" : "botCreate.mode.paperOnly";
-}
+/** The mode line of a bot type: Paper by default, Live chosen per bot on its creation screen. */
+export const MODE_LINE_KEY = "botCreate.mode.liveBuildLine";
 
 /** A card's tested result: one sentence, too long for a label / value row. */
 function Evidence({ fact }: { fact: Fact }) {
@@ -81,7 +79,6 @@ export function BotNewPage() {
   const { desk, risk, strategy, keyedExchanges, catalog } = useDeskContext();
   const { presets } = usePresets();
   const { liveIds } = useStrategyLive();
-  const liveBuild = desk.loaded && desk.status.liveTradingEnabled;
   const venues = desk.loaded ? (desk.status.liveVenues ?? []) : [];
   const venueNames = venues.map((v) => exchangeName(v, catalog.exchanges)).join(", ");
   // Venues with an order path whose test-network run has not passed yet.
@@ -91,6 +88,7 @@ export function BotNewPage() {
 
   /** "2 · running 1 · 1 LIVE", "None yet", or null while the desk loads. */
   const yours = (id: TypeCard["id"]): string | null => {
+    const tv = desk.loaded ? (desk.status.tradingview ?? null) : undefined;
     const mine =
       id === "signal"
         ? signalRows && {
@@ -98,7 +96,13 @@ export function BotNewPage() {
             running: signalRows.filter((r) => r.running).length,
             live: signalRows.filter((r) => r.live).length,
           }
-        : strategy.bots && {
+        : id === "tradingview"
+          ? tv !== undefined && {
+              total: tv ? 1 : 0,
+              running: desk.status.tradingviewRunning ? 1 : 0,
+              live: botMode(tv) === "live" ? 1 : 0,
+            }
+          : strategy.bots && {
             total: strategy.bots.filter((b) => b.kind === id).length,
             running: strategy.bots.filter((b) => b.kind === id && isActive(b)).length,
             live: strategy.bots.filter((b) => b.kind === id && liveIds.has(b.id)).length,
@@ -123,6 +127,7 @@ export function BotNewPage() {
   const evidenceFact = (id: TypeCard["id"]): Fact => {
     const label = t("botCreate.evidence");
     if (id === "signal") return { label, value: t("botCreate.evidenceSignal"), tone: "muted" };
+    if (id === "tradingview") return { label, value: t("botCreate.evidenceTradingview"), tone: "muted" };
     if (!presets) return { label, value: NO_VALUE };
     const best = provenPreset(presets, id);
     const s = best ? testSplit(best) : null;
@@ -141,12 +146,12 @@ export function BotNewPage() {
   };
 
   /** The proven template of a strategy type (DCA only today), the card's first button. */
-  const proven = (id: TypeCard["id"]) => (id !== "signal" && presets ? provenPreset(presets, id) : null);
+  const proven = (id: TypeCard["id"]) => (id !== "signal" && id !== "tradingview" && presets ? provenPreset(presets, id) : null);
 
   const realFact = (): Fact => ({
     label: t("botCreate.realMoney"),
-    value: !desk.loaded ? NO_VALUE : liveBuild && venues.length ? t("botCreate.realFutures", { venues: venueNames }) : t("botCreate.realNotInBuild"),
-    tone: liveBuild && venues.length ? undefined : "muted",
+    value: !desk.loaded ? NO_VALUE : venues.length ? t("botCreate.realFutures", { venues: venueNames }) : t("botCreate.ready.noVenue"),
+    tone: venues.length ? undefined : "muted",
   });
 
   const free = freeStrategyBudget(strategy.risk);
@@ -182,10 +187,9 @@ export function BotNewPage() {
             },
             {
               label: t("botCreate.realMoney"),
-              value: !desk.loaded ? NO_VALUE : liveBuild ? (venues.length ? t("botCreate.realFutures", { venues: venueNames }) : t("botCreate.ready.noVenue")) : t("botCreate.realNotInBuild"),
-              tone: liveBuild ? undefined : "muted",
+              value: !desk.loaded ? NO_VALUE : venues.length ? t("botCreate.realFutures", { venues: venueNames }) : t("botCreate.ready.noVenue"),
             },
-            ...(liveBuild ? [{ label: t("botCreate.ready.liveBots"), value: String(liveTotal), tone: liveTotal > 0 ? ("danger" as const) : undefined }] : []),
+            { label: t("botCreate.ready.liveBots"), value: String(liveTotal), tone: liveTotal > 0 ? ("danger" as const) : undefined },
           ]}
         />
         <p className="ae-newbot__links">
@@ -202,9 +206,8 @@ export function BotNewPage() {
 
   return (
     <PageShell title={t("page.botNew")} crumbs={[{ label: t("nav.groups.bots"), to: "/bots" }]} right={right}>
-      <Panel title={t("botCreate.mode.title")} aside={liveBuild ? <LiveChip /> : <PaperChip />} className="ae-newbot__mode">
-        {liveBuild ? (
-          <div className="ae-newbot__modes">
+      <Panel title={t("botCreate.mode.title")} aside={<PaperChip />} className="ae-newbot__mode">
+        <div className="ae-newbot__modes">
             <div>
               <p className="ae-newbot__modehead">
                 <PaperChip /> {t("botCreate.mode.paperHead")}
@@ -232,11 +235,6 @@ export function BotNewPage() {
               </p>
             </div>
           </div>
-        ) : (
-          <p className="ae-typegrid__how">
-            {t(modeKey(false))} <Link to={GUIDE_REAL_MONEY} className="ae-link">{t("botCreate.mode.guide")}</Link>
-          </p>
-        )}
       </Panel>
 
       <div className="ae-typegrid">
@@ -257,7 +255,11 @@ export function BotNewPage() {
               rows={[
                 { label: t("botCreate.suitsLabel"), value: t(c.suitsKey) },
                 { label: t("botCreate.yours"), value: yours(c.id) ?? NO_VALUE },
-                c.id === "signal" ? { label: t("botCreate.templates"), value: t("botCreate.templatesSignal"), tone: "muted" } : templatesFact(c.id),
+                c.id === "signal"
+                  ? { label: t("botCreate.templates"), value: t("botCreate.templatesSignal"), tone: "muted" }
+                  : c.id === "tradingview"
+                    ? { label: t("botCreate.templates"), value: t("botCreate.templatesTradingview"), tone: "muted" }
+                    : templatesFact(c.id),
                 realFact(),
               ]}
             />
@@ -266,6 +268,10 @@ export function BotNewPage() {
               {c.id === "signal" ? (
                 <Button variant="secondary" size="sm" onClick={() => navigate("/bots/signal")}>
                   {t("botCreate.openSignal")}
+                </Button>
+              ) : c.id === "tradingview" ? (
+                <Button variant="secondary" size="sm" onClick={() => navigate(TV_BOT_PATH)}>
+                  {t("botCreate.openTradingview")}
                 </Button>
               ) : (
                 <>

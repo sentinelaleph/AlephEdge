@@ -5,34 +5,31 @@ import { KEYS_PATH } from "@/app/router/routes";
 import { Link } from "@/app/router/router";
 import { Button } from "@/components/ui/Button/Button";
 import { LiveChip } from "@/components/ui/Chip/Chip";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
+import { LiveConfirmDialog } from "@/components/LiveMode/LiveMode";
+import type { LiveTerms } from "@/lib/ipc/bot/bot";
 import { FactList, Panel } from "@/components/ui/Panel/Panel";
 import { StatusChip } from "@/components/ui/StatusChip/StatusChip";
 import { localeForLanguage } from "@/i18n";
-import { formatNumber, formatPnl, formatPrice, formatTableTime, NO_VALUE } from "@/lib/format";
+import { formatPnl, formatPrice, formatTableTime, NO_VALUE } from "@/lib/format";
 import { errorMessage } from "@/lib/ipc/bridge";
 import {
   parseStrategyError,
-  STRATEGY_LIVE_WORD,
+  strategyArmLive,
   strategyEndPilot,
+  strategyLiveTerms,
   strategySetLive,
   type StrategyBotView,
   type StrategyConfig,
 } from "@/lib/ipc/strategy/strategy";
 import { exchangeName } from "@/lib/ipc/exchange/exchange";
 import { strategyErrorText } from "@/lib/strategyText";
-import { liveTargetKey, liveVenueAllowed, tradeVenues } from "@/lib/venues";
+import { hasProtectiveLevel } from "@/lib/liveMode";
+import { liveVenueAllowed, tradeVenues } from "@/lib/venues";
 import { isLiveView, useStrategyLive } from "./useStrategyLive";
 
 const EXCHANGE_PATH = "/positions?tab=exchange";
 const GUIDE_PATH = "/guide?s=real-money";
 const PREFLIGHT_PATH = "/risk?s=preflight";
-
-/** Whether the config has a level the exchange stop can rest at. */
-function hasProtectiveLevel(cfg: StrategyConfig): boolean {
-  if ((cfg.maxDrawdownPct ?? 0) > 0) return true;
-  return cfg.params.kind === "dca" ? (cfg.params.slPct ?? 0) > 0 : (cfg.params.stopOutPct ?? 0) > 0;
-}
 
 /** "BTCUSDT" → "BTC": the unit of a position quantity. */
 function baseAsset(symbol: string): string {
@@ -40,23 +37,25 @@ function baseAsset(symbol: string): string {
 }
 
 /**
- * Paper or real money for one DCA / Grid bot. Real money mirrors the
- * simulated position on Binance futures with market orders and keeps a stop
- * on the exchange (bot/strategy_live.rs). Before switching, the panel lists
- * what is still missing, each with the place that fixes it.
+ * Paper or Live for one DCA / Grid bot. Live mirrors the simulated position
+ * on the exchange's futures with market orders and keeps a stop there
+ * (bot/strategy_live.rs). "Go live" on a Paper bot and the per-session arm
+ * of a Live bot both show the money at risk and need the typed LIVE. Before
+ * going live, the panel lists what is still missing, each with its fix.
  */
 export function StrategyLivePanel({ view, config }: { view: StrategyBotView; config: StrategyConfig | null }) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const { desk, vault, catalog } = useDeskContext();
   const { viewFor, setViews } = useStrategyLive();
-  const [dialog, setDialog] = useState(false);
+  /** The confirmation open: going live, or arming a Live bot, with its terms. */
+  const [dialog, setDialog] = useState<{ arm: boolean; terms: LiveTerms } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ code: string; text: string } | null>(null);
   const live = viewFor(view.id);
   const enabled = live?.enabled === true;
   const real = isLiveView(live);
-  const buildOn = desk.loaded && desk.status.liveTradingEnabled;
+  const armed = enabled && live?.armed === true;
   const futures = view.market === "futures" && view.exchangeId === "binance";
   const settingsPath = `/bots/${view.id}?tab=settings`;
 
@@ -89,25 +88,57 @@ export function StrategyLivePanel({ view, config }: { view: StrategyBotView; con
     return null;
   };
 
-  /** `confirmation` is what the user typed (Rust re-checks it is LIVE). */
-  const set = async (on: boolean, confirmation = "") => {
+  const fail = (e: unknown) => {
+    const raw = errorMessage(e, "liveExchangeCheckFailed");
+    setError({ code: parseStrategyError(raw).code, text: strategyErrorText(t, raw) });
+  };
+
+  /** Opens the confirmation with the money at risk read from Rust. */
+  const ask = async (arm: boolean) => {
+    if (!config) return;
+    setError(null);
+    try {
+      setDialog({ arm, terms: await strategyLiveTerms(config, arm && live ? live.venue : venue) });
+    } catch (e) {
+      fail(e);
+    }
+  };
+
+  /** `typed` is what the user typed (Rust re-checks it is LIVE, and the margin). */
+  const confirm = async (typed: string) => {
+    if (!dialog) return;
     setBusy(true);
     setError(null);
     try {
-      setViews(await strategySetLive(view.id, on, on ? confirmation : "", on ? venue : undefined));
+      const margin = dialog.terms.marginAtRiskUsdt;
+      setViews(dialog.arm ? await strategyArmLive(view.id, typed, margin) : await strategySetLive(view.id, true, typed, venue, margin));
     } catch (e) {
-      const raw = errorMessage(e, "liveExchangeCheckFailed");
-      setError({ code: parseStrategyError(raw).code, text: strategyErrorText(t, raw) });
+      fail(e);
     } finally {
       setBusy(false);
-      setDialog(false);
+      setDialog(null);
+    }
+  };
+
+  const off = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setViews(await strategySetLive(view.id, false, ""));
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
     }
   };
 
   const chip = live?.halted ? (
     <StatusChip status="error" label={t("strategy.live.halted")} />
   ) : enabled ? (
-    <LiveChip />
+    <span className="ae-toolbar">
+      <LiveChip />
+      {!armed ? <span className="ae-subtle">{t("liveMode.header.needsArm")}</span> : null}
+    </span>
   ) : (
     <StatusChip status="ok" label={t("strategy.live.paper")} />
   );
@@ -168,9 +199,9 @@ export function StrategyLivePanel({ view, config }: { view: StrategyBotView; con
           </p>
         </>
       ) : null}
-      {!buildOn ? <p className="ae-muted">{t("strategy.live.buildOff")}</p> : null}
-      {buildOn && !futures ? <p className="ae-muted">{t("strategy.live.futuresOnly")}</p> : null}
-      {buildOn && futures && !enabled && venues.length > 1 ? (
+      {enabled && !armed && !live?.halted ? <p className="ae-muted">{t("liveMode.strategy.needsArm")}</p> : null}
+      {!futures ? <p className="ae-muted">{t("strategy.live.futuresOnly")}</p> : null}
+      {futures && !enabled && venues.length > 1 ? (
         <label className="ae-field">
           <span className="ae-field__label">{t("strategy.live.venue")}</span>
           <select className="ae-field__input" value={venue} onChange={(e) => setVenuePick(e.target.value)} disabled={busy}>
@@ -182,12 +213,12 @@ export function StrategyLivePanel({ view, config }: { view: StrategyBotView; con
           </select>
         </label>
       ) : null}
-      {buildOn && futures && !enabled && !venueOk ? (
+      {futures && !enabled && !venueOk ? (
         <p className="ae-error" role="note">
           {t("vault.venueNotDryRun", { exchange: venueName(venue) })}
         </p>
       ) : null}
-      {buildOn && futures && !enabled ? (
+      {futures && !enabled ? (
         <ul className="ae-list" aria-label={t("strategy.live.req.title")}>
           {requirements.map((r) => (
             <li key={r.label} className={r.ok ? "ae-muted" : undefined}>
@@ -218,14 +249,19 @@ export function StrategyLivePanel({ view, config }: { view: StrategyBotView; con
           ) : null}
         </p>
       ) : null}
-      {buildOn && futures ? (
+      {futures ? (
         <div className="ae-toolbar">
+          {enabled && !armed && !live?.halted ? (
+            <Button variant="danger" size="sm" disabled={busy || !config} onClick={() => void ask(true)}>
+              {t("liveMode.strategy.arm")}
+            </Button>
+          ) : null}
           {enabled ? (
-            <Button variant="secondary" size="sm" disabled={busy} onClick={() => void set(false)}>
+            <Button variant="secondary" size="sm" disabled={busy} onClick={() => void off()}>
               {t("strategy.live.disable")}
             </Button>
           ) : (
-            <Button variant="danger" size="sm" disabled={busy || !ready} onClick={() => setDialog(true)}>
+            <Button variant="danger" size="sm" disabled={busy || !ready || !config} onClick={() => void ask(false)}>
               {t("strategy.live.enable")}
             </Button>
           )}
@@ -237,28 +273,19 @@ export function StrategyLivePanel({ view, config }: { view: StrategyBotView; con
           </Link>
         </div>
       ) : null}
-      <ConfirmDialog
-        open={dialog}
-        live
-        danger
-        title={t("strategy.live.confirmTitle", { name: view.name })}
-        body={
-          <>
-            <p>{t(liveTargetKey(venue, desk.status.binanceIsProduction, desk.status.venueSandbox), { exchange: venueName(venue) })}</p>
-            <p>
-              {t("strategy.live.confirmBudget", {
-                budget: formatNumber(view.budget, locale),
-                leverage: formatNumber(view.leverage, locale),
-              })}
-            </p>
-            <p>{t("strategy.live.confirmBodyVenue", { symbol: view.symbol, leverage: view.leverage, exchange: venueName(venue) })}</p>
-          </>
+      <LiveConfirmDialog
+        open={dialog !== null}
+        title={t(dialog?.arm ? "liveMode.strategy.armTitle" : "strategy.live.confirmTitle", { name: view.name })}
+        terms={dialog?.terms ?? null}
+        note={
+          dialog?.arm
+            ? t("liveMode.restartNote")
+            : t("strategy.live.confirmBodyVenue", { symbol: view.symbol, leverage: view.leverage, exchange: venueName(venue) })
         }
-        word={STRATEGY_LIVE_WORD}
-        confirmLabel={t("strategy.live.enable")}
+        confirmLabel={t(dialog?.arm ? "liveMode.strategy.arm" : "strategy.live.enable")}
         busy={busy}
-        onConfirm={(typed) => void set(true, typed)}
-        onCancel={() => setDialog(false)}
+        onConfirm={(typed) => void confirm(typed)}
+        onCancel={() => setDialog(null)}
       />
     </Panel>
   );

@@ -4,10 +4,17 @@
 //! **signal** client (SSE), the **exchange** adapters, the **risk** manager,
 //! Sentinel **market** data (FR/LD/BTC macro), the SQLite **store**, the
 //! **bot** orchestrator, the phone **link**, optional **telegram**
-//! notifications and the TradingView alert link (**tvlink**). Real orders
-//! compile only with the `live` cargo feature. Each subsystem owns its own types, logic, and
+//! notifications and the TradingView alert link (**tvlink**). One build: the
+//! real-money order path is always compiled in and each bot is Paper or Live
+//! (see `bot::model::TradeMode`). Each subsystem owns its own types, logic, and
 //! commands; this file only registers managed state and the command surface,
 //! then runs the app.
+
+// One build for every user since 0.3.19: a desktop build without the order
+// path would keep a Live bot's real positions out of its book (the paper /
+// LIVE update swap this replaced). The headless bot farm has no such feature.
+#[cfg(not(feature = "live"))]
+compile_error!("the desktop app is one build: the `live` feature (default) must stay on");
 
 mod app;
 mod assistant;
@@ -32,14 +39,15 @@ use bot::strategy::commands::{
     strategy_default, strategy_detail, strategy_equity, strategy_export_csv, strategy_fills,
     strategy_list, strategy_notes, strategy_orders, strategy_pnl, strategy_presets, strategy_preview,
     strategy_risk_get, strategy_risk_set, strategy_start, strategy_stats, strategy_stop,
-    strategy_update, strategy_validate,
+    strategy_update, strategy_validate, strategy_budget_floor,
 };
 use bot::strategy::backtest_commands::{
     backtest_delete, backtest_delete_all, backtest_get, backtest_list, backtest_run, grid_suggest,
 };
 use bot::strategy::StrategyManager;
 use bot::{
-    bot_close_position, bot_configure, bot_default_config, bot_end_pilot, bot_preview_take, bot_set_live, bot_start,
+    bot_close_live_and_paper, bot_close_position, bot_configure, bot_default_config, bot_end_pilot, bot_live_terms, bot_preview_take, bot_set_live,
+    bot_start, live_stop_all,
     bot_status, bot_stop, bot_take_signal, bot_open_trade, bot_preview_trade, BotManager,
 };
 use exchange::{
@@ -169,6 +177,7 @@ pub fn run() {
             telegram::commands::telegram_status,
             telegram::commands::telegram_set_token,
             telegram::commands::telegram_remove,
+            telegram::commands::telegram_start_over,
             telegram::commands::telegram_link_code,
             telegram::commands::telegram_set_prefs,
             telegram::commands::telegram_test,
@@ -182,6 +191,8 @@ pub fn run() {
             tvlink::commands::tv_set_prefs,
             tvlink::commands::tv_send_test,
             tvlink::commands::tv_results,
+            tvlink::commands::tv_set_notice,
+            tvlink::commands::tv_symbol_minimum,
             get_health_snapshot,
             get_endpoints,
             app_version,
@@ -246,12 +257,15 @@ pub fn run() {
             skips_export_csv,
             bot_configure,
             bot_set_live,
+            bot_live_terms,
+            live_stop_all,
             bot_end_pilot,
             bot_default_config,
             bot_start,
             bot_stop,
             bot_status,
             bot_close_position,
+            bot_close_live_and_paper,
             bot_take_signal,
             bot_preview_take,
             bot_open_trade,
@@ -261,6 +275,7 @@ pub fn run() {
             strategy_default,
             strategy_preview,
             strategy_validate,
+            strategy_budget_floor,
             strategy_create,
             strategy_update,
             strategy_start,
@@ -269,6 +284,9 @@ pub fn run() {
             strategy_close_all,
             bot::strategy_live::strategy_live_status,
             bot::strategy_live::strategy_set_live,
+            bot::strategy_live::strategy_create_live,
+            bot::strategy_live::strategy_arm_live,
+            bot::strategy_live::strategy_live_terms,
             bot::strategy_live::strategy_end_pilot,
             bot::strategy_live::strategy_live_report,
             app::preflight::live_preflight,

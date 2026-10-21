@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Preset, StrategyRiskView } from "@/lib/ipc/strategy/strategy";
 import { presetEvidence, provenFirst, provenPreset } from "@/pages/Presets/presetUi";
-import { freeStrategyBudget, scopeState, templateCounts } from "./botNewModel";
+import { freeStrategyBudget, templateCounts } from "./botNewModel";
 
 const preset = (kind: "dca" | "grid", verdict: string, testMean: number | null, recheck = false, worstDd = -20, id?: string): Preset =>
   ({
@@ -63,13 +63,6 @@ describe("New bot page model", () => {
     expect(freeStrategyBudget({ ...r, reservedBudget: 9_000 })).toBe(0);
     expect(freeStrategyBudget(null)).toBeNull();
   });
-
-  it("the header readout separates a paper build, a live build with nothing live, and live bots", () => {
-    expect(scopeState(false, 0)).toEqual({ kind: "paperBuild" });
-    expect(scopeState(false, 3)).toEqual({ kind: "paperBuild" });
-    expect(scopeState(true, 0)).toEqual({ kind: "liveAvailable" });
-    expect(scopeState(true, 2)).toEqual({ kind: "live", bots: 2 });
-  });
 });
 
 // 0.3.11 said "LIVE opt-in (Futures: Binance, Bybit, OKX)" while only Binance
@@ -80,7 +73,7 @@ describe("real-money copy names no venue by hand", () => {
   for (const lang of readdirSync(dir)) {
     it(lang, () => {
       const d = JSON.parse(readFileSync(join(dir, lang, `${lang}.json`), "utf-8"));
-      const mode = JSON.stringify(d.botCreate.mode) + JSON.stringify(d.nav.scopeTooltip);
+      const mode = JSON.stringify(d.botCreate.mode) + JSON.stringify(d.liveMode);
       expect(mode).not.toMatch(/Bybit|OKX/);
     });
   }

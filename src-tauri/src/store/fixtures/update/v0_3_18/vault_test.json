@@ -1,0 +1,28 @@
+{
+  "service": "com.sentinelaleph.edge.updtest",
+  "saltB64": "eEalQ7L5ZoDITeMQDVYmYg==",
+  "password": "update-fixture-test-password",
+  "creds": [
+    {
+      "exchangeId": "binance",
+      "label": "main",
+      "apiKey": "TEST-ONLY-not-a-key-main",
+      "apiSecret": "TEST-ONLY-not-a-secret-main",
+      "permission": "tradeOnly",
+      "addedAt": 1792000000000,
+      "exchangeCreatedAt": 1791000000000,
+      "ipRestricted": true
+    },
+    {
+      "exchangeId": "bybit",
+      "label": "second",
+      "apiKey": "TEST-ONLY-not-a-key-second",
+      "apiSecret": "TEST-ONLY-not-a-secret-second",
+      "permission": "tradeOnly",
+      "addedAt": 1792000000000,
+      "exchangeCreatedAt": 1791000000000,
+      "ipRestricted": true
+    }
+  ],
+  "version": "0.3.18"
+}

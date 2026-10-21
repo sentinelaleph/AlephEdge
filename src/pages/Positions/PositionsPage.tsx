@@ -7,13 +7,14 @@ import { LiveChip } from "@/components/ui/Chip/Chip";
 import { EmptyState } from "@/components/ui/EmptyState/EmptyState";
 import { FilterGroup, listParam, SearchField } from "@/components/ui/FilterPanel/FilterPanel";
 import { PageShell } from "@/components/ui/PageShell/PageShell";
+import { LiveUnreadableNotice } from "@/components/LiveMode/DataNotices";
 import { FactList, Panel } from "@/components/ui/Panel/Panel";
 import { Section } from "@/components/ui/Section/Section";
 import { Tabs } from "@/components/ui/Tabs/Tabs";
 import { Button } from "@/components/ui/Button/Button";
 import { localeForLanguage } from "@/i18n";
 import { formatPercent, formatPnl, formatUsdt, NO_VALUE, pnlToneAttr } from "@/lib/format";
-import type { BotKind } from "@/lib/ipc/bot/bot";
+import { ALL_KINDS } from "@/lib/ipc/bot/bot";
 import { marksByPosition, openPnl } from "@/lib/positionMarks";
 import { SkeletonRows } from "@/pages/Bots/SkeletonRows";
 import { NewTradeForm, NewTradePreview, useNewTrade } from "./NewTrade";
@@ -22,7 +23,7 @@ import { PositionsTable } from "./PositionsTable";
 import { StrategyCyclesTable } from "./StrategyCyclesTable";
 import "./Positions.css";
 
-const KINDS: BotKind[] = ["futures", "spot", "pump"];
+const KINDS = ALL_KINDS;
 
 /**
  * #/positions: everything open, paper and real strictly apart. The real
@@ -32,7 +33,7 @@ const KINDS: BotKind[] = ["futures", "spot", "pump"];
 export function PositionsPage() {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
-  const { desk, risk, accountExchanges, strategy } = useDeskContext();
+  const { desk, risk, strategy } = useDeskContext();
   const [tabParam, setTab] = useQueryParam("tab");
   const tab = tabParam === "exchange" ? "exchange" : "paper";
   const { route } = useRouter();
@@ -57,6 +58,7 @@ export function PositionsPage() {
 
   // Paper only: a LIVE bot's positions are real and show on the Exchange tab.
   const all = desk.status.openPositions.filter((p) => !p.live);
+  const livePositions = desk.status.openPositions.filter((p) => p.live);
   const rows = all.filter(
     (p) =>
       (!kind.length || kind.includes(p.botKind)) &&
@@ -135,6 +137,7 @@ export function PositionsPage() {
       leftOpen={tab === "paper" && newTrade}
       right={tab === "paper" ? paperRight : undefined}
     >
+      <LiveUnreadableNotice />
       <Tabs
         label={t("nav.positions")}
         value={tab}
@@ -165,7 +168,7 @@ export function PositionsPage() {
                 )}
                 <PaperCloseAll />
               </div>
-              {newTrade ? <NewTradePreview ctl={trade} onClose={() => set({ new: "" })} /> : null}
+              {newTrade ? <NewTradePreview ctl={trade} status={desk.status} onClose={() => set({ new: "" })} /> : null}
               <Section title={t("table.openPositions")} count={rows.length}>
                 <PositionsTable positions={rows} showBot onClose={desk.closePosition} />
               </Section>
@@ -174,23 +177,38 @@ export function PositionsPage() {
               </Section>
             </>
           )
-        ) : accountExchanges.length === 0 ? (
-          <EmptyState
-            title={t("positions.noKey")}
-            actions={
-              <Link to={KEYS_PATH} className="ae-link">
-                {t("settings.tabs.keys")}
-              </Link>
-            }
-          />
         ) : (
-          <Panel tone="live" title={t("positions.realZone")}>
-            {accountExchanges.map((id) => (
-              <AccountPanel key={id} exchangeId={id} />
-            ))}
-          </Panel>
+          <>
+            {/* The bots' own real positions with their levels and exchange
+                orders; the account below is the exchange's raw view. */}
+            <Section title={t("positions.liveBotPositions")} count={livePositions.length}>
+              <PositionsTable positions={livePositions} showBot emptyKey="positions.noLiveBot" onClose={desk.closePosition} />
+            </Section>
+            <ExchangeAccounts />
+          </>
         )}
       </Tabs>
     </PageShell>
+  );
+}
+
+function ExchangeAccounts() {
+  const { t } = useTranslation();
+  const { accountExchanges } = useDeskContext();
+  return accountExchanges.length === 0 ? (
+    <EmptyState
+      title={t("positions.noKey")}
+      actions={
+        <Link to={KEYS_PATH} className="ae-link">
+          {t("settings.tabs.keys")}
+        </Link>
+      }
+    />
+  ) : (
+    <Panel tone="live" title={t("positions.realZone")}>
+      {accountExchanges.map((id) => (
+        <AccountPanel key={id} exchangeId={id} />
+      ))}
+    </Panel>
   );
 }
