@@ -53,48 +53,34 @@ pub fn alert_client_id(event_id: &str) -> String {
     entry_client_id(&alert_signal_id(event_id))
 }
 
-/// Hex SHA-256 of `salt:passphrase`: what the TradingView bot keeps of its
-/// passphrase.
-pub fn passphrase_digest(salt: &str, passphrase: &str) -> String {
-    let digest = Sha256::digest(format!("{salt}:{passphrase}").as_bytes());
-    digest.iter().map(|b| format!("{b:02x}")).collect()
-}
-
-/// Whether an alert's `passphrase` opens the bot: always without a set
-/// passphrase; with one, only the same text (compared in constant time).
-pub fn passphrase_ok(tv: &super::super::model::TvSettings, given: Option<&str>) -> bool {
-    let (Some(want), Some(salt)) = (tv.passphrase_sha256.as_deref(), tv.passphrase_salt.as_deref()) else {
-        return true;
-    };
-    let Some(given) = given else {
-        return false;
-    };
-    let got = passphrase_digest(salt, given.trim());
-    got.len() == want.len() && got.bytes().zip(want.bytes()).fold(0u8, |acc, (a, b)| acc | (a ^ b)) == 0
-}
-
-/// A saved TradingView bot as the store keeps it (pure, `fresh_salt` for a
-/// new passphrase): margin per position = budget / positions, fixed sizing
-/// (an alert names its size), and the passphrase as its salted hash only:
-/// the form's text sets it, an empty text clears it, none keeps the
-/// previous one. Any other kind carries no TradingView settings.
-pub fn normalize_config(prev: Option<&BotConfig>, mut next: BotConfig, fresh_salt: &str) -> Result<BotConfig, String> {
+/// A saved TradingView bot as the store keeps it (`hash_passphrase` is
+/// `tv_passphrase::hash` in production): margin per position = budget /
+/// positions, fixed sizing (an alert names its size), and the passphrase as
+/// its Argon2id hash only: the form's text sets it, an empty text clears it,
+/// none keeps the previous one (in whichever format it was saved). Any other
+/// kind carries no TradingView settings.
+pub fn normalize_config(
+    prev: Option<&BotConfig>,
+    mut next: BotConfig,
+    hash_passphrase: &dyn Fn(&str) -> Result<String, String>,
+) -> Result<BotConfig, String> {
     if next.kind != BotKind::Tradingview {
         next.tv = None;
         return Ok(next);
     }
     let mut tv = next.tv.take().ok_or_else(|| "tvSettingsMissing".to_string())?;
     match tv.passphrase.take() {
-        Some(p) if p.trim().is_empty() => (tv.passphrase_sha256, tv.passphrase_salt) = (None, None),
+        Some(p) if p.trim().is_empty() => (tv.passphrase_hash, tv.passphrase_sha256, tv.passphrase_salt) = (None, None, None),
         Some(p) => {
             if p.chars().count() > 64 {
                 return Err("tvPassphraseTooLong|64".to_string());
             }
-            tv.passphrase_salt = Some(fresh_salt.to_string());
-            tv.passphrase_sha256 = Some(passphrase_digest(fresh_salt, p.trim()));
+            tv.passphrase_hash = Some(hash_passphrase(p.trim())?);
+            (tv.passphrase_sha256, tv.passphrase_salt) = (None, None);
         }
         None => {
             let old = prev.and_then(|p| p.tv.as_ref());
+            tv.passphrase_hash = old.and_then(|o| o.passphrase_hash.clone());
             tv.passphrase_sha256 = old.and_then(|o| o.passphrase_sha256.clone());
             tv.passphrase_salt = old.and_then(|o| o.passphrase_salt.clone());
         }
@@ -392,53 +378,88 @@ mod tests {
         c
     }
 
+    /// A random test passphrase, made at run time (no literal secrets).
+    fn random_text() -> String {
+        format!("{:032x}", rand::random::<u128>())
+    }
+
     #[test]
-    fn a_saved_tradingview_bot_keeps_only_a_salted_hash_of_its_passphrase() {
+    fn a_saved_tradingview_bot_keeps_only_a_hash_of_its_passphrase() {
+        use super::super::tv_passphrase::{check, hash, legacy_digest, Verdict};
+        let pass = random_text();
         let mut form = BotConfig::new_default(BotKind::Tradingview, "binance");
         form.max_positions = 4;
         form.symbols = vec![" btcusdt ".into(), "".into()];
         {
             let tv = form.tv.as_mut().unwrap();
             tv.budget_usdt = 100.0;
-            tv.passphrase = Some("  s3cret ".into());
+            tv.passphrase = Some(format!("  {pass} "));
         }
-        let saved = normalize_config(None, form.clone(), "salt1").unwrap();
+        let saved = normalize_config(None, form.clone(), &hash).unwrap();
         let tv = saved.tv.as_ref().unwrap();
         assert_eq!(saved.capital, 25.0, "margin per position = budget / positions");
         assert_eq!(saved.sizing, crate::bot::model::SizingMode::Fixed);
         assert_eq!(saved.symbols, vec!["BTCUSDT".to_string()]);
         assert_eq!(tv.passphrase, None, "the text itself is never kept");
-        assert_eq!(tv.passphrase_sha256.as_deref(), Some(passphrase_digest("salt1", "s3cret").as_str()));
+        assert!(tv.passphrase_hash.as_deref().is_some_and(|h| h.starts_with("argon2id$")));
+        assert!(tv.passphrase_sha256.is_none() && tv.passphrase_salt.is_none());
         let json = serde_json::to_string(&saved).unwrap();
-        assert!(!json.contains("s3cret") && !json.contains("\"passphrase\""), "{json}");
+        assert!(!json.contains(&pass) && !json.contains("\"passphrase\""), "{json}");
         // The alert side.
-        assert!(passphrase_ok(tv, Some("s3cret")));
-        assert!(passphrase_ok(tv, Some(" s3cret")));
-        assert!(!passphrase_ok(tv, Some("s3cret!")));
-        assert!(!passphrase_ok(tv, None), "a set passphrase must be sent");
+        assert_eq!(check(tv, Some(&pass)), Verdict::Match);
+        assert_eq!(check(tv, Some(&format!(" {pass}"))), Verdict::Match);
+        assert_eq!(check(tv, Some(&format!("{pass}!"))), Verdict::Refused);
+        assert_eq!(check(tv, None), Verdict::Refused, "a set passphrase must be sent");
         // A save without a new passphrase keeps it; an empty one clears it.
         let mut again = saved.clone();
         again.tv.as_mut().unwrap().passphrase = None;
-        let kept = normalize_config(Some(&saved), again.clone(), "salt2").unwrap();
-        assert_eq!(kept.tv.as_ref().unwrap().passphrase_sha256, tv.passphrase_sha256);
+        let kept = normalize_config(Some(&saved), again.clone(), &hash).unwrap();
+        assert_eq!(kept.tv.as_ref().unwrap().passphrase_hash, tv.passphrase_hash);
         again.tv.as_mut().unwrap().passphrase = Some(String::new());
-        let cleared = normalize_config(Some(&saved), again, "salt2").unwrap();
-        assert!(cleared.tv.as_ref().unwrap().passphrase_sha256.is_none());
-        assert!(passphrase_ok(cleared.tv.as_ref().unwrap(), None), "no passphrase: any alert");
+        let cleared = normalize_config(Some(&saved), again, &hash).unwrap();
+        assert!(cleared.tv.as_ref().unwrap().passphrase_hash.is_none());
+        assert_eq!(check(cleared.tv.as_ref().unwrap(), None), Verdict::NoPassphrase, "no passphrase: any alert");
+        // A 0.3.19 bot: a save without a new passphrase keeps the old hash
+        // (only an alert can rehash it, a save has no text); a new
+        // passphrase replaces it with Argon2id.
+        let mut old = saved.clone();
+        {
+            let salt = random_text();
+            let o = old.tv.as_mut().unwrap();
+            o.passphrase_hash = None;
+            o.passphrase_sha256 = Some(legacy_digest(&salt, &pass));
+            o.passphrase_salt = Some(salt);
+        }
+        let mut form2 = old.clone();
+        form2.tv.as_mut().unwrap().passphrase = None;
+        let kept = normalize_config(Some(&old), form2.clone(), &hash).unwrap();
+        assert_eq!(check(kept.tv.as_ref().unwrap(), Some(&pass)), Verdict::LegacyMatch);
+        let other = random_text();
+        form2.tv.as_mut().unwrap().passphrase = Some(other.clone());
+        let renewed = normalize_config(Some(&old), form2, &hash).unwrap();
+        let r = renewed.tv.as_ref().unwrap();
+        assert!(r.passphrase_sha256.is_none() && r.passphrase_salt.is_none());
+        assert_eq!(check(r, Some(&other)), Verdict::Match);
+        assert_eq!(check(r, Some(&pass)), Verdict::Refused);
+        // A hash that fails refuses the save.
+        let mut form3 = form.clone();
+        form3.tv.as_mut().unwrap().passphrase = Some(random_text());
+        let failing = |_: &str| -> Result<String, String> { Err("tvPassphraseHashFailed".into()) };
+        assert_eq!(normalize_config(None, form3, &failing).unwrap_err(), "tvPassphraseHashFailed");
         // Out-of-range limits are refused, not clamped.
         let mut bad = form.clone();
         bad.tv.as_mut().unwrap().stale_s = 4;
-        assert_eq!(normalize_config(None, bad, "s").unwrap_err(), "tvStaleRange|5–120");
+        assert_eq!(normalize_config(None, bad, &hash).unwrap_err(), "tvStaleRange|5–120");
         let mut bad = form.clone();
         bad.tv.as_mut().unwrap().price_guard_pct = 0.0;
-        assert!(normalize_config(None, bad, "s").unwrap_err().starts_with("tvPriceGuardRange|"));
+        assert!(normalize_config(None, bad, &hash).unwrap_err().starts_with("tvPriceGuardRange|"));
         let mut bad = form;
         bad.tv.as_mut().unwrap().max_size_usdt = 4.0;
-        assert!(normalize_config(None, bad, "s").unwrap_err().starts_with("tvMaxSizeInvalid|"));
+        assert!(normalize_config(None, bad, &hash).unwrap_err().starts_with("tvMaxSizeInvalid|"));
         // Any other bot carries no TradingView settings.
         let mut fut = BotConfig::new_default(BotKind::Futures, "binance");
         fut.tv = Some(Default::default());
-        assert!(normalize_config(None, fut, "s").unwrap().tv.is_none());
+        assert!(normalize_config(None, fut, &hash).unwrap().tv.is_none());
     }
 
     #[test]

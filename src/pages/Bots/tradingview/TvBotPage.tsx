@@ -8,7 +8,7 @@ import { PageShell } from "@/components/ui/PageShell/PageShell";
 import { FactList, Panel } from "@/components/ui/Panel/Panel";
 import { localeForLanguage } from "@/i18n";
 import { formatNumber, formatUsdt, NO_VALUE } from "@/lib/format";
-import { botDefaultConfig, botMode, TV_LIMITS, type BotConfig, type TradeMode } from "@/lib/ipc/bot/bot";
+import { botDefaultConfig, botMode, TV_LIMITS, tvPassphraseSet, type BotConfig, type TradeMode } from "@/lib/ipc/bot/bot";
 import { errorMessage } from "@/lib/ipc/bridge";
 import { liveWordKey, ordersOnTestnet, signalStartAction } from "@/lib/liveMode";
 import { PositionsTable } from "@/pages/Positions/PositionsTable";
@@ -114,7 +114,7 @@ export function TvBotPage() {
             ...(botMode(cfg) === "live" && cfg?.live
               ? [{ label: t(k("pilot")), value: formatNumber(s.tradingviewPilotLeft ?? 0, locale) }]
               : []),
-            { label: t(k("passphrase")), value: cfg?.tv?.passphraseSha256 ? t(k("passphraseSet")) : t(k("passphraseNone")) },
+            { label: t(k("passphrase")), value: tvPassphraseSet(cfg?.tv) ? t(k("passphraseSet")) : t(k("passphraseNone")) },
           ]}
         />
         <p className="ae-newbot__links">
@@ -247,9 +247,9 @@ export function TvBotPage() {
             value={form.passphraseAction}
             onChange={(v) => set({ passphraseAction: v })}
             options={[
-              { value: "keep", label: t(cfg?.tv?.passphraseSha256 ? k("passKeep") : k("passNone")) },
+              { value: "keep", label: t(tvPassphraseSet(cfg?.tv) ? k("passKeep") : k("passNone")) },
               { value: "set", label: t(k("passSet")) },
-              { value: "clear", label: t(k("passClear")), disabled: !cfg?.tv?.passphraseSha256 },
+              { value: "clear", label: t(k("passClear")), disabled: !tvPassphraseSet(cfg?.tv) },
             ]}
             hint={t(k("passphraseHint"))}
           />

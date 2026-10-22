@@ -12,6 +12,7 @@ use super::guard::{self, SeenAlert, Usage};
 use super::message::{self, close_target, decide, needs_price, resolve_levels, Alert, Clock, Decision, Level, Partial, Plan};
 use super::sse::{self, End, Item, Mode};
 use super::{load_stored, save_stored, AlertResult, PendingEntry, TvManager};
+use crate::bot::engine::tv_passphrase;
 use crate::bot::engine::tv_trade::{self, other_holder, own_position};
 use crate::bot::engine::user_trade::{self, TradeRequest};
 use crate::bot::model::{BotConfig, BotKind, OpenPosition, TradeMode};
@@ -403,9 +404,22 @@ async fn run(app: &AppHandle, ev: &Event, alert: Alert, r: &mut AlertResult) {
     if let Some(cfg) = &cfg {
         let tv = cfg.tv.clone().unwrap_or_default();
         attribute(r, Some(cfg));
-        if !tv_trade::passphrase_ok(&tv, alert.passphrase.as_ref().map(|s| s.0.as_str())) {
-            r.outcome = guard::PASSPHRASE.to_string();
-            return;
+        let given = alert.passphrase.as_ref().map(|s| s.0.as_str());
+        match tv_passphrase::check(&tv, given) {
+            tv_passphrase::Verdict::Refused => {
+                r.outcome = guard::PASSPHRASE.to_string();
+                return;
+            }
+            // Saved by 0.3.19 (salted SHA-256): the alert passes, and the
+            // passphrase it just proved is stored as Argon2id from now on.
+            tv_passphrase::Verdict::LegacyMatch => {
+                if let (Some(matched), Some(g)) = (tv.passphrase_sha256.as_deref(), given) {
+                    if let Ok(h) = tv_passphrase::hash(g.trim()) {
+                        bots.upgrade_tv_passphrase(app, matched, h);
+                    }
+                }
+            }
+            tv_passphrase::Verdict::Match | tv_passphrase::Verdict::NoPassphrase => {}
         }
     }
     // The duplicate guard: same body, or same `id`, within 5 minutes.

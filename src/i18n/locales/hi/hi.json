@@ -3028,6 +3028,7 @@
     "tvPriceGuardRange": "प्राइस गार्ड: {{detail}} %, 0 से ऊपर",
     "tvSettingsMissing": "TradingView बॉट की सेटिंग्स नहीं हैं",
     "tvPassphraseTooLong": "पासफ़्रेज़ बहुत लंबा (अधिकतम {{detail}} अक्षर)",
+    "tvPassphraseHashFailed": "पासफ़्रेज़ सहेजा नहीं जा सका। फिर से कोशिश करें।",
     "tvOfflineAfterRange": "ऑफ़लाइन देरी: {{detail}} s",
     "tvStreamRead": "TradingView इवेंट स्ट्रीम टूटी; पोल से पढ़ा जा रहा है",
     "tvStreamOversized": "TradingView इवेंट स्ट्रीम ने बहुत बड़ा फ़्रेम भेजा",

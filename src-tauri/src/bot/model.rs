@@ -165,8 +165,12 @@ pub struct TvSettings {
     pub price_guard_pct: f64,
     /// Refuse an entry without `price` (the price guard cannot run).
     pub require_price: bool,
-    /// Salted SHA-256 of the optional passphrase (hex); the passphrase itself
-    /// is never stored.
+    /// Argon2id hash of the optional passphrase, with its salt and cost
+    /// (bot/engine/tv_passphrase.rs); the passphrase itself is never stored.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub passphrase_hash: Option<String>,
+    /// 0.3.19's format, read only: salted SHA-256 (hex) and its salt. The
+    /// first alert that matches it replaces it with `passphrase_hash`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub passphrase_sha256: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -194,6 +198,7 @@ impl Default for TvSettings {
             stale_s: TV_STALE_DEFAULT_S,
             price_guard_pct: TV_PRICE_GUARD_DEFAULT_PCT,
             require_price: true,
+            passphrase_hash: None,
             passphrase_sha256: None,
             passphrase_salt: None,
             passphrase: None,

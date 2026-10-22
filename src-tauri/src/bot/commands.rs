@@ -60,9 +60,12 @@ pub(crate) enum KeepLive {
 /// import (app/settings_transfer.rs).
 pub(crate) fn apply_config(app: &AppHandle, bots: &BotManager, config: BotConfig, keep: KeepLive) -> Result<(), String> {
     // The TradingView bot: margin per position from its budget, and its
-    // passphrase kept as a salted hash only.
-    let salt = format!("{:032x}", rand::random::<u128>());
-    let config = super::engine::tv_trade::normalize_config(bots.config_for(config.kind).as_ref(), config, &salt)?;
+    // passphrase kept as an Argon2id hash only.
+    let config = super::engine::tv_trade::normalize_config(
+        bots.config_for(config.kind).as_ref(),
+        config,
+        &super::engine::tv_passphrase::hash,
+    )?;
     config.validate()?;
     if config.max_positions > MAX_BOT_POSITIONS {
         return Err(format!("botMaxPositionsRange|1–{MAX_BOT_POSITIONS}"));
@@ -94,9 +97,8 @@ pub(crate) fn apply_config(app: &AppHandle, bots: &BotManager, config: BotConfig
         bots.set_pilot(config.kind, 0);
     }
     let changed = prev.as_ref().is_some_and(|p| settings_changed(p, &config));
-    bots.save_config(app, &config);
     let kind = config.kind;
-    bots.configure(config);
+    bots.store_config(app, config);
     // The typed LIVE confirmed the sizing it showed: with new terms a Live
     // bot stops until LIVE is typed again for them (it never runs on paper).
     if disarmed {
@@ -255,8 +257,7 @@ pub fn bot_set_live(
         bots.set_pilot(kind, 0);
         cfg.live = false;
         cfg.mode = off_mode(holds_real);
-        bots.save_config(&app, &cfg);
-        bots.configure(cfg);
+        bots.store_config(&app, cfg);
         return Ok(bots.status());
     }
     let sandbox = crate::exchange::venue::ccxt::sandbox_from_env();
@@ -290,8 +291,7 @@ pub fn bot_set_live(
     bots.set_pilot(kind, super::pilot_at_arm(bots.saved_pilot(&app, kind), fresh));
     bots.save_pilot_left(&app, kind);
     bots.set_armed_terms(kind, terms);
-    bots.save_config(&app, &cfg);
-    bots.configure(cfg);
+    bots.store_config(&app, cfg);
     Ok(bots.status())
 }
 
@@ -334,8 +334,7 @@ pub async fn bot_close_live_and_paper(app: AppHandle, kind: BotKind) -> Result<B
     let verdict = close_and_paper_verdict(left);
     cfg.live = false;
     cfg.mode = verdict.clone().unwrap_or(TradeMode::Live);
-    bots.save_config(&app, &cfg);
-    bots.configure(cfg);
+    bots.store_config(&app, cfg);
     verdict.map(|_| bots.status())
 }
 

@@ -646,6 +646,34 @@ impl BotManager {
 
     /// Persists a bot's config so a restart keeps its settings — restored
     /// positions need their bot's max-loss before the user starts anything.
+    /// Saves `cfg` and makes it the one in force, under the configs lock, so
+    /// the file and memory never hold different configs
+    /// (`upgrade_tv_passphrase` writes under the same lock).
+    pub fn store_config(&self, app: &AppHandle, cfg: BotConfig) {
+        let mut g = self.configs.lock().expect("bot mutex");
+        self.save_config(app, &cfg);
+        g.insert(cfg.kind, cfg);
+    }
+
+    /// A 0.3.19 TradingView passphrase (salted SHA-256) that an alert just
+    /// matched becomes `new_hash` (Argon2id), saved, unless a settings save
+    /// replaced it in the meantime (`tv_passphrase::upgrade_legacy`).
+    pub fn upgrade_tv_passphrase(&self, app: &AppHandle, matched_sha256: &str, new_hash: String) -> bool {
+        let mut g = self.configs.lock().expect("bot mutex");
+        let Some(cfg) = g.get_mut(&BotKind::Tradingview) else {
+            return false;
+        };
+        let Some(tv) = cfg.tv.as_mut() else {
+            return false;
+        };
+        if !engine::tv_passphrase::upgrade_legacy(tv, matched_sha256, new_hash) {
+            return false;
+        }
+        let snapshot = cfg.clone();
+        self.save_config(app, &snapshot);
+        true
+    }
+
     pub fn save_config(&self, app: &AppHandle, cfg: &BotConfig) {
         let saved = app.path().app_data_dir().map_err(|e| e.to_string()).and_then(|dir| {
             let body = serde_json::to_string(cfg).map_err(|e| e.to_string())?;

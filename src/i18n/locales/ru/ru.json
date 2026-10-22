@@ -3028,6 +3028,7 @@
     "tvPriceGuardRange": "Ценовая защита: {{detail}} %, больше 0",
     "tvSettingsMissing": "Нет настроек бота TradingView",
     "tvPassphraseTooLong": "Кодовая фраза слишком длинная (не более {{detail}} символов)",
+    "tvPassphraseHashFailed": "Не удалось сохранить кодовую фразу. Попробуйте ещё раз.",
     "tvOfflineAfterRange": "Задержка офлайн: {{detail}} с",
     "tvStreamRead": "Поток событий TradingView оборвался; чтение опросом",
     "tvStreamOversized": "Поток событий TradingView прислал слишком большой кадр",

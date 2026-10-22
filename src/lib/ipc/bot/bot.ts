@@ -51,11 +51,18 @@ export interface TvSettings {
   priceGuardPct: number;
   /** Refuse an entry without `price`. */
   requirePrice: boolean;
-  /** Present when a passphrase is set (its salted hash; the text is never sent back). */
+  /** Present when a passphrase is set: its Argon2id hash (the text is never sent back). */
+  passphraseHash?: string;
+  /** A passphrase saved by 0.3.19 (salted SHA-256), until its first matching alert rehashes it. */
   passphraseSha256?: string;
   passphraseSalt?: string;
   /** Form only: a new passphrase, "" to clear, absent to keep. */
   passphrase?: string;
+}
+
+/** Whether the TradingView bot has a passphrase, in either stored format. */
+export function tvPassphraseSet(tv: TvSettings | undefined): boolean {
+  return Boolean(tv?.passphraseHash || tv?.passphraseSha256);
 }
 
 /** Limits of TvSettings, as Rust checks them. */

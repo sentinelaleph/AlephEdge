@@ -3028,6 +3028,7 @@
     "tvPriceGuardRange": "Penjaga harga: {{detail}} %, di atas 0",
     "tvSettingsMissing": "Pengaturan bot TradingView tidak ada",
     "tvPassphraseTooLong": "Frasa sandi terlalu panjang (maks {{detail}} karakter)",
+    "tvPassphraseHashFailed": "Frasa sandi tidak dapat disimpan. Coba lagi.",
     "tvOfflineAfterRange": "Jeda offline: {{detail}} dtk",
     "tvStreamRead": "Stream event TradingView terputus; membaca lewat polling",
     "tvStreamOversized": "Stream event TradingView mengirim frame terlalu besar",

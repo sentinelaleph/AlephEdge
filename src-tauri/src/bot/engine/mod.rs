@@ -36,6 +36,7 @@ pub mod reconcile;
 pub mod record;
 pub mod sizing;
 pub mod take_profit;
+pub mod tv_passphrase;
 pub mod tv_trade;
 pub mod user_trade;
 

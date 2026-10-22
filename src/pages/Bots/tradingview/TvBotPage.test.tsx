@@ -3,7 +3,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "@/i18n";
-import type { BotConfig, BotDeskStatus } from "@/lib/ipc/bot/bot";
+import { tvPassphraseSet, type BotConfig, type BotDeskStatus } from "@/lib/ipc/bot/bot";
 import { budgetFloor, configFromForm, formError, formFromConfig, parseAllowList } from "./tvBotModel";
 import { TvBotPage } from "./TvBotPage";
 
@@ -180,12 +180,20 @@ describe("tvBotModel", () => {
   });
 
   it("keeps, sets or clears the passphrase and never sends the stored hash back as text", () => {
-    const stored: BotConfig = { ...base, tv: { ...formToTv(), passphraseSha256: "ab", passphraseSalt: "cd" } };
+    const stored: BotConfig = { ...base, tv: { ...formToTv(), passphraseHash: "argon2id$x", passphraseSha256: "ab", passphraseSalt: "cd" } };
     const f = formFromConfig(stored, "binance");
     expect(configFromForm(f, stored).tv?.passphrase).toBeUndefined();
     expect(configFromForm({ ...f, passphraseAction: "clear" }, stored).tv?.passphrase).toBe("");
     expect(configFromForm({ ...f, passphraseAction: "set", passphrase: " x " }, stored).tv?.passphrase).toBe("x");
     expect(configFromForm(f, stored).tv).not.toHaveProperty("passphraseSha256");
+    expect(configFromForm(f, stored).tv).not.toHaveProperty("passphraseHash");
+  });
+
+  it("shows a passphrase as set in either stored format (0.3.20 Argon2id, 0.3.19 SHA-256)", () => {
+    expect(tvPassphraseSet(undefined)).toBe(false);
+    expect(tvPassphraseSet(formToTv())).toBe(false);
+    expect(tvPassphraseSet({ ...formToTv(), passphraseHash: "argon2id$x" })).toBe(true);
+    expect(tvPassphraseSet({ ...formToTv(), passphraseSha256: "ab", passphraseSalt: "cd" })).toBe(true);
   });
 });
 

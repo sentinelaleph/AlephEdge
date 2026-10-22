@@ -3028,6 +3028,7 @@
     "tvPriceGuardRange": "Price guard: {{detail}} %, above 0",
     "tvSettingsMissing": "The TradingView bot's settings are missing",
     "tvPassphraseTooLong": "Passphrase too long (at most {{detail}} characters)",
+    "tvPassphraseHashFailed": "Could not store the passphrase. Try again.",
     "tvOfflineAfterRange": "Offline delay: {{detail}} s",
     "tvStreamRead": "The TradingView event stream broke off; reading by poll",
     "tvStreamOversized": "The TradingView event stream sent an oversized frame",

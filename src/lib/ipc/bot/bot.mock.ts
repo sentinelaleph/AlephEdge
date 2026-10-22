@@ -73,12 +73,12 @@ export const mock = (() => {
       let saved: BotConfig = { ...config, live: prev?.live ?? false, mode: prev?.mode ?? "paper" };
       if (config.kind === "tradingview" && config.tv) {
         const { passphrase, ...tv } = config.tv;
-        const keep = passphrase === undefined ? prev?.tv?.passphraseSha256 : passphrase.trim() ? "set" : undefined;
+        const keep = passphrase === undefined ? prev?.tv?.passphraseHash : passphrase.trim() ? "set" : undefined;
         saved = {
           ...saved,
           sizing: "fixed",
           capital: Math.floor((tv.budgetUsdt / Math.max(1, config.maxPositions)) * 100) / 100,
-          tv: { ...tv, passphraseSha256: keep },
+          tv: { ...tv, passphraseHash: keep },
         };
       }
       state[configKey[config.kind]] = saved;

@@ -1,6 +1,6 @@
 [package]
 name = "aleph-edge"
-version = "0.3.19"
+version = "0.3.20"
 description = "Aleph Edge — Sentinel Aleph automated trading bot"
 authors = ["Sentinel Aleph"]
 edition = "2021"
@@ -53,6 +53,10 @@ keyring = { version = "3", features = ["windows-native", "apple-native"] }
 # a newly-added key's real withdraw permission).
 hmac = "0.13"
 sha2 = "0.11"
+# Constant-time compare of the TradingView passphrase hash. Already in the
+# tree (through ed25519-dalek, digest and others), same version, so no new
+# crate.
+subtle = "2.6"
 # Ed25519 for Binance "Self-generated" API keys: the app makes the keypair and
 # signs with the private half. Already in the tree through ccxt-base (same
 # version, same default features), so no new crate.

@@ -3028,6 +3028,7 @@
     "tvPriceGuardRange": "Protección de precio: {{detail}} %, mayor que 0",
     "tvSettingsMissing": "Faltan los ajustes del bot de TradingView",
     "tvPassphraseTooLong": "Frase de acceso demasiado larga (máximo {{detail}} caracteres)",
+    "tvPassphraseHashFailed": "No se pudo guardar la frase de acceso. Inténtalo de nuevo.",
     "tvOfflineAfterRange": "Retraso sin conexión: {{detail}} s",
     "tvStreamRead": "El flujo de eventos de TradingView se cortó; se lee por consulta",
     "tvStreamOversized": "El flujo de eventos de TradingView envió un bloque demasiado grande",

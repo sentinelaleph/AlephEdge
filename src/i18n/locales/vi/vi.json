@@ -3028,6 +3028,7 @@
     "tvPriceGuardRange": "Bảo vệ giá: {{detail}} %, trên 0",
     "tvSettingsMissing": "Thiếu cài đặt của bot TradingView",
     "tvPassphraseTooLong": "Cụm mật khẩu quá dài (tối đa {{detail}} ký tự)",
+    "tvPassphraseHashFailed": "Không lưu được cụm mật khẩu. Hãy thử lại.",
     "tvOfflineAfterRange": "Độ trễ ngoại tuyến: {{detail}} giây",
     "tvStreamRead": "Luồng sự kiện TradingView bị ngắt; đang đọc bằng hỏi định kỳ",
     "tvStreamOversized": "Luồng sự kiện TradingView gửi khung quá lớn",

@@ -1,6 +1,8 @@
 //! Update-persistence proof, vault part. The OS keychain is never touched:
 //! the salt lives in an in-memory keychain and is carried in the fixture.
-//! All values are test-only (no real key, no real password).
+//! All values are test-only (no real key, no real password): the generator
+//! makes a random password per fixture and writes it into the fixture's
+//! `vault_test.json`, where the reader takes it from.
 //!
 //! Generator (on an OLDER release tree, with the store fixture's dir):
 //!   AE_UPDATE_FIXTURE_OUT=<dir> cargo test --lib generate_update_vault -- --ignored
@@ -17,7 +19,11 @@ use crate::app::keychain::memory::MemoryKeychain;
 use crate::app::keychain::SecretStore;
 
 const SERVICE: &str = "com.sentinelaleph.edge.updtest";
-const PASSWORD: &str = "update-fixture-test-password";
+
+/// A random password for one generated fixture.
+fn fixture_password() -> String {
+    format!("test-only-{:032x}", rand::random::<u128>())
+}
 
 fn fake_cred(label: &str) -> ExchangeCredential {
     ExchangeCredential {
@@ -45,12 +51,13 @@ fn generate_update_vault() {
     assert!(!path.exists());
     let ks = MemoryKeychain::default();
     let m = VaultManager::new();
-    m.create_in(&ks, SERVICE, &path, PASSWORD).expect("create");
+    let password = fixture_password();
+    m.create_in(&ks, SERVICE, &path, &password).expect("create");
     m.add(&path, fake_cred("main")).expect("add main");
     m.add(&path, fake_cred("second")).expect("add second");
     let salt = ks.get(SERVICE, KEYCHAIN_SALT_USER).expect("salt");
     let creds: Vec<Value> = ["main", "second"].iter().map(|l| json!(fake_cred(l))).collect();
-    let body = json!({"service": SERVICE, "saltB64": salt, "password": PASSWORD, "creds": creds, "version": env!("CARGO_PKG_VERSION")});
+    let body = json!({"service": SERVICE, "saltB64": salt, "password": password, "creds": creds, "version": env!("CARGO_PKG_VERSION")});
     std::fs::write(out.join("vault_test.json"), serde_json::to_string_pretty(&body).unwrap()).unwrap();
 }
 
@@ -84,10 +91,11 @@ fn a_vault_sealed_by_an_older_release_opens() {
         let (m, ks) = open_with_this_build(&tmp, &vj).unwrap_or_else(|e| panic!("{}: {e}", fx.display()));
         let creds = m.credentials_for_test();
         assert_eq!(json!(creds), vj["creds"], "{}: credentials changed", fx.display());
-        // A wrong password is still refused.
+        // A wrong password (the fixture's, changed) is still refused.
+        let wrong = format!("{}-not", vj["password"].as_str().unwrap());
         let m2 = VaultManager::new();
         assert_eq!(
-            m2.unlock_in(&ks, SERVICE, &tmp.join("vault.edge"), "wrong").unwrap_err(),
+            m2.unlock_in(&ks, SERVICE, &tmp.join("vault.edge"), &wrong).unwrap_err(),
             "vaultWrongPassword"
         );
         // This build re-seals it (a label change); an older build must open

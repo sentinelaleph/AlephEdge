@@ -3028,6 +3028,7 @@
     "tvPriceGuardRange": "Fiyat koruması: %{{detail}}, 0'ın üzerinde",
     "tvSettingsMissing": "TradingView botunun ayarları eksik",
     "tvPassphraseTooLong": "Parola çok uzun (en fazla {{detail}} karakter)",
+    "tvPassphraseHashFailed": "Parola kaydedilemedi. Tekrar deneyin.",
     "tvOfflineAfterRange": "Çevrimdışı gecikme: {{detail}} sn",
     "tvStreamRead": "TradingView olay akışı kesildi; sorgu ile okunuyor",
     "tvStreamOversized": "TradingView olay akışı aşırı büyük bir çerçeve gönderdi",
