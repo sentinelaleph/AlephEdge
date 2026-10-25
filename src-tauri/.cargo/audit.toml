@@ -7,4 +7,10 @@ ignore = [
   # key, and Aleph Edge refuses such keys (exchange::venue::ccxt::is_rsa_secret),
   # so every venue request is signed with HMAC.
   "RUSTSEC-2023-0071",
+  # crypto-bigint 0.5.5: timing variability in constant-time operations; the
+  # fix is 0.7.6, which elliptic-curve 0.13 (k256, via ccxt-base) cannot take.
+  # k256 signs only for the on-chain venues (Hyperliquid, dYdX, Paradex and
+  # others); this build enables ccxt for Bybit and OKX, which sign with HMAC
+  # and never reach it. Revisit before any secp256k1 venue ships.
+  "RUSTSEC-2026-0387",
 ]

@@ -25,6 +25,9 @@ In five lines:
   - [Templates with their verdict](#templates-with-their-verdict)
   - [Backtest](#backtest)
   - [In-app guide](#in-app-guide)
+  - [TradingView alerts](#tradingview-alerts)
+  - [Before you trade](#before-you-trade)
+  - [Assistant](#assistant)
   - [Positions and emergency controls](#positions-and-emergency-controls)
   - [History and stats](#history-and-stats)
   - [Risk and safety](#risk-and-safety)
@@ -116,6 +119,42 @@ Run any DCA or Grid configuration on historical candles (15 min, 1 h, 4 h or 1 d
 ![Guide](assets/screenshots/guide.webp)
 
 A handbook inside the app, in English and Turkish: start in five minutes, core concepts, a DCA ladder and a grid worked through with numbers, which bot suits which market, the template results, every setting, how to work out your risk, how to read a backtest, common mistakes, FAQ and a glossary. The bot forms and the presets page link straight to the relevant section.
+
+### TradingView alerts
+
+The TradingView bot runs your own indicator or strategy alerts. Create a webhook URL under **Settings → TradingView** and paste it into the alert in TradingView. Alerts go to Sentinel's relay on ribqa.com, which keeps them for 7 days, and the app collects them over a live stream, falling back to polling if the stream is refused. The URL is a secret: it is shown once, the server stores only its hash, and you can rotate it if it leaks. TradingView sends webhooks only on paid plans and asks for 2FA.
+
+The alert message is JSON, and the message builder in Settings writes it for you. A manual alert sends `action` (`buy`, `sell` or `close`), `symbol`, `price` and, if you want, take profit, stop loss and size; a strategy alert adds `market_position`. Each pair holds one USDT-M futures position. A reversal closes the open one first and opens the new side only after the close is confirmed.
+
+Every alert is checked before it can trade, and each refusal is logged with its reason:
+
+- Test alerts are recorded and never executed.
+- An alert that arrives while the app is offline, or that is older than the stale window (30 s by default), expires; it is not run later. With Telegram linked, the server can tell you that an alert arrived while the app was offline.
+- An optional passphrase, stored only as an Argon2id hash. A passphrase saved in 0.3.19 has to be entered again from 0.3.21.
+- The same message, or the same `id`, within 5 minutes is ignored.
+- Your limits: budget, maximum size per alert, entries per day, open positions and the symbol list.
+- The price guard refuses an alert when the live price has moved more than 0.5% (the default) from the alert's `price`.
+
+A Paper TradingView bot simulates. A Live one sends real orders on Binance USD-M futures under the same rules as every Live bot: the typed `LIVE`, the per-session arm, a verified trade-only key and the pilot caps. Spot alerts always stay on paper.
+
+### Before you trade
+
+One page with what Sentinel has measured, read from ribqa.com without signing in:
+
+- the market today: BTC regime, the BTC chart read with its hit record, volatility and funding;
+- the bot templates with their test results, the forward-tracked ghost bots and the bot farm;
+- the news Sentinel read, with its measured price impact;
+- new listings.
+
+It comes in all eight languages. The last copy is kept on disk and shown with its age when you are offline. These are measured history and simulations, not advice or a forecast, and the page suggests no template for today, because a test of picking templates by market regime failed.
+
+### Assistant
+
+An optional chat panel that answers questions about your own desk: which bots run, open positions, paper P&L, risk, recent signals and the Before you trade data, read at the moment you send the message.
+
+It runs on your own [OpenRouter](https://openrouter.ai) key. The key stays in the operating system's keychain and goes only to openrouter.ai, never to ribqa.com. OpenRouter bills each message to your account, and the app shows the tokens and cost of every answer. You pick the model from OpenRouter's list; any model that supports tool calls works.
+
+The Assistant reads; it does not act. Its tools are read-only, plus one that drafts a bot: the draft opens the New bot form filled in, and nothing exists until you check it and confirm. No tool can start or stop a bot or place or cancel an order, so no prompt can make it do either. A fixed guard is sent ahead of your editable prompt, and news and listing text reaches the model marked as untrusted. The conversation is stored on your machine (the last 200 messages) and can be deleted. A message is limited to 4,000 characters and an answer to 1,500 tokens.
 
 ### Positions and emergency controls
 
@@ -290,6 +329,10 @@ If you are reading this repository with an attacker's eye, these are the places 
 **The relay trust boundary:** the relay is supposed to carry messages, not originate them. Assume you own the relay: what can you do?
 
 **The automated-trading gate:** `live_trading_allowed()` in `src-tauri/src/bot/engine/live.rs`, `bot_set_live` in `src-tauri/src/bot/commands.rs` and `strategy_set_live` / `strategy_create_live` / `strategy_arm_live` in `src-tauri/src/bot/strategy_live.rs`. Try to reach an automated order without a Live bot, its per-session typed arm, a Futures bot on Binance and a verified trade-only key.
+
+**The TradingView path** (`src-tauri/src/tvlink/`, `src-tauri/src/bot/engine/tv_trade.rs`): an alert body comes from the internet. Try to make one alert trade twice, trade on a Paper bot, or get past the passphrase, duplicate or price guard.
+
+**The Assistant** (`src-tauri/src/assistant/`): try to make it start a bot, send an order or reveal the OpenRouter key, through the prompt or through a news title it reads.
 
 **The manual close commands:** `exchange_close_position` and `exchange_close_all` in `src-tauri/src/exchange/commands.rs` send real orders by design. Anything able to run script in the webview could invoke them while the vault is unlocked. If you find a way to reach them without the user pressing the button, tell us.
 

@@ -6,10 +6,9 @@
 //! can raise it without breaking saved bots.
 //!
 //! 0.3.19 kept hex SHA-256 of `salt:passphrase` (`passphrase_sha256` and
-//! `passphrase_salt`). Such a bot keeps working: an alert whose passphrase
-//! matches the old hash is accepted (`Verdict::LegacyMatch`), and the caller
-//! then stores the Argon2id hash in its place (`upgrade_legacy`). Saving a
-//! new passphrase in the form writes the new format directly.
+//! `passphrase_salt`). That format is no longer checked: a bot that still
+//! holds only the old fields refuses every alert (`Verdict::ResetNeeded`)
+//! until the passphrase is entered again in the form, which writes Argon2id.
 //!
 //! Every comparison is constant time. A stored hash that does not parse, or
 //! whose cost is outside the accepted range, refuses every alert (fail
@@ -20,8 +19,7 @@ use argon2::{Algorithm, Argon2, Params, Version};
 use base64::engine::general_purpose::STANDARD_NO_PAD as B64;
 use base64::Engine;
 use rand::rngs::OsRng;
-use rand::RngCore;
-use sha2::{Digest, Sha256};
+use rand::Rng;
 use subtle::ConstantTimeEq;
 
 use super::super::model::TvSettings;
@@ -65,15 +63,15 @@ pub enum Verdict {
     NoPassphrase,
     /// Matches the Argon2id hash.
     Match,
-    /// Matches a 0.3.19 SHA-256 hash: accepted, and the caller rehashes.
-    LegacyMatch,
+    /// Only a 0.3.19 SHA-256 hash is stored: refused until re-entered.
+    ResetNeeded,
     /// Missing, wrong, or the stored hash is unreadable.
     Refused,
 }
 
 impl Verdict {
     pub fn opens(&self) -> bool {
-        !matches!(self, Verdict::Refused)
+        !matches!(self, Verdict::Refused | Verdict::ResetNeeded)
     }
 }
 
@@ -114,11 +112,15 @@ fn decode(stored: &str) -> Option<(Cost, Vec<u8>, Vec<u8>)> {
     Some((cost, salt, hash))
 }
 
+/// A new salt straight from the OS random source.
+fn fresh_salt() -> [u8; SALT_LEN] {
+    OsRng.gen()
+}
+
 /// The stored form of `passphrase` (already trimmed by the caller), with a
 /// fresh random salt.
 pub fn hash(passphrase: &str) -> Result<String, String> {
-    let mut salt = [0u8; SALT_LEN];
-    OsRng.fill_bytes(&mut salt);
+    let salt = fresh_salt();
     let out = derive(passphrase, &salt, COST)?;
     Ok(encode(COST, &salt, &out))
 }
@@ -134,14 +136,9 @@ pub fn verify(stored: &str, passphrase: &str) -> bool {
     }
 }
 
-/// The 0.3.19 format: hex SHA-256 of `salt:passphrase`. Read only.
-pub fn legacy_digest(salt: &str, passphrase: &str) -> String {
-    let digest = Sha256::digest(format!("{salt}:{passphrase}").as_bytes());
-    digest.iter().map(|b| format!("{b:02x}")).collect()
-}
-
 /// Checks an alert's `passphrase` against the bot. The Argon2id hash wins
 /// when both formats are present; the text is trimmed as the form trims it.
+/// A bot with only the 0.3.19 fields refuses without comparing anything.
 pub fn check(tv: &TvSettings, given: Option<&str>) -> Verdict {
     if let Some(stored) = tv.passphrase_hash.as_deref() {
         return match given {
@@ -149,31 +146,10 @@ pub fn check(tv: &TvSettings, given: Option<&str>) -> Verdict {
             _ => Verdict::Refused,
         };
     }
-    if let (Some(want), Some(salt)) = (tv.passphrase_sha256.as_deref(), tv.passphrase_salt.as_deref()) {
-        let Some(g) = given else {
-            return Verdict::Refused;
-        };
-        let got = legacy_digest(salt, g.trim());
-        return if bool::from(got.as_bytes().ct_eq(want.as_bytes())) {
-            Verdict::LegacyMatch
-        } else {
-            Verdict::Refused
-        };
+    if tv.passphrase_sha256.is_some() {
+        return Verdict::ResetNeeded;
     }
     Verdict::NoPassphrase
-}
-
-/// Replaces a 0.3.19 hash with `new_hash`, only if `tv` still holds the
-/// legacy hash the alert matched (`matched_sha256`): a settings save made in
-/// between keeps what it saved. Returns whether `tv` changed.
-pub fn upgrade_legacy(tv: &mut TvSettings, matched_sha256: &str, new_hash: String) -> bool {
-    if tv.passphrase_hash.is_some() || tv.passphrase_sha256.as_deref() != Some(matched_sha256) {
-        return false;
-    }
-    tv.passphrase_hash = Some(new_hash);
-    tv.passphrase_sha256 = None;
-    tv.passphrase_salt = None;
-    true
 }
 
 #[cfg(test)]
@@ -182,19 +158,24 @@ mod tests {
 
     /// A random test passphrase, made at run time (no literal secrets).
     fn random_text() -> String {
-        let mut b = [0u8; 12];
-        OsRng.fill_bytes(&mut b);
+        let b: [u8; 12] = OsRng.gen();
         b.iter().map(|x| format!("{x:02x}")).collect()
     }
 
-    /// A 0.3.19 bot's settings for `passphrase`, as 0.3.19 wrote them.
-    fn legacy_tv(passphrase: &str) -> TvSettings {
-        let salt = format!("{:032x}", rand::random::<u128>());
+    /// A 0.3.19 bot's settings as 0.3.19 wrote them (random hex in both fields).
+    fn legacy_tv() -> TvSettings {
         TvSettings {
-            passphrase_sha256: Some(legacy_digest(&salt, passphrase)),
-            passphrase_salt: Some(salt),
+            passphrase_sha256: Some(format!("{:064x}", rand::random::<u128>())),
+            passphrase_salt: Some(format!("{:032x}", rand::random::<u128>())),
             ..TvSettings::default()
         }
+    }
+
+    #[test]
+    fn every_salt_is_fresh() {
+        let (a, b) = (fresh_salt(), fresh_salt());
+        assert_eq!(a.len(), SALT_LEN);
+        assert_ne!(a, b);
     }
 
     #[test]
@@ -242,50 +223,26 @@ mod tests {
         assert_eq!(check(&tv, Some(&format!("  {pass} "))), Verdict::Match, "trimmed as the form trims");
         assert_eq!(check(&tv, Some(&random_text())), Verdict::Refused);
         assert_eq!(check(&tv, None), Verdict::Refused, "a set passphrase must be sent");
-        let old = legacy_tv(&pass);
-        assert_eq!(check(&old, Some(&pass)), Verdict::LegacyMatch);
-        assert_eq!(check(&old, Some(&random_text())), Verdict::Refused);
-        assert_eq!(check(&old, None), Verdict::Refused);
-        assert!(Verdict::LegacyMatch.opens() && Verdict::NoPassphrase.opens() && !Verdict::Refused.opens());
+        let old = legacy_tv();
+        assert_eq!(check(&old, Some(&pass)), Verdict::ResetNeeded);
+        assert_eq!(check(&old, None), Verdict::ResetNeeded);
+        assert!(Verdict::Match.opens() && Verdict::NoPassphrase.opens());
+        assert!(!Verdict::Refused.opens() && !Verdict::ResetNeeded.opens());
     }
 
-    // A bot saved by 0.3.19 (salted SHA-256) keeps opening with its
-    // passphrase; the first matching alert moves it to Argon2id.
+    // A bot saved by 0.3.19 (salted SHA-256) refuses every alert until the
+    // passphrase is entered again; the old fields are read, never compared.
     #[test]
-    fn a_0319_passphrase_keeps_working_and_is_rehashed_on_the_first_match() {
+    fn a_0319_passphrase_refuses_until_it_is_entered_again() {
         let pass = random_text();
-        let old = legacy_tv(&pass);
-        // The settings as 0.3.19 stored them, read by this build.
-        let json = serde_json::to_string(&old).unwrap();
+        let json = serde_json::to_string(&legacy_tv()).unwrap();
         assert!(json.contains("\"passphraseSha256\"") && !json.contains("passphraseHash"), "{json}");
-        let mut tv: TvSettings = serde_json::from_str(&json).unwrap();
-        assert_eq!(check(&tv, Some(&pass)), Verdict::LegacyMatch);
-        let matched = tv.passphrase_sha256.clone().unwrap();
-        assert!(upgrade_legacy(&mut tv, &matched, hash(&pass).unwrap()));
-        assert!(tv.passphrase_sha256.is_none() && tv.passphrase_salt.is_none());
-        assert_eq!(check(&tv, Some(&pass)), Verdict::Match);
-        assert_eq!(check(&tv, Some(&random_text())), Verdict::Refused);
-        let saved = serde_json::to_string(&tv).unwrap();
-        assert!(saved.contains("\"passphraseHash\":\"argon2id$") && !saved.contains("passphraseSha256"), "{saved}");
-        // Already upgraded: a second upgrade is a no-op.
-        assert!(!upgrade_legacy(&mut tv, &matched, hash(&pass).unwrap()));
-    }
-
-    #[test]
-    fn an_upgrade_never_overwrites_a_passphrase_saved_in_between() {
-        let pass = random_text();
-        let alert_saw = legacy_tv(&pass);
-        let matched = alert_saw.passphrase_sha256.clone().unwrap();
-        // The user saved a different passphrase (0.3.19 format here, so only
-        // the hash differs) before the upgrade ran.
-        let mut now = legacy_tv(&random_text());
-        let before = now.clone();
-        assert!(!upgrade_legacy(&mut now, &matched, hash(&pass).unwrap()));
-        assert_eq!(now, before);
-        // Or cleared it.
-        let mut cleared = TvSettings::default();
-        assert!(!upgrade_legacy(&mut cleared, &matched, hash(&pass).unwrap()));
-        assert_eq!(cleared, TvSettings::default());
+        let tv: TvSettings = serde_json::from_str(&json).unwrap();
+        assert_eq!(check(&tv, Some(&pass)), Verdict::ResetNeeded);
+        // Re-entered: the Argon2id hash wins over the leftover fields.
+        let renewed = TvSettings { passphrase_hash: Some(hash(&pass).unwrap()), ..tv };
+        assert_eq!(check(&renewed, Some(&pass)), Verdict::Match);
+        assert_eq!(check(&renewed, Some(&random_text())), Verdict::Refused);
     }
 
     #[test]

@@ -1777,6 +1777,7 @@
         "tvDailyOpensFull": "बॉट की रोज़ की एंट्री सीमा पूरी ({{detail}})",
         "tvSymbolNotAllowed": "पेयर बॉट की अनुमति सूची में नहीं",
         "tvPassphraseWrong": "पासफ़्रेज़ ग़लत या नहीं",
+        "tvPassphraseReset": "0.3.19 का पासफ़्रेज़: TradingView बॉट सेटिंग में इसे फिर से डालें",
         "tvBotRequired": "कोई TradingView बॉट नहीं · बॉट्स में एक बनाएँ",
         "tvBotStopped": "TradingView बॉट रुका हुआ है",
         "tvSpotPaperOnly": "स्पॉट अलर्ट पेपर पर रहते हैं: TradingView बॉट लाइव रहते अस्वीकार",

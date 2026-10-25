@@ -1777,6 +1777,7 @@
         "tvDailyOpensFull": "Batas entri harian bot tercapai ({{detail}})",
         "tvSymbolNotAllowed": "Pair tidak ada di daftar izin bot",
         "tvPassphraseWrong": "Frasa sandi salah atau tidak ada",
+        "tvPassphraseReset": "Frasa sandi dari 0.3.19: masukkan lagi di pengaturan bot TradingView",
         "tvBotRequired": "Tidak ada bot TradingView · buat di Bot",
         "tvBotStopped": "Bot TradingView berhenti",
         "tvSpotPaperOnly": "Alert spot tetap paper: ditolak selama bot TradingView Live",

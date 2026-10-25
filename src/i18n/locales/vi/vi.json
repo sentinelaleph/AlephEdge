@@ -1777,6 +1777,7 @@
         "tvDailyOpensFull": "Đã đạt giới hạn lệnh vào mỗi ngày của bot ({{detail}})",
         "tvSymbolNotAllowed": "Cặp không có trong danh sách cho phép của bot",
         "tvPassphraseWrong": "Sai hoặc thiếu cụm mật khẩu",
+        "tvPassphraseReset": "Cụm mật khẩu từ 0.3.19: hãy nhập lại trong cài đặt bot TradingView",
         "tvBotRequired": "Không có bot TradingView · tạo trong mục Bot",
         "tvBotStopped": "Bot TradingView đang dừng",
         "tvSpotPaperOnly": "Cảnh báo spot vẫn chạy giấy: bị từ chối khi bot TradingView đang Live",

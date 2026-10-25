@@ -1777,6 +1777,7 @@
         "tvDailyOpensFull": "Дневной лимит входов бота исчерпан ({{detail}})",
         "tvSymbolNotAllowed": "Пары нет в списке разрешённых бота",
         "tvPassphraseWrong": "Неверная или отсутствующая кодовая фраза",
+        "tvPassphraseReset": "Кодовая фраза из 0.3.19: введите её заново в настройках бота TradingView",
         "tvBotRequired": "Нет бота TradingView · создайте его в разделе Боты",
         "tvBotStopped": "Бот TradingView остановлен",
         "tvSpotPaperOnly": "Спотовые алерты остаются на бумаге: отклоняются, пока бот TradingView в Live",

@@ -169,8 +169,9 @@ pub struct TvSettings {
     /// (bot/engine/tv_passphrase.rs); the passphrase itself is never stored.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub passphrase_hash: Option<String>,
-    /// 0.3.19's format, read only: salted SHA-256 (hex) and its salt. The
-    /// first alert that matches it replaces it with `passphrase_hash`.
+    /// 0.3.19's format, kept only to be detected: salted SHA-256 (hex) and
+    /// its salt. A bot with only these refuses every alert until the
+    /// passphrase is entered again (`Verdict::ResetNeeded`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub passphrase_sha256: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

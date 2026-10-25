@@ -410,14 +410,9 @@ async fn run(app: &AppHandle, ev: &Event, alert: Alert, r: &mut AlertResult) {
                 r.outcome = guard::PASSPHRASE.to_string();
                 return;
             }
-            // Saved by 0.3.19 (salted SHA-256): the alert passes, and the
-            // passphrase it just proved is stored as Argon2id from now on.
-            tv_passphrase::Verdict::LegacyMatch => {
-                if let (Some(matched), Some(g)) = (tv.passphrase_sha256.as_deref(), given) {
-                    if let Ok(h) = tv_passphrase::hash(g.trim()) {
-                        bots.upgrade_tv_passphrase(app, matched, h);
-                    }
-                }
+            tv_passphrase::Verdict::ResetNeeded => {
+                r.outcome = guard::PASSPHRASE_RESET.to_string();
+                return;
             }
             tv_passphrase::Verdict::Match | tv_passphrase::Verdict::NoPassphrase => {}
         }

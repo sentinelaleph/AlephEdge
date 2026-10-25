@@ -21,6 +21,8 @@ pub const BUDGET_FULL: &str = "tvBudgetFull";
 pub const DAILY_OPENS_FULL: &str = "tvDailyOpensFull";
 pub const NOT_ALLOWED: &str = "tvSymbolNotAllowed";
 pub const PASSPHRASE: &str = "tvPassphraseWrong";
+/// The bot still holds a 0.3.19 passphrase hash, which is no longer checked.
+pub const PASSPHRASE_RESET: &str = "tvPassphraseReset";
 pub const NOT_LISTED: &str = "tradeSymbolNotListed";
 
 /// One alert the duplicate guard remembers (no body, only its hash).

@@ -1777,6 +1777,7 @@
         "tvDailyOpensFull": "O limite diário de entradas do bot foi atingido ({{detail}})",
         "tvSymbolNotAllowed": "Par fora da lista permitida do bot",
         "tvPassphraseWrong": "Senha da mensagem errada ou ausente",
+        "tvPassphraseReset": "Senha da mensagem da 0.3.19: digite de novo nas configurações do bot TradingView",
         "tvBotRequired": "Nenhum bot do TradingView · crie um em Bots",
         "tvBotStopped": "O bot do TradingView está parado",
         "tvSpotPaperOnly": "Alertas de spot continuam no papel: recusados enquanto o bot do TradingView é Real",

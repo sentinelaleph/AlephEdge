@@ -385,7 +385,7 @@ mod tests {
 
     #[test]
     fn a_saved_tradingview_bot_keeps_only_a_hash_of_its_passphrase() {
-        use super::super::tv_passphrase::{check, hash, legacy_digest, Verdict};
+        use super::super::tv_passphrase::{check, hash, Verdict};
         let pass = random_text();
         let mut form = BotConfig::new_default(BotKind::Tradingview, "binance");
         form.max_positions = 4;
@@ -419,21 +419,21 @@ mod tests {
         let cleared = normalize_config(Some(&saved), again, &hash).unwrap();
         assert!(cleared.tv.as_ref().unwrap().passphrase_hash.is_none());
         assert_eq!(check(cleared.tv.as_ref().unwrap(), None), Verdict::NoPassphrase, "no passphrase: any alert");
-        // A 0.3.19 bot: a save without a new passphrase keeps the old hash
-        // (only an alert can rehash it, a save has no text); a new
-        // passphrase replaces it with Argon2id.
+        // A 0.3.19 bot: a save without a new passphrase keeps the old fields
+        // (still refused, the user is told to re-enter); a new passphrase
+        // replaces them with Argon2id.
         let mut old = saved.clone();
         {
             let salt = random_text();
             let o = old.tv.as_mut().unwrap();
             o.passphrase_hash = None;
-            o.passphrase_sha256 = Some(legacy_digest(&salt, &pass));
+            o.passphrase_sha256 = Some(format!("{salt}{salt}"));
             o.passphrase_salt = Some(salt);
         }
         let mut form2 = old.clone();
         form2.tv.as_mut().unwrap().passphrase = None;
         let kept = normalize_config(Some(&old), form2.clone(), &hash).unwrap();
-        assert_eq!(check(kept.tv.as_ref().unwrap(), Some(&pass)), Verdict::LegacyMatch);
+        assert_eq!(check(kept.tv.as_ref().unwrap(), Some(&pass)), Verdict::ResetNeeded);
         let other = random_text();
         form2.tv.as_mut().unwrap().passphrase = Some(other.clone());
         let renewed = normalize_config(Some(&old), form2, &hash).unwrap();

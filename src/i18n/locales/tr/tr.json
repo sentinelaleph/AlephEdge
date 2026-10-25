@@ -1777,6 +1777,7 @@
         "tvDailyOpensFull": "Botun günlük giriş sınırına ulaşıldı ({{detail}})",
         "tvSymbolNotAllowed": "Parite botun izin listesinde değil",
         "tvPassphraseWrong": "Parola yanlış veya eksik",
+        "tvPassphraseReset": "0.3.19'dan kalan parola: TradingView bot ayarlarında yeniden girin",
         "tvBotRequired": "TradingView botu yok · Botlar altında bir tane oluşturun",
         "tvBotStopped": "TradingView botu durdurulmuş",
         "tvSpotPaperOnly": "Spot alarmları simülasyonda kalır: TradingView botu Canlıyken reddedilir",

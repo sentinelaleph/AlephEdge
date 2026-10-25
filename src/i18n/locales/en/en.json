@@ -1777,6 +1777,7 @@
         "tvDailyOpensFull": "The bot's daily entry cap is reached ({{detail}})",
         "tvSymbolNotAllowed": "Pair not on the bot's allow list",
         "tvPassphraseWrong": "Wrong or missing passphrase",
+        "tvPassphraseReset": "Passphrase from 0.3.19: enter it again in the TradingView bot settings",
         "tvBotRequired": "No TradingView bot · create one under Bots",
         "tvBotStopped": "The TradingView bot is stopped",
         "tvSpotPaperOnly": "Spot alerts stay paper: refused while the TradingView bot is Live",
