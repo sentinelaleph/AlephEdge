@@ -39,7 +39,7 @@ argon2 = "0.6"
 aes-gcm = "0.11"
 rand = "0.8"
 zeroize = "1"
-base64 = "0.22"
+base64 = "0.23"
 
 # OS-native secure storage: the vault's salt (device-binding) and the
 # Sentinel membership refresh token + the vault salt. A platform-native store
