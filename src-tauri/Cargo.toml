@@ -28,7 +28,7 @@ tauri-plugin-updater = { version = "2.14", default-features = false, features = 
 # One desk per app identifier: a second launch focuses the running window
 # instead of starting a second engine on the same edge.db. Held below 2.5,
 # which needs rustc 1.90; the release toolchain is 1.88.
-tauri-plugin-single-instance = "~2.4.1"
+tauri-plugin-single-instance = "~2.5.4"
 serde = { version = "1", features = ["derive"] }
 # float_roundtrip: strategy cycle state is persisted as JSON and must come
 # back bit-identical, or a restart would move order prices by an ulp.
