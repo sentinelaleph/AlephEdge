@@ -6,6 +6,8 @@
 
 <sub>Screens in this README come from the app's sample-data preview. Every figure in them is sample data, not a trading record.</sub>
 
+**Pine bot.** Aleph Edge runs Pine-lite scripts as a bot: script triggers become Buy, Sell or Close orders on closed bars, Paper or Live on Binance USDT-M futures. [Try a script on Pine-lite](https://ribqa.com/pine) before you load it, or read [how the Pine bot works](#pine-bot).
+
 Aleph Edge is a Rust + [Tauri 2](https://tauri.app) desktop application with a React front end. Windows is the primary target; the code builds wherever Tauri does.
 
 In five lines:
