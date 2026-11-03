@@ -1,6 +1,6 @@
 //! The engine's order surface, one method per question, routed by the
 //! credential's exchange: Binance to its own layer (`live_orders.rs`),
-//! Bybit / OKX to ccxt (`venue/ccxt.rs`). Callers hand over the
+//! every other order venue (`venue/caps.rs`) to ccxt (`venue/ccxt.rs`). Callers hand over the
 //! vaulted credential, never a bare key/secret pair, so a key can only ever
 //! reach the exchange it belongs to.
 
@@ -9,7 +9,8 @@ use super::providers::binance_fills::UserTrade;
 use super::providers::binance_parse::{OrderFill, OrderState, RecentOrder};
 use super::providers::binance_requests::Protective;
 use super::providers::binance_rules::SymbolRules;
-use super::venue::ccxt::{is_ccxt_venue, sandbox_from_env, venue_client_id, CCXT_VENUES};
+use super::venue::ccxt::{is_ccxt_venue, sandbox_from_env, venue_client_id_on, CCXT_VENUES};
+use super::venue::keycheck::KeyPerms;
 use super::ExchangeManager;
 use crate::vault::model::ExchangeCredential;
 
@@ -20,8 +21,8 @@ pub fn has_order_path(exchange_id: &str) -> bool {
 
 /// Venues whose order path ran end to end on the exchange's own test network
 /// (`testnet_tests.rs`: entry, stop, move, add, reduce, close, clean symbol).
-/// Real money can be switched ON only here. Binance has passed; Bybit and OKX
-/// have not run yet. Adding a venue is a release decision taken after its dry
+/// Real money can be switched ON only here. Binance has passed; the 7 ccxt
+/// venues have not run yet. Adding a venue is a release decision taken after its dry
 /// run passes, never a setting. Closing a position is never gated by this list.
 pub const DRY_RUN_PASSED: [&str; 1] = ["binance"];
 
@@ -68,15 +69,17 @@ pub enum BreakevenMove {
     /// closePosition stop, then the original cancelled (never a window
     /// without a stop).
     StopBeside,
-    /// Bybit / OKX: the whole-position stop is changed in place
-    /// (`move_stop`), nothing cancelled. Bybit has one stop slot per
-    /// position, so the Binance plan's cancel would delete the moved stop.
+    /// Every ccxt venue (`move_stop`): Bybit / OKX change the stop in place,
+    /// nothing cancelled (Bybit has one stop slot per position, so the
+    /// Binance plan's cancel would delete the moved stop). The others place
+    /// the new stop, read it back, then cancel the old one, all inside
+    /// `move_stop`, which returns the id the stop now carries.
     MoveInPlace,
 }
 
 /// The breakeven move for `exchange_id` in this process, or None when the
 /// breakeven exists only in the app. Behind the same gate as real money:
-/// Bybit / OKX move on the exchange only where real money may be switched
+/// ccxt venues move on the exchange only where real money may be switched
 /// on (`live_venue_allowed`: the dry-run list, or the sandbox).
 pub fn breakeven_move(exchange_id: &str) -> Option<BreakevenMove> {
     breakeven_move_in(exchange_id, sandbox_from_env())
@@ -92,12 +95,13 @@ pub fn breakeven_move_in(exchange_id: &str, sandbox: bool) -> Option<BreakevenMo
 }
 
 /// The client id an order sent with `client_id` carries ON the venue: ccxt
-/// venues rewrite it (`venue_client_id`, cut to OKX's 32 characters),
-/// Binance keeps it. Whatever later recognises our own orders in the venue's
+/// venues rewrite it to their own form (`caps::ClientIdForm`: 32 letters
+/// and digits, Gate `t-`, an integer on HTX / WOO X /
+/// Bitfinex), Binance keeps it. Whatever later recognises our own orders in the venue's
 /// history (reconcile) must compare against THIS, not the id we passed in.
 pub fn venue_order_client_id(exchange_id: &str, client_id: &str) -> String {
     if is_ccxt_venue(exchange_id) {
-        venue_client_id(client_id)
+        venue_client_id_on(exchange_id, client_id)
     } else {
         client_id.to_string()
     }
@@ -232,8 +236,8 @@ impl ExchangeManager {
             ccxt => self.venues.cancel_symbol_orders(cred, symbol).await)
     }
 
-    /// (can trade futures, can withdraw) for a ccxt venue's key.
-    pub async fn venue_key_permissions(&self, cred: &ExchangeCredential) -> Result<(bool, bool), E> {
+    /// What a ccxt venue's key may do (trade, withdraw, transfer).
+    pub async fn venue_key_permissions(&self, cred: &ExchangeCredential) -> Result<KeyPerms, E> {
         if !is_ccxt_venue(&cred.exchange_id) {
             return Err(unsupported());
         }
@@ -255,7 +259,7 @@ mod tests {
     #[test]
     fn real_money_switches_on_only_where_a_dry_run_passed() {
         assert!(live_venue_allowed_in("binance", false));
-        for venue in ["bybit", "okx"] {
+        for venue in CCXT_VENUES {
             assert!(has_order_path(venue), "{venue} keeps its order path: closing stays possible");
             assert!(!live_venue_allowed_in(venue, false), "{venue}: no dry run passed");
             assert_eq!(live_venue_check_in(venue, false), Err(format!("liveVenueNotDryRun|{venue}")));
@@ -265,12 +269,12 @@ mod tests {
 
     #[test]
     fn the_sandbox_dry_run_may_switch_any_order_venue_on() {
-        for venue in ["binance", "bybit", "okx"] {
+        for venue in std::iter::once("binance").chain(CCXT_VENUES) {
             assert!(live_venue_allowed_in(venue, true), "{venue}");
         }
-        // No order path at all stays refused, sandbox or not (Bitget has no
-        // key verifier and no dry run).
-        for venue in ["bitget", "mexc", "coindcx", ""] {
+        // No order path at all stays refused, sandbox or not (MEXC and the
+        // spot-only regional exchanges are price data only).
+        for venue in ["mexc", "coindcx", "bitso", "bitmart", "kucoinfutures", "htx", "phemex", "coinex", "krakenfutures", "bitfinex", "hyperliquid", ""] {
             assert!(!live_venue_allowed_in(venue, true), "{venue}");
             assert!(!live_venue_allowed_in(venue, false), "{venue}");
         }
@@ -287,11 +291,11 @@ mod tests {
     fn breakeven_moves_follow_the_real_money_gate() {
         for sandbox in [false, true] {
             assert_eq!(breakeven_move_in("binance", sandbox), Some(BreakevenMove::StopBeside));
-            for venue in ["bitget", "mexc", ""] {
+            for venue in ["mexc", "coindcx", ""] {
                 assert_eq!(breakeven_move_in(venue, sandbox), None, "{venue}");
             }
         }
-        for venue in ["bybit", "okx"] {
+        for venue in CCXT_VENUES {
             // No dry run passed: the breakeven stays in the app.
             assert_eq!(breakeven_move_in(venue, false), None, "{venue}");
             // The sandbox dry run moves the stop on the test network.
@@ -304,10 +308,16 @@ mod tests {
         let entry = entry_client_id("5ded7193-2335-436c-ba17-9bd2b5f8e87e");
         assert_eq!(entry.len(), 34);
         assert_eq!(venue_order_client_id("binance", &entry), entry, "Binance keeps the full id");
-        for venue in ["bybit", "okx"] {
+        for venue in ["bybit", "okx", "bitget", "bingx", "deribit"] {
             let stored = venue_order_client_id(venue, &entry);
             assert_eq!(stored, "ae5ded71932335436cba179bd2b5f8e8", "{venue}: cut to 32");
+        }
+        assert_eq!(venue_order_client_id("gate", &entry), "t-ae5ded71932335436cba179bd2b5");
+        // Hyperliquid is price data / paper only (0.3.22): no venue form.
+        assert_eq!(venue_order_client_id("hyperliquid", &entry), entry);
+        for venue in CCXT_VENUES {
             // ccxt maps the id again on a lookup: the mapping must be stable.
+            let stored = venue_order_client_id(venue, &entry);
             assert_eq!(venue_order_client_id(venue, &stored), stored, "{venue}");
         }
     }

@@ -55,6 +55,8 @@ pub enum HelpLink {
     WebAccount,
     WebBilling,
     WebApiKeys,
+    /// The site's chart page (the Pine bot's "Open on chart"; nothing is sent with it).
+    Chart,
     Source,
     Releases,
     Licence,
@@ -73,6 +75,7 @@ pub fn help_url(link: HelpLink, api_base: &str) -> String {
         HelpLink::WebAccount => format!("{}/account", api_base.trim_end_matches('/')),
         HelpLink::WebBilling => format!("{}/account/billing", api_base.trim_end_matches('/')),
         HelpLink::WebApiKeys => format!("{}/account/api-keys", api_base.trim_end_matches('/')),
+        HelpLink::Chart => format!("{}/chart", api_base.trim_end_matches('/')),
         HelpLink::Source => REPO_URL.to_string(),
         HelpLink::Releases => format!("{REPO_URL}/releases"),
         HelpLink::Licence => LICENCE_URL.to_string(),
@@ -107,6 +110,7 @@ mod tests {
         assert_eq!(help_url(HelpLink::WebAccount, "https://ribqa.com"), "https://ribqa.com/account");
         assert_eq!(help_url(HelpLink::WebBilling, "https://ribqa.com/"), "https://ribqa.com/account/billing");
         assert_eq!(help_url(HelpLink::WebApiKeys, "https://ribqa.com"), "https://ribqa.com/account/api-keys");
+        assert_eq!(help_url(HelpLink::Chart, "https://ribqa.com/"), "https://ribqa.com/chart");
     }
 
     #[test]

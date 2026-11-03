@@ -66,6 +66,9 @@ pub(crate) fn apply_config(app: &AppHandle, bots: &BotManager, config: BotConfig
         config,
         &super::engine::tv_passphrase::hash,
     )?;
+    // The Pine bot: the script's hash recomputed, margin per position from
+    // its budget, a Live bot disarmed by a script / trigger / input edit.
+    let config = super::pinebot::normalize_config(bots.config_for(config.kind).as_ref(), config)?;
     config.validate()?;
     if config.max_positions > MAX_BOT_POSITIONS {
         return Err(format!("botMaxPositionsRange|1–{MAX_BOT_POSITIONS}"));
@@ -144,7 +147,8 @@ pub fn settings_changed(prev: &BotConfig, next: &BotConfig) -> bool {
 /// What the typed LIVE confirmed: capital, leverage, position cap, the
 /// exchange the orders go to and, for the TradingView bot, its budget and
 /// max size per alert (its margin at risk and largest position,
-/// `live_terms::signal_terms`).
+/// `live_terms::signal_terms`); for the Pine bot its budget and size, and
+/// the script, triggers, inputs, bars and exits the arm confirmed.
 pub fn live_terms_changed(prev: &BotConfig, next: &BotConfig) -> bool {
     let tv_money = |c: &BotConfig| c.tv.as_ref().map(|t| (t.budget_usdt, t.max_size_usdt));
     prev.capital != next.capital
@@ -152,6 +156,7 @@ pub fn live_terms_changed(prev: &BotConfig, next: &BotConfig) -> bool {
         || prev.max_positions != next.max_positions
         || prev.exchange_id != next.exchange_id
         || tv_money(prev) != tv_money(next)
+        || super::pinebot::script_terms_changed(prev, next)
 }
 
 /// Why a settings save may not change the bot's exchange, or None. A bot
@@ -266,6 +271,10 @@ pub fn bot_set_live(
     }
     if let Some(code) = crate::app::data_health::trading_blocked(&app) {
         return Err(code);
+    }
+    // D4: a Pine bot trades real money only with its own stop.
+    if let Some(code) = cfg.pine.as_ref().filter(|_| kind == BotKind::Pine).and_then(|p| p.live_refusal()) {
+        return Err(code.to_string());
     }
     if let Some(code) = paper_book_refusal(kind, &positions) {
         return Err(code.to_string());
@@ -409,6 +418,11 @@ pub fn bot_stop(app: AppHandle, bots: State<BotManager>, kind: BotKind) -> BotDe
 /// `strategy_close` uses, so `pnl.exit.manual` / `strategy.exit.manual` label it.
 pub const MANUAL_EXIT_REASON: &str = "manual";
 
+/// The exit reason of a close the Pine bot (its script's Close trigger) or
+/// the TradingView bot (a close alert) made: `pnl.exit.trigger`. Before
+/// 0.3.22 these went through the user's close and read "Closed by you".
+pub const TRIGGER_EXIT_REASON: &str = "trigger";
+
 /// The verdict of a manual close from the book's state before and after the
 /// shared close path ran: a position that was never there is
 /// `positionNotFound`; one still in the book afterwards (no live price, a
@@ -435,6 +449,12 @@ pub async fn bot_close_position(
     signal_id: String,
     kind: BotKind,
 ) -> Result<BotDeskStatus, String> {
+    close_position_as(app, signal_id, kind, MANUAL_EXIT_REASON).await
+}
+
+/// `bot_close_position` with the exit reason the close is booked under: the
+/// bots' own Close triggers pass `TRIGGER_EXIT_REASON`.
+pub async fn close_position_as(app: AppHandle, signal_id: String, kind: BotKind, reason: &str) -> Result<BotDeskStatus, String> {
     let is_open = |app: &AppHandle| {
         app.state::<BotManager>()
             .positions_snapshot()
@@ -443,7 +463,7 @@ pub async fn bot_close_position(
     };
     let found = is_open(&app);
     if found {
-        super::engine::book::close_now(&app, &signal_id, kind, MANUAL_EXIT_REASON).await;
+        super::engine::book::close_now(&app, &signal_id, kind, reason).await;
     }
     manual_close_verdict(found, is_open(&app))?;
     Ok(app.state::<BotManager>().status())
@@ -592,9 +612,13 @@ mod tests {
         assert_eq!(on("binance", false), None);
         assert_eq!(on("bybit", false), Some("liveVenueNotDryRun|bybit".to_string()));
         assert_eq!(on("okx", false), Some("liveVenueNotDryRun|okx".to_string()));
-        // Bitget's order path was removed (no key verifier, no dry run).
-        assert_eq!(on("bitget", false), Some("liveFuturesBinanceOnly".to_string()));
-        assert_eq!(on("bitget", true), Some("liveFuturesBinanceOnly".to_string()));
+        // Every ccxt venue has an order path but no dry run yet.
+        for venue in crate::exchange::venue::ccxt::CCXT_VENUES {
+            assert_eq!(on(venue, false), Some(format!("liveVenueNotDryRun|{venue}")), "{venue}");
+        }
+        // MEXC has no order path (price data only), sandbox or not.
+        assert_eq!(on("mexc", false), Some("liveFuturesBinanceOnly".to_string()));
+        assert_eq!(on("mexc", true), Some("liveFuturesBinanceOnly".to_string()));
         // The sandbox dry run may switch them on (orders go to test networks).
         assert_eq!(on("bybit", true), None);
         assert_eq!(on("okx", true), None);
@@ -718,6 +742,20 @@ mod tests {
     #[test]
     fn manual_reason_is_the_labelled_one() {
         assert_eq!(MANUAL_EXIT_REASON, "manual");
+        assert_eq!(TRIGGER_EXIT_REASON, "trigger");
+    }
+
+    /// Owner, 2 Nov 2026: a Pine Close trigger booked "Closed by you". The
+    /// bots' own closes book the trigger reason; only the user's button
+    /// books manual.
+    #[test]
+    fn bot_trigger_closes_are_not_booked_as_the_users() {
+        let pine = include_str!("pinebot/act.rs");
+        assert!(pine.contains("close_position_as(app.clone(), pos.signal_id.clone(), BotKind::Pine, TRIGGER_EXIT_REASON)"));
+        assert!(!pine.contains("bot_close_position("));
+        let tv = include_str!("../tvlink/tasks.rs");
+        assert_eq!(tv.matches("TRIGGER_EXIT_REASON)").count(), 2);
+        assert!(!tv.contains("bot_close_position("));
     }
 
     #[test]

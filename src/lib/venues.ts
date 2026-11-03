@@ -1,11 +1,12 @@
 /**
  * Exchanges with a real-money order path (src-tauri exchange/orders.rs
- * `has_order_path`), and which of them real money may be switched on for.
+ * `has_order_path`, the rows of exchange/venue/caps.rs), and which of them
+ * real money may be switched on for.
  */
 
 import type { CredentialMeta } from "@/lib/ipc/vault/vault";
 
-export const ORDER_VENUES = ["binance", "bybit", "okx"] as const;
+export const ORDER_VENUES = ["binance", "bybit", "okx", "bitget", "gate", "bingx", "woo", "deribit"] as const;
 
 /**
  * Venues whose order path passed an end-to-end run on the exchange's own
@@ -31,7 +32,7 @@ export function venueNotDryRun(liveVenues: readonly string[] | undefined, venue:
 
 /**
  * The i18n key saying where a LIVE switch sends orders: Binance production or
- * its testnet, a Bybit / OKX real account, or (`venueSandbox`, Rust
+ * its testnet, another venue's real account, or (`venueSandbox`, Rust
  * `ALEPH_EDGE_VENUE_SANDBOX=1`) their demo / test networks.
  */
 export function liveTargetKey(venue: string, binanceIsProduction: boolean, venueSandbox: boolean | undefined): string {

@@ -64,7 +64,7 @@ export const SAMPLE_MEMBERSHIP: MembershipController = {
 };
 
 export const SAMPLE_EXCHANGES: ExchangeInfo[] = [
-  { id: "binance", name: "Binance", supportsFutures: true },
+  { id: "binance", name: "Binance", supportsFutures: true, supportsSpot: true },
 ];
 
 export const SAMPLE_FUTURES_CONFIG: BotConfig = {

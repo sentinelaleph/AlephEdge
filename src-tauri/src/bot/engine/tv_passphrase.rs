@@ -69,12 +69,6 @@ pub enum Verdict {
     Refused,
 }
 
-impl Verdict {
-    pub fn opens(&self) -> bool {
-        !matches!(self, Verdict::Refused | Verdict::ResetNeeded)
-    }
-}
-
 fn derive(passphrase: &str, salt: &[u8], cost: Cost) -> Result<[u8; HASH_LEN], String> {
     let params = Params::new(cost.m, cost.t, cost.p, Some(HASH_LEN)).map_err(|_| "tvPassphraseHashFailed".to_string())?;
     let mut out = [0u8; HASH_LEN];
@@ -226,8 +220,6 @@ mod tests {
         let old = legacy_tv();
         assert_eq!(check(&old, Some(&pass)), Verdict::ResetNeeded);
         assert_eq!(check(&old, None), Verdict::ResetNeeded);
-        assert!(Verdict::Match.opens() && Verdict::NoPassphrase.opens());
-        assert!(!Verdict::Refused.opens() && !Verdict::ResetNeeded.opens());
     }
 
     // A bot saved by 0.3.19 (salted SHA-256) refuses every alert until the

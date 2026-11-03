@@ -19,6 +19,8 @@
 
 pub mod book;
 pub mod btc_break;
+pub mod catch_up;
+pub mod catch_up_io;
 pub mod entry;
 pub mod entry_rules;
 pub mod filters;
@@ -29,6 +31,7 @@ pub mod live_manage;
 pub mod management;
 pub mod manual;
 pub mod pnl;
+pub mod recalc;
 pub mod pipeline;
 pub mod precheck;
 pub mod precheck_rules;
@@ -38,6 +41,7 @@ pub mod sizing;
 pub mod take_profit;
 pub mod tv_passphrase;
 pub mod tv_trade;
+pub mod user_entry;
 pub mod user_trade;
 
 pub(crate) use book::force_close_kinds;
@@ -64,6 +68,12 @@ pub async fn tick(app: &AppHandle) {
     super::strategy::engine::strategy_phase(app).await;
     // Real-money mirror of the live DCA / Grid bots (live builds only).
     super::strategy_live::sync_all(app).await;
+    // The Pine bot's closed-bar runs: after the close phase and the daily
+    // stop (a Close trigger sees the current book; a tripped stop opens
+    // nothing), before the signal entries, whose signals stay valid for
+    // hours while a bar's action is stale after its 15-300 s window. Idle
+    // on every tick but the few seconds after a bar closes; capped at 20 s.
+    super::pinebot::phase::pine_phase(app).await;
     entry::open_phase(app, regime).await;
 }
 
@@ -193,7 +203,7 @@ async fn kill_switch_phase(app: &AppHandle) {
 }
 
 /// The bots the daily stop covers (strategy bots are outside it).
-const SIGNAL_KINDS: [BotKind; 4] = crate::bot::ALL_KINDS;
+const SIGNAL_KINDS: [BotKind; 5] = crate::bot::ALL_KINDS;
 
 /// Whether a tick after the trip must close again: the stop tripped, the
 /// user's preference is to close, and signal positions are still open. The
@@ -249,6 +259,10 @@ pub fn now_ms() -> u64 {
         .unwrap_or(0)
 }
 
+#[cfg(test)]
+mod catch_up_tests;
+#[cfg(test)]
+mod recalc_tests;
 #[cfg(test)]
 mod age_gate_tests;
 #[cfg(test)]

@@ -1,30 +1,39 @@
-//! USDT-margined perpetual orders on Bybit and OKX through the official
+//! Perpetual orders on every venue except Binance, through the official
 //! ccxt crate. Binance keeps its own, testnet-verified layer
 //! (`exchange/live_orders.rs`); this module answers the same questions with
 //! the same types so the engine does not care which venue it talks to.
+//! What each venue can do is data in `caps.rs`; the pure halves of the
+//! generic path are in `generic.rs`, the key checks in `keycheck.rs`.
+//!
+//! Bybit and OKX keep their own endpoint-level code below (position-level
+//! stop on Bybit, OKX algo with `closeFraction=1`). The five other venues
+//! (Bitget, Gate, BingX, WOO X, Deribit) run through ccxt's
+//! unified methods: `generic.rs` explains the stop, its read-back and the
+//! size re-sync. None of them has run on a test network yet; the live gate
+//! (`exchange::DRY_RUN_PASSED`) keeps real-money entries off until each does.
+//! The seven price-data / paper venues (`caps::PAPER_VENUES`, Hyperliquid
+//! among them since 0.3.22) have no module here and no ccxt feature.
 //!
 //! Conventions shared with the Binance layer:
-//! - symbols are exchange ids like `BTCUSDT`; the ccxt symbol is
-//!   `BTC/USDT:USDT`;
-//! - quantities are in the BASE coin. OKX trades contracts (0.01 BTC each on
-//!   BTC-USDT-SWAP), so every amount is converted with the market's
+//! - symbols are exchange ids like `BTCUSDT`; the ccxt symbol is the
+//!   venue's perpetual in its margin coin (`BTC/USDT:USDT`, `BTC/USDC:USDC`
+//!   on Deribit);
+//! - quantities are in the BASE coin. Venues that trade contracts (OKX,
+//!   Gate…) convert every amount with the market's
 //!   `contractSize` on the way in and out;
 //! - order ids are i64. ccxt venues use string ids, so ids handed back are
 //!   ours: a stable hash for market orders (informational) and, for the
 //!   protective stop, `placed_ms * 10 + kind`, which carries what `cancel`
 //!   and `status` need;
-//! - a protective stop closes the WHOLE position (Binance `closePosition`):
-//!   Bybit position-level stop (trading-stop), OKX algo with
-//!   `closeFraction=1`.
+//! - a protective stop closes the WHOLE position where the venue offers it
+//!   (`StopKind::ClosesPosition`), else it is a reduce-only stop for the full
+//!   size, re-synced after every add or reduce the app makes.
 //!   Every placement is read back; a stop the venue does not show as live is
 //!   an error, so the engine never believes a position is protected when it
 //!   is not;
-//! - the breakeven move changes that stop IN PLACE (`move_stop`): Bybit has
-//!   one stop slot per position, OKX amends the algo. Nothing is cancelled
-//!   afterwards (on Bybit a cancel writes "0" into the same slot).
-//!
-//! Bitget has no order path: its keys are refused (no permission verifier)
-//! and it has no dry run, so no module for it is kept that nothing could reach.
+//! - the breakeven move changes that stop IN PLACE on Bybit / OKX
+//!   (`move_stop`); elsewhere a new stop is placed and read back before the
+//!   old one is cancelled.
 //!
 //! Errors map onto `BinanceKeyCheckError` so the engine's retry / refuse
 //! logic stays one code path: OrderNotFound → Rejected{-2013},
@@ -36,11 +45,16 @@ use std::sync::{Arc, Mutex};
 
 use ccxt::exchange::ExchangeRuntime;
 use ccxt::exchange_generated::ExchangeBase;
-use ccxt::exchanges::{bybit::BybitCore, okx::OkxCore};
+use ccxt::exchanges::{
+    bingx::BingxCore, bitget::BitgetCore, bybit::BybitCore, deribit::DeribitCore, gate::GateCore, okx::OkxCore, woo::WooCore,
+};
 use ccxt::runtime::{call_typed, catch_typed};
-use ccxt::types::{Market, Order, Trade};
+use ccxt::types::{Market, Order, Position, Trade};
 use ccxt::{Config, ExchangeError, Params, Value};
 
+use super::caps::{self, client_id_for, ClientIdForm, Isolated, StopKind, VenueCaps};
+use super::generic::{self, Held, Resting};
+use super::keycheck::{self, KeyPerms};
 use crate::exchange::model::{BinanceKeyCheckError as E, FuturesAccount, FuturesPosition};
 use crate::exchange::providers::binance_fills::UserTrade;
 use crate::exchange::providers::binance_requests::Side;
@@ -49,8 +63,9 @@ use crate::exchange::providers::binance_requests::Protective;
 use crate::exchange::providers::binance_rules::{close_parts, LotStep, SymbolRules};
 use crate::vault::model::ExchangeCredential;
 
-/// Venues served here. Order matters for nothing; the list is the allowlist.
-pub const CCXT_VENUES: [&str; 2] = ["bybit", "okx"];
+/// Venues served here (every `caps::VENUES` row but Binance). The list is
+/// the allowlist; `caps_cover_every_ccxt_venue` keeps the two in step.
+pub const CCXT_VENUES: [&str; 7] = ["bybit", "okx", "bitget", "gate", "bingx", "woo", "deribit"];
 
 pub fn is_ccxt_venue(exchange_id: &str) -> bool {
     CCXT_VENUES.contains(&exchange_id)
@@ -59,7 +74,7 @@ pub fn is_ccxt_venue(exchange_id: &str) -> bool {
 /// An RSA private key pasted as the secret. ccxt switches Bybit from HMAC to
 /// RSA signing on exactly this test (`secret` contains "PRIVATE KEY"), and its
 /// `rsa` crate has an unfixed timing side channel (RUSTSEC-2023-0071). Such a
-/// secret is refused, so ccxt only ever signs with HMAC here.
+/// secret is refused on every venue, so ccxt only ever signs with HMAC here.
 pub fn is_rsa_secret(secret: &str) -> bool {
     secret.contains("PRIVATE KEY")
 }
@@ -72,6 +87,11 @@ pub(crate) fn sandbox_from_env() -> bool {
 enum Core {
     Bybit(BybitCore),
     Okx(OkxCore),
+    Bitget(BitgetCore),
+    Gate(GateCore),
+    Bingx(BingxCore),
+    Woo(WooCore),
+    Deribit(DeribitCore),
 }
 
 /// Runs the same expression on whichever core this is.
@@ -80,14 +100,27 @@ macro_rules! on {
         match $core {
             Core::Bybit($c) => $body,
             Core::Okx($c) => $body,
+            Core::Bitget($c) => $body,
+            Core::Gate($c) => $body,
+            Core::Bingx($c) => $body,
+            Core::Woo($c) => $body,
+            Core::Deribit($c) => $body,
         }
     };
 }
 
 struct Venue {
     id: &'static str,
+    caps: &'static VenueCaps,
     core: Core,
     markets_loaded: bool,
+}
+
+impl Venue {
+    /// The generic (ccxt unified) path: every venue but Bybit and OKX.
+    fn generic(&self) -> bool {
+        !matches!(self.core, Core::Bybit(_) | Core::Okx(_))
+    }
 }
 
 /// One authenticated client per (venue, key), reused across calls so
@@ -101,21 +134,36 @@ fn venue_id(id: &str) -> Option<&'static str> {
     CCXT_VENUES.iter().copied().find(|v| *v == id)
 }
 
-fn new_core(id: &str, cred: &ExchangeCredential) -> Option<Core> {
-    if is_rsa_secret(&cred.api_secret) {
-        return None;
-    }
+/// The ccxt client config for `cred`.
+fn config(cred: &ExchangeCredential) -> Option<Value> {
     let mut cfg = Config::new().api_key(&cred.api_key).secret(&cred.api_secret);
     if let Some(p) = cred.passphrase.as_deref() {
         cfg = cfg.password(p);
     }
-    let cfg = cfg.into_option();
+    cfg.into_option()
+}
+
+fn new_core(id: &str, cred: &ExchangeCredential) -> Option<Core> {
+    if is_rsa_secret(&cred.api_secret) {
+        return None;
+    }
+    let cfg = config(cred);
     let mut core = match id {
         "bybit" => Core::Bybit(BybitCore::new(cfg)),
         "okx" => Core::Okx(OkxCore::new(cfg)),
+        "bitget" => Core::Bitget(BitgetCore::new(cfg)),
+        "gate" => Core::Gate(GateCore::new(cfg)),
+        "bingx" => Core::Bingx(BingxCore::new(cfg)),
+        "woo" => Core::Woo(WooCore::new(cfg)),
+        "deribit" => Core::Deribit(DeribitCore::new(cfg)),
         _ => return None,
     };
     if sandbox_from_env() {
+        // A venue without a test network refuses here: nothing is ever sent
+        // to its production endpoints from a sandbox run.
+        if caps::caps(id).is_none_or(|c| c.testnet.is_none()) {
+            return None;
+        }
         let ok = on!(&mut core, c => catch_typed(|| ExchangeBase::set_sandbox_mode(c, Value::Bool(true))));
         if ok.is_err() {
             return None;
@@ -172,16 +220,17 @@ fn text(v: &Value) -> Option<String> {
     }
 }
 
-/// `BTCUSDT` → `BTC/USDT:USDT`. Only USDT-margined linear perps are traded.
+/// `BTCUSDT` → `BTC/USDT:USDT` (a USDT-margined venue's perpetual).
+#[cfg(test)]
 pub fn unified_symbol(id: &str) -> Option<String> {
-    let base = id.strip_suffix("USDT")?;
-    (!base.is_empty()).then(|| format!("{base}/USDT:USDT"))
+    caps::unified_symbol_for(caps::Margin::Usdt, id)
 }
 
-/// `BTC/USDT:USDT` → `BTCUSDT`.
+/// `BTC/USDT:USDT` (or `BTC/USDC:USDC`, `BTC/USD:USD`) → `BTCUSDT`: the
+/// engine keys every position by the USDT signal symbol of its base coin.
 pub fn exchange_symbol(unified: &str) -> String {
     match unified.split_once('/') {
-        Some((base, rest)) => format!("{base}{}", rest.split(':').next().unwrap_or("")),
+        Some((base, _)) => format!("{base}USDT"),
         None => unified.to_string(),
     }
 }
@@ -190,7 +239,15 @@ pub fn exchange_symbol(unified: &str) -> String {
 /// 32), Bybit up to 36. Deterministic, so a lookup by the
 /// engine's id finds the order it sent; the `ae`/`as` prefix survives.
 pub fn venue_client_id(id: &str) -> String {
-    id.chars().map(|c| if c.is_ascii_alphanumeric() { c } else { 'x' }).take(32).collect()
+    client_id_for(ClientIdForm::Alnum32, id)
+}
+
+/// The client id `id` is stored under on `venue` (its own form, `caps.rs`).
+pub fn venue_client_id_on(venue: &str, id: &str) -> String {
+    match caps::caps(venue) {
+        Some(c) => client_id_for(c.client_id, id),
+        None => venue_client_id(id),
+    }
 }
 
 /// OKX algo order types the app or a user can leave resting on a symbol.
@@ -385,9 +442,46 @@ fn binance_status(o: &Order) -> String {
     .to_string()
 }
 
+/// `symbols` for ccxt's `fetch_positions`.
+fn one_symbol(unified: &str) -> Value {
+    Value::Arr(Arc::new(vec![s(unified)]))
+}
+
+/// The open position on `unified` among ccxt positions: signed BASE size
+/// and entry. None when flat.
+fn held_in(list: &Value, unified: &str) -> Option<Held> {
+    let Value::Arr(rows) = list else { return None };
+    rows.iter().find_map(|raw| {
+        let p = Position::from_value(raw.clone());
+        let contracts = p.contracts.unwrap_or(0.0);
+        if p.symbol != unified || contracts == 0.0 {
+            return None;
+        }
+        let cs = p.contract_size.filter(|c| *c > 0.0).unwrap_or(1.0);
+        let short = p.side.as_deref() == Some("short") || contracts < 0.0;
+        let amt = contracts.abs() * cs * if short { -1.0 } else { 1.0 };
+        Some(Held { amt, entry: p.entry_price.unwrap_or(0.0) })
+    })
+}
+
+/// Errors that mean "this venue has no such listing", not a failure.
+fn unsupported_listing(e: &ExchangeError) -> bool {
+    e.is("NotSupported") || e.is("ArgumentsRequired") || e.is("BadRequest")
+}
+
+/// Params that list (and cancel) a venue's stop orders.
+fn trigger_params(v: &Venue) -> Params {
+    match v.id {
+        // Position tp/sl (pos_loss / pos_profit) list under profit_loss.
+        "bitget" => Params::new().with_bool("trigger", true).with_str("planType", "profit_loss"),
+        _ => Params::new().with_bool("trigger", true),
+    }
+}
+
 impl CcxtVenues {
     fn venue(&self, cred: &ExchangeCredential) -> Result<Arc<tokio::sync::Mutex<Venue>>, E> {
         let id = venue_id(&cred.exchange_id).ok_or(E::Rejected { code: 0, msg: "unsupported exchange".into() })?;
+        let caps = caps::caps(id).ok_or(E::Rejected { code: 0, msg: "unsupported exchange".into() })?;
         // Key the pool by venue + api key (never the secret).
         let pool_key = format!("{id}:{}", cred.api_key);
         let mut pool = self.pool.lock().expect("venue pool");
@@ -395,7 +489,7 @@ impl CcxtVenues {
             return Ok(v.clone());
         }
         let core = new_core(id, cred).ok_or(E::Rejected { code: 0, msg: "venue setup failed".into() })?;
-        let v = Arc::new(tokio::sync::Mutex::new(Venue { id, core, markets_loaded: false }));
+        let v = Arc::new(tokio::sync::Mutex::new(Venue { id, caps, core, markets_loaded: false }));
         pool.insert(pool_key, v.clone());
         Ok(v)
     }
@@ -410,19 +504,127 @@ impl CcxtVenues {
 
     async fn info(v: &mut Venue, symbol: &str) -> Result<MarketInfo, E> {
         Self::loaded(v).await?;
-        let unified = unified_symbol(symbol).ok_or(E::Rejected { code: -1121, msg: format!("{symbol}: not a USDT perp") })?;
+        let unified = caps::unified_symbol_for(v.caps.margin, symbol)
+            .ok_or(E::Rejected { code: -1121, msg: format!("{symbol}: not a USDT signal symbol") })?;
         let raw = on!(&v.core, c => catch_typed(|| ExchangeBase::market(c, s(&unified))))
             .map_err(|_| E::Rejected { code: -1121, msg: format!("{symbol}: unknown on {}", v.id) })?;
         Ok(market_info(&Market::from_value(raw)))
     }
 
     /// Params every order on this venue carries.
-    fn order_params(id: &str) -> Params {
-        match id {
-            // Isolated margin is chosen per order on OKX.
-            "okx" => Params::new().with_str("marginMode", "isolated"),
-            _ => Params::new(),
+    fn order_params(v: &Venue) -> Params {
+        Self::with_order_params(v, Params::new())
+    }
+
+    /// `p` plus the params every order on this venue carries.
+    fn with_order_params(v: &Venue, p: Params) -> Params {
+        match v.caps.isolated {
+            // Isolated margin is chosen per order on these venues.
+            Isolated::PerOrder => p.with_str("marginMode", "isolated"),
+            _ => p,
         }
+    }
+
+    // ---- generic read helpers (ccxt unified) ----------------------------
+
+    async fn g_held(v: &mut Venue, m: &MarketInfo) -> Result<Option<Held>, E> {
+        let r = on!(&mut v.core, c => call_typed(c.fetch_positions(&[one_symbol(&m.unified), Value::Null])).await).map_err(map_err)?;
+        Ok(held_in(&r, &m.unified))
+    }
+
+    /// Every open order on the symbol: regular and trigger listings, with
+    /// duplicates (venues that list stops in both) left to the caller.
+    async fn g_open_orders(v: &mut Venue, m: &MarketInfo) -> Result<Vec<Order>, E> {
+        let regular = on!(&mut v.core, c => call_typed(c.fetch_open_orders(&[s(&m.unified), Value::Null, Value::Null, Params::none().into_value()])).await)
+            .map_err(map_err)?;
+        let mut out: Vec<Order> = match regular {
+            Value::Arr(a) => a.iter().map(|o| Order::from_value(o.clone())).collect(),
+            _ => return Err(E::Unknown),
+        };
+        let tp = trigger_params(v);
+        match on!(&mut v.core, c => call_typed(c.fetch_open_orders(&[s(&m.unified), Value::Null, Value::Null, tp.into_value()])).await) {
+            Ok(Value::Arr(a)) => out.extend(a.iter().map(|o| Order::from_value(o.clone()))),
+            Ok(_) => {}
+            Err(e) if unsupported_listing(&e) => {}
+            Err(e) => return Err(map_err(e)),
+        }
+        Ok(out)
+    }
+
+    /// Our resting protective orders on the symbol.
+    async fn g_resting(v: &mut Venue, m: &MarketInfo, held: Option<Held>, id_hint: Option<i64>) -> Result<Vec<Resting>, E> {
+        let orders = Self::g_open_orders(v, m).await?;
+        Ok(generic::resting(v.caps, &orders, held, id_hint))
+    }
+
+    async fn g_cancel(v: &mut Venue, m: &MarketInfo, r: &Resting) -> Result<(), E> {
+        let tp = trigger_params(v);
+        let first = on!(&mut v.core, c => call_typed(c.cancel_order(s(&r.venue_id), &[s(&m.unified), tp.into_value()])).await);
+        let e = match first {
+            Ok(_) => return Ok(()),
+            Err(e) => e,
+        };
+        // Venues that keep stops among regular orders (BingX STOP_MARKET).
+        if e.is("OrderNotFound") || unsupported_listing(&e) {
+            return match on!(&mut v.core, c => call_typed(c.cancel_order(s(&r.venue_id), &[s(&m.unified), Value::Null])).await) {
+                Ok(_) => Ok(()),
+                Err(e2) if e2.is("OrderNotFound") => Ok(()),
+                Err(e2) => Err(map_err(e2)),
+            };
+        }
+        Err(map_err(e))
+    }
+
+    /// Places protective `id` generation `gen` of `kind` at `trigger` for a
+    /// position of `held`, then reads it back. Ok(()) only once the venue
+    /// lists it resting at that level.
+    async fn g_place(v: &mut Venue, m: &MarketInfo, held: Held, kind: Protective, trigger: f64, id: i64, gen: u32) -> Result<(), E> {
+        let long = held.amt > 0.0;
+        let amount = contracts_for(held.amt.abs(), m.contract_size, m.lot_contracts);
+        if amount.is_nan() || amount <= 0.0 {
+            return Err(E::Rejected { code: 0, msg: "position below one contract".into() });
+        }
+        let cid = generic::protective_client_id(v.caps, id, gen);
+        let p = Self::with_order_params(v, generic::protective_params(v.caps, kind, trigger, &cid));
+        let side = if long { "sell" } else { "buy" };
+        on!(&mut v.core, c => call_typed(c.create_order(s(&m.unified), s("market"), s(side), Value::Float(amount), &[Value::Null, p.into_value()])).await)
+            .map_err(map_err)?;
+        let list = Self::g_resting(v, m, Some(held), Some(id)).await?;
+        let found = list.iter().filter(|r| r.kind == kind).any(|r| {
+            stop_reads_at(Some(r.trigger), trigger, m.rules.tick) && (r.generation == Some(gen) || (r.generation.is_none() && !r.foreign))
+        });
+        if found {
+            Ok(())
+        } else {
+            Err(E::Rejected { code: 0, msg: format!("protective not live after placement ({} resting)", list.len()) })
+        }
+    }
+
+    /// Brings every full-size stop of ours on the symbol to the position's
+    /// size after an add or reduce (`StopKind::ReduceOnlyFullSize`): a
+    /// replacement at the same level is placed and read back first, then
+    /// the old one cancelled. Flat: they are cancelled.
+    async fn g_resync(v: &mut Venue, m: &MarketInfo) -> Result<(), E> {
+        if v.caps.stop != StopKind::ReduceOnlyFullSize {
+            return Ok(());
+        }
+        let held = Self::g_held(v, m).await?;
+        let list = Self::g_resting(v, m, held, None).await?;
+        let size = held.map_or(0.0, |h| contracts_for(h.amt.abs(), m.contract_size, m.lot_contracts));
+        for r in list.iter().filter(|r| !r.foreign) {
+            if !generic::needs_resync(r.amount, size, m.lot_contracts) {
+                continue;
+            }
+            if let Some(h) = held {
+                // The protective id is not known here; the replacement keeps
+                // the level and kind under a fresh id whose generation 1
+                // marks it as a re-sync.
+                let id = protective_id(now_ms(), r.kind);
+                Self::g_place(v, m, h, r.kind, r.trigger, id, 1).await?;
+            }
+            Self::g_cancel(v, m, r).await?;
+        }
+        Ok(())
     }
 
     // ---- read side ------------------------------------------------------
@@ -436,15 +638,34 @@ impl CcxtVenues {
     /// Hedge mode for `symbol`. Bybit sets the mode per symbol and ccxt
     /// 4.5.85 has no fetchPositionMode for it (every read was NotSupported),
     /// so its position list is read directly: hedge mode lists the symbol
-    /// under positionIdx 1 and 2, one-way under 0.
+    /// under positionIdx 1 and 2, one-way under 0. Venues without hedge mode
+    /// (Deribit) answer false.
     pub async fn hedge_mode(&self, cred: &ExchangeCredential, symbol: &str) -> Result<bool, E> {
         let v = self.venue(cred)?;
         let mut v = v.lock().await;
         let m = Self::info(&mut v, symbol).await?;
+        if !v.caps.hedge_mode_exists {
+            return Ok(false);
+        }
+        let raw = |name: &'static str, p: Params| (name, p);
+        let read = match &v.core {
+            Core::Bybit(_) => None,
+            Core::Bitget(_) => Some(raw(
+                "private_mix_get_v2_mix_account_account",
+                Params::new().with_str("symbol", &m.venue_id).with_str("productType", "USDT-FUTURES").with_str("marginCoin", "USDT"),
+            )),
+            Core::Gate(_) => Some(raw("private_futures_get_settle_accounts", Params::new().with_str("settle", "usdt"))),
+            Core::Woo(_) => Some(raw("v3_private_get_account_info", Params::new())),
+            _ => None,
+        };
         if let Core::Bybit(c) = &mut v.core {
             let p = Params::new().with_str("category", "linear").with_str("symbol", &m.venue_id);
             let r = call_typed(c.private_get_v5_position_list(&[p.into_value()])).await.map_err(map_err)?;
             return bybit_hedged(&r).ok_or(E::Unknown);
+        }
+        if let Some((name, p)) = read {
+            let r = on!(&mut v.core, c => call_typed(c.call_method(s(name), &[p.into_value_object()])).await).map_err(map_err)?;
+            return raw_hedged(v.id, &r).ok_or(E::Unknown);
         }
         let r = on!(&mut v.core, c => call_typed(c.fetch_position_mode(&[s(&m.unified), Value::Null])).await).map_err(map_err)?;
         Ok(matches!(get(&r, "hedged"), Value::Bool(true)))
@@ -454,14 +675,11 @@ impl CcxtVenues {
         let v = self.venue(cred)?;
         let mut v = v.lock().await;
         Self::loaded(&mut v).await?;
-        let params = match v.id {
-            "bybit" => Params::new().with_str("type", "swap"),
-            _ => Params::new().with_str("type", "swap"),
-        };
+        let params = Params::new().with_str("type", "swap");
         let bal = on!(&mut v.core, c => call_typed(c.fetch_balance(&[params.into_value()])).await).map_err(map_err)?;
-        let usdt = get(&bal, "USDT");
-        let total = num(get(usdt, "total")).unwrap_or(0.0);
-        let free = num(get(usdt, "free")).unwrap_or(0.0);
+        let coin = get(&bal, v.caps.margin.code());
+        let total = num(get(coin, "total")).unwrap_or(0.0);
+        let free = num(get(coin, "free")).unwrap_or(0.0);
         let raw = on!(&mut v.core, c => call_typed(c.fetch_positions(&[Value::Null, Value::Null])).await).map_err(map_err)?;
         let mut positions = Vec::new();
         let mut upnl = 0.0;
@@ -472,8 +690,8 @@ impl CcxtVenues {
                     continue;
                 }
                 let cs = num(get(p, "contractSize")).filter(|c| *c > 0.0).unwrap_or(1.0);
-                let short = text(get(p, "side")).as_deref() == Some("short");
-                let amt = contracts * cs * if short { -1.0 } else { 1.0 };
+                let short = text(get(p, "side")).as_deref() == Some("short") || contracts < 0.0;
+                let amt = contracts.abs() * cs * if short { -1.0 } else { 1.0 };
                 let unreal = num(get(p, "unrealizedPnl")).unwrap_or(0.0);
                 upnl += unreal;
                 positions.push(FuturesPosition {
@@ -491,6 +709,12 @@ impl CcxtVenues {
         let v = self.venue(cred)?;
         let mut v = v.lock().await;
         let m = Self::info(&mut v, symbol).await?;
+        if v.generic() {
+            let mut ids: Vec<String> = Self::g_open_orders(&mut v, &m).await?.into_iter().filter_map(|o| o.id).collect();
+            ids.sort();
+            ids.dedup();
+            return Ok(ids.len());
+        }
         if let Core::Okx(c) = &mut v.core {
             // ccxt's trigger=true lists ordType=trigger only: the app's own
             // stop / take-profit algos (ordType=conditional) went uncounted.
@@ -522,10 +746,27 @@ impl CcxtVenues {
         let v = self.venue(cred)?;
         let mut v = v.lock().await;
         let m = Self::info(&mut v, symbol).await?;
-        let cid = venue_client_id(client_id);
-        let r = on!(&mut v.core, c => call_typed(c.fetch_order_with_client_order_id(s(&cid), &[s(&m.unified), Value::Null])).await)
-            .map_err(map_err)?;
-        let o = Order::from_value(r);
+        let cid = client_id_for(v.caps.client_id, client_id);
+        let r = on!(&mut v.core, c => call_typed(c.fetch_order_with_client_order_id(s(&cid), &[s(&m.unified), Value::Null])).await);
+        let o = match r {
+            Ok(r) => Order::from_value(r),
+            // Not every venue looks orders up by client id: the recent
+            // history (closed, then open) is searched instead.
+            Err(e) if v.generic() && (unsupported_listing(&e) || e.is("OrderNotFound")) => {
+                let closed = on!(&mut v.core, c => call_typed(c.fetch_closed_orders(&[s(&m.unified), Value::Null, Value::Int(50), Value::Null])).await)
+                    .map_err(map_err)?;
+                let open = Self::g_open_orders(&mut v, &m).await?;
+                let mut all: Vec<Order> = match closed {
+                    Value::Arr(a) => a.iter().map(|o| Order::from_value(o.clone())).collect(),
+                    _ => Vec::new(),
+                };
+                all.extend(open);
+                all.into_iter()
+                    .find(|o| o.client_order_id.as_deref() == Some(cid.as_str()))
+                    .ok_or(E::Rejected { code: -2013, msg: "order not found by client id".into() })?
+            }
+            Err(e) => return Err(map_err(e)),
+        };
         Ok(OrderState { status: binance_status(&o), fill: fill_of(&o, m.contract_size) })
     }
 
@@ -600,7 +841,12 @@ impl CcxtVenues {
         let v = self.venue(cred)?;
         let mut v = v.lock().await;
         let m = Self::info(&mut v, symbol).await?;
-        let p = Self::order_params(v.id);
+        if v.id == "deribit" {
+            // No per-symbol leverage on Deribit (and the isolated step
+            // refuses, so no entry is made there).
+            return Ok(());
+        }
+        let p = Self::order_params(&v);
         let r = on!(&mut v.core, c => call_typed(c.set_leverage(Value::Int(leverage as i64), &[s(&m.unified), p.into_value()])).await);
         match r {
             Ok(_) => Ok(()),
@@ -614,9 +860,14 @@ impl CcxtVenues {
         let v = self.venue(cred)?;
         let mut v = v.lock().await;
         let m = Self::info(&mut v, symbol).await?;
-        if v.id == "okx" {
-            // OKX takes the margin mode on every order (tdMode); nothing to set.
-            return Ok(());
+        match v.caps.isolated {
+            // OKX tdMode / WOO X marginMode on every order; Gate isolates
+            // through the leverage.
+            Isolated::PerOrder | Isolated::ViaLeverage => return Ok(()),
+            Isolated::NotOffered => {
+                return Err(E::Rejected { code: 0, msg: format!("{}: no per-position isolated margin", v.id) });
+            }
+            Isolated::SetMode => {}
         }
         let r = on!(&mut v.core, c => call_typed(c.set_margin_mode(s("isolated"), &[s(&m.unified), Value::Null])).await);
         match r {
@@ -641,31 +892,37 @@ impl CcxtVenues {
         if amount.is_nan() || amount <= 0.0 {
             return Err(E::Rejected { code: 0, msg: format!("{symbol}: {qty} is below one contract") });
         }
-        let mut p = Self::order_params(v.id).with_bool("reduceOnly", reduce);
+        let mut p = Self::order_params(&v).with_bool("reduceOnly", reduce);
         if let Some(cid) = client_id {
-            p = p.with_str("clientOrderId", &venue_client_id(cid));
+            p = p.with_str("clientOrderId", &client_id_for(v.caps.client_id, cid));
         }
         let side = if buy { "buy" } else { "sell" };
         let placed = on!(&mut v.core, c => call_typed(c.create_order(s(&m.unified), s("market"), s(side), Value::Float(amount), &[Value::Null, p.into_value()])).await)
             .map_err(map_err)?;
         let o = Order::from_value(placed);
-        if let Some(f) = fill_of(&o, m.contract_size) {
-            return Ok(f);
-        }
-        // Most venues answer a market order with its id only: read it back.
-        let id = o.id.clone().ok_or(E::Unknown)?;
-        for attempt in 0..4u64 {
-            if attempt > 0 {
-                tokio::time::sleep(std::time::Duration::from_millis(300 * attempt)).await;
+        let mut fill = fill_of(&o, m.contract_size);
+        if fill.is_none() {
+            // Most venues answer a market order with its id only: read it back.
+            let id = o.id.clone().ok_or(E::Unknown)?;
+            for attempt in 0..4u64 {
+                if attempt > 0 {
+                    tokio::time::sleep(std::time::Duration::from_millis(300 * attempt)).await;
+                }
+                let Ok(r) = on!(&mut v.core, c => call_typed(c.fetch_order(s(&id), &[s(&m.unified), Value::Null])).await) else {
+                    continue;
+                };
+                if let Some(f) = fill_of(&Order::from_value(r), m.contract_size) {
+                    fill = Some(f);
+                    break;
+                }
             }
-            let Ok(r) = on!(&mut v.core, c => call_typed(c.fetch_order(s(&id), &[s(&m.unified), Value::Null])).await) else {
-                continue;
-            };
-            if let Some(f) = fill_of(&Order::from_value(r), m.contract_size) {
-                return Ok(f);
-            }
         }
-        Err(E::Unknown)
+        let fill = fill.ok_or(E::Unknown)?;
+        // A full-size stop follows the new size. The fill stands either way:
+        // a failed re-sync leaves the old stop (never none), and the next
+        // order or the close sweep tries again.
+        let _ = Self::g_resync(&mut v, &m).await;
+        Ok(fill)
     }
 
     pub async fn open_market(&self, cred: &ExchangeCredential, symbol: &str, long: bool, qty: f64, client_id: &str) -> Result<OrderFill, E> {
@@ -702,6 +959,17 @@ impl CcxtVenues {
             let v = self.venue(cred)?;
             let mut v = v.lock().await;
             let m = Self::info(&mut v, symbol).await?;
+            if v.generic() {
+                if kind == Protective::TakeProfit && !v.caps.take_profit {
+                    return Err(E::Rejected { code: 0, msg: "no take-profit order on this venue".into() });
+                }
+                let held = Self::g_held(&mut v, &m).await?.filter(|h| (h.amt > 0.0) == long).ok_or(E::Rejected {
+                    code: 0,
+                    msg: "no open position on that side to protect".into(),
+                })?;
+                Self::g_place(&mut v, &m, held, kind, trigger, id, 0).await?;
+                return Ok(id);
+            }
             let px = trigger.to_string();
             let stop = matches!(kind, Protective::Stop);
             match &mut v.core {
@@ -734,6 +1002,7 @@ impl CcxtVenues {
                     };
                     call_typed(c.private_post_trade_order_algo(&[p.into_value()])).await.map_err(map_err)?;
                 }
+                _ => unreachable!("generic venues returned above"),
             }
         }
         // Read back: a stop the venue does not show as live is not a stop.
@@ -744,13 +1013,15 @@ impl CcxtVenues {
         }
     }
 
-    /// Moves the whole-position stop `id` to `trigger` IN PLACE (the
-    /// breakeven move) and reads it back. Bybit: one trading-stop update of
-    /// the position's stop slot, a new id (placed now, so a later fire is
-    /// found in the order history). OKX: amend-algos on the same algo, which
-    /// keeps its client id, so the id is unchanged. Nothing is cancelled: on
-    /// Bybit a cancel writes "0" into the very slot just moved. An error
-    /// leaves the old stop where it was (the move either happened or not).
+    /// Moves the whole-position stop `id` to `trigger` (the breakeven move)
+    /// and reads it back. Bybit: one trading-stop update of the position's
+    /// stop slot, a new id (placed now, so a later fire is found in the
+    /// order history). OKX: amend-algos on the same algo, which keeps its
+    /// client id, so the id is unchanged. Nothing is cancelled: on Bybit a
+    /// cancel writes "0" into the very slot just moved. Every other venue
+    /// (`StopMove::PlaceThenCancel`): a new stop at `trigger` is placed and
+    /// read back, then the old one is cancelled; the new id is returned. An
+    /// error before the new stop reads back leaves the old stop alone.
     pub async fn move_stop(&self, cred: &ExchangeCredential, symbol: &str, id: i64, trigger: f64) -> Result<i64, E> {
         if !matches!(protective_parts(id).1, Protective::Stop) {
             return Err(E::Rejected { code: 0, msg: "not a stop id".into() });
@@ -758,6 +1029,21 @@ impl CcxtVenues {
         let v = self.venue(cred)?;
         let mut v = v.lock().await;
         let m = Self::info(&mut v, symbol).await?;
+        if v.generic() {
+            let held = Self::g_held(&mut v, &m).await?.ok_or(E::Rejected { code: 0, msg: "no open position".into() })?;
+            let old = Self::g_resting(&mut v, &m, Some(held), Some(id)).await?;
+            let old = generic::find_ours(&old, Protective::Stop).cloned();
+            let new_id = protective_id(now_ms(), Protective::Stop);
+            Self::g_place(&mut v, &m, held, Protective::Stop, trigger, new_id, 0).await?;
+            if let Some(old) = old.filter(|o| !stop_reads_at(Some(o.trigger), trigger, m.rules.tick)) {
+                // Two reduce-only stops for a moment; the old one goes now.
+                // A failed cancel leaves both (the sweep on close clears it).
+                if Self::g_cancel(&mut v, &m, &old).await.is_err() {
+                    let _ = Self::g_cancel(&mut v, &m, &old).await;
+                }
+            }
+            return Ok(new_id);
+        }
         let px = price_text(trigger, m.rules.tick);
         let (new_id, read) = match &mut v.core {
             Core::Bybit(c) => {
@@ -788,6 +1074,7 @@ impl CcxtVenues {
                 }
                 (id, read)
             }
+            _ => unreachable!("generic venues returned above"),
         };
         if stop_reads_at(read, trigger, m.rules.tick) {
             Ok(new_id)
@@ -802,6 +1089,16 @@ impl CcxtVenues {
         let v = self.venue(cred)?;
         let mut v = v.lock().await;
         let m = Self::info(&mut v, symbol).await?;
+        if v.generic() {
+            let held = Self::g_held(&mut v, &m).await?;
+            let list = Self::g_resting(&mut v, &m, held, Some(id)).await?;
+            // Gone already (fired, or the position closed): nothing to cancel.
+            let Some(ours) = generic::find_ours(&list, kind).cloned() else { return Ok(()) };
+            return match Self::g_cancel(&mut v, &m, &ours).await {
+                Err(E::Rejected { code: -2013, .. }) => Ok(()),
+                r => r,
+            };
+        }
         let r = match &mut v.core {
             Core::Bybit(c) => {
                 let p = Params::new()
@@ -817,6 +1114,7 @@ impl CcxtVenues {
                 let list = Value::Arr(Arc::new(vec![one.into_value()]));
                 call_typed(c.private_post_trade_cancel_algos(&[list])).await
             }
+            _ => unreachable!("generic venues returned above"),
         };
         match r {
             Ok(_) => Ok(()),
@@ -833,6 +1131,26 @@ impl CcxtVenues {
         let v = self.venue(cred)?;
         let mut v = v.lock().await;
         let m = Self::info(&mut v, symbol).await?;
+        if v.generic() {
+            let held = Self::g_held(&mut v, &m).await?;
+            if held.is_some() {
+                let list = Self::g_resting(&mut v, &m, held, Some(id)).await?;
+                if generic::find_ours(&list, kind).is_some() {
+                    return Ok("NEW".into());
+                }
+            }
+            let tp = trigger_params(&v);
+            let mut closed: Vec<Order> = Vec::new();
+            for p in [tp.into_value(), Value::Null] {
+                match on!(&mut v.core, c => call_typed(c.fetch_closed_orders(&[s(&m.unified), Value::Int(placed as i64), Value::Int(50), p])).await) {
+                    Ok(Value::Arr(a)) => closed.extend(a.iter().map(|o| Order::from_value(o.clone()))),
+                    Ok(_) => {}
+                    Err(e) if unsupported_listing(&e) => {}
+                    Err(e) => return Err(map_err(e)),
+                }
+            }
+            return Ok(if generic::fired_in(v.caps, &closed, id, kind, placed) { "FINISHED" } else { "CANCELED" }.into());
+        }
         match &mut v.core {
             Core::Bybit(c) => {
                 // Resting: the position carries the level. Fired: a closed
@@ -878,6 +1196,7 @@ impl CcxtVenues {
                 }
                 .into())
             }
+            _ => unreachable!("generic venues returned above"),
         }
     }
 
@@ -926,10 +1245,32 @@ impl CcxtVenues {
         first.map_or(Ok(()), Err)
     }
 
+    /// Generic sweep: every open order on the symbol (regular and stop
+    /// listings) cancelled one by one.
+    async fn g_cancel_symbol_orders(v: &mut Venue, m: &MarketInfo) -> Result<(), E> {
+        let mut first: Option<E> = None;
+        let orders = Self::g_open_orders(v, m).await?;
+        let mut seen: Vec<String> = Vec::new();
+        for o in orders {
+            let Some(id) = o.id.clone().filter(|i| !i.is_empty() && !seen.contains(i)) else { continue };
+            seen.push(id.clone());
+            let r = Resting { venue_id: id, kind: Protective::Stop, trigger: 0.0, amount: 0.0, generation: None, foreign: false };
+            if let Err(e) = Self::g_cancel(v, m, &r).await {
+                if !matches!(e, E::Rejected { code: -2013, .. }) && first.is_none() {
+                    first = Some(e);
+                }
+            }
+        }
+        first.map_or(Ok(()), Err)
+    }
+
     pub async fn cancel_symbol_orders(&self, cred: &ExchangeCredential, symbol: &str) -> Result<(), E> {
         let v = self.venue(cred)?;
         let mut v = v.lock().await;
         let m = Self::info(&mut v, symbol).await?;
+        if v.generic() {
+            return Self::g_cancel_symbol_orders(&mut v, &m).await;
+        }
         if let Core::Okx(c) = &mut v.core {
             return Self::okx_cancel_symbol_orders(c, &m).await;
         }
@@ -948,22 +1289,17 @@ impl CcxtVenues {
 
     // ---- key check ------------------------------------------------------
 
-    /// (can_trade_futures, can_withdraw) as the venue reports them.
-    pub async fn key_permissions(&self, cred: &ExchangeCredential) -> Result<(bool, bool), E> {
+    /// What `cred` may do, as the venue reports it.
+    pub async fn key_permissions(&self, cred: &ExchangeCredential) -> Result<KeyPerms, E> {
         let v = self.venue(cred)?;
         let mut v = v.lock().await;
+        let vid = v.id;
+        let call = |name: &'static str, p: Params| (name, p);
+        let unreadable = || E::Rejected { code: 0, msg: "key permissions unreadable".into() };
         match &mut v.core {
             Core::Bybit(c) => {
                 let r = call_typed(c.private_get_v5_user_query_api(&[Value::Null])).await.map_err(map_err)?;
-                let res = get(&r, "result");
-                let read_only = num(get(res, "readOnly")).unwrap_or(1.0) != 0.0;
-                let perms = get(res, "permissions");
-                let has = |group: &str, p: &str| match get(perms, group) {
-                    Value::Arr(a) => a.iter().any(|x| text(x).as_deref() == Some(p)),
-                    _ => false,
-                };
-                let trade = !read_only && (has("ContractTrade", "Order") || has("ContractTrade", "Position") || has("Derivatives", "DerivativesTrade"));
-                Ok((trade, has("Wallet", "Withdraw")))
+                Ok(bybit_perms(&r))
             }
             Core::Okx(c) => {
                 let r = call_typed(c.private_get_account_config(&[Value::Null])).await.map_err(map_err)?;
@@ -971,9 +1307,74 @@ impl CcxtVenues {
                     Value::Arr(a) => a.first().and_then(|o| text(get(o, "perm"))).unwrap_or_default(),
                     _ => String::new(),
                 };
-                Ok((perm.contains("trade"), perm.contains("withdraw")))
+                Ok(KeyPerms { trade: perm.contains("trade"), withdraw: perm.contains("withdraw"), transfer: false })
+            }
+            Core::Deribit(c) => {
+                let nonce = format!("{:016x}", rand::random::<u64>());
+                let mut p = Params::new();
+                for (k, val) in keycheck::deribit_auth_params(&cred.api_key, &cred.api_secret, now_ms(), &nonce) {
+                    p = p.with_str(&k, &val);
+                }
+                let r = call_typed(c.call_method(s("public_get_auth"), &[p.into_value_object()])).await.map_err(map_err)?;
+                keycheck::deribit(&r).ok_or_else(unreadable)
+            }
+            core => {
+                let (name, p) = match core {
+                    Core::Bitget(_) => call("private_spot_get_v2_spot_account_info", Params::new()),
+                    Core::Gate(_) => call("private_account_get_main_keys", Params::new()),
+                    Core::Bingx(_) => call("account_v1_private_get_account_api_permissions", Params::new()),
+                    Core::Woo(_) => call("v3_private_get_account_credentials", Params::new()),
+                    _ => return Err(E::Rejected { code: 0, msg: "no key verifier".into() }),
+                };
+                let r = on!(core, c => call_typed(c.call_method(s(name), &[p.into_value_object()])).await).map_err(map_err)?;
+                let perms = match vid {
+                    "bitget" => keycheck::bitget(&r),
+                    "gate" => keycheck::gate(&r, &cred.api_key),
+                    "bingx" => keycheck::bingx(&r),
+                    "woo" => keycheck::woo(&r, &cred.api_key),
+                    _ => None,
+                };
+                perms.ok_or_else(unreadable)
             }
         }
+    }
+}
+
+/// Bybit `user/query-api` → what the key may do. `Wallet` rights:
+/// `Withdraw`, and `AccountTransfer` / `SubMemberTransfer` (funds moved to
+/// another account without a withdrawal).
+pub fn bybit_perms(r: &Value) -> KeyPerms {
+    let res = get(r, "result");
+    let read_only = num(get(res, "readOnly")).unwrap_or(1.0) != 0.0;
+    let perms = get(res, "permissions");
+    let has = |group: &str, p: &str| match get(perms, group) {
+        Value::Arr(a) => a.iter().any(|x| text(x).as_deref() == Some(p)),
+        _ => false,
+    };
+    let trade = !read_only && (has("ContractTrade", "Order") || has("ContractTrade", "Position") || has("Derivatives", "DerivativesTrade"));
+    KeyPerms {
+        trade,
+        withdraw: has("Wallet", "Withdraw"),
+        transfer: has("Wallet", "AccountTransfer") || has("Wallet", "SubMemberTransfer"),
+    }
+}
+
+/// A raw position-mode answer → hedge mode. None when unreadable.
+pub fn raw_hedged(venue: &str, r: &Value) -> Option<bool> {
+    let d = get(r, "data");
+    match venue {
+        // {"data": {"posMode": "one_way_mode" | "hedge_mode"}}
+        "bitget" => text(get(d, "posMode")).map(|m| m == "hedge_mode"),
+        // {"position_mode": "single" | "dual" | "split", "in_dual_mode": bool}
+        "gate" => text(get(r, "position_mode"))
+            .map(|m| m != "single")
+            .or_else(|| match get(r, "in_dual_mode") {
+                Value::Bool(b) => Some(*b),
+                _ => None,
+            }),
+        // {"data": {"positionMode": "ONE_WAY" | "HEDGE_MODE"}}
+        "woo" => text(get(d, "positionMode")).map(|m| m != "ONE_WAY"),
+        _ => None,
     }
 }
 
@@ -1005,6 +1406,9 @@ mod tests {
         assert!(!is_rsa_secret("hmacSecret123"));
         assert!(new_core("bybit", &cred("bybit", pem)).is_none());
         assert!(new_core("okx", &cred("okx", pem)).is_none());
+        for id in CCXT_VENUES {
+            assert!(new_core(id, &cred(id, pem)).is_none(), "{id}");
+        }
         assert!(new_core("bybit", &cred("bybit", "hmacSecret123")).is_some());
     }
 
@@ -1150,6 +1554,97 @@ mod tests {
         assert_eq!(price_text(0.1 + 0.2, 0.1), "0.3");
         assert_eq!(price_text(61234.5, 0.1), "61234.5");
         assert_eq!(price_text(2.0, 1.0), "2");
+    }
+
+    #[test]
+    fn caps_cover_every_ccxt_venue() {
+        let mut from_caps: Vec<&str> = caps::VENUES.iter().map(|v| v.id).filter(|id| *id != "binance").collect();
+        let mut listed = CCXT_VENUES.to_vec();
+        from_caps.sort_unstable();
+        listed.sort_unstable();
+        assert_eq!(from_caps, listed);
+        for id in CCXT_VENUES {
+            assert!(new_core(id, &cred(id, "hmacSecret123")).is_some(), "{id} builds a client");
+        }
+    }
+
+    /// The README's testnet column is what ccxt can actually reach.
+    #[test]
+    fn sandbox_endpoints_exist_exactly_where_caps_say() {
+        let mut wrong = Vec::new();
+        for id in CCXT_VENUES {
+            let mut core = new_core(id, &cred(id, "hmacSecret123")).expect("client");
+            let ok = on!(&mut core, c => catch_typed(|| ExchangeBase::set_sandbox_mode(c, Value::Bool(true)))).is_ok();
+            // A test network named in caps must be reachable through ccxt.
+            if caps::caps(id).unwrap().testnet.is_some() && !ok {
+                wrong.push(id);
+            }
+        }
+        assert!(wrong.is_empty(), "caps name a test network ccxt cannot reach: {wrong:?}");
+    }
+
+    #[test]
+    fn usdc_and_usd_perps_map_back_to_the_signal_symbol() {
+        assert_eq!(exchange_symbol("BTC/USDC:USDC"), "BTCUSDT");
+        assert_eq!(exchange_symbol("ETH/USD:USD"), "ETHUSDT");
+        assert_eq!(caps::unified_symbol_for(caps::caps("deribit").unwrap().margin, "BTCUSDT").as_deref(), Some("BTC/USDC:USDC"));
+        assert!(caps::caps("krakenfutures").is_none(), "price data / paper only: no order module");
+    }
+
+    #[test]
+    fn positions_are_read_in_base_coin_with_their_side() {
+        let list = Value::from(serde_json::json!([
+            {"symbol": "ETH/USDT:USDT", "contracts": 3.0, "contractSize": 0.01, "side": "long", "entryPrice": 4000.0},
+            {"symbol": "BTC/USDT:USDT", "contracts": 0.0, "contractSize": 0.001, "side": "long"},
+            {"symbol": "BTC/USDT:USDT", "contracts": 7.0, "contractSize": 0.001, "side": "short", "entryPrice": 80000.0}
+        ]));
+        let h = held_in(&list, "BTC/USDT:USDT").unwrap();
+        assert!((h.amt + 0.007).abs() < 1e-12 && h.entry == 80000.0);
+        let e = held_in(&list, "ETH/USDT:USDT").unwrap();
+        assert!((e.amt - 0.03).abs() < 1e-12);
+        assert_eq!(held_in(&list, "SOL/USDT:USDT"), None);
+        assert_eq!(held_in(&Value::Null, "BTC/USDT:USDT"), None);
+    }
+
+    #[test]
+    fn hedge_mode_is_read_from_each_venues_own_answer() {
+        let j = |v: serde_json::Value| Value::from(v);
+        assert_eq!(raw_hedged("bitget", &j(serde_json::json!({"data": {"posMode": "hedge_mode"}}))), Some(true));
+        assert_eq!(raw_hedged("bitget", &j(serde_json::json!({"data": {"posMode": "one_way_mode"}}))), Some(false));
+        assert_eq!(raw_hedged("gate", &j(serde_json::json!({"position_mode": "single", "in_dual_mode": false}))), Some(false));
+        assert_eq!(raw_hedged("gate", &j(serde_json::json!({"position_mode": "dual"}))), Some(true));
+        assert_eq!(raw_hedged("gate", &j(serde_json::json!({"in_dual_mode": true}))), Some(true));
+        assert_eq!(raw_hedged("woo", &j(serde_json::json!({"data": {"positionMode": "ONE_WAY"}}))), Some(false));
+        assert_eq!(raw_hedged("woo", &j(serde_json::json!({"data": {"positionMode": "HEDGE_MODE"}}))), Some(true));
+        assert_eq!(raw_hedged("woo", &j(serde_json::json!({"code": 200}))), None, "unreadable: unknown, never one-way");
+        assert_eq!(raw_hedged("bitget", &Value::Null), None);
+    }
+
+    #[test]
+    fn bybit_transfer_rights_count_as_transfer() {
+        let r = |wallet: &[&str], read_only: i64| {
+            Value::from(serde_json::json!({"retCode": 0, "result": {"readOnly": read_only, "permissions": {"ContractTrade": ["Order", "Position"], "Wallet": wallet}}}))
+        };
+        assert_eq!(bybit_perms(&r(&[], 0)), KeyPerms { trade: true, withdraw: false, transfer: false });
+        assert!(bybit_perms(&r(&["Withdraw"], 0)).withdraw);
+        assert!(bybit_perms(&r(&["AccountTransfer"], 0)).transfer);
+        assert!(bybit_perms(&r(&["SubMemberTransfer"], 0)).transfer);
+        assert!(!bybit_perms(&r(&[], 1)).trade, "read-only key");
+    }
+
+    #[test]
+    fn errors_map_onto_the_engines_vocabulary() {
+        let e = |kind: &str| map_err(ExchangeError::new(kind, "x".to_string()));
+        assert!(matches!(e("OrderNotFound"), E::Rejected { code: -2013, .. }));
+        assert!(matches!(e("AuthenticationError"), E::InvalidCredentials { .. }));
+        assert!(matches!(e("PermissionDenied"), E::InvalidCredentials { .. }));
+        assert_eq!(e("RateLimitExceeded"), E::RateLimited);
+        assert_eq!(e("RequestTimeout"), E::Unknown);
+        assert_eq!(e("ExchangeNotAvailable"), E::Unknown);
+        assert_eq!(e("NetworkError"), E::NetworkUnavailable);
+        assert!(matches!(e("InsufficientFunds"), E::Rejected { code: 0, .. }));
+        assert!(unsupported_listing(&ExchangeError::new("NotSupported", String::new())));
+        assert!(!unsupported_listing(&ExchangeError::new("NetworkError", String::new())));
     }
 
     #[test]

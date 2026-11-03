@@ -1,0 +1,13 @@
+{
+  // The engine is a byte-identical copy of the website's (SOURCE.md), which
+  // is compiled without noUnusedLocals / noUnusedParameters. It and its
+  // tests are typechecked here with the app's settings minus those two, so
+  // the copy never has to be edited to satisfy this repo's linting.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["src", "host.ts", "../src/__tests__/pine"],
+  "exclude": []
+}

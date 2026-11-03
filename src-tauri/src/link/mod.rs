@@ -51,7 +51,7 @@ impl DeskBridge {
             BotKind::Spot => BotSelector::Spot,
             BotKind::Pump => BotSelector::Pump,
             // Never started from the phone (see `start`); "all" stops it.
-            BotKind::Tradingview => BotSelector::All,
+            BotKind::Tradingview | BotKind::Pine => BotSelector::All,
         }
     }
 
@@ -128,9 +128,9 @@ impl DeskControl for DeskBridge {
             return Err(AckReply::new(ack_code::KILL_SWITCH_TRIPPED));
         }
         let mut started = Vec::new();
-        // The TradingView bot executes the user's own alerts: started on the
-        // desk only, never from the phone.
-        for k in Self::kinds(bot).into_iter().filter(|k| *k != BotKind::Tradingview) {
+        // The TradingView and Pine bots execute the user's own alerts and
+        // script: started on the desk only, never from the phone.
+        for k in Self::kinds(bot).into_iter().filter(|k| !k.is_user_driven()) {
             if bots.config_for(k).is_some() {
                 bots.start(self.app.clone(), k).map_err(|e| start_refusal(&e))?;
                 started.push(Self::selector(k));
@@ -168,6 +168,9 @@ impl DeskControl for DeskBridge {
         }
         if st.tradingview_running {
             bots_running.push("tradingview".to_string());
+        }
+        if st.pine_running {
+            bots_running.push("pine".to_string());
         }
         bots_running.extend(strategy.running_kinds().into_iter().map(|k| k.as_str().to_string()));
 
@@ -407,7 +410,9 @@ mod tests {
 
     #[test]
     fn bot_selector_maps_to_kinds() {
-        assert_eq!(DeskBridge::kinds(BotSelector::All).len(), 4, "a remote stop-all reaches the TradingView bot too");
+        let all = DeskBridge::kinds(BotSelector::All);
+        assert_eq!(all.len(), 5, "a remote stop-all reaches the TradingView and Pine bots too");
+        assert!(all.contains(&BotKind::Tradingview) && all.contains(&BotKind::Pine));
         assert_eq!(DeskBridge::kinds(BotSelector::Spot), vec![BotKind::Spot]);
         assert_eq!(
             DeskBridge::kinds(BotSelector::Futures),

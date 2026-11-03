@@ -20,7 +20,7 @@ import { useStrategyLive } from "./strategy/useStrategyLive";
 import "./bots.css";
 
 interface TypeCard {
-  id: "signal" | "tradingview" | StrategyKind;
+  id: "signal" | "tradingview" | "pine" | StrategyKind;
   markets: ("spot" | "futures")[];
   suitsKey: string;
 }
@@ -30,9 +30,12 @@ const CARDS: TypeCard[] = [
   { id: "dca", markets: ["spot", "futures"], suitsKey: "botCreate.suits.trend" },
   { id: "grid", markets: ["spot", "futures"], suitsKey: "botCreate.suits.range" },
   { id: "tradingview", markets: ["futures"], suitsKey: "botCreate.suits.tradingview" },
+  { id: "pine", markets: ["futures"], suitsKey: "botCreate.suits.pine" },
 ];
 
-const TV_BOT_PATH = "/bots/tradingview";
+/** The bots that run the user's own rules, by card id. */
+const USER_BOT_PATH = { tradingview: "/bots/tradingview", pine: "/bots/pine" } as const;
+const isUserBot = (id: string): id is keyof typeof USER_BOT_PATH => id in USER_BOT_PATH;
 
 const GUIDE_REAL_MONEY = "/guide?s=real-money";
 const PREFLIGHT_PATH = "/risk?s=preflight";
@@ -88,7 +91,7 @@ export function BotNewPage() {
 
   /** "2 · running 1 · 1 LIVE", "None yet", or null while the desk loads. */
   const yours = (id: TypeCard["id"]): string | null => {
-    const tv = desk.loaded ? (desk.status.tradingview ?? null) : undefined;
+    const own = isUserBot(id) && desk.loaded ? (desk.status[id] ?? null) : undefined;
     const mine =
       id === "signal"
         ? signalRows && {
@@ -96,11 +99,11 @@ export function BotNewPage() {
             running: signalRows.filter((r) => r.running).length,
             live: signalRows.filter((r) => r.live).length,
           }
-        : id === "tradingview"
-          ? tv !== undefined && {
-              total: tv ? 1 : 0,
-              running: desk.status.tradingviewRunning ? 1 : 0,
-              live: botMode(tv) === "live" ? 1 : 0,
+        : isUserBot(id)
+          ? own !== undefined && {
+              total: own ? 1 : 0,
+              running: (id === "pine" ? desk.status.pineRunning : desk.status.tradingviewRunning) ? 1 : 0,
+              live: botMode(own) === "live" ? 1 : 0,
             }
           : strategy.bots && {
             total: strategy.bots.filter((b) => b.kind === id).length,
@@ -128,6 +131,7 @@ export function BotNewPage() {
     const label = t("botCreate.evidence");
     if (id === "signal") return { label, value: t("botCreate.evidenceSignal"), tone: "muted" };
     if (id === "tradingview") return { label, value: t("botCreate.evidenceTradingview"), tone: "muted" };
+    if (id === "pine") return { label, value: t("botCreate.evidencePine"), tone: "muted" };
     if (!presets) return { label, value: NO_VALUE };
     const best = provenPreset(presets, id);
     const s = best ? testSplit(best) : null;
@@ -146,7 +150,7 @@ export function BotNewPage() {
   };
 
   /** The proven template of a strategy type (DCA only today), the card's first button. */
-  const proven = (id: TypeCard["id"]) => (id !== "signal" && id !== "tradingview" && presets ? provenPreset(presets, id) : null);
+  const proven = (id: TypeCard["id"]) => (id !== "signal" && !isUserBot(id) && presets ? provenPreset(presets, id) : null);
 
   const realFact = (): Fact => ({
     label: t("botCreate.realMoney"),
@@ -259,7 +263,9 @@ export function BotNewPage() {
                   ? { label: t("botCreate.templates"), value: t("botCreate.templatesSignal"), tone: "muted" }
                   : c.id === "tradingview"
                     ? { label: t("botCreate.templates"), value: t("botCreate.templatesTradingview"), tone: "muted" }
-                    : templatesFact(c.id),
+                    : c.id === "pine"
+                      ? { label: t("botCreate.templates"), value: t("botCreate.templatesPine"), tone: "muted" }
+                      : templatesFact(c.id),
                 realFact(),
               ]}
             />
@@ -269,9 +275,9 @@ export function BotNewPage() {
                 <Button variant="secondary" size="sm" onClick={() => navigate("/bots/signal")}>
                   {t("botCreate.openSignal")}
                 </Button>
-              ) : c.id === "tradingview" ? (
-                <Button variant="secondary" size="sm" onClick={() => navigate(TV_BOT_PATH)}>
-                  {t("botCreate.openTradingview")}
+              ) : isUserBot(c.id) ? (
+                <Button variant="secondary" size="sm" onClick={() => navigate(USER_BOT_PATH[c.id as keyof typeof USER_BOT_PATH])}>
+                  {t(c.id === "pine" ? "botCreate.openPine" : "botCreate.openTradingview")}
                 </Button>
               ) : (
                 <>

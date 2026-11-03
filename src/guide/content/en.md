@@ -302,7 +302,7 @@ Every bot is **Paper** or **Live**, chosen in the **Mode** panel of its creation
 **What it needs**
 
 1. Choose **Live** in the Mode panel; it is offered only when the points below hold, and lists what is missing.
-2. A verified **Binance trade key** in [Settings → Exchange keys](#/settings?tab=keys): Futures on, withdrawals off. Keys that can withdraw are refused. Real money is Binance only for now: Bybit and OKX have not yet passed an end-to-end run on their own test networks, so switching real money on for them is refused. Their keys still work for the account view and for closing positions.
+2. A verified **Binance trade key** in [Settings → Exchange keys](#/settings?tab=keys): Futures on, withdrawals off. Keys that can withdraw are refused. Real money is Binance only for now: the other 8 order venues have not yet passed an end-to-end run on their own test networks, so switching real money on for them is refused. Their keys still work for the account view and for closing positions. Six more venues give price data and paper trading only.
 3. The bot's market must be **Futures**.
 4. A protective level: a stop loss for DCA, a stop-out for Grid, or a drawdown stop for either. The exchange stop rests at that level.
 5. No open paper cycle, and no position on the symbol in your Binance account.

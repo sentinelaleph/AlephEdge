@@ -395,18 +395,21 @@ pub enum PlanFor<'a> {
     Alert { id: &'a str },
 }
 
-/// The pre-network checks of an alert entry on the TradingView bot (pure):
-/// a saved config, the daily stop, a valid config, the TradingView bot,
+/// The pre-network checks of an alert entry on the TradingView bot, or of a
+/// script entry on the Pine bot (pure): a saved config, the daily stop, a
+/// valid config, the bot of the request's kind,
 /// the symbol, the levels, the size, and no position of this bot on it.
 pub fn alert_refusal(cfg: Option<&BotConfig>, tripped: bool, req: &TradeRequest, held: bool) -> Result<String, String> {
+    // The TradingView bot's codes, or the Pine bot's for a Pine entry.
+    let codes = super::user_entry::codes(req.kind);
     let Some(cfg) = cfg else {
-        return Err("tvBotRequired".to_string());
+        return Err(codes.bot_required.to_string());
     };
     if tripped {
         return Err("botDailyLossTripped".to_string());
     }
     cfg.validate()?;
-    if req.kind != BotKind::Tradingview || cfg.kind != BotKind::Tradingview {
+    if !req.kind.is_user_driven() || cfg.kind != req.kind {
         return Err(BOT_KIND.to_string());
     }
     let symbol = normalize_symbol(&req.symbol)?;
@@ -420,7 +423,7 @@ pub fn alert_refusal(cfg: Option<&BotConfig>, tripped: bool, req: &TradeRequest,
         _ => return Err(SIZE_INVALID.to_string()),
     }
     if held {
-        return Err("tvAlreadyOpen".to_string());
+        return Err(codes.already_open.to_string());
     }
     Ok(symbol)
 }

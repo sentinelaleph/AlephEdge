@@ -106,7 +106,7 @@ export function configFromForm(f: TvBotForm, base: BotConfig): BotConfig {
 }
 
 /** Margin per position the budget gives (what each alert may tie up at most on average). */
-export function marginPerPosition(f: TvBotForm): number {
+export function marginPerPosition(f: Pick<TvBotForm, "budgetUsdt" | "maxPositions">): number {
   return f.maxPositions > 0 ? Math.floor((f.budgetUsdt / f.maxPositions) * 100) / 100 : 0;
 }
 
@@ -118,7 +118,7 @@ export function marginPerPosition(f: TvBotForm): number {
  * risk level). Rounded up to the cent; null while size or leverage is not
  * a usable number.
  */
-export function budgetFloor(f: TvBotForm, maxLeverage: number | null): { min: number; full: number; leverage: number } | null {
+export function budgetFloor(f: Pick<TvBotForm, "leverage" | "maxSizeUsdt" | "maxPositions">, maxLeverage: number | null): { min: number; full: number; leverage: number } | null {
   const lev = maxLeverage !== null ? Math.min(f.leverage, maxLeverage) : f.leverage;
   if (!(Number.isInteger(lev) && lev >= 1) || !(f.maxSizeUsdt >= TV_LIMITS.sizeMin)) return null;
   const cents = (v: number) => Math.ceil(v * 100 - 1e-9) / 100;

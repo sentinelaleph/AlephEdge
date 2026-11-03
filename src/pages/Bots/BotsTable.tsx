@@ -88,7 +88,7 @@ export function BotsTable({ rows, sort, onSort, selected, onSelect }: BotsTableP
   const money = useSignalBotMoney();
   // The TradingView bot's money is a budget plus a max size per alert, not
   // a capital per position: its own table says so.
-  const tvOnly = rows.length > 0 && rows.every((r) => r.type === "tradingview");
+  const tvOnly = rows.length > 0 && rows.every((r) => r.type === "tradingview" || r.type === "pine");
   const columns: DataColumn<BotRow>[] = [
     ...(onSelect
       ? [
@@ -164,7 +164,7 @@ export function BotsTable({ rows, sort, onSort, selected, onSelect }: BotsTableP
       ? [
           {
             id: "maxSize",
-            header: t("botsTv.maxSize"),
+            header: rows.every((r) => r.type === "pine") ? t("botsPine.maxSize") : t("botsTv.maxSize"),
             numeric: true,
             detailOnly: true,
             cell: (row: BotRow) => (row.maxSizeUsdt !== null ? formatUsdt(row.maxSizeUsdt, locale) : NO_VALUE),

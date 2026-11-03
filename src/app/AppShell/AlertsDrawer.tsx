@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import type { DeskAlert } from "@/app/alerts";
+import { alertTarget, type DeskAlert } from "@/app/alerts";
 import { Link } from "@/app/router/router";
 import { localeForLanguage } from "@/i18n";
 import { Icon } from "./icons";
@@ -8,11 +8,13 @@ import { Icon } from "./icons";
 interface AlertsDrawerProps {
   open: boolean;
   alerts: DeskAlert[];
+  /** Keys of the alerts that are new or changed since the drawer was last opened. */
+  fresh?: ReadonlySet<string>;
   onClose: () => void;
 }
 
 /** Right drawer listing current alerts. Esc or the scrim closes it; focus stays inside. */
-export function AlertsDrawer({ open, alerts, onClose }: AlertsDrawerProps) {
+export function AlertsDrawer({ open, alerts, fresh, onClose }: AlertsDrawerProps) {
   const { t } = useTranslation();
   const boxRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
@@ -55,7 +57,7 @@ export function AlertsDrawer({ open, alerts, onClose }: AlertsDrawerProps) {
             <Icon name="close" />
           </button>
         </header>
-        {open ? <AlertsList alerts={alerts} onNavigate={onClose} /> : null}
+        {open ? <AlertsList alerts={alerts} fresh={fresh} onNavigate={onClose} /> : null}
         <Link to="/settings?tab=notifications" className="ae-alerts__prefs" onClick={onClose} tabIndex={open ? 0 : -1}>
           {t("alerts.preferences")}
         </Link>
@@ -64,47 +66,56 @@ export function AlertsDrawer({ open, alerts, onClose }: AlertsDrawerProps) {
   );
 }
 
-/** The alert rows: shared by the drawer and the dashboard's right panel. */
-export function AlertsList({ alerts, onNavigate }: { alerts: DeskAlert[]; onNavigate?: () => void }) {
+/**
+ * The alert rows: shared by the drawer and the dashboard's right panel. A
+ * row with a page to open is one link; new or changed rows come first,
+ * marked New (owner, 2 Nov 2026: the badge counted a change the list hid).
+ */
+export function AlertsList({ alerts, fresh, onNavigate }: { alerts: DeskAlert[]; fresh?: ReadonlySet<string>; onNavigate?: () => void }) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   if (alerts.length === 0) return <p className="ae-alerts__empty">{t("alerts.none")}</p>;
+  const isNew = (a: DeskAlert) => fresh?.has(a.key) === true;
+  const rows = [...alerts].sort((a, b) => Number(isNew(b)) - Number(isNew(a)));
   return (
     <ul className="ae-alerts__list">
-      {alerts.map((a) => (
-        <li key={a.key} className="ae-alerts__row" data-severity={a.severity}>
-          <span className="ae-alerts__cat">{t(`alerts.category.${a.category}`)}</span>
-          <span className="ae-alerts__text">
-            {a.title}
-            {a.count && a.count > 1 && a.category !== "stopLoss" && a.category !== "dealClosed" ? (
-              <span className="ae-alerts__count tabular"> ×{a.count}</span>
-            ) : null}
-          </span>
-          {a.detail ? <span className="ae-alerts__detail">{a.detail}</span> : null}
-          <span className="ae-alerts__meta">
-            {a.at ? (
-              <span className="tabular">{new Date(a.at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}</span>
-            ) : null}
-            {a.category === "killSwitch" ? (
-              <Link to="/risk" onClick={onNavigate}>
-                {t("nav.risk")}
+      {rows.map((a) => {
+        const target = alertTarget(a);
+        const body = (
+          <>
+            <span className="ae-alerts__cat">
+              {t(`alerts.category.${a.category}`)}
+              {isNew(a) ? <span className="ae-alerts__new">{t("alerts.new")}</span> : null}
+            </span>
+            <span className="ae-alerts__text">
+              {a.title}
+              {a.count && a.count > 1 && a.category !== "stopLoss" && a.category !== "dealClosed" ? (
+                <span className="ae-alerts__count tabular"> ×{a.count}</span>
+              ) : null}
+            </span>
+            {a.detail ? <span className="ae-alerts__detail">{a.detail}</span> : null}
+            <span className="ae-alerts__meta">
+              {a.at ? (
+                <span className="tabular">{new Date(a.at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}</span>
+              ) : null}
+              {target ? <span className="ae-alerts__go">{t(target.labelKey)} ›</span> : null}
+            </span>
+          </>
+        );
+        return (
+          <li key={a.key} data-new={isNew(a) || undefined}>
+            {target ? (
+              <Link to={target.to} onClick={onNavigate} className="ae-alerts__row" data-severity={a.severity}>
+                {body}
               </Link>
-            ) : a.category === "stopLoss" || a.category === "dealClosed" ? (
-              <Link to="/history" onClick={onNavigate}>
-                {t("nav.history")}
-              </Link>
-            ) : a.category === "streamDown" ? (
-              <Link to="/signals" onClick={onNavigate}>
-                {t("nav.signals")}
-              </Link>
-            ) : a.category === "budget" || a.category === "botError" ? (
-              <Link to="/bots/signal" onClick={onNavigate}>
-                {t("nav.signalBots")}
-              </Link>
-            ) : null}
-          </span>
-        </li>
-      ))}
+            ) : (
+              <div className="ae-alerts__row" data-severity={a.severity}>
+                {body}
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

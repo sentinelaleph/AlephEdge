@@ -5,6 +5,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import i18n from "@/i18n";
 import { ModePicker } from "@/components/LiveMode/LiveMode";
 import type { BotConfig, BotDeskStatus, TradeMode } from "@/lib/ipc/bot/bot";
+import type { PineSettings } from "@/lib/ipc/pine/pine";
 import { botMode, needsArm } from "@/lib/ipc/bot/bot";
 import type { StrategyBotView, StrategyLiveView } from "@/lib/ipc/strategy/strategy";
 import {
@@ -237,5 +238,20 @@ describe("the TradingView bot's money at risk", () => {
     };
     expect(liveTermsChanged(tvCfg, { ...tvCfg, tv: { ...tvCfg.tv!, maxSizeUsdt: 60 } })).toBe(true);
     expect(liveTermsChanged(tvCfg, { ...tvCfg, tv: { ...tvCfg.tv!, staleS: 60 } })).toBe(false);
+  });
+});
+
+describe("the Pine bot's Live terms", () => {
+  it("a script, trigger, input, bar or exit edit is new terms to confirm; the stale window is not", () => {
+    const p: PineSettings = { name: "P", script: "a", scriptHash: "h", timeframe: "1h", symbols: ["BTCUSDT"], triggers: { "alert#0": "buy" }, inputs: { "0": 9 }, warmupBars: 1000, budgetUsdt: 100, maxSizeUsdt: 50, maxOpensPerDay: 20, stopPct: 2, takeProfitPct: 4, stopInput: null, targetInput: null, staleS: 60, priceGuardPct: 0.5 };
+    const cfg: BotConfig = { kind: "pine", exchangeId: "binance", maxPositions: 2, capital: 50, leverage: 3, pine: p };
+    const edit = (patch: Partial<PineSettings>) => liveTermsChanged(cfg, { ...cfg, pine: { ...p, ...patch } });
+    expect(edit({ script: "b" })).toBe(true);
+    expect(edit({ triggers: { "alert#0": "sell" } })).toBe(true);
+    expect(edit({ inputs: { "0": 10 } })).toBe(true);
+    expect(edit({ timeframe: "4h" })).toBe(true);
+    expect(edit({ stopPct: 1 })).toBe(true);
+    expect(edit({ staleS: 30 })).toBe(false);
+    expect(edit({ inputs: { "0": 9 } })).toBe(false);
   });
 });

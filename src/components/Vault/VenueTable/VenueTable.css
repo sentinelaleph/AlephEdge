@@ -1,0 +1,4 @@
+.ae-venues__note {
+  margin: var(--space-3) 0 0;
+  max-width: 72ch;
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TFunction } from "i18next";
 import type { DeskContextValue } from "./DeskProvider";
-import { deriveAlerts } from "./alerts";
+import { alertSignature, alertTarget, deriveAlerts } from "./alerts";
 import type { ClosedCycleRow, StrategyBotView } from "@/lib/ipc/strategy/strategy";
 
 const NOW = Date.UTC(2026, 9, 8, 12);
@@ -121,5 +121,20 @@ describe("portfolio risk alerts", () => {
     expect(alerts[0].title).toContain('"value":88');
     // No snapshot (not loaded yet, or the old test context): nothing.
     expect(deriveAlerts(base, t, null, NOW).some((a) => a.category === "portfolioRisk")).toBe(false);
+  });
+});
+
+describe("alert rows open a page (owner, 2 Nov 2026: clicking did nothing)", () => {
+  it("portfolio risk opens Risk, closed cycles open History, a dead strategy bot opens All bots", () => {
+    expect(alertTarget({ key: "portfolioRisk:paper:sameDirection", category: "portfolioRisk" })?.to).toBe("/risk");
+    expect(alertTarget({ key: "cycleClosed", category: "dealClosed" })?.to).toBe("/history");
+    expect(alertTarget({ key: "strategyDead:sb_1", category: "botError" })?.to).toBe("/bots");
+    expect(alertTarget({ key: "skip:dailyBudget", category: "budget" })?.to).toBe("/bots/signal");
+    expect(alertTarget({ key: "vaultAutoLock", category: "vaultAutoLock" })).toBeNull();
+  });
+
+  it("a grown count is new to the reader, the same alert held is not", () => {
+    expect(alertSignature({ key: "cycleClosed", count: 9 })).not.toBe(alertSignature({ key: "cycleClosed", count: 10 }));
+    expect(alertSignature({ key: "btcBreak" })).toBe(alertSignature({ key: "btcBreak", count: 1 }));
   });
 });

@@ -281,8 +281,11 @@ describe("own trades are told apart from Sentinel signals", () => {
       <>
         <ManualChip signalId="manual-1790000000000-0000abcd" />
         <ManualChip signalId="4f1c2a7e" />
+        <ManualChip signalId="manual-pine-c0e317231d5cce066a0f3cc7" botKind="pine" />
+        <ManualChip signalId="manual-tv-6b51d431df5d7f141cbececc" botKind="tradingview" />
       </>,
     );
+    // Pine and TradingView bot trades share the id prefix but are the bot's own: no chip (owner, 2 Nov 2026).
     expect([...el.querySelectorAll(".ae-chip")].map((c) => c.textContent)).toEqual(["Own", "Manual"]);
   });
 });

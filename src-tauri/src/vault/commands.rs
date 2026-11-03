@@ -395,10 +395,11 @@ async fn verified(exchange: &ExchangeManager, mut cred: ExchangeCredential) -> R
 }
 
 /// Asks the exchange what this key may do. Binance: signed `apiRestrictions`
-/// (HMAC or Ed25519, per the key). Bybit / OKX: the venue's own read through
-/// ccxt. Any other exchange (Bitget, MEXC...) has no order path and no
-/// verifier and is refused: its permissions could only be taken on the
-/// user's word, and the vault holds verified trade-only keys.
+/// (HMAC or Ed25519, per the key). Every other order venue: its own answer
+/// through ccxt (`exchange/venue/keycheck.rs`). An exchange without an order
+/// path (the price-data / paper venues, MEXC, the regional spot exchanges)
+/// is refused: nothing could check its keys, and the vault holds verified
+/// trade-only keys.
 async fn check_key(exchange: &ExchangeManager, cred: &ExchangeCredential) -> Result<KeyFacts, Checked> {
     if cred.exchange_id == "binance" {
         return match exchange.check_binance_permissions(&cred.api_key, cred.binance_signer()).await {
@@ -412,21 +413,26 @@ async fn check_key(exchange: &ExchangeManager, cred: &ExchangeCredential) -> Res
             Err(_) => Err(Checked::Unavailable("keyCheckUnavailable".to_string())),
         };
     }
+    if !crate::exchange::has_order_path(&cred.exchange_id) {
+        return Err(Checked::Unavailable(format!("keyExchangeUnverified|{}", cred.exchange_id)));
+    }
     if crate::exchange::venue::ccxt::is_rsa_secret(&cred.api_secret) {
         return Err(Checked::Refused("keyRsaUnsupported".to_string()));
     }
     match exchange.venue_key_permissions(cred).await {
-        Ok((false, _)) => Err(Checked::Refused("keyNoFutures".to_string())),
-        Ok((true, withdraw)) => refuse(withdraw, false)
-            .map(|()| KeyFacts { permission: CredentialPermission::TradeOnly, ip_restricted: None, exchange_created_at: None })
-            .map_err(Checked::Refused),
-        // No order path, so no verifier.
-        Err(BinanceKeyCheckError::Rejected { code: 0, .. }) if !crate::exchange::has_order_path(&cred.exchange_id) => {
-            Err(Checked::Unavailable(format!("keyExchangeUnverified|{}", cred.exchange_id)))
-        }
+        Ok(p) => judge_venue(p).map_err(Checked::Refused),
         Err(e @ BinanceKeyCheckError::InvalidCredentials { .. }) => Err(Checked::Unavailable(format!("keyRejected|{}", e.detail()))),
         Err(_) => Err(Checked::Unavailable("keyCheckUnavailable".to_string())),
     }
+}
+
+/// A ccxt venue's answer, judged by the same rule as Binance's.
+fn judge_venue(p: crate::exchange::venue::keycheck::KeyPerms) -> Result<KeyFacts, String> {
+    refuse(p.withdraw, p.transfer)?;
+    if !p.trade {
+        return Err("keyNoFutures".to_string());
+    }
+    Ok(KeyFacts { permission: CredentialPermission::TradeOnly, ip_restricted: None, exchange_created_at: None })
 }
 
 /// Binance's answer, judged. A key that cannot trade futures would fail at
@@ -485,6 +491,17 @@ mod tests {
         assert_eq!(refuse(false, true).unwrap_err(), "keyTransferEnabled");
         assert_eq!(judge_binance(perms(false, true, true)).unwrap_err(), "keyTransferEnabled");
         assert_eq!(judge_binance(perms(false, true, false)).unwrap_err(), "keyNoFutures");
+    }
+
+    #[test]
+    fn a_venue_key_is_judged_withdraw_then_transfer_then_trade() {
+        use crate::exchange::venue::keycheck::KeyPerms;
+        let p = |trade, withdraw, transfer| KeyPerms { trade, withdraw, transfer };
+        assert_eq!(judge_venue(p(true, true, false)).unwrap_err(), "keyWithdrawEnabled");
+        assert_eq!(judge_venue(p(false, true, true)).unwrap_err(), "keyWithdrawEnabled");
+        assert_eq!(judge_venue(p(true, false, true)).unwrap_err(), "keyTransferEnabled");
+        assert_eq!(judge_venue(p(false, false, false)).unwrap_err(), "keyNoFutures");
+        assert_eq!(judge_venue(p(true, false, false)).unwrap().permission, CredentialPermission::TradeOnly);
     }
 
     #[test]

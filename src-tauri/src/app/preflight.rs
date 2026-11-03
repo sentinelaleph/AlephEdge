@@ -381,7 +381,7 @@ mod tests {
     #[test]
     fn a_venue_without_a_dry_run_blocks_and_the_sandbox_dry_run_warns() {
         assert_eq!(get(&evaluate(&ready()), "venue").verdict, Verdict::Ok);
-        for venue in ["bybit", "okx"] {
+        for venue in crate::exchange::venue::ccxt::CCXT_VENUES {
             let mut i = ready();
             i.venue = venue.into();
             let c = evaluate(&i);
@@ -395,9 +395,9 @@ mod tests {
             assert_eq!(get(&c, "venue").verdict, Verdict::Warn, "{venue}");
             assert_eq!(worst(&c), Verdict::Warn, "{venue}");
         }
-        // No order path (Bitget): the sandbox does not help.
+        // No order path (MEXC, price data only): the sandbox does not help.
         let mut i = ready();
-        (i.venue, i.sandbox, i.production) = ("bitget".into(), true, false);
+        (i.venue, i.sandbox, i.production) = ("mexc".into(), true, false);
         assert_eq!(get(&evaluate(&i), "venue").verdict, Verdict::Fail);
     }
 

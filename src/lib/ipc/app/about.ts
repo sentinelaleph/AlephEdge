@@ -17,7 +17,7 @@ export interface AppInfo {
   dataDir: string | null;
 }
 
-export type HelpLink = "userGuide" | "webAccount" | "webBilling" | "webApiKeys" | "source" | "releases" | "licence" | "support" | "security";
+export type HelpLink = "userGuide" | "webAccount" | "webBilling" | "webApiKeys" | "chart" | "source" | "releases" | "licence" | "support" | "security";
 
 /** Shown in `npm run dev` only, marked as a browser preview so it cannot pass for an installation. */
 const BROWSER: AppInfo = {

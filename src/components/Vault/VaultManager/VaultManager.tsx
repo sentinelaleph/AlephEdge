@@ -6,6 +6,7 @@ import { Panel } from "@/components/ui/Panel/Panel";
 import { collapseTransition } from "@/lib/motion";
 import { AddKeyForm } from "../AddKeyForm/AddKeyForm";
 import { KeyList } from "../KeyList/KeyList";
+import { VenueTable } from "../VenueTable/VenueTable";
 import type { VaultController } from "../useVault";
 import "./VaultManager.css";
 
@@ -75,6 +76,8 @@ export function VaultManager({ vault }: VaultManagerProps) {
           </motion.div>
         ) : null}
       </AnimatePresence>
+
+      <VenueTable />
     </div>
   );
 }

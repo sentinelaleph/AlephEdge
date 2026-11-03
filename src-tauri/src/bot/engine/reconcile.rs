@@ -336,7 +336,8 @@ pub async fn reconcile_phase(app: &AppHandle) {
     let positions = bots.positions_snapshot();
     let armed_venue = |kind: BotKind| bots.config_for(kind).filter(|c| live_trading_allowed(c, kind)).map(|c| c.exchange_id);
     let tv_venue = armed_venue(BotKind::Tradingview);
-    let live_bot = armed_venue(BotKind::Futures).is_some() || tv_venue.is_some();
+    let pine_venue = armed_venue(BotKind::Pine);
+    let live_bot = armed_venue(BotKind::Futures).is_some() || tv_venue.is_some() || pine_venue.is_some();
     if !live_bot && !positions.iter().any(|p| p.is_live()) {
         return;
     }
@@ -359,8 +360,12 @@ pub async fn reconcile_phase(app: &AppHandle) {
     // The armed TradingView bot's venue too: an alert entry whose outcome
     // was lost shows there as untracked exposure until tvlink's lookup
     // adopts it (it is never attributed to a Sentinel signal here).
-    if let Some(v) = tv_venue.filter(|v| !venues.contains(v)) {
-        venues.push(v);
+    // The armed Pine bot's venue likewise (its lost entries are looked up
+    // by client id in the Pine phase).
+    for v in [tv_venue, pine_venue].into_iter().flatten() {
+        if !venues.contains(&v) {
+            venues.push(v);
+        }
     }
     for venue in venues {
         reconcile_venue(app, &venue, &live_positions).await;

@@ -182,3 +182,10 @@
 .ae-sform__evidence {
   margin: 0 0 var(--space-1);
 }
+
+/* The stop loss's price and cost, under its help text. */
+.ae-sform__slline {
+  display: block;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}

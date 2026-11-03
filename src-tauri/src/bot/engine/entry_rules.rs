@@ -323,5 +323,6 @@ pub fn new_position(
         tp_target: tp.target.clone(),
         tp_fallback_from: tp.fallback_from.clone(),
         manual: false,
+        last_seen_ms: 0,
     }
 }

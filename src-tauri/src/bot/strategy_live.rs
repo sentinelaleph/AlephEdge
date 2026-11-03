@@ -1745,16 +1745,16 @@ mod tests {
             "BTCUSDT".into(),
         );
         assert_eq!(enable_refusal(true, &cfg, "binance", "LIVE", false), None);
-        for venue in ["bybit", "okx"] {
+        for venue in crate::exchange::venue::ccxt::CCXT_VENUES {
             assert_eq!(
                 enable_refusal(true, &cfg, venue, "LIVE", false),
                 Some(format!("liveVenueNotDryRun|{venue}")),
                 "{venue}"
             );
         }
-        // Bitget has no order path, sandbox or not.
+        // MEXC has no order path (price data only), sandbox or not.
         for sandbox in [false, true] {
-            assert_eq!(enable_refusal(true, &cfg, "bitget", "LIVE", sandbox), Some("liveFuturesBinanceOnly".into()));
+            assert_eq!(enable_refusal(true, &cfg, "mexc", "LIVE", sandbox), Some("liveFuturesBinanceOnly".into()));
         }
         // The sandbox dry run may send them (orders go to test networks).
         assert_eq!(enable_refusal(true, &cfg, "bybit", "LIVE", true), None);

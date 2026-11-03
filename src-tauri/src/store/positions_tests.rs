@@ -50,6 +50,7 @@ fn position(id: &str) -> OpenPosition {
         tp_target: "tp1".into(),
         tp_fallback_from: None,
         manual: false,
+        last_seen_ms: 0,
     }
 }
 

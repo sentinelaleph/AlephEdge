@@ -4,7 +4,7 @@ import type { StatusKind } from "@/components/ui/StatusChip/StatusChip";
 import { capitalAboveCap } from "@/lib/botLimits";
 import { botMode, kindRunning, needsArm, SIGNAL_KINDS, type BotConfig, type BotDeskStatus, type BotKind } from "@/lib/ipc/bot/bot";
 
-export type BotType = "signal" | "tradingview" | "dca" | "grid";
+export type BotType = "signal" | "tradingview" | "pine" | "dca" | "grid";
 export type BotRowState = "running" | "stopped" | "stoppedByKillSwitch" | "notConfigured";
 
 /**
@@ -14,7 +14,7 @@ export type BotRowState = "running" | "stopped" | "stoppedByKillSwitch" | "notCo
 export interface BotRow {
   id: string;
   kind: BotKind;
-  /** The bot's own name when it has one (the TradingView bot), else null. */
+  /** The bot's own name when it has one (the TradingView and Pine bots), else null. */
   name: string | null;
   type: BotType;
   market: "futures" | "spot";
@@ -28,9 +28,9 @@ export interface BotRow {
   exchangeId: string | null;
   symbols: string[];
   openPositions: number;
-  /** Signal bots: capital per position. TradingView bot: its budget. */
+  /** Signal bots: capital per position. TradingView and Pine bots: the budget. */
   capital: number | null;
-  /** TradingView bot only: the max size per alert (position notional). */
+  /** TradingView bot: the max size per alert; Pine bot: per entry (position notional). */
   maxSizeUsdt: number | null;
   maxPositions: number | null;
   /** i18n key of the reason Start is refused, or null when it is allowed. */
@@ -61,14 +61,19 @@ export function tvBotRow(s: BotDeskStatus, maxCapitalQuote: number | null = null
   return bookRow(s, "tradingview", maxCapitalQuote);
 }
 
+/** The Pine bot's row (#/bots/pine): its own type, same state and Start / Stop rules. */
+export function pineBotRow(s: BotDeskStatus, maxCapitalQuote: number | null = null): BotRow {
+  return bookRow(s, "pine", maxCapitalQuote);
+}
+
 /**
- * Every bot of the book (the signal bots and the TradingView bot), as All
- * bots, the Dashboard and their counters list them. The TradingView bot is a
- * row only once it was made.
+ * Every bot of the book (the signal bots, the TradingView and the Pine
+ * bot), as All bots, the Dashboard and their counters list them. The
+ * TradingView and Pine bots are rows only once they were made.
  */
 export function allBotRows(s: BotDeskStatus, maxCapitalQuote: number | null = null): BotRow[] {
-  const tv = tvBotRow(s, maxCapitalQuote);
-  return [...signalBotRows(s, maxCapitalQuote), ...(tv.config ? [tv] : [])];
+  const user = [tvBotRow(s, maxCapitalQuote), pineBotRow(s, maxCapitalQuote)].filter((r) => r.config);
+  return [...signalBotRows(s, maxCapitalQuote), ...user];
 }
 
 function bookRow(s: BotDeskStatus, kind: BotKind, maxCapitalQuote: number | null): BotRow {
@@ -93,12 +98,13 @@ function bookRow(s: BotDeskStatus, kind: BotKind, maxCapitalQuote: number | null
           : overCap
             ? "botsList.blocked.capitalAboveCap"
             : null;
-  const tv = kind === "tradingview" ? (config?.tv ?? null) : null;
+  // The TradingView and Pine bots: a budget and a max size per entry.
+  const tv = kind === "tradingview" ? (config?.tv ?? null) : kind === "pine" ? (config?.pine ?? null) : null;
   return {
-    id: kind === "tradingview" ? TV_BOT_ID : SIGNAL_BOT_IDS[kind as keyof typeof SIGNAL_BOT_IDS],
+    id: kind === "tradingview" ? TV_BOT_ID : kind === "pine" ? PINE_BOT_ID : SIGNAL_BOT_IDS[kind as keyof typeof SIGNAL_BOT_IDS],
     kind,
     name: tv?.name.trim() || null,
-    type: kind === "tradingview" ? "tradingview" : "signal",
+    type: kind === "tradingview" ? "tradingview" : kind === "pine" ? "pine" : "signal",
     market: kind === "spot" ? "spot" : "futures",
     config,
     running,
@@ -124,6 +130,8 @@ export function botRowName(t: TFunction, row: Pick<BotRow, "kind" | "name">): st
 
 /** The TradingView bot's id in bot links (#/bots/tradingview is its page). */
 export const TV_BOT_ID = "tradingview";
+/** The Pine bot's id in bot links (#/bots/pine is its page). */
+export const PINE_BOT_ID = "pine";
 
 /** The legacy kind behind a signal bot id, or null. */
 export function kindForBotId(id: string): BotKind | null {

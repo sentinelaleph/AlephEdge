@@ -219,6 +219,8 @@ pub struct ValidationReport {
     /// Smallest budget at which every order clears the exchange minimum
     /// (price-free: orders scale with the budget).
     pub min_budget: Option<f64>,
+    /// The DCA stop loss's cost, price-free (`validate::sl_estimate`).
+    pub sl_estimate: Option<validate::SlEstimate>,
 }
 
 #[tauri::command]
@@ -228,6 +230,7 @@ pub fn strategy_validate(app: AppHandle, config: StrategyConfig) -> Result<Valid
         ok: error.is_none(),
         error,
         min_budget: validate::min_budget(&config),
+        sl_estimate: validate::sl_estimate(&config, None),
     })
 }
 

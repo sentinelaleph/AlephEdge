@@ -62,6 +62,51 @@ export interface TradeRecord {
   tpFallbackFrom: string | null;
   /** Opened by hand on one signal (Execute), not by the bot's loop. Absent = false. */
   manual?: boolean;
+  /** A paper trade booked before the catch-up, recalculated on Sentinel's
+   *  graded close (the stored row is unchanged). Absent = as booked. */
+  recalc?: TradeRecalc;
+  /** Set by `shownTrade` on a recalculated trade: the close as first booked. */
+  booked?: BookedClose;
+}
+
+/** Sentinel's graded close of a paper trade the book had missed. */
+export interface TradeRecalc {
+  exit: number;
+  exitReason: string;
+  closedAt: number;
+  pnlPct: number;
+  pnlQuote: number;
+  unleveredNetPct: number | null;
+}
+
+/** The close a recalculated trade was first booked with. */
+export interface BookedClose {
+  exit: number;
+  exitReason: string;
+  closedAt: number;
+  pnlPct: number;
+}
+
+/**
+ * The trade as the desk shows it: a recalculated trade's exit, time and NET
+ * figures replace the booked ones (kept in `booked`), the way the desk stats
+ * count it.
+ */
+export function shownTrade(tr: TradeRecord): TradeRecord {
+  const r = tr.recalc;
+  if (!r) return tr;
+  return {
+    ...tr,
+    exit: r.exit,
+    exitReason: r.exitReason,
+    closedAt: r.closedAt,
+    pnlPct: r.pnlPct,
+    pnlQuote: r.pnlQuote,
+    pnlUsdt: r.pnlQuote,
+    pnlPctOfCapital: r.pnlPct,
+    unleveredNetPct: r.unleveredNetPct,
+    booked: { exit: tr.exit, exitReason: tr.exitReason, closedAt: tr.closedAt, pnlPct: tr.pnlPct },
+  };
 }
 
 export interface PnlStats {
@@ -88,8 +133,11 @@ export function tradesStatsByBot(live?: boolean): Promise<BotStats[]> {
     : devMock(() => import("./trades.mock"), (m) => m.mock.statsByBot());
 }
 
-export function tradesList(limit = 50): Promise<TradeRecord[]> {
-  return inTauri() ? invoke<TradeRecord[]>("trades_list", { limit }) : devMock(() => import("./trades.mock"), (m) => m.mock.list());
+export async function tradesList(limit = 50): Promise<TradeRecord[]> {
+  const rows = await (inTauri()
+    ? invoke<TradeRecord[]>("trades_list", { limit })
+    : devMock(() => import("./trades.mock"), (m) => m.mock.list()));
+  return rows.map(shownTrade).sort((a, b) => b.closedAt - a.closedAt);
 }
 
 /**

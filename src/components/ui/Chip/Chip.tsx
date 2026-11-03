@@ -55,14 +55,27 @@ export function UntestedChip({ title }: { title?: string }) {
 /**
  * "Manual": opened by hand on one signal (Execute), not by the bot's loop.
  * "Own": a New trade on the user's own levels, no Sentinel signal behind it
- * (told apart by its id, see `isUserTradeId`).
+ * (told apart by its id, see `isUserTradeId`). The TradingView and Pine bots
+ * book their trades under the same id prefix but open them themselves: no
+ * chip, their bot name says it (owner, 2 Nov 2026).
  */
-export function ManualChip({ signalId }: { signalId?: string }) {
+export function ManualChip({ signalId, botKind }: { signalId?: string; botKind?: string }) {
   const { t } = useTranslation();
+  if (botKind === "tradingview" || botKind === "pine") return null;
   const own = signalId !== undefined && isUserTradeId(signalId);
   return (
     <Chip tone="accent" title={t(own ? "bots.ownTradeBadgeTooltip" : "bots.manualBadgeTooltip")}>
       {t(own ? "bots.ownTradeBadge" : "bots.manualBadge")}
+    </Chip>
+  );
+}
+
+/** "Recalculated": a paper trade re-booked on Sentinel's graded close; `title` says how it was first booked. */
+export function RecalcChip({ title }: { title: string }) {
+  const { t } = useTranslation();
+  return (
+    <Chip tone="warn" title={title}>
+      {t("pnl.recalculated")}
     </Chip>
   );
 }

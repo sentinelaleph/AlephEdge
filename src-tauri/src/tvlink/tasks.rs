@@ -460,7 +460,7 @@ async fn run_spot(app: &AppHandle, a: &Alert, tv: Option<&BotConfig>, r: &mut Al
         Plan::Close => {
             let id = held.unwrap_or_default();
             r.position_id = Some(id.clone());
-            match crate::bot::bot_close_position(app.clone(), id, BotKind::Spot).await {
+            match crate::bot::close_position_as(app.clone(), id, BotKind::Spot, crate::bot::TRIGGER_EXIT_REASON).await {
                 Ok(_) => message::CLOSED.to_string(),
                 Err(code) => code,
             }
@@ -566,7 +566,9 @@ pub fn stopped_refusal(plan: Plan, running: bool) -> Option<&'static str> {
 /// the book afterwards (a close the exchange did not confirm).
 async fn close_own(app: &AppHandle, pos: &OpenPosition, r: &mut AlertResult) -> Result<(), String> {
     r.position_id = Some(pos.signal_id.clone());
-    crate::bot::bot_close_position(app.clone(), pos.signal_id.clone(), BotKind::Tradingview).await.map(|_| ())
+    crate::bot::close_position_as(app.clone(), pos.signal_id.clone(), BotKind::Tradingview, crate::bot::TRIGGER_EXIT_REASON)
+        .await
+        .map(|_| ())
 }
 
 /// The TradingView bot's limits, the price guard, then the entry.

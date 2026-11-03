@@ -26,8 +26,16 @@ export function dominanceLabelKey(kind: string): string {
 export function statusTone(s: LeafStatus | string): "success" | "waiting" | "neutral" | "warn" {
   if (s === "ok") return "success";
   if (s === "measuring") return "waiting";
-  if (s === "not_started") return "neutral";
+  if (s === "not_started" || s === "withdrawn") return "neutral";
   return "warn";
+}
+
+/**
+ * The status a leaf's chip shows. A leaf the server withdrew on purpose
+ * (the BTC direction call, 31 Oct 2026) says so, not "Unavailable".
+ */
+export function shownStatus(leaf: { status: string; reason_code?: string }): string {
+  return leaf.reason_code === "chart_direction_withdrawn" ? "withdrawn" : leaf.status;
 }
 
 /**

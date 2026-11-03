@@ -107,6 +107,24 @@ pub struct TradeRecord {
     /// Left out of the JSON when false.
     #[serde(default, skip_serializing_if = "is_false")]
     pub manual: bool,
+    /// The close recalculated on Sentinel's graded exit, for a PAPER trade
+    /// booked before the catch-up existed (see `store::recalc`). The row
+    /// itself is never rewritten; desktop-only, so left out when None.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recalc: Option<TradeRecalc>,
+}
+
+/// A paper trade's close as Sentinel graded it: exit, reason, time and the
+/// NET figures recomputed on that exit.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TradeRecalc {
+    pub exit: f64,
+    pub exit_reason: String,
+    pub closed_at: u64,
+    pub pnl_pct: f64,
+    pub pnl_quote: f64,
+    pub unlevered_net_pct: Option<f64>,
 }
 
 fn is_false(v: &bool) -> bool {

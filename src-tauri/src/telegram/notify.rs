@@ -326,6 +326,7 @@ fn exit_label(code: &str) -> &str {
         "dailyStop" => "daily loss stop",
         "remoteKill" => "remote close",
         "manual" => "closed by hand",
+        "trigger" => "the bot's close trigger",
         "exchangeClosed" => "closed on the exchange",
         "veto" => "Sentinel veto",
         "liq" => "liquidation",
@@ -476,6 +477,7 @@ mod tests {
             tp_target: None,
             tp_fallback_from: None,
             manual: false,
+            recalc: None,
         }
     }
 

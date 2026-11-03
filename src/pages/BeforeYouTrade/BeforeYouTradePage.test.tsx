@@ -8,8 +8,8 @@ import coded from "@/lib/ipc/beforeYouTrade/beforeYouTrade.coded.fixture.json";
 import { requestedLangs } from "@/lib/ipc/beforeYouTrade/beforeYouTrade.mock";
 import type { BeforeYouTrade, ChartRead, FarmRanking, ListingRow } from "@/lib/ipc/beforeYouTrade/beforeYouTrade";
 import { BeforeYouTradePage } from "./BeforeYouTradePage";
-import { chartReadHiddenReason, dominanceLabelKey, farmRankingShown, impactLine, newsTranslation, reactionCell, templateFormPath, templatesInOrder } from "./bytModel";
-import { barText, legacyReasonCode, REASON_CODES, reasonText, refusalText, sayText, TEXT_CODES } from "./bytText";
+import { chartReadHiddenReason, dominanceLabelKey, farmRankingShown, impactLine, newsTranslation, reactionCell, shownStatus, statusTone, templateFormPath, templatesInOrder } from "./bytModel";
+import { barText, legacyReasonCode, REASON_CODES, reasonText, refusalText, sayText, statusText, TEXT_CODES } from "./bytText";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 window.matchMedia ??= ((query: string) =>
@@ -270,6 +270,23 @@ describe("Before you trade in Turkish: no English prose from the payload", () =>
     expect(reasonText(t, { reason: "x", reason_code: "brand_new_code" }, "tr")).toBe(i18n.t("byt.reason.unknown"));
     expect(sayText(t, undefined, "a later fixed sentence")).toBe(i18n.t("byt.text.unknown"));
     expect(reasonText(t, {}, "tr")).toBeNull();
+  });
+
+  it("the withdrawn BTC direction (server, 31 Oct 2026) is said in the reader's language with its date", () => {
+    const t = i18n.getFixedT("tr");
+    const leaf = { reason: "BTC direction calls were withdrawn on 31 Oct 2026: ...", reason_code: "chart_direction_withdrawn", reason_args: { withdrawn_at: "2026-10-31T00:00:00Z" } };
+    const s = reasonText(t, leaf, "tr")!;
+    expect(s).toContain("kaldırıldı");
+    expect(s).not.toContain("{{");
+    expect(s).not.toBe(i18n.t("byt.reason.unknown", { lng: "tr" }));
+  });
+
+  it("its chip says Withdrawn in grey, not Unavailable (owner, 2 Nov 2026)", () => {
+    const leaf = { status: "unavailable", reason_code: "chart_direction_withdrawn" };
+    expect(shownStatus(leaf)).toBe("withdrawn");
+    expect(statusTone(shownStatus(leaf))).toBe("neutral");
+    expect(statusText(i18n.getFixedT("tr"), shownStatus(leaf))).toBe("Kaldırıldı");
+    expect(shownStatus({ status: "unavailable", reason_code: "store_unavailable" })).toBe("unavailable");
   });
 });
 

@@ -19,8 +19,13 @@
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
     "paths": {
+      "@/lib/pine": ["pine-engine/src/lib/pine"],
+      "@/lib/pine/*": ["pine-engine/src/lib/pine/*"],
+      "@/lib/ta/*": ["pine-engine/src/lib/ta/*"],
+      "@/lib/indicators": ["pine-engine/src/lib/indicators"],
       "@/*": ["src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/__tests__/pine"]
 }

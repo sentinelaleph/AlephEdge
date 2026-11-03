@@ -52,8 +52,8 @@ pub struct LiveTerms {
 pub fn signal_terms(cfg: &BotConfig, limits: &RiskLimits) -> LiveTerms {
     let leverage = super::engine::precheck::effective_leverage(cfg, limits);
     let lev = f64::from(leverage.max(1));
-    let (margin, max_notional) = match cfg.tv.as_ref().filter(|_| cfg.kind == super::model::BotKind::Tradingview) {
-        Some(tv) => (tv.budget_usdt, tv.max_size_usdt.min(tv.budget_usdt * lev)),
+    let (margin, max_notional) = match budget_and_size(cfg) {
+        Some((budget, size)) => (budget, size.min(budget * lev)),
         None => (cfg.capital * f64::from(cfg.max_positions), cfg.capital * lev),
     };
     LiveTerms {
@@ -65,6 +65,17 @@ pub fn signal_terms(cfg: &BotConfig, limits: &RiskLimits) -> LiveTerms {
         positions: cfg.max_positions,
         pilot_count: PILOT_TRADES,
         pilot_notional_usdt: PILOT_NOTIONAL_USDT,
+    }
+}
+
+/// The budget and size per entry of a bot that sizes its own entries: the
+/// TradingView bot (max size per alert) and the Pine bot (size per entry).
+pub fn budget_and_size(cfg: &BotConfig) -> Option<(f64, f64)> {
+    use super::model::BotKind;
+    match cfg.kind {
+        BotKind::Tradingview => cfg.tv.as_ref().map(|t| (t.budget_usdt, t.max_size_usdt)),
+        BotKind::Pine => cfg.pine.as_ref().map(|p| (p.budget_usdt, p.max_size_usdt)),
+        _ => None,
     }
 }
 

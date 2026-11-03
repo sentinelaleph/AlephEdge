@@ -26,6 +26,7 @@ In five lines:
   - [Backtest](#backtest)
   - [In-app guide](#in-app-guide)
   - [TradingView alerts](#tradingview-alerts)
+  - [Pine bot](#pine-bot)
   - [Before you trade](#before-you-trade)
   - [Assistant](#assistant)
   - [Positions and emergency controls](#positions-and-emergency-controls)
@@ -137,6 +138,16 @@ Every alert is checked before it can trade, and each refusal is logged with its 
 
 A Paper TradingView bot simulates. A Live one sends real orders on Binance USD-M futures under the same rules as every Live bot: the typed `LIVE`, the per-session arm, a verified trade-only key and the pilot caps. Spot alerts always stay on paper.
 
+### Pine bot
+
+Paste a Pine-lite script, the subset of Pine Script v5/v6 that runs on [ribqa.com/chart](https://ribqa.com/chart) and [ribqa.com/pine](https://ribqa.com/pine). The app lists the script's `alertcondition()` and `plotshape()` / `plotchar()` / `plotarrow()` triggers; map each to **Buy**, **Sell**, **Close** or **Ignore**, pick up to 10 pairs and a timeframe (15m, 1h, 4h, 1d), and start it. The script runs on your PC in an embedded interpreter. It never goes to our server, and no TradingView account is needed.
+
+- Closed bars only. A trigger acts on the newest closed bar of a run, never on older bars.
+- An action is dropped when more than 60 s have passed since the bar closed (15 to 300 s), so a PC that woke from sleep does not trade an old bar, and when the live price moved more than 0.5% from the bar's close.
+- Size per entry, budget, open positions, leverage cap and entries per day are set on the bot. The size field shows Binance's minimum for each pair.
+- A Live Pine bot needs a stop set on the bot; a Live entry never goes out without one. It uses the TradingView bot's entry path: typed `LIVE`, per-session arm, pilot caps, exchange stop and take profit placed with the order. Changing the script or its trigger map on a Live bot disarms it.
+- Not in this version: `strategy()` scripts, `request.security`, spot, several Pine bots at once and an in-app backtest of the script.
+
 ### Before you trade
 
 One page with what Sentinel has measured, read from ribqa.com without signing in:
@@ -218,6 +229,7 @@ One build for everyone. Every bot is **Paper** or **Live**, chosen when it is ma
 | DCA and Grid bots (futures) | Simulation | The simulation decides; the difference is mirrored as real market orders under one exchange stop |
 | New trade | Simulation | Real order with exchange stop and take-profit (on the Live Futures bot) |
 | TradingView alerts | Simulation | Real orders, Binance USD-M futures (spot alerts stay paper) |
+| Pine bot | Simulation | Real orders, Binance USD-M futures, with the bot's own stop |
 | Manual close on the exchange tab | Real reduce-only orders | Real reduce-only orders |
 
 Real automated orders need all of these at once: a Live bot (chosen with the typed `LIVE` and the money at risk shown: margin, leverage cap, pilot), its per-session arm (the typed `LIVE` again after every restart; a Live bot comes back stopped), a Futures bot on a venue whose order path passed its test-network run (Binance), and a verified trade-only key in an unlocked vault. Pilot caps, the daily stop, the risk level's leverage cap and the kill switch apply to every Live bot; **Stop all live** in the top bar stops and disarms them all. A real position row on a Paper bot is held out of the book, so a line in a file cannot send an order. Paper and real results are never mixed.

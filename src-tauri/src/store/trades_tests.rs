@@ -44,6 +44,7 @@ fn record(live: bool) -> TradeRecord {
         tp_target: live.then(|| "custom:40".to_string()),
         tp_fallback_from: None,
         manual: false,
+        recalc: None,
     }
 }
 

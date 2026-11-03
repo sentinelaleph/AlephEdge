@@ -742,14 +742,14 @@ mod tests {
         }
         // No dry run passed: never real money, even with the build switch on
         // and a config that says live (e.g. one kept from an older version)...
-        for venue in ["bybit", "okx"] {
+        for venue in crate::exchange::venue::ccxt::CCXT_VENUES {
             assert!(!live_trading_allowed_in(&cfg(true, venue), BotKind::Futures, false), "{venue}");
             // ...except against the venues' test networks, for the dry run.
             assert_eq!(live_trading_allowed_in(&cfg(true, venue), BotKind::Futures, true), LIVE_TRADING_ENABLED, "{venue}");
         }
-        // No order path at all (Bitget): never, sandbox or not.
+        // No order path at all (MEXC, price data only): never, sandbox or not.
         for sandbox in [false, true] {
-            assert!(!live_trading_allowed_in(&cfg(true, "bitget"), BotKind::Futures, sandbox));
+            assert!(!live_trading_allowed_in(&cfg(true, "mexc"), BotKind::Futures, sandbox));
         }
     }
 }

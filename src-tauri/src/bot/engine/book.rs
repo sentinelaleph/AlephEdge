@@ -14,21 +14,59 @@ use crate::store::StoreManager;
 
 use super::super::model::{BotKind, OpenPosition};
 use super::super::BotManager;
+use super::catch_up_io::{self, CatchUp};
 use super::record::stamp_veto_reason;
 use super::{close_price, live_close, live_manage, live_price, management, now_ms};
+
+/// A paper position's `last_seen_ms` is saved at most this often.
+const LAST_SEEN_SAVE_MS: u64 = 60_000;
 
 // The trade records are pure and live in `record.rs` (shared with the
 // headless bot farm); re-exported so `book::trade_record` keeps its path.
 pub use super::record::{trade_record, veto_trade_record};
 
 /// Runs the management plan for every open position at the live price.
-/// Invalidation never closes (see `management`); it is noted once.
+/// A live position's invalidation never closes it (see `management`); it is
+/// noted once. A PAPER position first follows Sentinel's graded close and
+/// replays the minutes the book did not see (`catch_up`).
 pub async fn close_phase(app: &AppHandle) {
     let bots = app.state::<BotManager>();
     let exchange = app.state::<ExchangeManager>();
     let signals = app.state::<SignalManager>();
 
     for mut pos in bots.positions_snapshot() {
+        if !pos.is_live() {
+            let now = now_ms();
+            let gap_from = (!bots.watched_recently(&pos.signal_id, pos.bot_kind, now)).then_some(
+                if pos.last_seen_ms > 0 { pos.last_seen_ms } else { pos.opened_at },
+            );
+            let invalidated = signals.is_invalidated(&pos.signal_id)
+                || signals.regime_veto(&pos.signal_id).is_some();
+            let max_loss = bots.config_for(pos.bot_kind).and_then(|c| c.max_loss_pct);
+            match catch_up_io::paper_catch_up(app, &mut pos, gap_from, invalidated, max_loss, now).await {
+                CatchUp::Close(record) => {
+                    if bots.claim_open(&pos.signal_id, pos.bot_kind) {
+                        close_with_record(app, &pos, &record);
+                        bots.closing.release(&pos.signal_id, pos.bot_kind);
+                    }
+                    continue;
+                }
+                // Saved now: the replay may have armed breakeven or banked
+                // the partial, and the gap counts as seen from here on.
+                CatchUp::Replayed => {
+                    bots.mark_watched(&pos.signal_id, pos.bot_kind, now);
+                    pos.last_seen_ms = now;
+                    if bots.claim_open(&pos.signal_id, pos.bot_kind) {
+                        save_position(app, &pos);
+                        bots.closing.release(&pos.signal_id, pos.bot_kind);
+                    }
+                }
+                CatchUp::Failed(key) => {
+                    bots.skip_once(pos.bot_kind, &pos.signal_id, &pos.symbol, key, None);
+                }
+                CatchUp::Nothing => {}
+            }
+        }
         // Backstop for Sentinel's veto: the SSE handler closes at receipt,
         // but a veto learned by backfill, or whose close failed or found the
         // position claimed, is closed here, retried every tick until it holds.
@@ -66,6 +104,13 @@ pub async fn close_phase(app: &AppHandle) {
         if step.exit.is_none() {
             bots.mark_watched(&pos.signal_id, pos.bot_kind, now);
         }
+        // Where the catch-up resumes after a restart (paper only).
+        let seen_due = !pos.is_live()
+            && step.exit.is_none()
+            && now.saturating_sub(pos.last_seen_ms) >= LAST_SEEN_SAVE_MS;
+        if seen_due {
+            pos.last_seen_ms = now;
+        }
 
         if step.note_invalidation {
             bots.skip_once(
@@ -81,7 +126,7 @@ pub async fn close_phase(app: &AppHandle) {
         // back off rather than record a second close on it. A live position
         // being managed takes the claim too: moving its exchange stop while a
         // veto flattens it would leave a stop on a flat symbol.
-        let claimed = step.needs_claim(pos.is_live());
+        let claimed = step.needs_claim(pos.is_live()) || seen_due;
         if claimed && !bots.claim_open(&pos.signal_id, pos.bot_kind) {
             continue;
         }
@@ -102,7 +147,7 @@ pub async fn close_phase(app: &AppHandle) {
             }
             Some(exit) => close_position(app, &pos, exit.price, exit.reason),
             None => {
-                let mut changed = step.changed;
+                let mut changed = step.changed || seen_due;
                 if pos.is_live() {
                     // Mirror the plan onto the exchange: a partial just banked
                     // reduces the real quantity; an armed breakeven moves the

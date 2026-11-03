@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { deriveAlerts, useAlertPrefs, useNow, useVaultAutoLockedAt } from "@/app/alerts";
+import { alertSignature, deriveAlerts, useAlertPrefs, useNow, useVaultAutoLockedAt } from "@/app/alerts";
 import { useDeskContext } from "@/app/DeskProvider";
 import { back, ensureInitialRoute, forward, navigate, useRoute } from "@/app/router/router";
 import { KEYS_PATH, type ParsedRoute } from "@/app/router/routes";
@@ -19,6 +19,7 @@ import { BotNewPage } from "@/pages/Bots/BotNewPage";
 import { BotsPage } from "@/pages/Bots/BotsPage";
 import { SignalBotsPage } from "@/pages/Bots/SignalBotsPage";
 import { TvBotPage } from "@/pages/Bots/tradingview/TvBotPage";
+import { PineBotPage } from "@/pages/Bots/pine/PineBotPage";
 import { StrategyBotsPage } from "@/pages/Bots/StrategyBotsPage";
 import { StrategyCreatePage } from "@/pages/Bots/StrategyCreatePage";
 import { DashboardPage } from "@/pages/Dashboard/DashboardPage";
@@ -112,6 +113,8 @@ export function renderRoute(route: ParsedRoute): ReactNode {
       return <SignalBotsPage />;
     case "tvBot":
       return <TvBotPage />;
+    case "pineBot":
+      return <PineBotPage />;
     case "dcaBots":
       return <StrategyBotsPage kind="dca" />;
     case "gridBots":
@@ -220,10 +223,12 @@ export function AppShell() {
     [ctx, t, lockedAt, now, prefs],
   );
   const seen = useRef(new Set<string>());
-  const signature = (a: { key: string; count?: number }) => `${a.key}:${a.count ?? 1}`;
-  const unread = alerts.filter((a) => !seen.current.has(signature(a))).length;
+  const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set());
+  const unread = alerts.filter((a) => !seen.current.has(alertSignature(a))).length;
   const openAlerts = () => {
-    alerts.forEach((a) => seen.current.add(signature(a)));
+    // What the badge counted is what the drawer marks New.
+    if (!alertsOpen) setFresh(new Set(alerts.filter((a) => !seen.current.has(alertSignature(a))).map((a) => a.key)));
+    alerts.forEach((a) => seen.current.add(alertSignature(a)));
     setAlertsOpen((v) => !v);
   };
 
@@ -345,7 +350,7 @@ export function AppShell() {
           </Suspense>
         </main>
         <StatusBar />
-        <AlertsDrawer open={alertsOpen} alerts={alerts} onClose={() => setAlertsOpen(false)} />
+        <AlertsDrawer open={alertsOpen} alerts={alerts} fresh={fresh} onClose={() => setAlertsOpen(false)} />
       </div>
     </ShellSlotsContext.Provider>
   );

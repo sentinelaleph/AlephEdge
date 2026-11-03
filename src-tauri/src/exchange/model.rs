@@ -18,12 +18,19 @@ pub struct ExchangeStatus {
 }
 
 /// Secret-free catalog entry for the UI (exchange picker, health strip).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExchangeInfo {
     pub id: String,
     pub name: String,
     pub supports_futures: bool,
+    /// Spot prices are read (false: perpetuals only, e.g. Hyperliquid).
+    pub supports_spot: bool,
+    /// One of the 15 venues (`venue/caps.rs`): an order venue's
+    /// capabilities and live state, or a price-data / paper venue. None for
+    /// exchanges outside the 15 (MEXC, CoinDCX, Bitso).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub venue: Option<super::venue::caps::VenueView>,
 }
 
 /// How an exchange writes a `BASE`/`USDT` pair in its ticker URL.
@@ -37,6 +44,22 @@ pub enum SymbolStyle {
     Underscore,
     /// btc_usdt (Bitso).
     UnderscoreLower,
+    /// btcusdt (HTX spot).
+    PlainLower,
+    /// XBTUSDTM (KuCoin Futures: BTC is XBT).
+    KucoinPerp,
+    /// PERP_BTC_USDT / SPOT_BTC_USDT (WOO X).
+    WooPerp,
+    WooSpot,
+    /// PF_XBTUSD (Kraken Futures multi-collateral perpetual, USD).
+    KrakenPerp,
+    /// BTC_USDC-PERPETUAL (Deribit linear USDC perpetual).
+    DeribitUsdc,
+    /// tBTCF0:USTF0 / tBTCUST (Bitfinex perpetual / spot; UST = USDT).
+    BitfinexPerp,
+    BitfinexSpot,
+    /// BTC, the bare coin (Hyperliquid allMids, a map keyed by coin).
+    Base,
 }
 
 /// One step of a price-extraction path through the JSON response.
@@ -48,6 +71,8 @@ pub enum Seg {
     /// Index a map by the exchange-formatted symbol (e.g. CoinDCX's
     /// `current_prices` is keyed by market name).
     SymbolKey,
+    /// The n-th element of an array (Bitfinex tickers are arrays).
+    Index(usize),
 }
 
 /// How to reach and read one market (spot or futures) of an exchange.
@@ -60,15 +85,18 @@ pub struct MarketSpec {
     pub suffix: &'static str,
     /// Path to the last-price value (string or number) in the response.
     pub price_path: &'static [Seg],
+    /// A JSON body to POST instead of a GET (the Hyperliquid info endpoint).
+    pub post: Option<&'static str>,
 }
 
-/// A Tier-1 exchange: id, display name, and its spot/futures market specs.
+/// A catalog exchange: id, display name, and its spot/futures market specs.
 #[derive(Debug, Clone, Copy)]
 pub struct ExchangeSpec {
     pub id: &'static str,
     pub name: &'static str,
-    pub spot: MarketSpec,
-    /// None for spot-only exchanges (none in the current USDT-only set).
+    /// None for perpetual-only venues (Hyperliquid, Kraken Futures, Deribit).
+    pub spot: Option<MarketSpec>,
+    /// None for spot-only exchanges (CoinDCX, Bitso).
     pub futures: Option<MarketSpec>,
 }
 
@@ -78,10 +106,13 @@ impl ExchangeSpec {
     }
 
     pub fn info(&self) -> ExchangeInfo {
+        let venue = super::venue::caps::view_of(self.id, &super::orders::DRY_RUN_PASSED);
         ExchangeInfo {
             id: self.id.to_string(),
             name: self.name.to_string(),
             supports_futures: self.supports_futures(),
+            supports_spot: self.spot.is_some(),
+            venue,
         }
     }
 }

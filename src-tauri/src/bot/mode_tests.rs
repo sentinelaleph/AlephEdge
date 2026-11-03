@@ -90,7 +90,7 @@ fn going_live_needs_futures_a_dry_run_venue_and_the_typed_word() {
     assert_eq!(on(BotKind::Spot, "binance", LIVE_CONFIRMATION).as_deref(), Some("liveFuturesBinanceOnly"));
     assert_eq!(on(BotKind::Pump, "binance", LIVE_CONFIRMATION).as_deref(), Some("liveFuturesBinanceOnly"));
     assert!(on(BotKind::Futures, "bybit", LIVE_CONFIRMATION).is_some(), "no dry run passed");
-    assert!(on(BotKind::Futures, "bitget", LIVE_CONFIRMATION).is_some(), "no order path");
+    assert!(on(BotKind::Futures, "mexc", LIVE_CONFIRMATION).is_some(), "no order path");
     // A binary without the order path (the bot farm's) never goes live.
     assert_eq!(live_enable_refusal(false, BotKind::Futures, "binance", LIVE_CONFIRMATION, false).as_deref(), Some("liveBuildDisabled"));
 }

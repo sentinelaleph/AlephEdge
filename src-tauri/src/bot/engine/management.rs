@@ -15,9 +15,11 @@
 //!      price has not reached by then exits here, on time, not at the target,
 //!   6. the user's own max-loss cap.
 //!
-//! Server invalidation does NOT close: closing filled positions on the BTC
-//! guard loses value, and the server keeps that close off too. It only yields
-//! a note.
+//! Server invalidation does NOT close here; it only yields a note. A live
+//! position keeps its exchange stop and target. A PAPER position follows the
+//! close Sentinel grades for the invalidation, at Sentinel's price and time,
+//! before this step runs (`catch_up`; the 26 Oct 2026 counterfactual read:
+//! since the 11 Aug strength floor these cuts lose less than holding).
 //!
 //! Exit prices (`Fill`): the desktop books a paper stop, target or partial at
 //! its level, as the resting exchange orders of a live position and

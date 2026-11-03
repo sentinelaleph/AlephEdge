@@ -180,16 +180,12 @@ pub fn list(conn: &Connection, limit: u32) -> Result<Vec<TradeRecord>, String> {
                 // construction, so derived on read (legacy rows included).
                 pnl_usdt: r.get(11)?,
                 pnl_pct_of_capital: r.get(10)?,
+                recalc: None,
             })
         })
         .map_err(|_| "storeQueryFailed".to_string())?;
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|_| "storeRowMalformed".to_string())
-}
-
-/// Aggregates in one pass over closed trades (oldest → newest for drawdown).
-pub fn stats(conn: &Connection, utc_day_start_ms: u64) -> Result<PnlStats, String> {
-    stats_scoped(conn, utc_day_start_ms, None)
 }
 
 /// `stats` over real trades only (`Some(true)`), simulated only

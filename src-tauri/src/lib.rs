@@ -22,6 +22,7 @@ mod bot;
 mod exchange;
 mod link;
 mod market;
+mod pine;
 mod membership;
 mod risk;
 mod riskview;
@@ -131,6 +132,13 @@ pub fn run() {
             app::foreign_fill::spawn(app.handle());
             // BTC regime from launch, not only once a bot runs.
             bot::engine::spawn_regime_poller(app.handle().clone());
+            // Paper trades booked before the catch-up: recalculated on
+            // Sentinel's graded close, once, beside the original rows.
+            let recalc_app = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(20)).await;
+                bot::engine::catch_up_io::recalc_old_trades(&recalc_app).await;
+            });
             // Auto-lock the vault once it has been idle for its configured
             // budget. Started here, unconditionally and for the life of the
             // process, so an unattended desk never holds decrypted exchange
@@ -165,6 +173,7 @@ pub fn run() {
         .manage(link::commands::LinkRuntime::new())
         .manage(telegram::TelegramManager::new())
         .manage(tvlink::TvManager::new())
+        .manage(bot::pinebot::PineManager::new())
         .manage(app::foreign_fill::ForeignFillManager::new())
         .manage(RiskViewManager::new())
         .manage(assistant::AssistantManager::new())
@@ -193,6 +202,14 @@ pub fn run() {
             tvlink::commands::tv_results,
             tvlink::commands::tv_set_notice,
             tvlink::commands::tv_symbol_minimum,
+            bot::pinebot::commands::pine_compile,
+            bot::pinebot::commands::pine_default_config,
+            bot::pinebot::commands::pine_get_config,
+            bot::pinebot::commands::pine_save_config,
+            bot::pinebot::commands::pine_start,
+            bot::pinebot::commands::pine_stop,
+            bot::pinebot::commands::pine_status,
+            bot::pinebot::commands::pine_results,
             get_health_snapshot,
             get_endpoints,
             app_version,

@@ -9,11 +9,13 @@ mod judged;
 pub(crate) mod restore;
 pub mod live_terms;
 pub mod model;
+pub(crate) mod pinebot;
 pub(crate) mod strategy;
 pub mod strategy_live;
 
 pub(crate) use commands::{apply_config, KeepLive};
 pub use commands::LIVE_CONFIRMATION;
+pub use commands::{close_position_as, TRIGGER_EXIT_REASON};
 pub use commands::{
     bot_close_live_and_paper, bot_close_position, bot_configure, bot_default_config, bot_end_pilot, bot_live_terms, bot_preview_take, bot_set_live,
     bot_start, bot_status, bot_stop, bot_take_signal, bot_open_trade, bot_preview_trade, live_stop_all,
@@ -81,7 +83,7 @@ pub fn save_pilot(store: &StoreManager, dir: &std::path::Path, kind: BotKind, le
 }
 
 /// Every bot kind of the book, in the stored order.
-pub const ALL_KINDS: [BotKind; 4] = [BotKind::Futures, BotKind::Spot, BotKind::Pump, BotKind::Tradingview];
+pub const ALL_KINDS: [BotKind; 5] = [BotKind::Futures, BotKind::Spot, BotKind::Pump, BotKind::Tradingview, BotKind::Pine];
 
 /// `meta` key holding one bot's saved config.
 pub(crate) fn config_key(kind: BotKind) -> String {
@@ -228,6 +230,10 @@ impl BotManager {
         // a bot never runs on settings that would skip every signal.
         cfg.validate()?;
         commands::check_capital_cap(&cfg, app.state::<RiskManager>().state().max_capital_quote)?;
+        // A start of the Pine bot ends a halt after failed runs.
+        if kind == BotKind::Pine {
+            pinebot::on_start(&app);
+        }
         self.running.lock().expect("bot mutex").insert(kind);
         self.save_running(&app);
         self.ensure_loop(app);
@@ -753,6 +759,9 @@ impl BotManager {
             pump_running: running.contains(&BotKind::Pump),
             tradingview_running: running.contains(&BotKind::Tradingview),
             tradingview_pilot_left: self.pilot_left(BotKind::Tradingview),
+            pine: configs.get(&BotKind::Pine).cloned(),
+            pine_running: running.contains(&BotKind::Pine),
+            pine_pilot_left: self.pilot_left(BotKind::Pine),
             open_positions,
             recent_skips: self
                 .skips

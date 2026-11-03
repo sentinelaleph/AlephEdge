@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber/AnimatedNumber";
-import { LiveChip, ManualChip } from "@/components/ui/Chip/Chip";
+import { LiveChip, ManualChip, RecalcChip } from "@/components/ui/Chip/Chip";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState/EmptyState";
 import { KpiGrid } from "@/components/ui/KpiGrid/KpiGrid";
@@ -40,6 +40,7 @@ const SCOPES: PnlScope[] = ["simulated", "real"];
  * tooltip is Sentinel's own per-trade reason text, not a static string.
  */
 const EXIT_REASONS_WITH_TOOLTIP = new Set([
+  "trigger",
   "breakeven",
   "horizon",
   "max_loss",
@@ -117,7 +118,16 @@ export function PnlPanel({ pnl, trades, stats, children }: PnlPanelProps) {
         <span className="ae-pnl__sym">
           {tr.symbol}
           {isLiveTrade(tr) ? <LiveChip /> : null}
-          {tr.manual ? <ManualChip signalId={tr.signalId} /> : null}
+          {tr.manual ? <ManualChip signalId={tr.signalId} botKind={tr.botKind} /> : null}
+          {tr.booked ? (
+            <RecalcChip
+              title={t("pnl.recalculatedTip", {
+                reason: t(`pnl.exit.${tr.booked.exitReason}`, { defaultValue: tr.booked.exitReason }),
+                pnl: formatSignedPercent(tr.booked.pnlPct, locale),
+                time: formatTableTime(tr.booked.closedAt, locale),
+              })}
+            />
+          ) : null}
         </span>
       ),
     },

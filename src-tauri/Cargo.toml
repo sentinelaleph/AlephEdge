@@ -1,6 +1,6 @@
 [package]
 name = "aleph-edge"
-version = "0.3.21"
+version = "0.3.22"
 description = "Aleph Edge — Sentinel Aleph automated trading bot"
 authors = ["Sentinel Aleph"]
 edition = "2021"
@@ -33,6 +33,11 @@ serde = { version = "1", features = ["derive"] }
 # float_roundtrip: strategy cycle state is persisted as JSON and must come
 # back bit-identical, or a restart would move order prices by an ulp.
 serde_json = { version = "1", features = ["float_roundtrip"] }
+# Pine bot script runner (src/pine): the Pine-lite engine bundle runs in an
+# embedded QuickJS context, no network / file / eval surface (spec D1-A).
+# Default features only (no loader, no futures): the context gets the bundle
+# and JSON in, JSON out.
+rquickjs = "=0.14.0"
 
 # Vault crypto — key material never leaves the device.
 argon2 = "0.6"
@@ -66,7 +71,16 @@ ed25519-dalek = "2.2"
 # Sentinel signal stream (SSE over a streamed HTTP body).
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
 # Order layer for exchanges other than Binance (Binance keeps its own, testnet-verified layer).
-ccxt = { version = "=4.5.85", default-features = false, features = ["bybit", "okx"] }
+# One feature per venue (exchange/venue/caps.rs). ccxt-base's dependencies
+# are the same for every feature, so adding a venue adds code, not crates.
+# Only venues that can go live after a testnet dry run have a feature; the
+# price-data / paper venues read public REST tickers (providers::CATALOG).
+# Hyperliquid is price data / paper only in 0.3.22: its orders sign with
+# secp256k1 (k256 -> crypto-bigint 0.5.5, RUSTSEC-2026-0387), see
+# .cargo/audit.toml.
+ccxt = { version = "=4.5.85", default-features = false, features = [
+    "bybit", "okx", "bitget", "gate", "bingx", "woo", "deribit",
+] }
 futures-util = "0.3"
 tokio = { version = "1", features = ["time", "sync", "macros"] }
 

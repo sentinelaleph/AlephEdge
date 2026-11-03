@@ -1,6 +1,6 @@
 {
   "name": "aleph-edge",
-  "version": "0.3.21",
+  "version": "0.3.22",
   "description": "Aleph Edge — Sentinel Aleph automated trading bot (Tauri desktop)",
   "type": "module",
   "private": true,
@@ -9,7 +9,10 @@
     "build": "tsc && vite build && node scripts/check-no-dev-mocks.cjs",
     "build:check": "node scripts/check-no-dev-mocks.cjs",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p pine-engine",
+    "pine:bundle": "node scripts/pine-bundle.cjs",
+    "pine:sync": "node scripts/pine-sync-check.cjs",
+    "pine:fixtures": "node scripts/pine-fixtures.cjs",
     "check:i18n": "node scripts/check-locale-parity.cjs",
     "tauri": "tauri",
     "test": "vitest run"
@@ -30,6 +33,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "esbuild": "0.28.2",
     "jsdom": "^30.1.3",
     "typescript": "^5.7.2",
     "vite": "^8.3.4",

@@ -2,13 +2,10 @@
 //! the arithmetic is `trades::aggregate`, the same as the totals, so the
 //! per-bot rows always add up to the desk figures.
 
-use std::collections::BTreeMap;
-
 use rusqlite::Connection;
 use serde::Serialize;
 
 use super::model::PnlStats;
-use super::trades;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -20,29 +17,9 @@ pub struct BotStats {
 /// Stats per `bot_kind` over real (`Some(true)`), simulated (`Some(false)`)
 /// or all trades, bots in name order.
 pub fn by_bot(conn: &Connection, utc_day_start_ms: u64, live: Option<bool>) -> Result<Vec<BotStats>, String> {
-    let filter = match live {
-        Some(true) => " WHERE live = 1",
-        Some(false) => " WHERE live = 0",
-        None => "",
-    };
-    let mut stmt = conn
-        .prepare(&format!(
-            "SELECT bot_kind, pnl_quote, pnl_pct, exit_reason, closed_at FROM trades{filter} ORDER BY closed_at ASC"
-        ))
-        .map_err(|_| "storeQueryFailed".to_string())?;
-    let rows: Vec<(String, f64, f64, String, u64)> = stmt
-        .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)))
-        .map_err(|_| "storeQueryFailed".to_string())?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|_| "storeRowMalformed".to_string())?;
-    let mut per: BTreeMap<String, Vec<(f64, f64, String, u64)>> = BTreeMap::new();
-    for (kind, q, pct, reason, at) in rows {
-        per.entry(kind).or_default().push((q, pct, reason, at));
-    }
-    Ok(per
-        .into_iter()
-        .map(|(bot_kind, rows)| BotStats { stats: trades::aggregate(&rows, utc_day_start_ms), bot_kind })
-        .collect())
+    // On the figures the desk shows: a recalculated paper trade counts as
+    // recalculated (`store::recalc`).
+    super::recalc::shown_by_bot(conn, utc_day_start_ms, live)
 }
 
 #[cfg(test)]
@@ -68,6 +45,7 @@ mod tests {
     fn per_bot_rows_add_up_to_the_desk_totals() {
         let conn = Connection::open_in_memory().unwrap();
         trades::migrate(&conn).unwrap();
+        super::super::recalc::migrate(&conn).unwrap();
         for t in [
             trade("spot", 2.0, "tp", 10, false),
             trade("spot", -1.0, "sl", 20, false),

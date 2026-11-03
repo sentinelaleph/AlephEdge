@@ -1,0 +1,23 @@
+/* Pine bot (#/bots/pine): the script editor and the per-symbol run readouts. */
+.ae-pine__script {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 4;
+}
+.ae-pine__compile {
+  margin: var(--space-2) 0;
+  overflow-wrap: anywhere;
+}
+.ae-pine__symbol + .ae-pine__symbol {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.ae-pine__symbolhead {
+  margin: 0 0 var(--space-1);
+  font-weight: 600;
+}

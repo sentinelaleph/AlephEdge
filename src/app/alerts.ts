@@ -36,6 +36,34 @@ export interface DeskAlert {
   at?: number;
 }
 
+/** The page an alert opens (route path and its nav label), or null. */
+export function alertTarget(a: Pick<DeskAlert, "key" | "category">): { to: string; labelKey: string } | null {
+  if (a.key.startsWith("strategyDead:") || a.key === "deskError") return { to: "/bots", labelKey: "nav.allBots" };
+  switch (a.category) {
+    case "killSwitch":
+    case "portfolioRisk":
+      return { to: "/risk", labelKey: "nav.risk" };
+    case "stopLoss":
+    case "dealClosed":
+      return { to: "/history", labelKey: "nav.history" };
+    case "streamDown":
+      return { to: "/signals", labelKey: "nav.signals" };
+    case "budget":
+    case "botError":
+      return { to: "/bots/signal", labelKey: "nav.signalBots" };
+    case "regime":
+      return { to: "/before-you-trade", labelKey: "nav.beforeYouTrade" };
+    default:
+      return null;
+  }
+}
+
+/**
+ * What makes an alert new to the reader: its key and count. A count that
+ * grows (cycles closed today 9 -> 10) is new; the same alert held is not.
+ */
+export const alertSignature = (a: Pick<DeskAlert, "key" | "count">) => `${a.key}:${a.count ?? 1}`;
+
 /* ---- Vault auto-lock: the gate takes over, so the time is kept for after unlock. ---- */
 
 let autoLockedAt: number | null = null;

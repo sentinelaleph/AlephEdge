@@ -2,6 +2,7 @@ import type { BotConfig, BotDeskStatus, BotKind, LiveTerms, OpenPosition, TradeM
 import { ALL_KINDS, botMode, kindRunning } from "@/lib/ipc/bot/bot";
 import type { StrategyBotView, StrategyConfig, StrategyLiveView } from "@/lib/ipc/strategy/strategy";
 import { isActive } from "@/lib/ipc/strategy/strategy";
+import type { PineSettings } from "@/lib/ipc/pine/pine";
 
 /**
  * Paper / Live per bot (0.3.19, one build). Pure helpers shared by the
@@ -45,9 +46,30 @@ export function holdsPaper(positions: OpenPosition[], kind: BotKind): boolean {
   return positions.some((p) => p.botKind === kind && !p.live);
 }
 
+/** A stable text of a JSON value (object keys sorted), for comparisons. */
+function stable(v: unknown): string {
+  if (v === null || typeof v !== "object") return JSON.stringify(v) ?? "";
+  if (Array.isArray(v)) return `[${v.map(stable).join(",")}]`;
+  const o = v as Record<string, unknown>;
+  return `{${Object.keys(o).sort().map((k) => `${JSON.stringify(k)}:${stable(o[k])}`).join(",")}}`;
+}
+
+/**
+ * What a Pine bot's Live arm confirmed besides the sizing (Rust
+ * `PineSettings::same_script_terms`, plus budget and size per entry): the
+ * script, its triggers and inputs, the bars and the exits.
+ */
+export function pineTermsChanged(a: PineSettings | undefined, b: PineSettings | undefined): boolean {
+  if (!a || !b) return !!a !== !!b;
+  const terms = (p: PineSettings) =>
+    stable([p.script, p.triggers, p.inputs, p.timeframe, p.symbols, p.stopPct, p.takeProfitPct, p.stopInput, p.targetInput, p.budgetUsdt, p.maxSizeUsdt]);
+  return terms(a) !== terms(b);
+}
+
 /**
  * What Rust's `live_terms_changed` compares: the sizing the typed LIVE
- * confirmed, and for the TradingView bot its budget and max size per alert.
+ * confirmed, for the TradingView bot its budget and max size per alert, and
+ * for the Pine bot its script terms.
  */
 export function liveTermsChanged(saved: BotConfig, next: BotConfig): boolean {
   return (
@@ -56,7 +78,8 @@ export function liveTermsChanged(saved: BotConfig, next: BotConfig): boolean {
     saved.maxPositions !== next.maxPositions ||
     saved.exchangeId !== next.exchangeId ||
     saved.tv?.budgetUsdt !== next.tv?.budgetUsdt ||
-    saved.tv?.maxSizeUsdt !== next.tv?.maxSizeUsdt
+    saved.tv?.maxSizeUsdt !== next.tv?.maxSizeUsdt ||
+    pineTermsChanged(saved.pine, next.pine)
   );
 }
 

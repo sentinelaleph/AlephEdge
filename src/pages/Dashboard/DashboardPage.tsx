@@ -302,19 +302,21 @@ export function DashboardPage() {
               })}
             </span>
           </li>
-          {configured.some((r) => r.type === "tradingview") ? (
-            <li>
-              <Link to="/bots/tradingview" className="ae-link">
-                {t("botsList.type.tradingview")}
-              </Link>
-              <span className="tabular">
-                {t("dashboard.runningOf", {
-                  running: running.filter((r) => r.type === "tradingview").length,
-                  total: configured.filter((r) => r.type === "tradingview").length,
-                })}
-              </span>
-            </li>
-          ) : null}
+          {(["tradingview", "pine"] as const).map((type) =>
+            configured.some((r) => r.type === type) ? (
+              <li key={type}>
+                <Link to={`/bots/${type}`} className="ae-link">
+                  {t(`botsList.type.${type}`)}
+                </Link>
+                <span className="tabular">
+                  {t("dashboard.runningOf", {
+                    running: running.filter((r) => r.type === type).length,
+                    total: configured.filter((r) => r.type === type).length,
+                  })}
+                </span>
+              </li>
+            ) : null,
+          )}
           <li>
             <Link to="/bots/dca" className="ae-link">
               {t("nav.dcaBots")}

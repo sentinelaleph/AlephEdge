@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/Button/Button";
 import { Panel } from "@/components/ui/Panel/Panel";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { exchangeName as catalogName } from "@/lib/ipc/exchange/exchange";
+import { exchangeName as catalogName, type ExchangeInfo } from "@/lib/ipc/exchange/exchange";
 import { useExchangeCatalog } from "@/lib/ipc/exchange/useExchangeCatalog";
 import type { AddCredentialInput, CredentialPermission, KeyType } from "@/lib/ipc/vault/vault";
 import { venueNotDryRun } from "@/lib/venues";
@@ -19,10 +19,12 @@ interface AddKeyFormProps {
   onCancel?: () => void;
 }
 
-/** Exchanges whose key permissions the vault can verify (vault/commands.rs). */
-const VERIFIED_EXCHANGES = new Set(["binance", "bybit", "okx"]);
-/** Exchanges whose API keys come with a passphrase. */
-const PASSPHRASE_REQUIRED = new Set(["okx"]);
+/**
+ * The exchanges a key can be added for: the order venues, whose key
+ * permissions the vault verifies as trade-only. Price-data / paper venues
+ * take no key.
+ */
+const keyVenues = (list: ExchangeInfo[] | null) => (list ?? []).filter((x) => Boolean(x.venue?.orders));
 
 const EMPTY = {
   exchangeId: "binance",
@@ -50,7 +52,8 @@ export function AddKeyForm({ onAdd, busy, error, onCancel }: AddKeyFormProps) {
   // if left blank it defaults to the exchange's display name so a missing label
   // never blocks adding a key (it only needs to disambiguate multiple keys).
   // The catalog must have loaded: the exchange picker IS the catalog.
-  const needsPassphrase = PASSPHRASE_REQUIRED.has(form.exchangeId);
+  const orders = catalog.exchanges?.find((x) => x.id === form.exchangeId)?.venue?.orders;
+  const needsPassphrase = orders?.keyFields === "keySecretPassphrase";
   const ed25519 = keyType === "ed25519" && ED25519_EXCHANGES.has(form.exchangeId);
   const secretOk = ed25519 ? edReady : Boolean(form.apiSecret.trim());
   const canSubmit =
@@ -100,7 +103,7 @@ export function AddKeyForm({ onAdd, busy, error, onCancel }: AddKeyFormProps) {
               onChange={(e) => set("exchangeId", e.target.value)}
               disabled={busy || catalog.exchanges === null}
             >
-              {(catalog.exchanges ?? []).filter((x) => VERIFIED_EXCHANGES.has(x.id)).map((x) => (
+              {keyVenues(catalog.exchanges).map((x) => (
                 <option key={x.id} value={x.id}>
                   {x.name}
                 </option>
@@ -151,6 +154,7 @@ export function AddKeyForm({ onAdd, busy, error, onCancel }: AddKeyFormProps) {
 
         <p className="ae-subtle">{t("vault.tradeOnlyRule")}</p>
         {venueNotDryRun(undefined, form.exchangeId) ? <p className="ae-error" role="note">{t("vault.venueNotDryRun", { exchange: exchangeName })}</p> : null}
+
 
         {catalog.error ? (
           <>

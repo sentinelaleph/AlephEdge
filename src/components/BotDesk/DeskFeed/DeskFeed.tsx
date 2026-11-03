@@ -46,7 +46,7 @@ export function DeskFeed({ positions, skips }: DeskFeedProps) {
           </span>
           {p.symbol}
           {isLivePosition(p) ? <LiveChip /> : null}
-          {p.manual ? <ManualChip signalId={p.signalId} /> : null}
+          {p.manual ? <ManualChip signalId={p.signalId} botKind={p.botKind} /> : null}
         </span>
       ),
     },

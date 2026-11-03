@@ -229,6 +229,19 @@ export interface LadderRung {
   liqPrice: number | null;
 }
 
+/**
+ * What the DCA stop loss costs on the fully filled ladder (Rust
+ * `validate::sl_estimate`): every safety order bought, all of it closed at
+ * the stop, exit fee and slippage included. `stopPrice` / `avgEntry` are
+ * null when no price is known.
+ */
+export interface SlEstimate {
+  stopPrice: number | null;
+  avgEntry: number | null;
+  lossQuote: number;
+  lossPctOfBudget: number;
+}
+
 export interface DcaPreview {
   rungs: LadderRung[];
   lastSoPrice: number | null;
@@ -245,6 +258,8 @@ export interface DcaPreview {
   minTpPct: number;
   /** Take profit after one round trip of fees and slippage, %. */
   tpNetPct: number;
+  /** The stop loss's price and cost; null without a stop loss. */
+  slEstimate: SlEstimate | null;
 }
 
 export interface GridLevelRow {
@@ -532,6 +547,8 @@ export interface ValidationReport {
   error: StrategyErrorDto | null;
   /** As PreviewDto.minBudget (price-free). */
   minBudget: number | null;
+  /** As DcaPreview.slEstimate, price-free (stopPrice / avgEntry null). */
+  slEstimate: SlEstimate | null;
 }
 
 /** Bounds check without a price (used when the preview has no price). */

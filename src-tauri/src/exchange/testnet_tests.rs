@@ -2,15 +2,17 @@
 //! per run. Ignored by default; it runs only with test-network keys in the
 //! environment and never against a real account:
 //!
-//!   ALEPH_TESTNET_VENUE=binance|bybit|okx ALEPH_TESTNET_KEY=... \
-//!     ALEPH_TESTNET_SECRET=... [ALEPH_TESTNET_PASSPHRASE=... (OKX)] \
+//!   ALEPH_TESTNET_VENUE=<venue id> ALEPH_TESTNET_KEY=... \
+//!     ALEPH_TESTNET_SECRET=... [ALEPH_TESTNET_PASSPHRASE=... (OKX, Bitget)] \
 //!     cargo test testnet_dry_run -- --ignored --nocapture
 //!
 //! Binance: the futures base is forced to the testnet, and the run refuses
-//! to send anything if it resolves to production. Bybit / OKX: the run sets
-//! `ALEPH_EDGE_VENUE_SANDBOX=1` before the first client exists, so ccxt talks
-//! to Bybit's testnet / OKX's demo trading (`x-simulated-trading: 1`). Full
-//! steps and key setup: docs/venue-dry-run.md.
+//! to send anything if it resolves to production. Every other venue: the run
+//! sets `ALEPH_EDGE_VENUE_SANDBOX=1` before the first client exists, so ccxt
+//! talks to the venue's test network (`venue::caps::VenueCaps::testnet`).
+//! Every order venue has one; the price-data / paper venues have no order
+//! path and are refused. `dry_run_plan` lists every venue's row. Full steps
+//! and key setup: docs/venue-dry-run.md.
 //!
 //! Steps, in the order a real-money bot uses them: account read (flat start,
 //! one-way mode), symbol rules, isolated + leverage, entry by client id, the
@@ -30,6 +32,31 @@ use super::providers::binance_requests::{entry_client_id, Protective};
 use super::providers::binance_rules::{quantize_price, quantize_qty, SymbolRules};
 use super::{breakeven_move, venue_order_client_id, BreakevenMove, ExchangeManager};
 use crate::vault::model::ExchangeCredential;
+
+/// The test network of an order venue (`venue::caps::VENUES`); None for
+/// anything else, which has no order path to dry run.
+fn test_network(venue: &str) -> Option<&'static str> {
+    super::venue::caps::caps(venue)?.testnet
+}
+
+/// The dry-run plan of every order venue, as `docs/venue-dry-run.md` lists it.
+#[test]
+fn dry_run_plan() {
+    use super::venue::caps::{KeyFields, PAPER_VENUES, VENUES};
+    for v in VENUES {
+        let keys = match v.key_fields {
+            KeyFields::KeySecret => "key + secret",
+            KeyFields::KeySecretPassphrase => "key + secret + passphrase",
+        };
+        let net = test_network(v.id).expect("every order venue has a test network");
+        println!("{:<12} {:<40} {net}", v.id, keys);
+    }
+    assert_eq!(test_network("binance"), Some("Binance Futures testnet (testnet.binancefuture.com)"));
+    for (id, _, _) in PAPER_VENUES {
+        assert_eq!(test_network(id), None, "{id}: price data / paper only");
+    }
+    assert_eq!(test_network("mexc"), None);
+}
 
 const SYMBOL: &str = "BTCUSDT";
 const SECOND: &str = "ETHUSDT";
@@ -95,11 +122,13 @@ fn testnet_dry_run() {
             std::env::set_var("ALEPH_EDGE_BINANCE_FUTURES_BASE", crate::app::endpoints::BINANCE_FUTURES_TESTNET_BASE);
             assert!(!crate::app::endpoints::binance_is_production(), "refusing: the futures base is production");
         }
-        "bybit" | "okx" => {
-            std::env::set_var("ALEPH_EDGE_VENUE_SANDBOX", "1");
-            assert!(super::venue::ccxt::sandbox_from_env(), "refusing: the venue sandbox is off");
-        }
-        other => panic!("ALEPH_TESTNET_VENUE={other}: binance, bybit or okx"),
+        other => match test_network(other) {
+            Some(_) => {
+                std::env::set_var("ALEPH_EDGE_VENUE_SANDBOX", "1");
+                assert!(super::venue::ccxt::sandbox_from_env(), "refusing: the venue sandbox is off");
+            }
+            None => panic!("ALEPH_TESTNET_VENUE={other}: not an order venue with a test network ({:?})", super::venue::caps::VENUES.map(|v| v.id)),
+        },
     }
     let cred = ExchangeCredential {
         exchange_id: venue.clone(),

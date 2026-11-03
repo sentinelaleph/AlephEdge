@@ -263,6 +263,47 @@ pub fn suggested_sl_pct(cfg: &StrategyConfig, p: &DcaParams) -> Option<f64> {
 /// (rounded up to the cent), or None when the budget cannot fix it: fixed
 /// DCA sizes do not scale with the budget, so their minimum is the capital
 /// the ladder reserves, and only when its smallest order clears the minimum.
+/// What a DCA stop loss costs when it fires on the fully filled ladder:
+/// every safety order bought, the whole deployed notional closed at the
+/// stop. The loss is the same number the preview's worst case uses
+/// (`DcaPreview::worst_loss_quote` on the "sl" basis): notional x stop %
+/// plus the exit's taker fee and slippage.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SlEstimate {
+    /// The stop price from that ladder's average entry. None without a
+    /// price: the form then shows the stop relative to the average entry.
+    pub stop_price: Option<f64>,
+    /// Average entry of the fully filled ladder (None without a price).
+    pub avg_entry: Option<f64>,
+    /// Loss in the quote coin (USDT), fees included.
+    pub loss_quote: f64,
+    /// That loss as a share of the bot's budget, %.
+    pub loss_pct_of_budget: f64,
+}
+
+/// `SlEstimate` for `cfg`, None when it is not a DCA bot with a stop loss.
+/// `price` = the symbol's last price; None keeps the estimate price-free
+/// (the loss scales with the budget, not with the price).
+pub fn sl_estimate(cfg: &StrategyConfig, price: Option<f64>) -> Option<SlEstimate> {
+    let StrategyParams::Dca(p) = &cfg.params else { return None };
+    let sl = p.sl_pct.filter(|v| v.is_finite() && *v > 0.0)?;
+    let costs = CostModel::for_market(cfg.market);
+    let lev = f64::from(cfg.leverage.max(1));
+    let (bo, sos) = dca::ladder_notionals(p, cfg.budget, lev, 1.0);
+    let total_notional = bo + sos.iter().sum::<f64>();
+    let loss_quote = total_notional * sl / 100.0 + total_notional * (costs.taker + costs.slippage);
+    let avg_entry = price.filter(|x| x.is_finite() && *x > 0.0).and_then(|px| {
+        dca::build_ladder(p, px, side_sign(cfg.side), cfg.budget, lev, costs.slippage, costs.mmr).last().map(|r| r.avg_entry)
+    });
+    Some(SlEstimate {
+        stop_price: avg_entry.map(|a| dca::sl_price(a, sl, side_sign(cfg.side))),
+        avg_entry,
+        loss_quote,
+        loss_pct_of_budget: if cfg.budget > 0.0 { loss_quote / cfg.budget * 100.0 } else { 0.0 },
+    })
+}
+
 pub fn min_budget(cfg: &StrategyConfig) -> Option<f64> {
     min_budget_at(cfg, MIN_ORDER_NOTIONAL)
 }
@@ -473,6 +514,8 @@ pub struct DcaPreview {
     pub min_tp_pct: f64,
     /// Take profit after one round trip of fees and slippage, %.
     pub tp_net_pct: f64,
+    /// The stop loss's price and cost on the fully filled ladder.
+    pub sl_estimate: Option<SlEstimate>,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -561,10 +604,11 @@ pub fn preview(cfg: &StrategyConfig, price: f64, max_leverage: u8) -> PreviewDto
                     .any(|r| r.liq_price.is_some_and(|l| beyond_liq(dca::sl_price(r.avg_entry, sl, s), l, s)))
             };
             // Whichever exit comes first bounds the loss: the smallest one.
+            let sl_est = sl_estimate(cfg, Some(price));
             let candidates = [
                 p.sl_pct
                     .filter(|sl| !sl_past_liq(*sl))
-                    .map(|sl| (total_notional * sl / 100.0 + exit_cost, "sl")),
+                    .and_then(|_| sl_est.as_ref().map(|e| (e.loss_quote, "sl"))),
                 dd_pct.map(|dd| (dd / 100.0 * cfg.budget + exit_cost, "ddStop")),
                 liq.map(|_| (total_notional / lev, "liq")),
             ];
@@ -577,6 +621,7 @@ pub fn preview(cfg: &StrategyConfig, price: f64, max_leverage: u8) -> PreviewDto
                 warnings.push(if dd_pct.is_some() { "ddStopOnly" } else { "noStopLoss" });
             }
             DcaPreview {
+                sl_estimate: sl_est,
                 suggested_sl_pct: suggested_sl_pct(cfg, p),
                 min_tp_pct: dca::min_tp_pct(&costs),
                 tp_net_pct: p.tp_pct - dca::round_trip_cost_pct(&costs),
@@ -709,6 +754,39 @@ impl IntoDto for GridPreview {
 pub(crate) mod tests {
     use super::*;
     use crate::bot::strategy::model::{RestartPolicy, Spacing};
+
+    #[test]
+    fn the_stop_loss_estimate_is_the_previews_worst_case() {
+        let mut cfg = dca_cfg();
+        assert_eq!(sl_estimate(&cfg, Some(100.0)), None, "no stop loss");
+        if let StrategyParams::Dca(p) = &mut cfg.params {
+            p.sl_pct = Some(10.0);
+        }
+        // 300 USDT notional (base 100 + two safety orders of 100) at 1x.
+        let costs = CostModel::for_market(cfg.market);
+        let want = 300.0 * 0.10 + 300.0 * (costs.taker + costs.slippage);
+        let free = sl_estimate(&cfg, None).unwrap();
+        assert!((free.loss_quote - want).abs() < 1e-9);
+        assert!((free.loss_pct_of_budget - want / 1000.0 * 100.0).abs() < 1e-9);
+        assert_eq!((free.stop_price, free.avg_entry), (None, None), "no price, no invented level");
+        let priced = sl_estimate(&cfg, Some(100.0)).unwrap();
+        assert_eq!(priced.loss_quote, free.loss_quote, "the loss does not depend on the price");
+        let avg = priced.avg_entry.unwrap();
+        assert!(avg < 100.0, "safety orders below the anchor pull a long's average down");
+        assert!((priced.stop_price.unwrap() - avg * 0.9).abs() < 1e-9);
+        let pv = preview(&cfg, 100.0, 20);
+        let d = pv.dca.unwrap();
+        assert_eq!(d.worst_loss_basis, "sl");
+        assert!((d.worst_loss_quote.unwrap() - priced.loss_quote).abs() < 1e-9);
+        assert_eq!(d.sl_estimate, Some(priced));
+        // A short's stop sits above its average entry. These orders are
+        // fixed notionals, so leverage changes the margin, not the loss.
+        cfg.side = Side::Short;
+        cfg.leverage = 3;
+        let short = sl_estimate(&cfg, Some(100.0)).unwrap();
+        assert!(short.stop_price.unwrap() > short.avg_entry.unwrap());
+        assert!((short.loss_quote - free.loss_quote).abs() < 1e-9);
+    }
 
     pub(crate) fn dca_cfg() -> StrategyConfig {
         StrategyConfig {

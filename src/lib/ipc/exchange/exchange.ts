@@ -10,10 +10,34 @@ import { devMock, inTauri, invoke } from "../bridge";
 type Mock = typeof import("./exchange.mock");
 const mock = <T>(run: (m: Mock) => Promise<T>) => devMock(() => import("./exchange.mock"), run);
 
+/** Where an order venue stands for real money (Rust `caps::LiveState`). */
+export type VenueLive = "verified" | "notVerified" | "paperOnly";
+
+/** What an order venue can do (Rust `caps::OrderView`). */
+export interface OrderView {
+  keyFields: "keySecret" | "keySecretPassphrase";
+  stop: "closesPosition" | "reduceOnlyFullSize";
+  stopMove: "stopBeside" | "inPlace" | "placeThenCancel";
+  isolated: "setMode" | "perOrder" | "viaLeverage" | "notOffered";
+  testnet: boolean;
+}
+
+/** One of the 15 venues (Rust `caps::VenueView`). */
+export interface VenueView {
+  /** Margin and settlement coin of its perpetuals: USDT, USDC or USD. */
+  margin: string;
+  live: VenueLive;
+  /** Null on a price-data / paper venue: no order path, no key. */
+  orders: OrderView | null;
+}
+
 export interface ExchangeInfo {
   id: string;
   name: string;
   supportsFutures: boolean;
+  supportsSpot: boolean;
+  /** Present for the 15 venues (8 order venues, 7 paper venues). */
+  venue?: VenueView;
 }
 
 // The catalog is fixed for the process lifetime, so every caller shares one

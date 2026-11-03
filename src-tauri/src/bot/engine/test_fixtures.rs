@@ -28,6 +28,7 @@ pub fn cfg() -> BotConfig {
         // Fixtures carry fixed dates; the age gate has its own tests.
         max_signal_age_min: 0,
         tv: None,
+        pine: None,
     }
 }
 

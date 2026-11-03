@@ -302,7 +302,7 @@ Her bot **Simülasyon** ya da **Canlı** modundadır; bot oluşturma ekranındak
 **Ne gerekir**
 
 1. Mod panelinde **Canlı**'yı seçin; yalnızca aşağıdaki koşullar sağlanınca açılır ve eksik olanı listeler.
-2. [Ayarlar → Borsa anahtarları](#/settings?tab=keys) bölümünde doğrulanmış bir **Binance işlem anahtarı**: Futures açık, para çekme kapalı. Para çekebilen anahtarlar reddedilir. Gerçek para şimdilik yalnızca Binance'te: Bybit ve OKX kendi test ağlarında uçtan uca denemeyi henüz geçmedi, bu yüzden onlarda gerçek parayı açma isteği reddedilir. Anahtarları yine de hesap görünümü ve pozisyon kapatmak için çalışır.
+2. [Ayarlar → Borsa anahtarları](#/settings?tab=keys) bölümünde doğrulanmış bir **Binance işlem anahtarı**: Futures açık, para çekme kapalı. Para çekebilen anahtarlar reddedilir. Gerçek para şimdilik yalnızca Binance'te: diğer 8 emir borsası kendi test ağlarında uçtan uca denemeyi henüz geçmedi, bu yüzden onlarda gerçek parayı açma isteği reddedilir. Anahtarları yine de hesap görünümü ve pozisyon kapatmak için çalışır. Altı borsa daha yalnızca fiyat verisi ve simülasyon sunar.
 3. Botun piyasası **Futures** olmalı.
 4. Bir koruma seviyesi: DCA'da zarar durdur, Grid'de stop-out ya da her ikisinde drawdown stopu. Borsadaki stop bu seviyede durur.
 5. Açık bir simülasyon döngüsü olmamalı ve sembolde Binance hesabınızda pozisyon bulunmamalı.

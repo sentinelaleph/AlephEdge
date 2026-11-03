@@ -43,6 +43,7 @@ export const REASON_CODES = [
   "funding_partial",
   "chart_no_successful_read",
   "chart_read_too_old",
+  "chart_direction_withdrawn",
   "ghost_path_not_configured",
   "ghost_file_not_found",
   "ghost_file_unreadable",
@@ -471,7 +472,7 @@ export function feedStatusText(t: TFunction, s: string): string {
 
 /** A leaf status word (unknown statuses get the generic word). */
 export function statusText(t: TFunction, s: string): string {
-  return ["ok", "measuring", "not_started", "unavailable"].includes(s) ? t(`byt.status.${s}`) : t("byt.status.unknown");
+  return ["ok", "measuring", "not_started", "unavailable", "withdrawn"].includes(s) ? t(`byt.status.${s}`) : t("byt.status.unknown");
 }
 
 /** A farm signal bot's market. */

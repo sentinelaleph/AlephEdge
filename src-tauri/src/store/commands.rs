@@ -33,7 +33,7 @@ pub fn trades_stats(
 ) -> Result<PnlStats, String> {
     let dir = data_dir(&app)?;
     match live {
-        Some(live) => store.stats_for(&dir, live),
+        Some(live) => store.stats_shown(&dir, Some(live)),
         None => store.stats(&dir),
     }
 }

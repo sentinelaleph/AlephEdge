@@ -91,9 +91,9 @@ impl SignalManager {
             .collect()
     }
 
-    /// True when the server has voided this signal: never ENTER it. An open
-    /// position is not closed on it: closing on the server-side guard loses
-    /// value, and Sentinel keeps that close off as well.
+    /// True when the server has voided this signal: never ENTER it. A live
+    /// position is not closed on it; a paper one follows the close Sentinel
+    /// grades for it (`bot::engine::catch_up`).
     pub fn is_invalidated(&self, signal_id: &str) -> bool {
         self.invalidated
             .lock()

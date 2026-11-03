@@ -18,7 +18,7 @@ use super::{config_key, mapped_mode, split_foreign_live_rows};
 /// the user later made Paper stays Paper.
 pub const MODE_MAP_KEY: &str = "trade_mode_mapped";
 
-const KINDS: [BotKind; 4] = super::ALL_KINDS;
+const KINDS: [BotKind; 5] = super::ALL_KINDS;
 
 /// The restore's decisions.
 #[derive(Debug, Default)]

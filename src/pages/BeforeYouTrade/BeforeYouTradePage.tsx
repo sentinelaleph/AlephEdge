@@ -35,6 +35,7 @@ import {
   isProven,
   newsTranslation,
   reactionCell,
+  shownStatus,
   statusTone,
   templateFormPath,
   templatesInOrder,
@@ -75,10 +76,11 @@ function useNowTick(ms = 30_000): number {
 }
 
 /** A leaf's status chip with its as-of age. */
-function LeafHead({ leaf, now }: { leaf: Pick<Leaf, "status" | "as_of">; now: number }) {
+function LeafHead({ leaf, now }: { leaf: Pick<Leaf, "status" | "as_of"> & HasReason; now: number }) {
   const { t, i18n } = useTranslation();
   const locale = localeForLanguage(i18n.resolvedLanguage ?? "en");
   const age = ageSecs(leaf.as_of, now);
+  const shown = shownStatus(leaf);
   return (
     <span className="ae-byt__head">
       {leaf.as_of ? (
@@ -86,7 +88,9 @@ function LeafHead({ leaf, now }: { leaf: Pick<Leaf, "status" | "as_of">; now: nu
           {t("byt.asOf", { time: formatTableTime(leaf.as_of, locale, now), age: age === null ? NO_VALUE : formatAge(age, locale) })}
         </span>
       ) : null}
-      <Chip tone={statusTone(leaf.status)}>{statusText(t, leaf.status)}</Chip>
+      <span title={shown === "withdrawn" ? (reasonText(t, leaf, locale) ?? undefined) : undefined}>
+        <Chip tone={statusTone(shown)}>{statusText(t, shown)}</Chip>
+      </span>
     </span>
   );
 }
@@ -126,7 +130,7 @@ const num = (v: number | null | undefined, locale: Locale, digits = 2) =>
 // ---------------------------------------------------------------- Market today
 
 /** One full-width row of a block: a heading with its status, then its content. */
-function Row({ title, leaf, now, testId, children }: { title: string; leaf?: Pick<Leaf, "status" | "as_of">; now: number; testId?: string; children: ReactNode }) {
+function Row({ title, leaf, now, testId, children }: { title: string; leaf?: Pick<Leaf, "status" | "as_of"> & HasReason; now: number; testId?: string; children: ReactNode }) {
   return (
     <section className="ae-byt__row" data-testid={testId}>
       <div className="ae-byt__subhead">
@@ -835,7 +839,7 @@ export function BeforeYouTradePage() {
   const p = view.payload;
   // The tick re-renders; the age itself is read now (the tick may predate the copy).
   const age = Math.max(0, (Date.now() - view.fetchedAtMs) / 1000);
-  const blocks: { key: string; leaf: Pick<Leaf, "status" | "as_of"> }[] = [
+  const blocks: { key: string; leaf: Pick<Leaf, "status" | "as_of"> & HasReason }[] = [
     { key: "byt.market.title", leaf: p.market.btc_regime },
     { key: "byt.chart.title", leaf: p.market.chart_read },
     { key: "byt.models.title", leaf: p.presets.lab },

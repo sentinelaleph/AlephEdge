@@ -28,14 +28,16 @@ export const mock = (() => {
     spotRunning: false,
     pumpRunning: false,
     tradingviewRunning: false,
+    pine: null,
+    pineRunning: false,
     openPositions: [],
     recentSkips: [],
     killSwitchTripped: false,
     btcRegime: "unknown",
   };
   const clone = () => Promise.resolve({ ...state, openPositions: [...state.openPositions], recentSkips: [...state.recentSkips] });
-  const configKey = { futures: "futures", spot: "spot", pump: "pump", tradingview: "tradingview" } as const;
-  const runKey = { futures: "futuresRunning", spot: "spotRunning", pump: "pumpRunning", tradingview: "tradingviewRunning" } as const;
+  const configKey = { futures: "futures", spot: "spot", pump: "pump", tradingview: "tradingview", pine: "pine" } as const;
+  const runKey = { futures: "futuresRunning", spot: "spotRunning", pump: "pumpRunning", tradingview: "tradingviewRunning", pine: "pineRunning" } as const;
   // Like check_capital_cap in bot/commands.rs, against the preview's risk state.
   const capRefusal = async (capital: number) => {
     const cap = (await riskMock.state()).maxCapitalQuote;
@@ -90,7 +92,7 @@ export const mock = (() => {
       // The browser preview holds no vault key: like bot_set_live without a
       // verified trade-only key.
       if (enabled) {
-        if (kind !== "futures" && kind !== "tradingview") return Promise.reject("liveFuturesBinanceOnly");
+        if (kind !== "futures" && kind !== "tradingview" && kind !== "pine") return Promise.reject("liveFuturesBinanceOnly");
         if (confirmation.trim() !== LIVE_CONFIRMATION) return Promise.reject(`liveConfirmRequired|${LIVE_CONFIRMATION}`);
         return Promise.reject("liveNeedsTradeKey");
       }
@@ -106,8 +108,10 @@ export const mock = (() => {
       // and its largest position is the max size per alert.
       const cents = (v: number) => Math.round(v * 100) / 100;
       const lev = Math.max(1, cfg.leverage);
-      const margin = cfg.tv ? cents(cfg.tv.budgetUsdt) : cents(cfg.capital * cfg.maxPositions);
-      const notional = cfg.tv ? cents(Math.min(cfg.tv.maxSizeUsdt, cfg.tv.budgetUsdt * lev)) : cents(cfg.capital * lev);
+      // The Pine bot likewise: its budget, and its size per entry.
+      const user = cfg.tv ?? cfg.pine;
+      const margin = user ? cents(user.budgetUsdt) : cents(cfg.capital * cfg.maxPositions);
+      const notional = user ? cents(Math.min(user.maxSizeUsdt, user.budgetUsdt * lev)) : cents(cfg.capital * lev);
       return Promise.resolve({
         venue: cfg.exchangeId,
         marginAtRiskUsdt: margin,
@@ -198,6 +202,8 @@ export const mock = (() => {
     async defaultConfig(kind: BotKind, exchangeId: string): Promise<BotConfig> {
       const cap = (await riskMock.state()).maxCapitalQuote;
       const capital = defaultCapitalWithin(cap);
+      // The Pine bot sizes its own entries (fixed), like the TradingView bot.
+      const pineExtra: Partial<BotConfig> = kind === "pine" ? { sizing: "fixed", pine: (await import("../pine/pine.mock")).defaultSettings() } : {};
       return Promise.resolve({
         kind,
         exchangeId,
@@ -219,6 +225,7 @@ export const mock = (() => {
               tv: { name: "TradingView", budgetUsdt: 100, maxSizeUsdt: 50, maxOpensPerDay: 10, staleS: 30, priceGuardPct: 0.5, requirePrice: true },
             }
           : {}),
+        ...pineExtra,
       });
     },
   };

@@ -3,14 +3,21 @@
 [advisories]
 ignore = [
   # rsa: Marvin timing side channel, no fixed release. Pulled in by ccxt-base
-  # (Bybit/OKX). ccxt signs with RSA only when the secret is an RSA private
-  # key, and Aleph Edge refuses such keys (exchange::venue::ccxt::is_rsa_secret),
-  # so every venue request is signed with HMAC.
+  # whatever venues are enabled. Of the 7 ccxt venues only Bybit's code signs
+  # with RSA, and only when the secret is an RSA private key; Aleph Edge
+  # refuses such secrets on every venue (exchange::venue::ccxt::is_rsa_secret),
+  # so requests are signed with HMAC.
   "RUSTSEC-2023-0071",
-  # crypto-bigint 0.5.5: timing variability in constant-time operations; the
-  # fix is 0.7.6, which elliptic-curve 0.13 (k256, via ccxt-base) cannot take.
-  # k256 signs only for the on-chain venues (Hyperliquid, dYdX, Paradex and
-  # others); this build enables ccxt for Bybit and OKX, which sign with HMAC
-  # and never reach it. Revisit before any secp256k1 venue ships.
+  # crypto-bigint 0.5.5: timing variability. It comes in through k256 0.13
+  # (elliptic-curve 0.13), which ccxt-base 4.5.85 requires whatever venues
+  # are enabled, so dropping a feature cannot remove it. No enabled venue
+  # signs with secp256k1: the 7 ccxt venues (Bybit, OKX, Bitget, Gate, BingX,
+  # WOO X, Deribit) sign every request with HMAC (SHA-512 on Gate, SHA-256
+  # elsewhere) in ccxt-base's `sign` (checked in the 4.5.85 source, 1 Nov
+  # 2026; Bybit's RSA branch is covered above), and Binance uses its own layer (HMAC or Ed25519,
+  # exchange/providers/binance_sign.rs). Hyperliquid, whose orders sign with
+  # k256, was removed as an order venue in 0.3.22 for this reason and is
+  # price data / paper only (public info endpoint, nothing signed).
+  # Revisit when a k256 release on crypto-bigint >= 0.7.6 exists.
   "RUSTSEC-2026-0387",
 ]

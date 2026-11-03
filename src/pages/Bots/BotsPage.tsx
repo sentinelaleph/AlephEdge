@@ -34,7 +34,9 @@ function readSort(): SortState | null {
   }
 }
 
-const TYPES: BotType[] = ["signal", "tradingview", "dca", "grid"];
+const TYPES: BotType[] = ["signal", "tradingview", "pine", "dca", "grid"];
+/** Bots that trade the user's own rules: one section each, once made. */
+const USER_TYPES = ["tradingview", "pine"] as const;
 const STATES = ["running", "stopped", "stoppedByKillSwitch", "notConfigured"] as const;
 
 /** #/bots: every bot of every type in one table, filters in the URL. */
@@ -111,7 +113,6 @@ export function BotsPage() {
     ...new Set([...all.map((r) => r.exchangeId), ...strategyAll.map((b) => b.exchangeId)].filter((x): x is string => !!x)),
   ];
   const signalRows = rows.filter((r) => r.type === "signal");
-  const tvRows = rows.filter((r) => r.type === "tradingview");
   const runningSelected = rows.filter((r) => selected.has(r.id) && r.running);
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
@@ -123,7 +124,7 @@ export function BotsPage() {
         options={TYPES.map((v) => ({
           value: v,
           label: t(`botsList.type.${v}`),
-          count: v === "signal" || v === "tradingview" ? all.filter((r) => r.type === v).length : strategyAll.filter((b) => b.kind === v).length,
+          count: v === "signal" || v === "tradingview" || v === "pine" ? all.filter((r) => r.type === v).length : strategyAll.filter((b) => b.kind === v).length,
         }))}
         selected={filters.type}
         onChange={(v) => setFilter("type", v)}
@@ -191,9 +192,9 @@ export function BotsPage() {
           );
         }
         const of = all.filter((r) => r.type === type);
-        if (type === "tradingview" && of.length === 0) return null;
+        if (type !== "signal" && of.length === 0) return null;
         const cap = of.reduce((sum, r) => sum + (r.config ? r.capital ?? 0 : 0), 0);
-        const budget = of.reduce((sum, r) => sum + (r.config?.tv?.budgetUsdt ?? 0), 0);
+        const budget = of.reduce((sum, r) => sum + (r.config?.tv?.budgetUsdt ?? r.config?.pine?.budgetUsdt ?? 0), 0);
         return (
           <Panel key={type} title={t(`botsList.type.${type}`)}>
             <FactList
@@ -318,11 +319,14 @@ export function BotsPage() {
               <BotsTable rows={signalRows} sort={sort} onSort={setSort} selected={selected} onSelect={setSelected} />
             </Section>
           ) : null}
-          {tvRows.length > 0 ? (
-            <Section title={t("botsList.type.tradingview")} count={tvRows.length}>
-              <BotsTable rows={tvRows} selected={selected} onSelect={setSelected} />
-            </Section>
-          ) : null}
+          {USER_TYPES.map((type) => {
+            const of = rows.filter((r) => r.type === type);
+            return of.length > 0 ? (
+              <Section key={type} title={t(`botsList.type.${type}`)} count={of.length}>
+                <BotsTable rows={of} selected={selected} onSelect={setSelected} />
+              </Section>
+            ) : null;
+          })}
           {strategyRows.length > 0 ? (
             <Section title={t("strategy.list.section")} count={strategyRows.length}>
               <StrategyBotsTable rows={strategyRows} actions={strategyActions} showType />

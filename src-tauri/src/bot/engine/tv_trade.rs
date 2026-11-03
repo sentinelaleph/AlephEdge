@@ -21,19 +21,15 @@
 //! (`resolve_pending`, tvlink).
 
 use sha2::{Digest, Sha256};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 use crate::exchange::providers::binance_parse::OrderFill;
 use crate::exchange::providers::binance_requests::entry_client_id;
-use crate::exchange::ExchangeManager;
-use crate::risk::RiskManager;
 
 use super::super::live_terms;
-use super::super::model::{BotConfig, BotKind, OpenPosition, TakeProfitTarget, TradeMode};
-use super::super::BotManager;
-use super::live::{self, live_trading_allowed, Lookup};
-use super::user_trade::{self, Level, PlanFor, TradeRequest};
-use super::{book, precheck};
+use super::super::model::{BotConfig, BotKind, OpenPosition, TradeMode};
+use super::live::Lookup;
+use super::user_trade::{self, Level, TradeRequest};
 
 /// Prefix of an alert's synthetic id: a user trade (`manual-`), so the
 /// precheck never asks Sentinel about it and History labels it the user's.
@@ -180,56 +176,10 @@ impl From<String> for AlertRefusal {
 
 /// Opens one alert's position on the TradingView bot: Paper on a Paper bot,
 /// a real order on a Live, armed one. `levels` are the alert's own (a
-/// percent is put at the real fill and re-checked there).
+/// percent is put at the real fill and re-checked there). The body is the
+/// entry shared with the Pine bot (`user_entry::open`).
 pub async fn open_alert(app: &AppHandle, req: &TradeRequest, event_id: &str, levels: (Level, Level)) -> Result<AlertOpen, AlertRefusal> {
-    let bots = app.state::<BotManager>();
-    let cfg = bots.config_for(BotKind::Tradingview).ok_or_else(|| "tvBotRequired".to_string())?;
-    let id = alert_signal_id(event_id);
-    let live = cfg.mode == TradeMode::Live;
-    let limits = app.state::<RiskManager>().limits();
-    if live {
-        // Checked before any network call, and again by open_live_with.
-        live_entry_refusal(
-            &cfg,
-            live_trading_allowed(&cfg, BotKind::Tradingview),
-            bots.armed_terms(BotKind::Tradingview).as_ref(),
-            &live_terms::signal_terms(&cfg, &limits),
-        )?;
-    } else if cfg.live {
-        return Err(super::manual::PAPER_ONLY.to_string().into());
-    }
-    let req = TradeRequest { mode: cfg.mode, ..req.clone() };
-    let (mut pos, _) = user_trade::plan_in(app, &req, PlanFor::Alert { id: &id }).await?;
-    let requested_qty = pos.qty;
-    if !live {
-        if !book::open_position_if_free(app, pos.clone()) {
-            return Err("tvAlreadyOpen".to_string().into());
-        }
-        bots.push_skip(&pos.symbol, "tvAlertOpened", None);
-        bots.ensure_loop(app.clone());
-        return Ok(AlertOpen { pos, requested_qty });
-    }
-    let leverage = precheck::effective_leverage(&cfg, &limits);
-    let tcfg = user_trade::trade_config(&cfg, &req, leverage);
-    let sig = user_trade::synthetic_signal(&req, &pos.symbol, pos.entry, super::now_ms(), pos.signal_id.clone());
-    let opened = live::open_live_with(app, &tcfg, &sig, pos.entry, pos.notional_usdt, leverage, TakeProfitTarget::Tp1, Some(levels)).await;
-    let open = match opened {
-        Ok(o) => o,
-        Err(r) => {
-            return Err(AlertRefusal { code: r.key.to_string(), outcome_unknown: r.outcome_unknown, planned: Some(pos) });
-        }
-    };
-    bots.pilot_used_saved(app, BotKind::Tradingview);
-    apply_fill(&mut pos, open.entry, open.qty, Some(open.entry_order_id), open.stop_algo_id, open.tp_algo_id, open.tp.tp, open.sl);
-    book::open_position(app, pos.clone());
-    bots.push_skip(&pos.symbol, "tvAlertOpened", Some("live".to_string()));
-    bots.ensure_loop(app.clone());
-    // The daily stop or "Stop all live" can land while the order was on the
-    // wire; their close-all ran on a book without this position.
-    if bots.kill_switch_tripped() || !bots.config_for(BotKind::Tradingview).is_some_and(|c| c.live) {
-        book::close_now(app, &pos.signal_id, BotKind::Tradingview, "stopped").await;
-    }
-    Ok(AlertOpen { pos, requested_qty })
+    super::user_entry::open(app, BotKind::Tradingview, req, event_id, levels).await
 }
 
 /// The planned position as the exchange filled and protected it.
@@ -285,78 +235,12 @@ pub fn pending_verdict(lookup: Lookup, not_found: bool, age_ms: u64) -> Pending 
 pub const NOT_FOUND_FINAL_MS: u64 = 120_000;
 
 /// Looks up one pending alert entry (`planned`, sent with
-/// `alert_client_id(event_id)`). A late fill is protected at the alert's
-/// levels from its fill and booked on the TradingView bot. Returns the
-/// verdict; `Filled` means the position is now in the book (or the stop
-/// could not be placed and it was flattened: then `Failed`).
+/// `alert_client_id(event_id)`, which is the client id of its synthetic id
+/// `planned.signal_id`). A late fill is protected at the alert's levels from
+/// its fill and booked on the TradingView bot (`user_entry::resolve_pending`).
 pub async fn resolve_pending(app: &AppHandle, event_id: &str, planned: &OpenPosition, levels: (Level, Level), age_ms: u64) -> Pending {
-    let bots = app.state::<BotManager>();
-    if bots.has_position(&planned.signal_id, BotKind::Tradingview) {
-        return Pending::Filled(OrderFill { order_id: planned.entry_order_id.unwrap_or(0), avg_price: planned.entry, executed_qty: planned.qty });
-    }
-    let Some(cred) = app.state::<crate::vault::VaultManager>().credential(&planned.exchange_id) else {
-        return Pending::Wait;
-    };
-    let exchange = app.state::<ExchangeManager>();
-    let client_id = alert_client_id(event_id);
-    let res = exchange.order_by_client_id(&cred, &planned.symbol, &client_id).await;
-    let not_found = matches!(&res, Err(crate::exchange::model::BinanceKeyCheckError::Rejected { code: -2013, .. }));
-    let verdict = pending_verdict(live::unknown_entry_lookup(res), not_found, age_ms);
-    let Pending::Filled(fill) = verdict else {
-        return verdict;
-    };
-    let Ok(rules) = exchange.symbol_rules(&cred, &planned.symbol).await else {
-        return Pending::Wait;
-    };
-    let cfg = bots.config_for(BotKind::Tradingview);
-    let leverage = planned.leverage.max(1);
-    let fee = user_trade::round_trip_fee(BotKind::Tradingview);
-    let mut sig = user_trade::synthetic_signal(
-        &TradeRequest {
-            kind: BotKind::Tradingview,
-            symbol: planned.symbol.clone(),
-            direction: planned.direction,
-            notional_usdt: Some(planned.notional_usdt),
-            take_profit: planned.tp,
-            stop_loss: planned.sl,
-            mode: TradeMode::Live,
-            confirmation: None,
-            confirmed_margin_usdt: None,
-        },
-        &planned.symbol,
-        fill.avg_price,
-        super::now_ms(),
-        planned.signal_id.clone(),
-    );
-    let long = planned.direction == crate::signal::model::Direction::Long;
-    match live::levels_after_fill(planned.direction, fill.avg_price, levels, leverage, fee) {
-        Ok((tp, sl)) => (sig.tp, sig.sl) = (vec![tp], sl),
-        Err(_) => {
-            return if live::flatten_confirmed(&exchange, &cred, &planned.symbol, long, fill.executed_qty).await {
-                Pending::Failed
-            } else {
-                bots.push_skip(&planned.symbol, live::NOTE_UNPROTECTED, None);
-                Pending::Wait
-            };
-        }
-    }
-    match live::protect_fill(&exchange, &bots, &cred, &sig, TakeProfitTarget::Tp1, &fill, fill.avg_price, rules.tick).await {
-        Ok(p) => {
-            let mut pos = planned.clone();
-            apply_fill(&mut pos, fill.avg_price, fill.executed_qty, Some(fill.order_id), p.stop_algo_id, p.tp_algo_id, p.tp.tp, sig.sl);
-            book::open_position(app, pos);
-            bots.pilot_used_saved(app, BotKind::Tradingview);
-            bots.push_skip(&planned.symbol, "tvLateFillAdopted", None);
-            bots.ensure_loop(app.clone());
-            // A bot stopped meanwhile does not keep it.
-            if bots.kill_switch_tripped() || !cfg.is_some_and(|c| c.live) {
-                book::close_now(app, &planned.signal_id, BotKind::Tradingview, "stopped").await;
-            }
-            Pending::Filled(fill)
-        }
-        // The stop failed and the emergency flatten confirmed flat.
-        Err(_) => Pending::Failed,
-    }
+    debug_assert_eq!(alert_client_id(event_id), entry_client_id(&planned.signal_id));
+    super::user_entry::resolve_pending(app, BotKind::Tradingview, planned, levels, age_ms).await
 }
 
 #[cfg(test)]

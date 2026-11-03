@@ -6,19 +6,24 @@
  */
 
 import { devMock, inTauri, invoke } from "../bridge";
+import type { PineSettings } from "../pine/pine";
 import type { SignalDirection } from "../signal/signal";
 
 type Mock = typeof import("./bot.mock");
 const mock = <T>(run: (m: Mock) => Promise<T>) => devMock(() => import("./bot.mock"), run);
 
-/** `tradingview`: the TradingView bot, which trades the user's own alerts (never Sentinel's signals). */
-export type BotKind = "futures" | "spot" | "pump" | "tradingview";
+/**
+ * `tradingview`: the TradingView bot, which trades the user's own alerts;
+ * `pine`: the Pine bot, which runs the user's own Pine-lite script on closed
+ * bars (src/lib/ipc/pine). Neither ever trades Sentinel's signals.
+ */
+export type BotKind = "futures" | "spot" | "pump" | "tradingview" | "pine";
 
 /** The signal bots (Sentinel's signals). */
 export const SIGNAL_KINDS = ["futures", "spot", "pump"] as const;
 
-/** Every bot of the book: the signal bots and the TradingView bot. */
-export const ALL_KINDS: readonly BotKind[] = [...SIGNAL_KINDS, "tradingview"];
+/** Every bot of the book: the signal bots, the TradingView bot and the Pine bot. */
+export const ALL_KINDS: readonly BotKind[] = [...SIGNAL_KINDS, "tradingview", "pine"];
 
 /** Whether `kind`'s bot is running (desk status). */
 export function kindRunning(s: BotDeskStatus, kind: BotKind): boolean {
@@ -31,6 +36,8 @@ export function kindRunning(s: BotDeskStatus, kind: BotKind): boolean {
       return s.pumpRunning;
     case "tradingview":
       return s.tradingviewRunning === true;
+    case "pine":
+      return s.pineRunning === true;
   }
 }
 
@@ -138,6 +145,8 @@ export interface BotConfig {
   mode?: TradeMode;
   /** The TradingView bot's alert limits (kind `tradingview` only). */
   tv?: TvSettings;
+  /** The Pine bot's script and limits (kind `pine` only). */
+  pine?: PineSettings;
 }
 
 /** How a bot trades (mirrors `TradeMode` in bot/model.rs). */
@@ -308,6 +317,11 @@ export interface BotDeskStatus {
   tradingviewRunning?: boolean;
   /** Real entries left in the TradingView bot's own pilot. */
   tradingviewPilotLeft?: number;
+  /** The Pine bot, when one was made. */
+  pine?: BotConfig | null;
+  pineRunning?: boolean;
+  /** Real entries left in the Pine bot's own pilot. */
+  pinePilotLeft?: number;
   openPositions: OpenPosition[];
   recentSkips: SkipNote[];
   killSwitchTripped: boolean;

@@ -20,6 +20,7 @@ import {
   type GridParams,
   type Preset,
   type PreviewDto,
+  type SlEstimate,
   type StrategyBotView,
   type StrategyConfig,
   type StrategyErrorDto,
@@ -29,6 +30,7 @@ import {
 import { configErrorText, presetName, strategyErrorText, universeText } from "@/lib/strategyText";
 import { CheckRow, FieldShell, NumField, Segmented } from "./formControls";
 import { budgetErrors, liveLine, minimumLine, saveMinimum, type FloorState } from "./budgetFloor";
+import { stopLossLine } from "./stopLossLine";
 import { formatDecimalInput } from "@/lib/decimal";
 import { StrategyLevelsTable } from "./StrategyPreviewPanel";
 import { GridSuggest } from "./GridSuggest";
@@ -173,6 +175,9 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
   }, [presetId]);
   const [invalid, setInvalid] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<PreviewDto | null>(null);
+  // The stop loss's price and cost: from the preview, or price-free from
+  // the bounds check when no price is known.
+  const [slEst, setSlEst] = useState<SlEstimate | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   /** Rust's verdict on the current config: undefined while unknown. */
   const [verdict, setVerdict] = useState<StrategyErrorDto | null | undefined>(undefined);
@@ -247,6 +252,7 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
           setPreviewError(null);
           setVerdict(p.error);
           setMinBudget(p.minBudget);
+          setSlEst(p.dca?.slEstimate ?? null);
         })
         .catch((e: unknown) => {
           if (id !== seq.current) return;
@@ -258,6 +264,7 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
               if (id !== seq.current) return;
               setVerdict(r.error);
               setMinBudget(r.minBudget);
+              setSlEst(r.slEstimate ?? null);
             })
             .catch(() => id === seq.current && setVerdict(undefined));
         });
@@ -687,7 +694,22 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
                 hint={p.slPct === null ? <span className="ae-warntext">{t(dd ? "strategy.warnings.ddStopOnly" : "strategy.warnings.noStopLoss")}</span> : undefined}
               />
               {p.slPct !== null ? (
-                <NumField label={t("strategy.field.slPct")} unit="%" value={p.slPct} disabled={paramLocked} onChange={(slPct) => setDca({ slPct })} onInvalid={inv("slPct")} invalidText={invalidText} error={fieldError("slPct")} hint={t("strategy.hint.sl")} />
+                <NumField
+                  label={t("strategy.field.slPct")}
+                  unit="%"
+                  value={p.slPct}
+                  disabled={paramLocked}
+                  onChange={(slPct) => setDca({ slPct })}
+                  onInvalid={inv("slPct")}
+                  invalidText={invalidText}
+                  error={fieldError("slPct")}
+                  hint={
+                    <>
+                      {t(cfg.side === "short" ? "strategy.hint.slShort" : "strategy.hint.slLong")}
+                      {slEst ? <span className="ae-sform__slline">{stopLossLine(t, slEst, p.slPct, cfg.side === "short", locale)}</span> : null}
+                    </>
+                  }
+                />
               ) : null}
               <CheckRow label={t("strategy.field.maxDuration")} checked={p.maxDurationMin !== null} disabled={paramLocked} onChange={(on) => setDca({ maxDurationMin: on ? 168 * 60 : null })} hint={t("strategy.hint.maxDuration")} />
               {p.maxDurationMin !== null ? (

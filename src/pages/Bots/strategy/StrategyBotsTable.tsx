@@ -25,6 +25,11 @@ export function totalPnlPct(v: StrategyBotView): number {
   return ((v.equity - v.budget) / v.budget) * 100;
 }
 
+/** The same total in USDT: what the % is of. */
+export function totalPnlQuote(v: StrategyBotView): number {
+  return v.equity - v.budget;
+}
+
 export function runTone(v: StrategyBotView) {
   if (v.openCycle && !v.acceptingNewCycles && v.runState !== "dead" && v.runState !== "paused") return "paused" as const;
   return RUN_TONE[v.runState];
@@ -108,8 +113,10 @@ export function StrategyBotsTable({ rows, actions, showType }: Props) {
     {
       id: "total",
       header: t("strategy.col.totalPnl"),
+      // Owner, 2 Nov 2026: a % next to USDT columns read as a mismatch.
+      headerTip: t("strategy.col.totalPnlTip"),
       numeric: true,
-      cell: (v) => formatSignedPercent(totalPnlPct(v), locale),
+      cell: (v) => `${formatPnl(totalPnlQuote(v), locale, { unit: "none" }).text} (${formatSignedPercent(totalPnlPct(v), locale)})`,
       tone: (v) => pnlToneAttr(totalPnlPct(v)),
     },
     {

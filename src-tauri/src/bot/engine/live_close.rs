@@ -148,6 +148,7 @@ pub fn live_trade_record(
         tp_target: Some(pos.tp_target.clone()),
         tp_fallback_from: pos.tp_fallback_from.clone(),
         manual: pos.manual,
+        recalc: None,
     }
 }
 

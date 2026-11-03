@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { BotConfig, BotDeskStatus } from "@/lib/ipc/bot/bot";
-import { allBotRows, botRowName, rowStatus, signalBotRows, tvBotRow } from "./botRows";
+import { defaultSettings } from "@/lib/ipc/pine/pine.mock";
+import { allBotRows, botRowName, pineBotRow, rowStatus, signalBotRows, tvBotRow } from "./botRows";
 
 const status = (patch: Partial<BotDeskStatus> = {}): BotDeskStatus => ({
   liveTradingEnabled: false,
@@ -122,5 +123,15 @@ describe("the TradingView bot in every bot list and count", () => {
     // Not made yet: no row, nothing counted.
     expect(allBotRows(status({ futures })).some((r) => r.kind === "tradingview")).toBe(false);
     expect(signalBotRows(s).some((r) => r.kind === "tradingview")).toBe(false);
+  });
+});
+
+describe("the Pine bot's row", () => {
+  it("is its own type with its budget and size per entry, and a row only once made", () => {
+    const pine: BotConfig = { kind: "pine", exchangeId: "binance", maxPositions: 2, capital: 50, leverage: 3, pine: { ...defaultSettings(), name: "EMA", budgetUsdt: 100, maxSizeUsdt: 40 } };
+    const row = pineBotRow(status({ pine, pineRunning: true }));
+    expect(row).toMatchObject({ id: "pine", type: "pine", name: "EMA", capital: 100, maxSizeUsdt: 40, running: true });
+    expect(allBotRows(status({ pine })).map((r) => r.kind)).toContain("pine");
+    expect(allBotRows(status()).some((r) => r.kind === "pine")).toBe(false);
   });
 });

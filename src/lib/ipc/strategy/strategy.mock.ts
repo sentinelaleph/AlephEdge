@@ -152,9 +152,25 @@ function minBudget(cfg: StrategyConfig): number | null {
   return Math.ceil(((5 * levels.slice(1).reduce((a, b) => a + b, 0)) / (lev * levels[0])) * 100) / 100;
 }
 
-export function validate(cfg: StrategyConfig): Promise<{ ok: boolean; error: { code: string; field: string } | null; minBudget: number | null }> {
+/** Dev stand-in for validate::sl_estimate (taker + slippage on the exit). */
+function slEstimate(cfg: StrategyConfig, notional: number, avgEntry: number | null) {
+  const p = cfg.params;
+  if (p.kind !== "dca" || p.slPct === null) return null;
+  const s = cfg.side === "short" ? -1 : 1;
+  const lossQuote = (notional * p.slPct) / 100 + notional * (0.0005 + 0.0005);
+  return {
+    stopPrice: avgEntry === null ? null : avgEntry * (1 - (s * p.slPct) / 100),
+    avgEntry,
+    lossQuote,
+    lossPctOfBudget: cfg.budget > 0 ? (lossQuote / cfg.budget) * 100 : 0,
+  };
+}
+
+export function validate(cfg: StrategyConfig) {
   const error = check(cfg);
-  return ok({ ok: error === null, error, minBudget: minBudget(cfg) });
+  const p = cfg.params;
+  const notional = p.kind === "dca" ? (p.baseOrder ?? 0) + (p.safetyOrder ?? 0) * p.maxSo : 0;
+  return ok({ ok: error === null, error, minBudget: minBudget(cfg), slEstimate: slEstimate(cfg, notional, null) });
 }
 
 /** Dev stand-in for strategy_budget_floor: Binance futures minimums of two pairs, 5 USDT elsewhere. */
@@ -227,6 +243,7 @@ export function preview(cfg: StrategyConfig): Promise<PreviewDto> {
         // Mirrors dca::min_tp_pct / round_trip_cost_pct.
         minTpPct: 2 * (costs.taker + costs.slippage + costs.maker) * 100,
         tpNetPct: p.tpPct - (costs.taker + costs.slippage + costs.maker) * 100,
+        slEstimate: slEstimate(cfg, cumN, rungs[rungs.length - 1].avgEntry),
       },
       grid: null,
       warnings,

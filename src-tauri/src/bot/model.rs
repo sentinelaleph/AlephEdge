@@ -7,6 +7,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::signal::model::{Direction, ManagementPlan};
 
+#[path = "pine_settings.rs"]
+pub mod pine_settings;
+pub use pine_settings::{PineAction, PineSettings, PineTimeframe};
+
 /// Whether this binary contains the real-money order path: the cargo feature
 /// `live`. The desktop app is ONE build and always has it (src-tauri/src/lib.rs
 /// refuses to compile without it); every bot is still Paper unless the user
@@ -108,6 +112,11 @@ pub enum BotKind {
     /// `BotConfig::tv`. Real money only on a venue whose order path passed
     /// its test-network run (Binance), like the Futures bot.
     Tradingview,
+    /// Runs the user's own Pine-lite script on closed Binance USDT-M bars
+    /// (docs/aleph-edge-pine-lite-spec.md), never Sentinel's signals:
+    /// USDT-M futures, Paper or Live like the TradingView bot. Its script and
+    /// limits are in `BotConfig::pine`.
+    Pine,
 }
 
 impl BotKind {
@@ -117,26 +126,33 @@ impl BotKind {
             BotKind::Spot => "spot",
             BotKind::Pump => "pump",
             BotKind::Tradingview => "tradingview",
+            BotKind::Pine => "pine",
         }
     }
 
     /// Inverse of `as_str` (the stored `bot_kind` column).
     pub fn parse(s: &str) -> Option<Self> {
-        [BotKind::Futures, BotKind::Spot, BotKind::Pump, BotKind::Tradingview]
+        [BotKind::Futures, BotKind::Spot, BotKind::Pump, BotKind::Tradingview, BotKind::Pine]
             .into_iter()
             .find(|k| k.as_str() == s)
     }
 
-    /// Pump, Futures and the TradingView bot trade the leveraged USDT-M
-    /// futures market.
+    /// Pump, Futures, the TradingView and the Pine bot trade the leveraged
+    /// USDT-M futures market.
     pub fn uses_futures_market(self) -> bool {
-        matches!(self, BotKind::Futures | BotKind::Pump | BotKind::Tradingview)
+        matches!(self, BotKind::Futures | BotKind::Pump | BotKind::Tradingview | BotKind::Pine)
     }
 
-    /// The kinds whose entries may be real orders: the Futures bot and the
-    /// TradingView bot (both USDT-M futures). Spot and Pump are never live.
+    /// The kinds whose entries may be real orders: the Futures, TradingView
+    /// and Pine bots (USDT-M futures). Spot and Pump are never live.
     pub fn live_capable(self) -> bool {
-        matches!(self, BotKind::Futures | BotKind::Tradingview)
+        matches!(self, BotKind::Futures | BotKind::Tradingview | BotKind::Pine)
+    }
+
+    /// The bots that trade the user's own decisions (alerts, a script), never
+    /// Sentinel's signals: their entries are user trades (`manual-` ids).
+    pub fn is_user_driven(self) -> bool {
+        matches!(self, BotKind::Tradingview | BotKind::Pine)
     }
 }
 
@@ -378,6 +394,10 @@ pub struct BotConfig {
     /// byte for byte as before.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tv: Option<TvSettings>,
+    /// The Pine bot's script and limits (`BotKind::Pine` only). Left out of
+    /// the JSON when absent, so every other config is written as before.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pine: Option<PineSettings>,
 }
 
 impl BotConfig {
@@ -424,6 +444,7 @@ impl BotConfig {
             take_profit_overrides: BTreeMap::new(),
             max_signal_age_min: DEFAULT_MAX_SIGNAL_AGE_MIN,
             tv: (kind == BotKind::Tradingview).then(TvSettings::default),
+            pine: (kind == BotKind::Pine).then(PineSettings::default),
         }
     }
 
@@ -487,6 +508,19 @@ impl BotConfig {
         match (self.kind, &self.tv) {
             (BotKind::Tradingview, Some(tv)) => tv.validate()?,
             (BotKind::Tradingview, None) => return Err("tvSettingsMissing".to_string()),
+            _ => {}
+        }
+        match (self.kind, &self.pine) {
+            (BotKind::Pine, Some(p)) => {
+                p.validate()?;
+                // D4: a Live Pine bot always has its own stop.
+                if self.mode == TradeMode::Live {
+                    if let Some(code) = p.live_refusal() {
+                        return Err(code.to_string());
+                    }
+                }
+            }
+            (BotKind::Pine, None) => return Err("pineSettingsMissing".to_string()),
             _ => {}
         }
         Ok(())
@@ -604,10 +638,20 @@ pub struct OpenPosition {
     /// other row (and the bot farm's) is written byte for byte as before.
     #[serde(default, skip_serializing_if = "is_false")]
     pub manual: bool,
+    /// When the desktop book last evaluated this PAPER position (ms, saved at
+    /// most once a minute): after a restart the catch-up replays the minutes
+    /// from here. 0 = never saved; left out of the JSON then, so the bot
+    /// farm's rows are written byte for byte as before.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub last_seen_ms: u64,
 }
 
 fn is_false(v: &bool) -> bool {
     !*v
+}
+
+fn is_zero(v: &u64) -> bool {
+    *v == 0
 }
 
 fn default_tp_target() -> String {
@@ -661,6 +705,14 @@ pub struct BotDeskStatus {
     /// Real entries left in the TradingView bot's own pilot.
     #[serde(default)]
     pub tradingview_pilot_left: u32,
+    /// The Pine bot, when one was made.
+    #[serde(default)]
+    pub pine: Option<BotConfig>,
+    #[serde(default)]
+    pub pine_running: bool,
+    /// Real entries left in the Pine bot's own pilot.
+    #[serde(default)]
+    pub pine_pilot_left: u32,
     pub open_positions: Vec<OpenPosition>,
     pub recent_skips: Vec<SkipNote>,
     /// Set when the daily loss kill-switch tripped today (UTC); bots cannot

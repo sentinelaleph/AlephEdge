@@ -6,7 +6,9 @@ pub mod bot_stats;
 mod commands;
 mod manual;
 mod meta;
+pub(crate) mod recalc;
 pub mod model;
+pub(crate) mod pine;
 pub(crate) mod positions;
 pub(crate) mod restore_check;
 pub(crate) mod skips;
@@ -102,12 +104,19 @@ impl StoreManager {
         self.with_conn(dir, |c| {
             let mut rows = trades::list(c, limit)?;
             manual::mark(c, &mut rows)?;
+            recalc::mark(c, &mut rows)?;
             Ok(rows)
         })
     }
 
+    /// The desk's totals: a recalculated paper trade counts as recalculated.
     pub fn stats(&self, dir: &Path) -> Result<PnlStats, String> {
-        self.with_conn(dir, |c| trades::stats(c, utc_day_start_ms()))
+        self.stats_shown(dir, None)
+    }
+
+    /// `stats` over real, simulated or all trades, as the desk shows them.
+    pub fn stats_shown(&self, dir: &Path, live: Option<bool>) -> Result<PnlStats, String> {
+        self.with_conn(dir, |c| recalc::shown_stats(c, utc_day_start_ms(), live))
     }
 
     /// Stats per signal bot, over real, simulated or all trades.
@@ -115,9 +124,24 @@ impl StoreManager {
         self.with_conn(dir, |c| bot_stats::by_bot(c, utc_day_start_ms(), live))
     }
 
-    /// Stats over real (`true`) or simulated (`false`) trades only.
+    /// Stats over real (`true`) or simulated (`false`) trades only, as
+    /// booked: the kill switch reads these, never a later recalculation.
     pub fn stats_for(&self, dir: &Path, live: bool) -> Result<PnlStats, String> {
         self.with_conn(dir, |c| trades::stats_scoped(c, utc_day_start_ms(), Some(live)))
+    }
+
+    /// Paper trades closed before `before_ms` not yet checked for a missed
+    /// Sentinel close (`bot::engine::recalc`).
+    pub fn recalc_pending(&self, dir: &Path, before_ms: u64, limit: u32) -> Result<Vec<TradeRecord>, String> {
+        self.with_conn(dir, |c| recalc::pending(c, before_ms, limit))
+    }
+
+    pub fn save_recalc(&self, dir: &Path, trade_id: i64, r: &model::TradeRecalc, now_ms: u64) -> Result<(), String> {
+        self.with_conn(dir, |c| recalc::save_recalc(c, trade_id, r, now_ms))
+    }
+
+    pub fn save_recalc_kept(&self, dir: &Path, trade_id: i64, status: &str, now_ms: u64) -> Result<(), String> {
+        self.with_conn(dir, |c| recalc::save_kept(c, trade_id, status, now_ms))
     }
 
     pub fn upsert_position(
@@ -218,6 +242,10 @@ pub(crate) fn migrate_all(conn: &Connection) -> Result<(), String> {
     backtest::migrate(&tx)?;
     // Desktop-only marks of hand-opened trades (Execute).
     manual::migrate(&tx)?;
+    // Desktop-only recalculations of paper trades booked before the catch-up.
+    recalc::migrate(&tx)?;
+    // Desktop-only Pine bot action keys and results (kept 30 days).
+    pine::migrate(&tx)?;
     if found != SCHEMA_VERSION {
         tx.pragma_update(None, "user_version", SCHEMA_VERSION)
             .map_err(|_| "storeMigrationFailed".to_string())?;
@@ -261,6 +289,19 @@ pub fn utc_day_start_ms() -> u64 {
     now_ms - (now_ms % 86_400_000)
 }
 
+// Test doors into the private `trades` module (bot::engine::recalc_tests).
+#[cfg(test)]
+pub(crate) fn trades_insert_for_tests(c: &Connection, t: &model::TradeRecord) {
+    trades::insert(c, t).unwrap();
+}
+#[cfg(test)]
+pub(crate) fn trades_list_for_tests(c: &Connection) -> Vec<model::TradeRecord> {
+    trades::list(c, 100).unwrap()
+}
+#[cfg(test)]
+pub(crate) fn trades_stats_for_tests(c: &Connection, live: Option<bool>) -> PnlStats {
+    trades::stats_scoped(c, 0, live).unwrap()
+}
 #[cfg(test)]
 mod fixtures_tests;
 #[cfg(test)]
@@ -277,5 +318,7 @@ mod update_persist_tests;
 mod update_gen_live;
 #[cfg(test)]
 mod update_live_tests;
+#[cfg(test)]
+mod update_pine_tests;
 #[cfg(test)]
 mod schema_tests;
