@@ -206,10 +206,11 @@ Every closed trade and what it adds up to: net P&L, win rate (exits at the targe
 
 API keys live in a local vault: Argon2id key derivation (64 MiB), AES-256-GCM, with the salt kept in the OS keychain, so the vault file alone cannot be opened on another machine. Secrets are wiped from memory when they go out of scope and never cross into the UI.
 
-- **Only verified trade-only keys are accepted.** A key's real permissions are read from the exchange (Binance's signed `apiRestrictions`, and the key-info endpoints of Bybit and OKX); a key that can withdraw, a key the exchange cannot be asked about, and keys for exchanges without a verifier are refused.
+- **Only verified trade-only keys are accepted.** A key's real permissions are read from the exchange (Binance's signed `apiRestrictions`, and the key-info endpoints of Bybit, OKX, Bitget, Gate, BingX, WOO X and Deribit); a key that can withdraw, a key the exchange cannot be asked about, and keys for exchanges without a verifier are refused.
 - Renew a key in place (the old one stays until the new one is accepted), rename it, remove it.
 - Change the vault password; choose auto-lock after 5 minutes to 1 month without use. While real money holds an open position the vault does not lock itself.
 - There is no password recovery by design: a lost password means resetting the vault.
+- **15 venues.** Eight have an order path (Binance, Bybit, OKX, Bitget, Gate, BingX, WOO X, Deribit); a venue goes live only after it passes a full run on its exchange's test network and a release switches it on. Binance has passed. The other seven give price data and paper trading. Until a venue is live, its key reads the account and closes positions, and bots run paper. Settings, Exchange keys lists each venue with its state.
 
 ### Settings and account
 
@@ -236,7 +237,7 @@ One build for everyone. Every bot is **Paper** or **Live**, chosen when it is ma
 
 Real automated orders need all of these at once: a Live bot (chosen with the typed `LIVE` and the money at risk shown: margin, leverage cap, pilot), its per-session arm (the typed `LIVE` again after every restart; a Live bot comes back stopped), a Futures bot on a venue whose order path passed its test-network run (Binance), and a verified trade-only key in an unlocked vault. Pilot caps, the daily stop, the risk level's leverage cap and the kill switch apply to every Live bot; **Stop all live** in the top bar stops and disarms them all. A real position row on a Paper bot is held out of the book, so a line in a file cannot send an order. Paper and real results are never mixed.
 
-The manual **Close position** and **Close all** on the exchange tab are the exception in every build: they send real reduce-only market orders on Binance, Bybit or OKX so you can flatten an account the desk is watching. They cannot open a position or move funds, and they sit behind a typed confirmation.
+The manual **Close position** and **Close all** on the exchange tab are the exception in every build: they send real reduce-only market orders on any of the eight venues with an order path so you can flatten an account the desk is watching. They cannot open a position or move funds, and they sit behind a typed confirmation.
 
 Try a Live bot on the **Binance Futures testnet** first (see [Configuration](#configuration)); the top bar then shows TESTNET.
 
@@ -358,7 +359,7 @@ Report security issues to <support@ribqa.com> with "security" in the subject, an
 src/                      React front end (pages, components, i18n in 8 languages, in-app guide)
 src-tauri/src/bot/        signal bot engine, DCA/Grid strategy engine, backtest
 src-tauri/src/vault/      encrypted key vault
-src-tauri/src/exchange/   Binance, Bybit and OKX clients (public prices, signed account and close orders)
+src-tauri/src/exchange/   Binance client and the venue layer for the other 14 venues (prices, signed account, orders)
 src-tauri/src/signal/     Sentinel signal stream, vetoes, backfill
 src-tauri/src/membership/ sign-in and session refresh against Sentinel
 crates/aleph-link         pairing and message protocol (shared)
