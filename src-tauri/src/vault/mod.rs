@@ -765,6 +765,21 @@ mod tests {
         crypto::random_bytes(32).try_into().expect("32 bytes")
     }
 
+    /// A fresh salt per test, drawn the way `create_in` draws a new vault's.
+    fn test_salt() -> Vec<u8> {
+        crypto::random_bytes(crypto::SALT_LEN)
+    }
+
+    /// A random test password, made at run time (no literal passwords).
+    fn test_password() -> String {
+        crypto::random_bytes(12).iter().map(|b| format!("{b:02x}")).collect()
+    }
+
+    /// A password that is not `password`: the same text, changed.
+    fn wrong(password: &str) -> String {
+        format!("{password}-not")
+    }
+
     /// The key of the unlocked test session (what `persist` sealed with).
     fn session_key(m: &VaultManager) -> [u8; 32] {
         let guard = m.use_session();
@@ -1109,23 +1124,25 @@ mod tests {
 
     #[test]
     fn a_password_change_needs_the_current_password_and_reseals_under_the_new_one() {
-        let salt = [5u8; crypto::SALT_LEN];
+        let salt = test_salt();
+        let (old_pw, new_pw) = (test_password(), test_password());
+        assert_ne!(old_pw, new_pw);
         let params = KdfParams::default();
-        let old_key = crypto::derive_key(b"old-password", &salt, &params).unwrap();
+        let old_key = crypto::derive_key(old_pw.as_bytes(), &salt, &params).unwrap();
         let (m, _c) = manager(60_000);
         *m.use_session() = Some(Session { key: old_key, params, creds: vec![cred("main")], salt_check: None });
         let (dir, path) = sealed("pw", &m);
 
         assert_eq!(
-            m.change_password_with_salt(&path, "wrong-password", "new-password", &salt).unwrap_err(),
+            m.change_password_with_salt(&path, &wrong(&old_pw), &new_pw, &salt).unwrap_err(),
             "vaultWrongPassword"
         );
-        m.change_password_with_salt(&path, "old-password", "new-password", &salt).expect("change");
-        let new_key = crypto::derive_key(b"new-password", &salt, &KdfParams::default()).unwrap();
+        m.change_password_with_salt(&path, &old_pw, &new_pw, &salt).expect("change");
+        let new_key = crypto::derive_key(new_pw.as_bytes(), &salt, &KdfParams::default()).unwrap();
         assert_eq!(read_back(&path, &new_key)[0].label, "main");
         // The session moved too: a second change must prove the NEW password.
         assert_eq!(
-            m.change_password_with_salt(&path, "old-password", "x-password", &salt).unwrap_err(),
+            m.change_password_with_salt(&path, &old_pw, &test_password(), &salt).unwrap_err(),
             "vaultWrongPassword"
         );
         let _ = std::fs::remove_dir_all(&dir);
@@ -1164,21 +1181,22 @@ mod tests {
     fn a_vault_from_before_the_split_opens_with_the_legacy_salt_and_keeps_a_copy() {
         // 0.2.0 kept every build's salt under the release service.
         let store = MemoryKeychain::default();
-        let salt = [1u8; crypto::SALT_LEN];
-        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
-        let (dir, path) = sealed_with("migrate", "pw-testnet", &salt);
+        let salt = test_salt();
+        let pw = test_password();
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(&salt)).unwrap();
+        let (dir, path) = sealed_with("migrate", &pw, &salt);
 
         let (m, _c) = manager(60_000);
-        m.unlock_in(&store, TESTNET, &path, "pw-testnet").expect("opens with the legacy salt");
+        m.unlock_in(&store, TESTNET, &path, &pw).expect("opens with the legacy salt");
         assert_eq!(m.list().unwrap().len(), 1);
         assert_eq!(
             store.get(TESTNET, KEYCHAIN_SALT_USER),
-            Some(B64.encode(salt)),
+            Some(B64.encode(&salt)),
             "the salt is kept under the build's own service"
         );
         assert_eq!(
             store.get(LEGACY_SERVICE, KEYCHAIN_SALT_USER),
-            Some(B64.encode(salt)),
+            Some(B64.encode(&salt)),
             "the legacy entry is left for the release build"
         );
 
@@ -1186,7 +1204,7 @@ mod tests {
         // legacy one.
         store.delete(LEGACY_SERVICE, KEYCHAIN_SALT_USER);
         m.lock();
-        m.unlock_in(&store, TESTNET, &path, "pw-testnet").expect("own entry");
+        m.unlock_in(&store, TESTNET, &path, &pw).expect("own entry");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -1195,11 +1213,14 @@ mod tests {
         // The legacy entry holds another build's salt: this vault's own salt
         // was overwritten before the split. Nothing is copied.
         let store = MemoryKeychain::default();
-        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode([2u8; crypto::SALT_LEN])).unwrap();
-        let (dir, path) = sealed_with("foreign", "pw", &[1u8; crypto::SALT_LEN]);
+        let (own, other) = (test_salt(), test_salt());
+        assert_ne!(own, other);
+        let pw = test_password();
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(&other)).unwrap();
+        let (dir, path) = sealed_with("foreign", &pw, &own);
 
         let (m, _c) = manager(60_000);
-        assert_eq!(m.unlock_in(&store, TESTNET, &path, "pw").unwrap_err(), "vaultWrongPassword");
+        assert_eq!(m.unlock_in(&store, TESTNET, &path, &pw).unwrap_err(), "vaultWrongPassword");
         assert_eq!(store.get(TESTNET, KEYCHAIN_SALT_USER), None);
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -1207,12 +1228,13 @@ mod tests {
     #[test]
     fn a_wrong_password_on_a_legacy_vault_copies_nothing() {
         let store = MemoryKeychain::default();
-        let salt = [1u8; crypto::SALT_LEN];
-        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
-        let (dir, path) = sealed_with("wrongpw", "right", &salt);
+        let salt = test_salt();
+        let pw = test_password();
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(&salt)).unwrap();
+        let (dir, path) = sealed_with("wrongpw", &pw, &salt);
 
         let (m, _c) = manager(60_000);
-        assert_eq!(m.unlock_in(&store, TESTNET, &path, "wrong").unwrap_err(), "vaultWrongPassword");
+        assert_eq!(m.unlock_in(&store, TESTNET, &path, &wrong(&pw)).unwrap_err(), "vaultWrongPassword");
         assert_eq!(store.get(TESTNET, KEYCHAIN_SALT_USER), None);
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -1228,13 +1250,14 @@ mod tests {
     #[test]
     fn a_vault_from_before_the_fingerprint_gets_it_at_its_first_unlock() {
         let store = MemoryKeychain::default();
-        let salt = [1u8; crypto::SALT_LEN];
-        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
-        let (dir, path) = sealed_with("fp-migrate", "pw", &salt);
+        let salt = test_salt();
+        let pw = test_password();
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(&salt)).unwrap();
+        let (dir, path) = sealed_with("fp-migrate", &pw, &salt);
         assert_eq!(file_check(&path), None);
 
         let (m, _c) = manager(60_000);
-        m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").expect("opens");
+        m.unlock_in(&store, LEGACY_SERVICE, &path, &pw).expect("opens");
         assert_eq!(file_check(&path), Some(salt_check(&salt)), "fingerprint written at unlock");
         // Every later save keeps it.
         let mut second = cred("second");
@@ -1242,7 +1265,7 @@ mod tests {
         m.add(&path, second).unwrap();
         assert_eq!(file_check(&path), Some(salt_check(&salt)));
         m.lock();
-        m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").expect("still opens");
+        m.unlock_in(&store, LEGACY_SERVICE, &path, &pw).expect("still opens");
         assert_eq!(m.list().unwrap().len(), 2);
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -1250,17 +1273,20 @@ mod tests {
     #[test]
     fn a_foreign_salt_is_detected_without_the_password() {
         let store = MemoryKeychain::default();
-        let salt = [1u8; crypto::SALT_LEN];
-        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
-        let (dir, path) = sealed_with("fp-detect", "pw", &salt);
+        let salt = test_salt();
+        let pw = test_password();
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(&salt)).unwrap();
+        let (dir, path) = sealed_with("fp-detect", &pw, &salt);
         // Before the fingerprint exists nothing can be proven.
         assert!(!salt_is_foreign_in(&store, LEGACY_SERVICE, &path));
         let (m, _c) = manager(60_000);
-        m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").expect("fingerprint written");
+        m.unlock_in(&store, LEGACY_SERVICE, &path, &pw).expect("fingerprint written");
         m.lock();
         assert!(!salt_is_foreign_in(&store, LEGACY_SERVICE, &path), "own salt");
 
-        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode([9u8; crypto::SALT_LEN])).unwrap();
+        let other = test_salt();
+        assert_ne!(other, salt);
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(&other)).unwrap();
         assert!(salt_is_foreign_in(&store, LEGACY_SERVICE, &path), "replaced salt");
         store.delete(LEGACY_SERVICE, KEYCHAIN_SALT_USER);
         assert!(salt_is_foreign_in(&store, LEGACY_SERVICE, &path), "salt gone");
@@ -1271,11 +1297,12 @@ mod tests {
     #[test]
     fn a_failed_keychain_read_is_not_a_foreign_salt() {
         let store = MemoryKeychain::default();
-        let salt = [1u8; crypto::SALT_LEN];
-        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
-        let (dir, path) = sealed_with("fp-transient", "pw", &salt);
+        let salt = test_salt();
+        let pw = test_password();
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(&salt)).unwrap();
+        let (dir, path) = sealed_with("fp-transient", &pw, &salt);
         let (m, _c) = manager(60_000);
-        m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").expect("fingerprint written");
+        m.unlock_in(&store, LEGACY_SERVICE, &path, &pw).expect("fingerprint written");
         m.lock();
         store.failing.set(true);
         assert!(!salt_is_foreign_in(&store, LEGACY_SERVICE, &path), "a failed read proves nothing");
@@ -1297,28 +1324,33 @@ mod tests {
     #[test]
     fn a_foreign_salt_is_reported_as_such_not_as_a_wrong_password() {
         let store = MemoryKeychain::default();
-        let salt = [1u8; crypto::SALT_LEN];
-        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
-        let (dir, path) = sealed_with("fp-foreign", "pw", &salt);
+        let salt = test_salt();
+        let pw = test_password();
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(&salt)).unwrap();
+        let (dir, path) = sealed_with("fp-foreign", &pw, &salt);
         let (m, _c) = manager(60_000);
-        m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").expect("fingerprint written");
+        m.unlock_in(&store, LEGACY_SERVICE, &path, &pw).expect("fingerprint written");
         m.lock();
 
         // Another build overwrites the entry.
-        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode([9u8; crypto::SALT_LEN])).unwrap();
-        assert_eq!(m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").unwrap_err(), "vaultSaltMismatch");
-        assert_eq!(m.unlock_in(&store, LEGACY_SERVICE, &path, "wrong").unwrap_err(), "vaultSaltMismatch");
+        let other = test_salt();
+        assert_ne!(other, salt);
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(&other)).unwrap();
+        assert_eq!(m.unlock_in(&store, LEGACY_SERVICE, &path, &pw).unwrap_err(), "vaultSaltMismatch");
+        assert_eq!(m.unlock_in(&store, LEGACY_SERVICE, &path, &wrong(&pw)).unwrap_err(), "vaultSaltMismatch");
 
         // With its own salt back, a wrong password is still a wrong password.
-        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
-        assert_eq!(m.unlock_in(&store, LEGACY_SERVICE, &path, "wrong").unwrap_err(), "vaultWrongPassword");
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(&salt)).unwrap();
+        assert_eq!(m.unlock_in(&store, LEGACY_SERVICE, &path, &wrong(&pw)).unwrap_err(), "vaultWrongPassword");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
     fn the_fingerprint_does_not_reveal_the_salt() {
-        let a = salt_check(&[1u8; crypto::SALT_LEN]);
-        let b = salt_check(&[2u8; crypto::SALT_LEN]);
+        let (sa, sb) = (test_salt(), test_salt());
+        assert_ne!(sa, sb);
+        let a = salt_check(&sa);
+        let b = salt_check(&sb);
         assert_ne!(a, b);
         assert_eq!(B64.decode(a.as_bytes()).unwrap().len(), 8, "64 bits of a hash, not the salt");
     }
@@ -1328,24 +1360,25 @@ mod tests {
         // The bug: TESTNET's create replaced the shared salt, and the release
         // vault answered its correct password with "Wrong password".
         let store = MemoryKeychain::default();
-        let release_salt = [7u8; crypto::SALT_LEN];
-        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(release_salt)).unwrap();
-        let (release_dir, release_path) = sealed_with("release", "pw-release", &release_salt);
+        let release_salt = test_salt();
+        let (release_pw, testnet_pw) = (test_password(), test_password());
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(&release_salt)).unwrap();
+        let (release_dir, release_path) = sealed_with("release", &release_pw, &release_salt);
 
         let testnet_dir = std::env::temp_dir().join(format!("aleph-vault-tn-{}", uuid::Uuid::new_v4()));
         let testnet_path = testnet_dir.join("vault.edge");
         let (testnet, _c) = manager(60_000);
-        testnet.create_in(&store, TESTNET, &testnet_path, "pw-testnet").expect("create");
+        testnet.create_in(&store, TESTNET, &testnet_path, &testnet_pw).expect("create");
         assert!(store.get(TESTNET, KEYCHAIN_SALT_USER).is_some());
-        assert_eq!(store.get(LEGACY_SERVICE, KEYCHAIN_SALT_USER), Some(B64.encode(release_salt)));
+        assert_eq!(store.get(LEGACY_SERVICE, KEYCHAIN_SALT_USER), Some(B64.encode(&release_salt)));
 
         testnet.reset_in(&store, TESTNET, &testnet_path).expect("reset");
         assert_eq!(store.get(TESTNET, KEYCHAIN_SALT_USER), None);
-        assert_eq!(store.get(LEGACY_SERVICE, KEYCHAIN_SALT_USER), Some(B64.encode(release_salt)));
+        assert_eq!(store.get(LEGACY_SERVICE, KEYCHAIN_SALT_USER), Some(B64.encode(&release_salt)));
 
         let (release, _c) = manager(60_000);
         release
-            .unlock_in(&store, LEGACY_SERVICE, &release_path, "pw-release")
+            .unlock_in(&store, LEGACY_SERVICE, &release_path, &release_pw)
             .expect("the release vault still opens");
         let _ = std::fs::remove_dir_all(&release_dir);
         let _ = std::fs::remove_dir_all(&testnet_dir);
@@ -1354,7 +1387,7 @@ mod tests {
     #[test]
     fn the_release_build_never_reads_another_entry() {
         let store = MemoryKeychain::default();
-        store.set(TESTNET, KEYCHAIN_SALT_USER, &B64.encode([1u8; crypto::SALT_LEN])).unwrap();
+        store.set(TESTNET, KEYCHAIN_SALT_USER, &B64.encode(test_salt())).unwrap();
         assert_eq!(find_salt(&store, LEGACY_SERVICE).err().as_deref(), Some("keychainSaltMissing"));
     }
 

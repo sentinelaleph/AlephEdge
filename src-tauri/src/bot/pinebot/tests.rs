@@ -185,8 +185,8 @@ fn bars(n: u64, last_open: u64) -> Vec<PineBar> {
 fn the_script_runs_only_on_bars_ending_with_the_one_just_closed() {
     let p = settings();
     let seen = std::cell::Cell::new((0usize, 0u64));
-    let fake = |_: &str, b: &[PineBar], _: &crate::pine::InputOverrides, _: &str, iv: u64| -> Result<RunVerdict, PineErrorInfo> {
-        seen.set((b.len(), iv));
+    let fake = |_: &str, b: &[PineBar], _: &crate::pine::InputOverrides, _: &str, interval_ms: u64| -> Result<RunVerdict, PineErrorInfo> {
+        seen.set((b.len(), interval_ms));
         Ok(RunVerdict { fired: vec!["alert#0".into()], bars: b.len(), ms: 7, numeric_inputs: vec![] })
     };
     // The newest closed bar opened an hour before the boundary: run.

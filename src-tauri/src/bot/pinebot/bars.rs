@@ -103,10 +103,12 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    const H: u64 = 3_600_000;
+    /// One hour in milliseconds.
+    const H: u64 = 60 * 60 * 1_000;
 
-    fn row(open: u64, iv: u64) -> Value {
-        json!([open, "100.0", "101.0", "99.0", "100.5", "12.5", open + iv - 1, "0", 1, "0", "0", "0"])
+    /// A kline row for a bar opening at `open` and lasting `span_ms`.
+    fn row(open: u64, span_ms: u64) -> Value {
+        json!([open, "100.0", "101.0", "99.0", "100.5", "12.5", open + span_ms - 1, "0", 1, "0", "0", "0"])
     }
 
     #[test]

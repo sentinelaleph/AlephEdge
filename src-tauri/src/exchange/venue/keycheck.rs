@@ -204,12 +204,18 @@ mod tests {
         assert!(!deribit(&r("trade:read")).unwrap().trade);
     }
 
+    /// Random test text, made at run time (no literal secrets or nonces).
+    fn random_text() -> String {
+        format!("{:032x}", rand::random::<u128>())
+    }
+
     #[test]
     fn deribit_signature_never_carries_the_secret() {
-        let p = deribit_auth_params("cid", "s3cret", 1_700_000_000_000, "abc");
-        assert!(p.iter().all(|(_, v)| !v.contains("s3cret")));
+        let (secret, nonce) = (random_text(), random_text());
+        let ts = rand::random::<u32>() as u64;
+        let p = deribit_auth_params("cid", &secret, ts, &nonce);
+        assert!(p.iter().all(|(_, v)| !v.contains(&secret)));
         let sig = &p.iter().find(|(k, _)| k == "signature").unwrap().1;
         assert_eq!(sig.len(), 64);
-        assert_eq!(p, deribit_auth_params("cid", "s3cret", 1_700_000_000_000, "abc"), "deterministic");
-    }
+        assert_eq!(p, deribit_auth_params("cid", &secret, ts, &nonce), "deterministic");    }
 }
