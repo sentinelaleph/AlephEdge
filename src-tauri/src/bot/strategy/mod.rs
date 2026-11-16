@@ -81,6 +81,9 @@ struct Inner {
     feeds: HashMap<(MarketKind, String), Feed>,
     /// Bots whose feed is stale (fills and new cycles held).
     paused: HashMap<BotId, &'static str>,
+    /// The gate holding a bot's NEW cycles at its last walk (`walk::Gates`),
+    /// so the detail page says "held" and why, not "allowed".
+    held: HashMap<BotId, &'static str>,
     notes: VecDeque<StrategyNote>,
     last_note: HashMap<BotId, String>,
     risk: StrategyRisk,
@@ -148,6 +151,9 @@ pub struct StrategyBotView {
     /// the user). An open cycle is managed either way, so `run_state` alone
     /// cannot tell a paused bot holding a cycle from a running one.
     pub accepting_new_cycles: bool,
+    /// A gate holding new cycles right now (a `strategy.notes.*` key), e.g.
+    /// "btcDowntrend"; None when none applied at the last walk.
+    pub held_by: Option<&'static str>,
     pub pause_reason: Option<&'static str>,
     pub budget: f64,
     pub realized_quote: f64,
@@ -345,7 +351,17 @@ impl StrategyManager {
         g.bots.remove(id);
         g.venues.remove(id);
         g.paused.remove(id);
+        g.held.remove(id);
         g.pending_close.remove(id);
+    }
+
+    /// Records the gate (or none) that applied to the bot's last walk.
+    pub fn set_held(&self, id: &str, gate: Option<&'static str>) {
+        let mut g = self.lock();
+        match gate {
+            Some(key) => g.held.insert(id.to_string(), key),
+            None => g.held.remove(id),
+        };
     }
 
     /// Takes a bot's state out for a bar walk / close (put back with `put_state`).
@@ -697,6 +713,7 @@ impl StrategyManager {
             paper: !limits::STRATEGY_LIVE_ALLOWED,
             run_state: run_state.as_str(),
             accepting_new_cycles: driver::is_running(b.state),
+            held_by: g.held.get(&b.id).copied(),
             pause_reason,
             budget,
             realized_quote: b.realized_quote,

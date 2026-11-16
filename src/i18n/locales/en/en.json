@@ -307,6 +307,8 @@
       "liveFillsUnavailable": "Exact fill prices and commission weren't available from the exchange for this trade.",
       "liveFeeNotUsdt": "Fee not in USDT · commission not shown",
       "untrackedExchangePosition": "Exchange position not tracked by any bot · check the account",
+      "liveKeyReplacedFlat": "Flat on the exchange, but the vault was reset after this position opened: the key now stored may be another account. Not closed by the app · check the exchange, then close it in Positions & orders",
+      "liveKeyReplacedHeld": "The vault was reset after this position opened: the key now stored may be another account. The app sends no order for it · check the position and its stop on the exchange and close them there; Close then removes the row from the app's record only",
       "liveDirectionMismatch": "Exchange holds the opposite side · not touched",
       "liveReconcileFailed": "Account reconcile failed · will retry",
       "tpCustomInvalid": "Custom take-profit {{detail}}% cannot apply to this trade",
@@ -340,7 +342,9 @@
       "paperRecalculated": "{{detail}} paper trade(s) recalculated on Sentinel's close · first bookings kept in History",
       "pineOpened": "Pine script trigger opened",
       "pineLateFillAdopted": "Pine bot: a late fill was found and protected",
-      "pineHalted": "Pine bot: new entries stopped after {{detail}} failed runs in a row · start it again to resume"
+      "pineHalted": "Pine bot: new entries stopped after {{detail}} failed runs in a row · start it again to resume",
+      "liveKeyResetBookClosed": "Closed in the app's record only. Nothing was sent to the exchange · check the position and its stop on the exchange and close them there yourself",
+      "liveKeyResetUntracked": "The app opened this position before the vault was reset and it is no longer in the app's record. The app sends no order for it · close it and its stop on the exchange yourself"
     },
     "exchange": "Exchange",
     "signalFilter": "Signal filter",
@@ -509,7 +513,8 @@
       "remoteKill": "Stopped from phone",
       "manual": "Closed by you",
       "trigger": "Bot's close trigger",
-      "liquidation": "Liquidation"
+      "liquidation": "Liquidation",
+      "keyResetBookClose": "Closed in the app only"
     },
     "exitTooltip": {
       "veto": "Closed at once · Sentinel veto · BTC regime turned against the signal",
@@ -520,7 +525,8 @@
       "unprotected": "Closed at market: the exchange did not confirm a stop for this real position.",
       "stopped": "Closed at market: the bot was stopped while this entry was being placed.",
       "liquidation": "Price passed the isolated liquidation price before the stop; the whole margin is lost.",
-      "trigger": "Closed by the bot itself: the Pine script's Close trigger or a TradingView close alert."
+      "trigger": "Closed by the bot itself: the Pine script's Close trigger or a TradingView close alert.",
+      "keyResetBookClose": "The vault was reset after this position opened. Nothing was sent to the exchange and no exit price is known, so the result is recorded as 0"
     },
     "scope": {
       "label": "Statistics scope",
@@ -1213,7 +1219,9 @@
       "placed": "Order {{id}}",
       "none": "None",
       "tip": "The stop and take-profit orders the bot placed on the exchange, by order id, from its own record of the position. The account is checked every 60 s; a stop or take-profit that fired closes the row."
-    }
+    },
+    "closeHeldBody": "The vault was reset after this {{symbol}} position opened, so the key now stored may belong to another account. Close removes the row from the app's record only and sends nothing to the exchange. Check the position and its stop on the exchange and close them there yourself.",
+    "keyResetChip": "Held after vault reset"
   },
   "history": {
     "byBot": "By bot",
@@ -2034,7 +2042,8 @@
       "close": {
         "title": "Close the cycle of {{name}}?",
         "body": "The open paper cycle closes at market (taker fee and slippage) and the bot stops.",
-        "bodyLive": "The cycle closes at market and the bot's exchange position is closed on the next pass (a few seconds). The bot stops."
+        "bodyLive": "The cycle closes at market and the bot's exchange position is closed on the next pass (a few seconds). The bot stops.",
+        "bodyHeld": "The vault was reset while this bot held a real position. The cycle closes in the app's record only, the bot stops and becomes Paper, and nothing is sent to the exchange. Check the position and its stop on the exchange and close them there yourself."
       },
       "archive": {
         "title": "Delete {{name}}?",
@@ -2176,6 +2185,7 @@
       "ddStop": "Bot drawdown stop",
       "ddStopPct": "Drawdown stop, % of budget",
       "btcGate": "Hold new cycles on a BTC break",
+      "trendGate": "Hold new cycles while BTC is in a downtrend",
       "portfolioBreaker": "Portfolio breaker (−{{pct}}%)"
     },
     "hint": {
@@ -2218,6 +2228,7 @@
       "endAt": "Open cycles still run to their exit.",
       "ddStop": "Closes the cycle and stops the bot at this loss from its equity peak.",
       "btcGate": "No new cycle while Sentinel reports a BTC break. Open cycles continue.",
+      "trendGate": "A new cycle starts only while BTC's daily close is above its 50-day average (2 closes to switch). Open cycles continue. Lab test on Grid Long Trailing, top 5 coins, Oct 2024 to Jan 2026: worst drawdown -33.5% to -28.7%, fewer stop-outs. The grid still lost money; it ran less.",
       "portfolioBreakerOff": "Outside the portfolio breaker: not counted, not closed or held when it trips.",
       "maxDuration": "Closes the cycle at market when reached. A running bot starts the next cycle after the cooldown."
     },
@@ -2400,7 +2411,8 @@
       "remoteKill": "Phone: close all",
       "manual": "Closed by you",
       "end": "Data end",
-      "sizeDown": "Losses shrank the orders"
+      "sizeDown": "Losses shrank the orders",
+      "keyResetBookClose": "Closed in the app only"
     },
     "role": {
       "base": "Base order",
@@ -2629,6 +2641,8 @@
       "portfolioDdTripped": "Portfolio breaker tripped: cycles of the bots inside it closed. Re-arm from the next UTC day.",
       "membershipInactive": "Membership inactive: no new cycles.",
       "btcBreak": "BTC break: new cycles held.",
+      "btcDowntrend": "BTC downtrend: new cycles held.",
+      "btcTrendUnknown": "BTC trend not read yet: new cycles held.",
       "priceStale": "Price feed older than 3 minutes",
       "priceUnavailable": "No current price",
       "strategyDataGap": "Gap in the price data: bars skipped.",
@@ -2667,7 +2681,9 @@
       "leverageAboveCeiling": "Leverage above your risk level's maximum: new cycles held.",
       "liveVenueNotDryRun": "Real money stopped: this exchange's order path has not passed a run on its test network. The real position stays under its stop; close it on the Positions & orders page.",
       "cycleRestoreFailed": "The open cycle could not be read at startup · bot not resumed",
-      "liveStateUnreadable": "Real-money state could not be read at startup · bot not resumed"
+      "liveStateUnreadable": "Real-money state could not be read at startup · bot not resumed",
+      "liveKeyReplacedHeld": "The vault was reset while this bot held a real position: the key now stored may be another account. The app sends no order for this bot. Check the position and its stop on the exchange and close them there; Close in the app only then closes the bot's record and makes it Paper.",
+      "liveKeyResetBookClosed": "Closed in the app's record only and switched to Paper. Nothing was sent to the exchange: check the position and its stop on the exchange and close them there yourself."
     },
     "errors": {
       "nameInvalid": "Name: 1 to 40 characters.",
@@ -2752,7 +2768,9 @@
       "liveTermsRequired": "Confirm the money at risk first.",
       "riskConfigUnreadable": "Risk settings could not be read: save them on the risk page.",
       "storeSchemaNewer": "Local data was written by a newer Aleph Edge (schema {{detail}}). Install that version; nothing was changed.",
-      "botNotLive": "This bot is not Live."
+      "botNotLive": "This bot is not Live.",
+      "liveKeyReplacedHeld": "The vault was reset while this bot held a real position. The app sends no order for it; close it in the app only first.",
+      "keyResetCloseConfirm": "Type CLOSE to close this bot in the app's record only."
     },
     "leverageConfirm": {
       "title": "Liquidation possible, no stop",
@@ -2797,7 +2815,9 @@
       "pilot": "Pilot: {{count}} cycles left at {{pct}}% of the simulated size. Ending it takes effect from the next cycle.",
       "endPilot": "End pilot",
       "venue": "Order exchange",
-      "confirmBodyVenue": "Every buy and sell this bot simulates is sent to {{exchange}} futures as a market order on {{symbol}}, isolated margin, {{leverage}}x. Decisions still use Binance prices. A stop stays on the exchange at the bot's stop level. If the position on the exchange changes outside the bot, the bot stops. Taker fees apply."
+      "confirmBodyVenue": "Every buy and sell this bot simulates is sent to {{exchange}} futures as a market order on {{symbol}}, isolated margin, {{leverage}}x. Decisions still use Binance prices. A stop stays on the exchange at the bot's stop level. If the position on the exchange changes outside the bot, the bot stops. Taker fees apply.",
+      "heldClose": "Close in the app only",
+      "heldCloseTitle": "Close {{name}} in the app only?"
     },
     "report": {
       "title": "Real vs simulated fills",
@@ -2973,6 +2993,7 @@
     "closeConfirmRequired": "Type {{detail}} to close.",
     "resetConfirmRequired": "Type {{detail}} to reset the vault.",
     "vaultBusyLive": "Real money is in play. Close the real positions and switch live off before locking the vault or changing keys.",
+    "vaultResetBusyLive": "Real money is in play. Unlock the vault and close the real positions, or switch live off, before resetting it. A vault no password can open can be reset at any time.",
     "updateBlockedLive": "Real money is in play. Close the real positions and switch live off before installing an update.",
     "trendUnavailable": "Trend unavailable: Binance did not answer.",
     "liveVenueNotDryRun": "Real money is not available on this exchange yet: its order path has not passed a run on the exchange's test network. Positions there can still be closed.",
@@ -3243,7 +3264,7 @@
   "trend": {
     "title": "Market trend",
     "chip": "BTC trend: {{state}} · {{days}} d",
-    "chipTooltip": "BTC daily close vs its 50-day average. Information only: no bot reads it.",
+    "chipTooltip": "BTC daily close vs its 50-day average. No bot reads it unless you switch on its gate on a long grid.",
     "state": {
       "up": "Up",
       "down": "Down"
@@ -3266,7 +3287,9 @@
     "warn": {
       "longInDown": "BTC is in a 50-day downtrend ({{days}} days) and this bot buys long.",
       "shortInUp": "BTC is in a 50-day uptrend ({{days}} days) and this bot sells short."
-    }
+    },
+    "gateOffer": "Hold new cycles until it turns up",
+    "gateOn": "New cycles wait until it turns up."
   },
   "botsSummary": {
     "label": "Your bots at a glance",
@@ -3558,6 +3581,11 @@
       "next": "Next",
       "stale": "DataHub marks this funding snapshot as stale."
     },
+    "knife": {
+      "title": "Coins falling against BTC",
+      "none": "No coin in the last {{hours}} hours.",
+      "more": "{{n}} more"
+    },
     "models": {
       "title": "Bot models and their test results",
       "template": "Template",
@@ -3778,7 +3806,9 @@
       "chart_info_only_bar_open": "Information only: the read's pre-registered bar is still open.",
       "farm_signal_bots_paper_v1": "Signal bots follow the published signals with the app's default settings. Paper trading with simulated fills; not ranked.",
       "news_machine_translated_v1": "Translated lines are machine translations of the English line; their figures and tickers were checked against it.",
-      "news_newer_run_failed_v1": "The newest digest run ({{time}}) produced no summary; the previous digest is shown."
+      "news_newer_run_failed_v1": "The newest digest run ({{time}}) produced no summary; the previous digest is shown.",
+      "rs96_falling_knife_v1": "The scanner does not give a long on a coin that fell more than 5.4% against BTC over the last 96 hours. Published longs in that state: 0 of 21 won 23-30 Oct 2026 (net -3.44% each); over 191 earlier ones they netted -1.02% against -0.23% for the rest. Tested on signal longs only, not on DCA or Grid bots.",
+      "rs96_falling_knife_v2": "The scanner does not give a long on a coin that fell more than 5.4% against BTC over the last 96 hours. Published longs in that state: 0 of 21 won 23-30 Oct 2026 (net -3.44% each); over 191 earlier ones they netted -1.02% against -0.23% for the rest. On DCA Long Classic bots the same filter lowered returns (lab test, Dec 2024 to Jan 2026)."
     },
     "bar": {
       "notMet": "Veto bar not met: {{hit}} at n={{n}} (needed {{needed}} and {{margin}} pp over both baselines).",
@@ -3984,7 +4014,8 @@
       "heldLine": "{{symbol}} · {{side}} · {{qty}} @ {{entry}}",
       "closeAndSwitch": "Close positions and switch",
       "switchLater": "Switch later",
-      "closeAndSwitchNote": "Close positions and switch sends a reduce-only market order for each position above, waits for the exchange to confirm it, then makes the bot Paper. Switch later stops the bot now; it becomes Paper once these positions close. No other bot's position is touched."
+      "closeAndSwitchNote": "Close positions and switch sends a reduce-only market order for each position above, waits for the exchange to confirm it, then makes the bot Paper. Switch later stops the bot now; it becomes Paper once these positions close. No other bot's position is touched.",
+      "closeAndSwitchHeld": "Rows marked Held after vault reset get no order: for them, Close positions and switch only removes the row from the app's record. Check those positions and their stops on the exchange and close them there yourself."
     },
     "startLive": "Start with real money",
     "restartNote": "After a restart this bot comes back stopped and asks for LIVE again.",

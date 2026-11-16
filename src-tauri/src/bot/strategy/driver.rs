@@ -179,6 +179,7 @@ fn settle(bot: &mut StrategyBot, c: &CycleState, bar: &Bar, out: &mut BarOutcome
         || matches!(
             exit,
             ExitReason::Manual
+                | ExitReason::KeyResetBookClose
                 | ExitReason::DailyStop
                 | ExitReason::PortfolioDd
                 | ExitReason::RemoteKill
@@ -347,6 +348,7 @@ pub(crate) mod tests {
             restart: RestartPolicy::default(),
             max_drawdown_pct: None,
             pause_on_btc_break: true,
+            pause_in_btc_downtrend: false,
             portfolio_breaker: true,
             params: StrategyParams::Dca(dca_params()),
             preset_id: None,

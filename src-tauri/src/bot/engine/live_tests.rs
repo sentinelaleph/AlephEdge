@@ -11,8 +11,8 @@ use super::live_manage::{
 };
 use crate::exchange::BreakevenMove::{MoveInPlace, StopBeside};
 use super::reconcile::{
-    claim_flat, exchange_state, infer_exit_reason, is_due, plan_reconcile, plan_reconcile_on, reconcile_venues,
-    reference_exit, ExchangeSide, ReconcilePlan, RECONCILE_INTERVAL_MS,
+    claim_flat, exchange_state, held_by_key_reset, infer_exit_reason, is_due, opened_before_reset, order_allowed_after_reset,
+    plan_reconcile, plan_reconcile_on, reconcile_venues, reference_exit, ExchangeSide, ReconcilePlan, RECONCILE_INTERVAL_MS,
 };
 use super::test_fixtures::{plan, position, signal};
 use crate::bot::model::{BotKind, OpenPosition};
@@ -179,6 +179,22 @@ fn reconcile_settles_flat_flags_foreign_and_ignores_paper() {
             untracked: vec!["XRPUSDT".into()],
         }
     );
+}
+
+#[test]
+fn a_position_opened_before_a_vault_reset_is_not_closed_as_flat() {
+    let mut before = live_short();
+    (before.signal_id, before.symbol, before.opened_at) = ("before".into(), "ETHUSDT".into(), 1_000);
+    let mut after = live_short();
+    (after.signal_id, after.symbol, after.opened_at) = ("after".into(), "BNBUSDT".into(), 3_000);
+    let book = [before, after];
+    let plan = plan_reconcile(&book, &[]);
+    assert_eq!(plan.closed, vec!["before".to_string(), "after".to_string()], "both flat on the account read");
+
+    assert!(held_by_key_reset(&book, &plan, 0).is_empty(), "no reset: reconcile as before");
+    assert_eq!(held_by_key_reset(&book, &plan, 2_000), vec!["before".to_string()], "the key may be another account's");
+    assert_eq!(held_by_key_reset(&book, &plan, 1_000), vec!["before".to_string()], "opened in the reset's millisecond");
+    assert_eq!(held_by_key_reset(&book, &plan, 5_000).len(), 2);
 }
 
 #[test]
@@ -558,4 +574,159 @@ fn real_money_exposure_is_seen_from_a_position_or_a_live_bot() {
     cfg.live = true;
     bots.configure(cfg);
     assert!(bots.has_live_exposure(), "a bot switched to live is exposure");
+}
+
+// After a vault reset made while live the key may be another account's: a
+// position opened before it gets no exchange call at all (stop / target
+// cross, window end, veto, unprotected flatten, daily stop, remote kill, a
+// bot's Close trigger, and the user's own Close too).
+#[test]
+fn a_position_opened_before_a_vault_reset_gets_no_exchange_call() {
+    let reset_at = 2_000;
+    assert!(!order_allowed_after_reset(1_000, reset_at), "held");
+    assert!(!order_allowed_after_reset(2_000, reset_at), "the reset's millisecond");
+    assert!(order_allowed_after_reset(2_001, reset_at), "after the reset: as before");
+    assert!(order_allowed_after_reset(1_000, 0), "no reset: as before");
+    assert!(!opened_before_reset(1_000, 0));
+    assert!(opened_before_reset(1_000, 1_000));
+}
+
+// What a close of a held row does: the user's Close (also each row of
+// "Close positions and switch") books it in the app only; every automatic
+// reason is refused; a paper row or a row opened after the reset takes the
+// ordinary path.
+#[test]
+fn the_users_close_of_a_held_row_is_book_only_and_every_other_close_is_refused() {
+    use super::book::{held_close, HeldClose};
+    let manual = crate::bot::commands::MANUAL_EXIT_REASON;
+    assert_eq!(held_close(true, 1_000, 2_000, manual), HeldClose::BookOnly);
+    for reason in ["stop", "tp", "veto", "unprotected", "dailyStop", "remoteKill", "stopped", crate::bot::TRIGGER_EXIT_REASON] {
+        assert_eq!(held_close(true, 1_000, 2_000, reason), HeldClose::Refused, "{reason}");
+        assert_eq!(held_close(true, 2_001, 2_000, reason), HeldClose::NotHeld, "{reason} after the reset");
+        assert_eq!(held_close(true, 1_000, 0, reason), HeldClose::NotHeld, "{reason} with no reset");
+    }
+    assert_eq!(held_close(false, 1_000, 2_000, manual), HeldClose::NotHeld, "paper rows are never held");
+    assert_eq!(held_close(true, 2_001, 2_000, manual), HeldClose::NotHeld, "opened after the reset: real close as before");
+}
+
+// The book-only record: nothing was sent, so no fill and no price; it books
+// flat with no fee under its own exit reason.
+#[test]
+fn a_book_only_close_records_no_fill_no_price_and_no_result() {
+    use super::live::EXIT_KEY_RESET_BOOK_CLOSE;
+    use super::live_close::key_reset_book_record;
+    let p = live_short();
+    let r = key_reset_book_record(&p, 9_000);
+    assert_eq!(r.exit_reason, EXIT_KEY_RESET_BOOK_CLOSE);
+    assert_ne!(r.exit_reason, crate::bot::commands::MANUAL_EXIT_REASON);
+    assert_eq!((r.entry, r.exit), (p.entry, p.entry));
+    assert_eq!((r.pnl_quote, r.pnl_pct, r.pnl_usdt, r.pnl_pct_of_capital), (0.0, 0.0, 0.0, 0.0));
+    assert_eq!((r.fill_entry, r.fill_exit, r.commission_usdt, r.unlevered_net_pct), (None, None, None, None));
+    assert!(r.live);
+    assert_eq!(r.closed_at, 9_000);
+}
+
+fn engine_src(f: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/bot/engine").join(f)).unwrap()
+}
+
+/// Body of `fn name` in `src` (to the next top-level item).
+fn fn_body<'a>(src: &'a str, sig: &str) -> &'a str {
+    let at = src.find(sig).unwrap_or_else(|| panic!("{sig} not found"));
+    let rest = &src[at..];
+    let end = rest[1..].find("\n}\n").map_or(rest.len(), |e| e + 3);
+    &rest[..end]
+}
+
+/// Where the hold sits: close_live refuses before any exchange call (no
+/// account read, no flatten, no cancel, no settle) whatever the reason;
+/// close_now decides held rows before the price read, the claim and
+/// close_live; the book's tick skips held rows before every veto, close,
+/// partial and breakeven call.
+#[test]
+fn the_reset_hold_runs_before_every_order_path() {
+    let close = engine_src("live_close.rs");
+    let body = fn_body(&close, "pub async fn close_live(");
+    let guard = body.find("order_allowed_after_reset(pos.opened_at, vault_reset_at(app))").expect("guard in close_live");
+    for call in ["futures_account(", ".flatten(", "cancel_symbol_orders(", "settle_closed(", "settle("] {
+        assert!(guard < body.find(call).unwrap(), "{call} after the guard");
+    }
+    let book = engine_src("book.rs");
+    let now = fn_body(&book, "pub(crate) async fn close_now(");
+    let decide = now.find("held_close(pos.is_live(), pos.opened_at, reconcile::vault_reset_at(app), reason)").expect("held_close in close_now");
+    for call in ["close_price(", "live_close::close_live(", "close_position("] {
+        assert!(decide < now.find(call).unwrap(), "{call} after the decision");
+    }
+    let book_only = &now[now.find("HeldClose::BookOnly =>").unwrap()..now.find("let Some(price)").unwrap()];
+    for call in ["close_live", "flatten", "cancel", "futures_account", "settle_closed", "ExchangeManager"] {
+        assert!(!book_only.contains(call), "the book-only close makes no exchange call ({call})");
+    }
+    let phase = fn_body(&book, "pub async fn close_phase(");
+    let hold = phase.find("reconcile::opened_before_reset(pos.opened_at, reset_at)").expect("hold in close_phase");
+    for call in ["close_one_on_veto(", "close_now(", "live_close::close_live(", "execute_partial(", "sync_breakeven("] {
+        assert!(hold < phase.find(call).unwrap(), "{call} after the hold");
+    }
+}
+
+/// No exchange seam exists to record calls in a test (ExchangeManager is a
+/// concrete client), so this pins WHO may reach the order and cancel calls
+/// for a signal-bot position: a new caller outside the guarded entry points
+/// fails here. close_live and settle_closed are the only senders in
+/// live_close.rs; settle_closed is reached only from close_live and from
+/// reconcile, which removes held rows first (held_by_key_reset).
+#[test]
+fn signal_order_calls_have_only_the_guarded_callers() {
+    const SENDERS: &[&str] = &[".flatten(", ".cancel_symbol_orders(", ".reduce_market(", ".reduce_market_all(", ".open_market(", ".move_stop(", ".cancel_algo(", ".place_protective("];
+    let close = engine_src("live_close.rs");
+    let mut senders: Vec<String> = Vec::new();
+    for chunk in close.split("\npub async fn ").skip(1).chain(close.split("\nasync fn ").skip(1)) {
+        let name = chunk.split('(').next().unwrap().to_string();
+        let body = &chunk[..chunk.find("\n}\n").unwrap_or(chunk.len())];
+        if SENDERS.iter().any(|s| body.contains(s)) {
+            senders.push(name);
+        }
+    }
+    senders.sort();
+    assert_eq!(senders, vec!["close_live".to_string(), "settle_closed".to_string()]);
+    let engine_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/bot/engine");
+    for entry in std::fs::read_dir(&engine_dir).unwrap() {
+        let path = entry.unwrap().path();
+        let name = path.file_name().unwrap().to_string_lossy().to_string();
+        if name.ends_with("tests.rs") || !name.ends_with(".rs") {
+            continue;
+        }
+        let text = std::fs::read_to_string(&path).unwrap();
+        if text.contains("settle_closed(") && name != "live_close.rs" {
+            assert_eq!(name, "reconcile.rs", "a new caller of settle_closed: {name}");
+            let pass = &text[text.find("let kept = held_by_key_reset(").expect("hold in reconcile")..];
+            assert!(pass.find("plan.closed.retain(").unwrap() < pass.find("settle_closed(").unwrap());
+        }
+        if text.contains("close_live(") && name != "live_close.rs" {
+            assert_eq!(name, "book.rs", "a new caller of close_live: {name}");
+        }
+    }
+}
+
+// An untracked position the app's entry opened before a vault reset (a held
+// row closed in the book only) is never adopted, protected or closed; one
+// filled after the reset, or with no reset, goes through as before.
+#[test]
+fn an_own_entry_filled_before_a_vault_reset_is_not_adopted() {
+    use super::reconcile::{untracked_held_by_reset, OwnEntry};
+    let own = |filled_at: u64| OwnEntry { client_id: "ae-x".into(), order_id: 1, avg_price: 100.0, qty: 1.0, filled_at };
+    assert!(untracked_held_by_reset(&own(1_000), 2_000));
+    assert!(untracked_held_by_reset(&own(2_000), 2_000), "the reset's millisecond");
+    assert!(untracked_held_by_reset(&own(0), 2_000), "no fill time: before");
+    assert!(!untracked_held_by_reset(&own(2_001), 2_000), "after the reset: adopted as before");
+    assert!(!untracked_held_by_reset(&own(1_000), 0), "no reset: as before");
+    let src = engine_src("reconcile.rs");
+    let body = fn_body(&src, "async fn handle_untracked(");
+    let hold = body.find("untracked_held_by_reset(&own, vault_reset_at(app))").expect("hold in handle_untracked");
+    for call in ["untracked_action(", "symbol_rules(", "protect_fill(", "open_position(", "flatten_confirmed("] {
+        assert!(hold < body.find(call).unwrap(), "{call} before the hold");
+    }
+    let held = &body[hold..body[hold..].find("return;").unwrap() + hold];
+    for call in ["protect_fill", "flatten", "open_position", "cancel", "reduce"] {
+        assert!(!held.contains(call), "the held branch sends {call}");
+    }
 }

@@ -262,6 +262,8 @@ export const TEXT_CODES = [
   "farm_signal_bots_paper_v1",
   "news_machine_translated_v1",
   "news_newer_run_failed_v1",
+  "rs96_falling_knife_v1",
+  "rs96_falling_knife_v2",
 ] as const;
 const KNOWN_TEXT = new Set<string>(TEXT_CODES);
 

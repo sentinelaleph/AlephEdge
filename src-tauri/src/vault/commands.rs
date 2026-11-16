@@ -14,7 +14,7 @@ use crate::exchange::ExchangeManager;
 
 use crate::exchange::model::BinancePermissions;
 
-use super::model::{CredentialMeta, CredentialPermission, ExchangeCredential, KeyType, VaultStatus};
+use super::model::{CredentialMeta, CredentialPermission, ExchangeCredential, KeyType, VaultState, VaultStatus};
 use super::{KeyFacts, VaultManager};
 
 /// New-credential input from the UI. `added_at` is stamped server-side so the UI
@@ -147,6 +147,14 @@ fn refuse_while_live(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// A vault no password can open (its keychain salt was replaced) holds no
+/// key the engine could use: refusing its reset while real money is in play
+/// protects nothing and leaves the user unable to add a key to manage the
+/// positions (owner, 3 Nov 2026, testnet). Every other vault keeps the rule.
+pub(super) fn reset_allowed_while_live(state: VaultState, salt_is_foreign: impl FnOnce() -> bool) -> bool {
+    state == VaultState::Locked && salt_is_foreign()
+}
+
 #[tauri::command]
 pub fn vault_lock(app: AppHandle, vault: State<VaultManager>) -> Result<VaultStatus, String> {
     refuse_while_live(&app)?;
@@ -178,9 +186,32 @@ pub fn vault_reset(app: AppHandle, vault: State<VaultManager>, confirmation: Str
     if confirmation.trim() != VAULT_RESET_CONFIRMATION {
         return Err("resetConfirmRequired".to_string());
     }
-    refuse_while_live(&app)?;
     let path = vault_path(&app)?;
-    vault.reset(&path)?;
+    let live = crate::bot::strategy_live::live_exposure(&app);
+    if live && !reset_allowed_while_live(vault.status(&path).state, || vault.salt_is_foreign(&path)) {
+        return Err("vaultResetBusyLive".to_string());
+    }
+    if !live {
+        vault.reset(&path)?;
+        return Ok(vault.status(&path));
+    }
+    // The next key may be another account's: the engine must send no
+    // automatic order for, and reconcile must not settle, the positions in
+    // the book now. The marker is written BEFORE the reset, and a marker
+    // that cannot be written refuses the reset: a reset without it would
+    // let the engine act on another account.
+    let dir = app.path().app_data_dir().map_err(|_| "storeDirFailed".to_string())?;
+    let store = app.state::<crate::store::StoreManager>();
+    let key = crate::bot::engine::reconcile::VAULT_RESET_LIVE_META;
+    let before = store.get_meta(&dir, key)?;
+    let at = now_millis();
+    store.set_meta(&dir, key, &at.to_string())?;
+    if let Err(e) = vault.reset(&path) {
+        // Nothing was reset: put the marker back as it was ("0" = none).
+        let _ = store.set_meta(&dir, key, before.as_deref().unwrap_or("0"));
+        return Err(e);
+    }
+    app.state::<crate::bot::BotManager>().set_key_reset_at(at);
     Ok(vault.status(&path))
 }
 
@@ -468,6 +499,14 @@ fn refuse(withdraw: bool, transfer: bool) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_a_locked_vault_no_password_can_open_may_be_reset_while_live() {
+        assert!(reset_allowed_while_live(VaultState::Locked, || true));
+        assert!(!reset_allowed_while_live(VaultState::Locked, || false), "a vault its password opens keeps the rule");
+        assert!(!reset_allowed_while_live(VaultState::Unlocked, || true), "an open vault holds the key the engine uses");
+        assert!(!reset_allowed_while_live(VaultState::Absent, || true));
+    }
 
     fn perms(withdraw: bool, transfer: bool, futures: bool) -> BinancePermissions {
         BinancePermissions {

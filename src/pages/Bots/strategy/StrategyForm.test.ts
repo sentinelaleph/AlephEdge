@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Preset, StrategyConfig } from "@/lib/ipc/strategy/strategy";
 import { openingBudget } from "../StrategyCreatePage";
-import { matchesPreset, rangeExitOf, withRangeExit } from "./StrategyForm";
+import { matchesPreset, rangeExitOf, withRangeExit, withSide } from "./StrategyForm";
 
 const preset = (rule: string): Preset =>
   ({
@@ -91,5 +91,33 @@ describe("grid range exit", () => {
   it("leaves a DCA config alone", () => {
     const dca = { params: { kind: "dca" }, restart: { afterStop: true } } as unknown as StrategyConfig;
     expect(withRangeExit(dca, "close")).toBe(dca);
+  });
+});
+
+describe("withSide", () => {
+  const grid = {
+    market: "futures",
+    side: "long",
+    pauseInBtcDowntrend: true,
+    params: { kind: "grid", trailingUp: true, trailUpLimit: 120 },
+  } as unknown as StrategyConfig;
+
+  it("clears the BTC downtrend gate and trailing up when a grid leaves long", () => {
+    for (const side of ["short", "neutral"] as const) {
+      const c = withSide(grid, side);
+      expect(c.side).toBe(side);
+      expect(c.pauseInBtcDowntrend).toBe(false);
+      expect(c.params).toMatchObject({ trailingUp: false, trailUpLimit: null });
+    }
+  });
+
+  it("keeps the gate on a grid that stays long", () => {
+    expect(withSide(grid, "long").pauseInBtcDowntrend).toBe(true);
+  });
+
+  it("clears a gate left on a DCA bot", () => {
+    const dca = { ...grid, params: { kind: "dca", tpPct: 2 } } as unknown as StrategyConfig;
+    expect(withSide(dca, "long").pauseInBtcDowntrend).toBe(false);
+    expect(withSide(dca, "short").pauseInBtcDowntrend).toBe(false);
   });
 });

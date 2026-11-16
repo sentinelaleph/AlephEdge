@@ -328,6 +328,7 @@ fn exit_label(code: &str) -> &str {
         "manual" => "closed by hand",
         "trigger" => "the bot's close trigger",
         "exchangeClosed" => "closed on the exchange",
+        "keyResetBookClose" => "closed in the app only (vault reset, nothing sent to the exchange)",
         "veto" => "Sentinel veto",
         "liq" => "liquidation",
         "stop" => "grid stop-out",

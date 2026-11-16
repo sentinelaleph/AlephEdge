@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import i18n from "@/i18n";
-import { minimumOrderNotice, skipParams } from "@/lib/skipNotes";
+import { isBotFailure, minimumOrderNotice, skipParams } from "@/lib/skipNotes";
 
 describe("skip note details are localised when they are error codes", () => {
   it("an error code detail becomes the error sentence", async () => {
@@ -47,5 +47,21 @@ describe("a refusal under the exchange minimum is said in plain words", () => {
   it("nothing to say when no signal was refused for it", () => {
     expect(minimumOrderNotice([note(1, "X", "tooOld")])).toBeNull();
     expect(minimumOrderNotice([])).toBeNull();
+  });
+});
+
+describe("a flat position held back after a vault reset", () => {
+  it("is a bot failure with a sentence in every language", async () => {
+    expect(isBotFailure("liveKeyReplacedFlat")).toBe(true);
+    expect(isBotFailure("liveKeyReplacedHeld")).toBe(true);
+    expect(isBotFailure("liveKeyResetUntracked")).toBe(true);
+    for (const lng of ["en", "tr", "es", "pt-BR", "id", "ru", "vi", "hi"]) {
+      await i18n.changeLanguage(lng);
+      for (const key of ["liveKeyReplacedFlat", "liveKeyReplacedHeld", "liveKeyResetUntracked"]) {
+        const text = i18n.t(`bots.skipReasons.${key}`);
+        expect(text, lng).not.toBe(`bots.skipReasons.${key}`);
+      }
+    }
+    await i18n.changeLanguage("en");
   });
 });

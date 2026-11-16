@@ -753,6 +753,11 @@ pub struct BotDeskStatus {
     /// i18n code, or None. Filled by `bot_status`.
     #[serde(default)]
     pub trading_blocked: Option<String>,
+    /// When the vault was reset while real money was in play (ms, 0 =
+    /// never). A live row opened at or before it is held: the app sends no
+    /// order for it, and its Close closes the app's record only.
+    #[serde(default)]
+    pub vault_reset_live_at: u64,
 }
 
 /// An open position at its current stop (the entry once breakeven has

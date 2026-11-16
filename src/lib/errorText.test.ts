@@ -50,6 +50,8 @@ const RUST_CODES = [
   "closeCleanupFailed",
   "botCapitalAboveCap",
   "vaultSaltMismatch",
+  "vaultBusyLive",
+  "vaultResetBusyLive",
 ];
 
 beforeAll(async () => {

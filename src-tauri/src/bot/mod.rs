@@ -126,6 +126,9 @@ pub struct BotManager {
     /// (`live_terms::same_terms`): a risk-level change after the arm refuses
     /// entries until LIVE is typed for the new terms. Memory only.
     armed_terms: Mutex<HashMap<BotKind, live_terms::LiveTerms>>,
+    /// The vault reset marker (`reconcile::VAULT_RESET_LIVE_META`) for the
+    /// status the UI reads; the engine reads the store itself.
+    key_reset_at: AtomicU64,
 }
 
 impl BotManager {
@@ -138,6 +141,7 @@ impl BotManager {
             ledger: Mutex::new(JudgeLedger::default()),
             closing: CloseClaims::default(),
             tripped_day: AtomicU64::new(0),
+            key_reset_at: AtomicU64::new(0),
             btc_regime: Mutex::new(engine::btc_break::BtcRegime::Unknown),
             loop_stop: Mutex::new(None),
             equity: Mutex::new(None),
@@ -300,6 +304,7 @@ impl BotManager {
     pub fn restore(&self, app: AppHandle) {
         self.seed_judged(&app);
         self.restore_trip(&app);
+        self.set_key_reset_at(engine::reconcile::vault_reset_at(&app));
         let Ok(dir) = app.path().app_data_dir() else {
             return;
         };
@@ -672,6 +677,11 @@ impl BotManager {
     }
 
     /// Reloads a trip recorded earlier today (see `trip_kill_switch`).
+    /// Sets the vault reset time the status reports (ms, 0 = none).
+    pub fn set_key_reset_at(&self, at_ms: u64) {
+        self.key_reset_at.store(at_ms, Ordering::Relaxed);
+    }
+
     fn restore_trip(&self, app: &AppHandle) {
         let Ok(dir) = app.path().app_data_dir() else {
             return;
@@ -778,6 +788,7 @@ impl BotManager {
             venue_sandbox: crate::exchange::venue::ccxt::sandbox_from_env(),
             marks,
             at_stop,
+            vault_reset_live_at: self.key_reset_at.load(Ordering::Relaxed),
         }
     }
 

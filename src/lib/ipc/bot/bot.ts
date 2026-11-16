@@ -351,6 +351,11 @@ export interface BotDeskStatus {
   liveUnreadable?: string[];
   /** Why no bot may start now (risk settings or the store unreadable), an error code, or null. */
   tradingBlocked?: string | null;
+  /**
+   * When the vault was reset while real money was in play (ms, 0 = never).
+   * A live row opened at or before it is held (`isKeyResetHeld`).
+   */
+  vaultResetLiveAt?: number;
 }
 
 /**

@@ -349,7 +349,14 @@ export function StrategyBotDetail({ view }: { view: StrategyBotView }) {
         <Panel title={t("botDetail.stateTitle")} aside={<StatusChip status={runStatusKind(view)} label={runStateText(t, view)} />}>
           <FactList
             rows={[
-              { label: t("strategy.detail.newCycles"), value: t(view.acceptingNewCycles ? "strategy.detail.allowed" : "strategy.detail.held") },
+              {
+                label: t("strategy.detail.newCycles"),
+                value: !view.acceptingNewCycles
+                  ? t("strategy.detail.held")
+                  : view.heldBy
+                    ? t(`strategy.notes.${view.heldBy}`, { defaultValue: t("strategy.detail.held") })
+                    : t("strategy.detail.allowed"),
+              },
               { label: t("strategy.detail.openCycle"), value: c ? `#${c.seq}` : NO_VALUE },
               { label: t("strategy.detail.lastNote"), value: view.lastNote ? strategyNoteText(t, view.lastNote) : NO_VALUE },
             ]}

@@ -45,6 +45,7 @@ const EXIT_REASONS_WITH_TOOLTIP = new Set([
   "horizon",
   "max_loss",
   "exchangeClosed",
+  "keyResetBookClose",
   "veto",
   "unprotected",
   "liquidation",

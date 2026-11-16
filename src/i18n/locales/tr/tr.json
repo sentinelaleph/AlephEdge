@@ -272,6 +272,8 @@
       "liveFillsUnavailable": "Bu işlem için borsadan kesin dolum fiyatları ve komisyon alınamadı.",
       "liveFeeNotUsdt": "Komisyon USDT değil · komisyon gösterilmiyor",
       "untrackedExchangePosition": "Borsadaki pozisyonu hiçbir bot izlemiyor · hesabı kontrol edin",
+      "liveKeyReplacedFlat": "Borsada pozisyon yok, ama bu pozisyon açıldıktan sonra kasa sıfırlandı: şimdiki anahtar başka bir hesaba ait olabilir. Uygulama kapatmadı · borsayı kontrol edin, sonra Positions & orders ekranından kapatın",
+      "liveKeyReplacedHeld": "Bu pozisyon açıldıktan sonra kasa sıfırlandı: şimdiki anahtar başka bir hesaba ait olabilir. Uygulama bu pozisyon için emir göndermez · pozisyonu ve stop emrini borsada kontrol edip orada kapatın; Kapat yalnızca uygulamanın kaydındaki satırı kapatır",
       "liveDirectionMismatch": "Borsada ters yön açık · dokunulmadı",
       "liveReconcileFailed": "Hesap mutabakatı başarısız · yeniden denenecek",
       "tpCustomInvalid": "Özel kâr al %{{detail}} bu işleme uygulanamıyor",
@@ -305,7 +307,9 @@
       "paperRecalculated": "{{detail}} kâğıt işlem Sentinel'in kapanışıyla yeniden hesaplandı · ilk kayıtlar History'de duruyor",
       "pineOpened": "Pine betiği tetikleyicisi pozisyon açtı",
       "pineLateFillAdopted": "Pine botu: geç dolum bulundu ve korundu",
-      "pineHalted": "Pine botu: art arda {{detail}} başarısız çalıştırmadan sonra yeni girişler durdu · devam etmek için yeniden başlatın"
+      "pineHalted": "Pine botu: art arda {{detail}} başarısız çalıştırmadan sonra yeni girişler durdu · devam etmek için yeniden başlatın",
+      "liveKeyResetBookClosed": "Yalnızca uygulamanın kaydında kapatıldı. Borsaya hiçbir şey gönderilmedi · pozisyonu ve stop emrini borsada kontrol edip orada kendiniz kapatın",
+      "liveKeyResetUntracked": "Bu pozisyonu uygulama kasa sıfırlanmadan önce açtı ve artık uygulamanın kaydında yok. Uygulama bu pozisyon için emir göndermez · pozisyonu ve stop emrini borsada kendiniz kapatın"
     },
     "exchange": "Borsa",
     "signalFilter": "Sinyal filtresi",
@@ -483,7 +487,8 @@
       "remoteKill": "Telefondan durduruldu",
       "manual": "Siz kapattınız",
       "trigger": "Botun kapanış tetikleyicisi",
-      "liquidation": "Likidasyon"
+      "liquidation": "Likidasyon",
+      "keyResetBookClose": "Yalnızca uygulamada kapatıldı"
     },
     "exitTooltip": {
       "veto": "Hemen kapatıldı · Sentinel vetosu · BTC rejimi sinyalin aleyhine döndü",
@@ -494,7 +499,8 @@
       "unprotected": "Piyasa fiyatından kapatıldı: borsa bu gerçek pozisyon için stopu onaylamadı.",
       "stopped": "Piyasa fiyatından kapatıldı: bu giriş verilirken bot durduruldu.",
       "liquidation": "Fiyat stop'tan önce izole likidasyon fiyatını geçti; marjinin tamamı kaybedildi.",
-      "trigger": "Botun kendisi kapattı: Pine scriptinin Close tetikleyicisi veya bir TradingView kapanış alarmı."
+      "trigger": "Botun kendisi kapattı: Pine scriptinin Close tetikleyicisi veya bir TradingView kapanış alarmı.",
+      "keyResetBookClose": "Bu pozisyon açıldıktan sonra kasa sıfırlandı. Borsaya hiçbir şey gönderilmedi ve çıkış fiyatı bilinmiyor, bu yüzden sonuç 0 olarak kaydedildi"
     },
     "exportFailed": "Dışa aktarma başarısız. Tekrar deneyin.",
     "accountScale": "{{usdt}} hesap",
@@ -1213,7 +1219,9 @@
       "placed": "Emir {{id}}",
       "none": "Yok",
       "tip": "Botun borsaya koyduğu stop ve kâr al emirleri, emir numarasıyla, botun pozisyon kaydından. Hesap 60 saniyede bir kontrol edilir; tetiklenen bir stop ya da kâr al satırı kapatır."
-    }
+    },
+    "closeHeldBody": "Bu {{symbol}} pozisyonu açıldıktan sonra kasa sıfırlandı, şimdiki anahtar başka bir hesaba ait olabilir. Kapat yalnızca uygulamanın kaydındaki satırı kapatır ve borsaya hiçbir şey göndermez. Pozisyonu ve stop emrini borsada kontrol edip orada kendiniz kapatın.",
+    "keyResetChip": "Kasa sıfırlandıktan sonra bekletiliyor"
   },
   "history": {
     "byBot": "Bota göre",
@@ -2034,7 +2042,8 @@
       "close": {
         "title": "{{name}} döngüsü kapatılsın mı?",
         "body": "Açık simülasyon döngüsü piyasa fiyatından kapanır (taker ücreti ve kayma) ve bot durur.",
-        "bodyLive": "Döngü piyasa fiyatından kapanır ve botun borsadaki pozisyonu bir sonraki turda (birkaç saniye) kapatılır. Bot durur."
+        "bodyLive": "Döngü piyasa fiyatından kapanır ve botun borsadaki pozisyonu bir sonraki turda (birkaç saniye) kapatılır. Bot durur.",
+        "bodyHeld": "Bu bot gerçek bir pozisyon tutarken kasa sıfırlandı. Döngü yalnızca uygulamanın kaydında kapanır, bot durur ve Paper olur; borsaya hiçbir şey gönderilmez. Pozisyonu ve stop emrini borsada kontrol edip orada kendiniz kapatın."
       },
       "archive": {
         "title": "{{name}} silinsin mi?",
@@ -2176,6 +2185,7 @@
       "ddStop": "Bot düşüş durdurucusu",
       "ddStopPct": "Düşüş durdurucusu, bütçenin %'si",
       "btcGate": "BTC kırılımında yeni döngüleri beklet",
+      "trendGate": "BTC düşüş trendindeyken yeni döngü açma",
       "portfolioBreaker": "Portföy kesicisi (−%{{pct}})"
     },
     "hint": {
@@ -2218,6 +2228,7 @@
       "endAt": "Açık döngüler çıkışlarına kadar sürer.",
       "ddStop": "Özkaynak zirvesinden bu kayıpta döngüyü kapatır ve botu durdurur.",
       "btcGate": "Sentinel BTC kırılımı bildirirken yeni döngü açılmaz. Açık döngüler sürer.",
+      "trendGate": "Yeni döngü yalnızca BTC'nin günlük kapanışı 50 günlük ortalamasının üstündeyken başlar (değişim için 2 kapanış). Açık döngüler devam eder. Grid Long Trailing laboratuvar testi, ilk 5 coin, Ekim 2024 - Ocak 2026: en kötü düşüş -%33,5'ten -%28,7'ye indi, daha az stop oldu. Grid yine zarar etti; sadece daha az çalıştı.",
       "portfolioBreakerOff": "Portföy kesicisinin dışında: hesaba katılmaz, tetiklendiğinde kapatılmaz ve bekletilmez.",
       "maxDuration": "Süre dolunca döngüyü piyasa fiyatından kapatır. Çalışan bot, bekleme süresinden sonra yeni döngüyü açar."
     },
@@ -2400,7 +2411,8 @@
       "remoteKill": "Telefon: tümünü kapat",
       "manual": "Siz kapattınız",
       "end": "Veri sonu",
-      "sizeDown": "Zararlar emirleri küçülttü"
+      "sizeDown": "Zararlar emirleri küçülttü",
+      "keyResetBookClose": "Yalnızca uygulamada kapatıldı"
     },
     "role": {
       "base": "Ana emir",
@@ -2629,6 +2641,8 @@
       "portfolioDdTripped": "Portföy kesicisi tetiklendi: kapsamındaki botların döngüleri kapandı. Ertesi UTC gününden yeniden kurun.",
       "membershipInactive": "Üyelik aktif değil: yeni döngü yok.",
       "btcBreak": "BTC kırılımı: yeni döngüler bekletiliyor.",
+      "btcDowntrend": "BTC düşüş trendinde: yeni döngüler bekletiliyor.",
+      "btcTrendUnknown": "BTC trendi henüz okunmadı: yeni döngüler bekletiliyor.",
       "priceStale": "Fiyat akışı 3 dakikadan eski",
       "priceUnavailable": "Güncel fiyat yok",
       "strategyDataGap": "Fiyat verisinde boşluk: mumlar atlandı.",
@@ -2667,7 +2681,9 @@
       "leverageAboveCeiling": "Kaldıraç risk seviyenizin üst sınırının üstünde: yeni döngüler bekletiliyor.",
       "liveVenueNotDryRun": "Gerçek para durdu: bu borsanın emir yolu test ağında denenmedi. Gerçek pozisyon stop'u altında kalır; Pozisyonlar ve emirler sayfasından kapatın.",
       "cycleRestoreFailed": "Açık döngü açılışta okunamadı · bot devam ettirilmedi",
-      "liveStateUnreadable": "Gerçek para durumu açılışta okunamadı · bot devam ettirilmedi"
+      "liveStateUnreadable": "Gerçek para durumu açılışta okunamadı · bot devam ettirilmedi",
+      "liveKeyReplacedHeld": "Bu bot gerçek bir pozisyon tutarken kasa sıfırlandı: şimdiki anahtar başka bir hesaba ait olabilir. Uygulama bu bot için emir göndermez. Pozisyonu ve stop emrini borsada kontrol edip orada kapatın; ardından Yalnızca uygulamada kapat botun kaydını kapatır ve onu Paper yapar.",
+      "liveKeyResetBookClosed": "Yalnızca uygulamanın kaydında kapatıldı ve Paper'a geçti. Borsaya hiçbir şey gönderilmedi: pozisyonu ve stop emrini borsada kontrol edip orada kendiniz kapatın."
     },
     "errors": {
       "nameInvalid": "Ad: 1 ile 40 karakter.",
@@ -2752,7 +2768,9 @@
       "liveTermsRequired": "Önce risk altındaki parayı onaylayın.",
       "riskConfigUnreadable": "Risk ayarları okunamadı: risk sayfasında kaydedin.",
       "storeSchemaNewer": "Yerel veriyi daha yeni bir Aleph Edge yazmış (şema {{detail}}). O sürümü kurun; hiçbir şey değiştirilmedi.",
-      "botNotLive": "Bu bot Canlı değil."
+      "botNotLive": "Bu bot Canlı değil.",
+      "liveKeyReplacedHeld": "Bu bot gerçek bir pozisyon tutarken kasa sıfırlandı. Uygulama bu bot için emir göndermez; önce botu yalnızca uygulamada kapatın.",
+      "keyResetCloseConfirm": "Bu botu yalnızca uygulamanın kaydında kapatmak için CLOSE yazın."
     },
     "leverageConfirm": {
       "title": "Likidasyon mümkün, stop yok",
@@ -2797,7 +2815,9 @@
       "pilot": "Pilot: simülasyon boyutunun %{{pct}}'i ile {{count}} döngü kaldı. Bitirirseniz bir sonraki döngüden itibaren geçerli olur.",
       "endPilot": "Pilotu bitir",
       "venue": "Emir borsası",
-      "confirmBodyVenue": "Bu botun simüle ettiği her alım ve satım, {{symbol}} için {{exchange}} vadeli işlemlerine piyasa emri olarak gönderilir; izole marjin, {{leverage}}x. Kararlar yine Binance fiyatlarıyla verilir. Botun stop seviyesinde borsada bir stop durur. Borsadaki pozisyon botun dışında değişirse bot durur. Taker komisyonu uygulanır."
+      "confirmBodyVenue": "Bu botun simüle ettiği her alım ve satım, {{symbol}} için {{exchange}} vadeli işlemlerine piyasa emri olarak gönderilir; izole marjin, {{leverage}}x. Kararlar yine Binance fiyatlarıyla verilir. Botun stop seviyesinde borsada bir stop durur. Borsadaki pozisyon botun dışında değişirse bot durur. Taker komisyonu uygulanır.",
+      "heldClose": "Yalnızca uygulamada kapat",
+      "heldCloseTitle": "{{name}} yalnızca uygulamada kapatılsın mı?"
     },
     "report": {
       "title": "Gerçek ve simülasyon dolumları",
@@ -2973,6 +2993,7 @@
     "closeConfirmRequired": "Kapatmak için {{detail}} yazın.",
     "resetConfirmRequired": "Kasayı sıfırlamak için {{detail}} yazın.",
     "vaultBusyLive": "Gerçek para kullanımda. Kasayı kilitlemeden veya anahtar değiştirmeden önce gerçek pozisyonları kapatın ve canlı modu devre dışı bırakın.",
+    "vaultResetBusyLive": "Gerçek para kullanımda. Sıfırlamadan önce kasanın kilidini açıp gerçek pozisyonları kapatın ya da canlıyı kapatın. Hiçbir şifrenin açamadığı bir kasa her zaman sıfırlanabilir.",
     "updateBlockedLive": "Gerçek para kullanımda. Güncellemeyi kurmadan önce gerçek pozisyonları kapatın ve canlı modu devre dışı bırakın.",
     "trendUnavailable": "Trend okunamadı: Binance yanıt vermedi.",
     "liveVenueNotDryRun": "Bu borsada gerçek para henüz kullanılamıyor: emir yolu borsanın test ağında uçtan uca denenmedi. Oradaki pozisyonlar yine de kapatılabilir.",
@@ -3243,7 +3264,7 @@
   "trend": {
     "title": "Piyasa trendi",
     "chip": "BTC trendi: {{state}} · {{days}} g",
-    "chipTooltip": "BTC günlük kapanışı ile 50 günlük ortalaması. Yalnızca bilgi: hiçbir bot bunu okumaz.",
+    "chipTooltip": "BTC günlük kapanışı ile 50 günlük ortalaması. Long gridde kapısını açmadıkça hiçbir bot bunu okumaz.",
     "state": {
       "up": "Yükseliş",
       "down": "Düşüş"
@@ -3266,7 +3287,9 @@
     "warn": {
       "longInDown": "BTC 50 günlük düşüş trendinde ({{days}} gündür) ve bu bot long alım yapıyor.",
       "shortInUp": "BTC 50 günlük yükseliş trendinde ({{days}} gündür) ve bu bot short satış yapıyor."
-    }
+    },
+    "gateOffer": "Yükseliş dönene kadar yeni döngü açma",
+    "gateOn": "Yeni döngüler yükseliş dönene kadar bekler."
   },
   "botsSummary": {
     "label": "Botlarınıza genel bakış",
@@ -3558,6 +3581,11 @@
       "next": "Sonraki",
       "stale": "DataHub bu fonlama verisini eski olarak işaretliyor."
     },
+    "knife": {
+      "title": "BTC'ye karşı düşen coinler",
+      "none": "Son {{hours}} saatte coin yok.",
+      "more": "{{n}} tane daha"
+    },
     "models": {
       "title": "Bot modelleri ve test sonuçları",
       "template": "Şablon",
@@ -3778,7 +3806,9 @@
       "chart_info_only_bar_open": "Yalnız bilgi amaçlı: okumanın ön kayıtlı eşiği henüz açık.",
       "farm_signal_bots_paper_v1": "Sinyal botları yayımlanan sinyalleri uygulamanın varsayılan ayarlarıyla izler. Simülasyonda işlem; sıralama yok.",
       "news_machine_translated_v1": "Çevrilmiş satırlar İngilizce satırın makine çevirisidir; rakamları ve sembolleri ona göre kontrol edildi.",
-      "news_newer_run_failed_v1": "En yeni özet çalışması ({{time}}) özet üretemedi; önceki özet gösteriliyor."
+      "news_newer_run_failed_v1": "En yeni özet çalışması ({{time}}) özet üretemedi; önceki özet gösteriliyor.",
+      "rs96_falling_knife_v1": "Tarayıcı, son 96 saatte BTC'ye göre %5,4'ten fazla düşen bir coinde long vermez. Bu durumdaki yayınlanmış long'lar: 23-30 Ekim 2026'da 21'in 0'ı kazandı (her biri net -%3,44); önceki 191 tanesi, diğerlerinin -%0,23'üne karşı net -%1,02 getirdi. Yalnızca sinyal long'larında test edildi, DCA veya Grid botlarında değil.",
+      "rs96_falling_knife_v2": "Tarayıcı, son 96 saatte BTC'ye göre %5,4'ten fazla düşen bir coinde long vermez. Bu durumdaki yayınlanmış long'lar: 23-30 Ekim 2026'da 21'in 0'ı kazandı (her biri net -%3,44); önceki 191 tanesi, diğerlerinin -%0,23'üne karşı net -%1,02 getirdi. DCA Long Classic botlarında aynı filtre getiriyi düşürdü (laboratuvar testi, Aralık 2024 - Ocak 2026)."
     },
     "bar": {
       "notMet": "Veto eşiği karşılanmadı: n={{n}} için {{hit}} (gereken {{needed}} ve iki karşılaştırmanın da {{margin}} puan üstü).",
@@ -3984,7 +4014,8 @@
       "heldLine": "{{symbol}} · {{side}} · {{qty}} @ {{entry}}",
       "closeAndSwitch": "Pozisyonları kapat ve geç",
       "switchLater": "Sonra geç",
-      "closeAndSwitchNote": "Pozisyonları kapat ve geç, yukarıdaki her pozisyon için yalnızca azaltan bir piyasa emri gönderir, borsanın onayını bekler ve botu Simülasyona geçirir. Sonra geç botu hemen durdurur; bu pozisyonlar kapanınca bot Simülasyona geçer. Başka bir botun pozisyonuna dokunulmaz."
+      "closeAndSwitchNote": "Pozisyonları kapat ve geç, yukarıdaki her pozisyon için yalnızca azaltan bir piyasa emri gönderir, borsanın onayını bekler ve botu Simülasyona geçirir. Sonra geç botu hemen durdurur; bu pozisyonlar kapanınca bot Simülasyona geçer. Başka bir botun pozisyonuna dokunulmaz.",
+      "closeAndSwitchHeld": "Kasa sıfırlandıktan sonra bekletiliyor olarak işaretli satırlar için emir gönderilmez: Pozisyonları kapat ve geç bu satırları yalnızca uygulamanın kaydında kapatır. Bu pozisyonları ve stop emirlerini borsada kontrol edip orada kendiniz kapatın."
     },
     "startLive": "Gerçek parayla başlat",
     "restartNote": "Yeniden başlatmadan sonra bu bot durdurulmuş olarak döner ve tekrar LIVE ister.",

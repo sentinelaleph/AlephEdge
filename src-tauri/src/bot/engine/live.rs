@@ -77,6 +77,21 @@ pub const NOTE_FILLS_UNAVAILABLE: &str = "liveFillsUnavailable";
 pub const NOTE_FEE_NOT_USDT: &str = "liveFeeNotUsdt";
 // Reconciliation.
 pub const NOTE_UNTRACKED: &str = "untrackedExchangePosition";
+/// A live position opened before the vault was reset is flat on the account
+/// the new key reads: that may be another account, so the app does not close
+/// the book row by itself (vault/commands.rs `vault_reset`).
+pub const NOTE_KEY_REPLACED: &str = "liveKeyReplacedFlat";
+/// The same reset, for a position the book would act on (stop, target,
+/// window end, veto, partial, breakeven, daily stop, a bot's Close trigger):
+/// the app sends no automatic order for it. Only the user's own close in
+/// Positions & orders acts on it.
+pub const NOTE_KEY_REPLACED_HELD: &str = "liveKeyReplacedHeld";
+/// Exit reason of a held position the user closed: the app's record only,
+/// nothing sent to the exchange, no fill, P&L recorded as 0 (unknown).
+pub const EXIT_KEY_RESET_BOOK_CLOSE: &str = "keyResetBookClose";
+/// Said when that record is closed: the exchange still holds whatever it
+/// holds, and the user closes it (and its stop) there.
+pub const NOTE_KEY_RESET_BOOK_CLOSED: &str = "liveKeyResetBookClosed";
 pub const NOTE_DIRECTION_MISMATCH: &str = "liveDirectionMismatch";
 pub const NOTE_RECONCILE_FAILED: &str = "liveReconcileFailed";
 /// A real position with no exchange stop; the book flattens it every tick.

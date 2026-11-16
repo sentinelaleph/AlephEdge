@@ -14,7 +14,7 @@ function sinceDate(ms: number, locale: string): string {
   return new Date(ms).toLocaleDateString(locale, { day: "numeric", month: "short", timeZone: "UTC" });
 }
 
-/** Header chip: BTC's 50-day trend and its age. Information only. */
+/** Header chip: BTC's 50-day trend and its age. */
 export function MarketTrendChip() {
   const { t } = useTranslation();
   const { trend } = useMarketTrend();
@@ -76,11 +76,25 @@ export function MarketTrendPanel() {
  * Form note: shown when the bot's direction runs against the trend. `long`
  * and `short` say which sides the bot can open.
  */
-export function TrendMismatchNote({ long, short }: { long: boolean; short: boolean }) {
+/**
+ * `gate`: the long-grid "hold new cycles while BTC is in a downtrend" switch
+ * (StrategyConfig.pauseInBtcDowntrend). Given, a long-in-downtrend warning
+ * offers it in place, so the warning and the setting are not two screens apart.
+ */
+export function TrendMismatchNote({
+  long,
+  short,
+  gate,
+}: {
+  long: boolean;
+  short: boolean;
+  gate?: { on: boolean; set: (on: boolean) => void };
+}) {
   const { t } = useTranslation();
   const { trend } = useMarketTrend();
   if (!trend) return null;
   const against = (trend.state === "down" && long && !short) || (trend.state === "up" && short && !long);
+  const offer = against && trend.state === "down" && gate;
   return (
     <p className="ae-banner" data-tone={against ? "warn" : "info"}>
       {against
@@ -89,6 +103,18 @@ export function TrendMismatchNote({ long, short }: { long: boolean; short: boole
       <Link to={FAQ_PATH} className="ae-link">
         {t("trend.more")}
       </Link>
+      {offer ? (
+        gate.on ? (
+          <> · {t("trend.gateOn")}</>
+        ) : (
+          <>
+            {" · "}
+            <button type="button" className="ae-link" onClick={() => gate.set(true)}>
+              {t("trend.gateOffer")}
+            </button>
+          </>
+        )
+      ) : null}
     </p>
   );
 }

@@ -272,6 +272,8 @@
       "liveFillsUnavailable": "No se obtuvieron del exchange los precios de ejecución exactos ni la comisión de esta operación.",
       "liveFeeNotUsdt": "Comisión no cobrada en USDT · no se muestra",
       "untrackedExchangePosition": "Posición del exchange sin bot asociado · revisa la cuenta",
+      "liveKeyReplacedFlat": "Sin posición en el exchange, pero la bóveda se restableció después de abrirla: la clave actual puede ser de otra cuenta. La app no la cerró · revisa el exchange y ciérrala en Posiciones y órdenes",
+      "liveKeyReplacedHeld": "La bóveda se restableció después de abrir esta posición: la clave actual puede ser de otra cuenta. La app no envía órdenes para ella · revisa la posición y su stop en el exchange y ciérralos allí; Cerrar solo quita la fila del registro de la app",
       "liveDirectionMismatch": "El exchange tiene el lado opuesto · sin tocar",
       "liveReconcileFailed": "Conciliación de la cuenta fallida · se reintentará",
       "tpCustomInvalid": "La toma de ganancias personalizada de {{detail}}% no se puede aplicar a esta operación",
@@ -305,7 +307,9 @@
       "paperRecalculated": "{{detail}} operación(es) en papel recalculada(s) con el cierre de Sentinel · los registros iniciales siguen en el historial",
       "pineOpened": "Abierto por un disparador del script Pine",
       "pineLateFillAdopted": "Bot Pine: se encontró una ejecución tardía y se protegió",
-      "pineHalted": "Bot Pine: nuevas entradas detenidas tras {{detail}} ejecuciones fallidas seguidas · inícielo de nuevo para continuar"
+      "pineHalted": "Bot Pine: nuevas entradas detenidas tras {{detail}} ejecuciones fallidas seguidas · inícielo de nuevo para continuar",
+      "liveKeyResetBookClosed": "Cerrada solo en el registro de la app. No se envió nada al exchange · revisa la posición y su stop en el exchange y ciérralos allí tú mismo",
+      "liveKeyResetUntracked": "La app abrió esta posición antes de restablecer la bóveda y ya no está en el registro de la app. La app no envía órdenes para ella · ciérrala junto con su stop en el exchange tú mismo"
     },
     "exchange": "Exchange",
     "signalFilter": "Filtro de señal",
@@ -483,7 +487,8 @@
       "remoteKill": "Detenido desde el teléfono",
       "manual": "Cerrado por usted",
       "trigger": "Disparador de cierre del bot",
-      "liquidation": "Liquidación"
+      "liquidation": "Liquidación",
+      "keyResetBookClose": "Cerrada solo en la app"
     },
     "exitTooltip": {
       "veto": "Cerrada al instante · veto de Sentinel · el régimen de BTC giró contra la señal",
@@ -494,7 +499,8 @@
       "unprotected": "Cerrada a mercado: el exchange no confirmó un stop para esta posición real.",
       "stopped": "Cerrada a mercado: el bot se detuvo mientras se colocaba esta entrada.",
       "liquidation": "El precio superó el precio de liquidación aislado antes del stop; se pierde todo el margen.",
-      "trigger": "Cerrado por el propio bot: el disparador Close del script de Pine o una alerta de cierre de TradingView."
+      "trigger": "Cerrado por el propio bot: el disparador Close del script de Pine o una alerta de cierre de TradingView.",
+      "keyResetBookClose": "La bóveda se restableció después de abrir esta posición. No se envió nada al exchange y no se conoce un precio de salida, así que el resultado se registra como 0"
     },
     "exportFailed": "Error al exportar. Inténtalo de nuevo.",
     "accountScale": "{{usdt}} cuenta",
@@ -1213,7 +1219,9 @@
       "placed": "Orden {{id}}",
       "none": "Ninguna",
       "tip": "Las órdenes de stop y take-profit que el bot colocó en el exchange, por id de orden, según su propio registro de la posición. La cuenta se revisa cada 60 s; un stop o take-profit ejecutado cierra la fila."
-    }
+    },
+    "closeHeldBody": "La bóveda se restableció después de abrir esta posición de {{symbol}}, así que la clave actual puede ser de otra cuenta. Cerrar solo quita la fila del registro de la app y no envía nada al exchange. Revisa la posición y su stop en el exchange y ciérralos allí tú mismo.",
+    "keyResetChip": "Retenida tras restablecer la bóveda"
   },
   "history": {
     "byBot": "Por bot",
@@ -2034,7 +2042,8 @@
       "close": {
         "title": "¿Cerrar el ciclo de {{name}}?",
         "body": "El ciclo en papel abierto se cierra a mercado (comisión taker y deslizamiento) y el bot se detiene.",
-        "bodyLive": "El ciclo se cierra a mercado y la posición del bot en el exchange se cierra en la siguiente pasada (unos segundos). El bot se detiene."
+        "bodyLive": "El ciclo se cierra a mercado y la posición del bot en el exchange se cierra en la siguiente pasada (unos segundos). El bot se detiene.",
+        "bodyHeld": "La bóveda se restableció mientras este bot tenía una posición real. El ciclo se cierra solo en el registro de la app, el bot se detiene y pasa a Paper, y no se envía nada al exchange. Revisa la posición y su stop en el exchange y ciérralos allí tú mismo."
       },
       "archive": {
         "title": "¿Eliminar {{name}}?",
@@ -2176,6 +2185,7 @@
       "ddStop": "Stop por drawdown del bot",
       "ddStopPct": "Stop por drawdown, % del presupuesto",
       "btcGate": "Retener ciclos nuevos en una ruptura de BTC",
+      "trendGate": "Retener nuevos ciclos mientras BTC está en tendencia bajista",
       "portfolioBreaker": "Cortacircuitos de cartera (−{{pct}}%)"
     },
     "hint": {
@@ -2218,6 +2228,7 @@
       "endAt": "Los ciclos abiertos siguen hasta su salida.",
       "ddStop": "Cierra el ciclo y detiene el bot con esta pérdida desde su máximo de capital.",
       "btcGate": "Sin ciclo nuevo mientras Sentinel informe una ruptura de BTC. Los ciclos abiertos continúan.",
+      "trendGate": "Un ciclo nuevo solo empieza mientras el cierre diario de BTC está por encima de su media de 50 días (2 cierres para cambiar). Los ciclos abiertos continúan. Prueba de laboratorio con Grid Long Trailing, top 5 monedas, oct 2024 a ene 2026: peor drawdown de -33,5 % a -28,7 %, menos stops. El grid siguió perdiendo; solo operó menos.",
       "portfolioBreakerOff": "Fuera del cortacircuitos de cartera: no cuenta, no se cierra ni se retiene cuando salta.",
       "maxDuration": "Al alcanzarse, cierra el ciclo a mercado. Un bot en marcha abre el siguiente ciclo tras la espera."
     },
@@ -2400,7 +2411,8 @@
       "remoteKill": "Teléfono: cerrar todo",
       "manual": "Cerrado por usted",
       "end": "Fin de los datos",
-      "sizeDown": "Las pérdidas redujeron las órdenes"
+      "sizeDown": "Las pérdidas redujeron las órdenes",
+      "keyResetBookClose": "Cerrado solo en la app"
     },
     "role": {
       "base": "Orden base",
@@ -2629,6 +2641,8 @@
       "portfolioDdTripped": "Cortacircuitos de cartera activado: ciclos de los bots cubiertos cerrados. Rearme desde el día UTC siguiente.",
       "membershipInactive": "Membresía inactiva: sin ciclos nuevos.",
       "btcBreak": "Ruptura de BTC: ciclos nuevos retenidos.",
+      "btcDowntrend": "BTC en tendencia bajista: nuevos ciclos retenidos.",
+      "btcTrendUnknown": "Tendencia de BTC aún sin leer: nuevos ciclos retenidos.",
       "priceStale": "Precio con más de 3 minutos",
       "priceUnavailable": "Sin precio actual",
       "strategyDataGap": "Hueco en los datos de precio: velas omitidas.",
@@ -2667,7 +2681,9 @@
       "leverageAboveCeiling": "Apalancamiento por encima del máximo de tu nivel de riesgo: ciclos nuevos retenidos.",
       "liveVenueNotDryRun": "Dinero real detenido: la ruta de órdenes de este exchange no ha superado una prueba en su red de pruebas. La posición real sigue bajo su stop; ciérrala en la página Posiciones y órdenes.",
       "cycleRestoreFailed": "El ciclo abierto no se pudo leer al iniciar · el bot no se reanudó",
-      "liveStateUnreadable": "El estado de dinero real no se pudo leer al iniciar · el bot no se reanudó"
+      "liveStateUnreadable": "El estado de dinero real no se pudo leer al iniciar · el bot no se reanudó",
+      "liveKeyReplacedHeld": "La bóveda se restableció mientras este bot tenía una posición real: la clave actual puede ser de otra cuenta. La app no envía órdenes para este bot. Revisa la posición y su stop en el exchange y ciérralos allí; después, Cerrar solo en la app cierra el registro del bot y lo pasa a Paper.",
+      "liveKeyResetBookClosed": "Cerrado solo en el registro de la app y pasado a Paper. No se envió nada al exchange: revisa la posición y su stop en el exchange y ciérralos allí tú mismo."
     },
     "errors": {
       "nameInvalid": "Nombre: de 1 a 40 caracteres.",
@@ -2752,7 +2768,9 @@
       "liveTermsRequired": "Confirma primero el dinero en riesgo.",
       "riskConfigUnreadable": "No se pudieron leer los ajustes de riesgo: guárdalos en la página de riesgo.",
       "storeSchemaNewer": "Los datos locales los escribió un Aleph Edge más nuevo (esquema {{detail}}). Instala esa versión; no se cambió nada.",
-      "botNotLive": "Este bot no es real."
+      "botNotLive": "Este bot no es real.",
+      "liveKeyReplacedHeld": "La bóveda se restableció mientras este bot tenía una posición real. La app no envía órdenes para él; primero ciérralo solo en la app.",
+      "keyResetCloseConfirm": "Escribe CLOSE para cerrar este bot solo en el registro de la app."
     },
     "leverageConfirm": {
       "title": "Liquidación posible, sin stop",
@@ -2797,7 +2815,9 @@
       "pilot": "Piloto: quedan {{count}} ciclos al {{pct}}% del tamaño simulado. Terminarlo aplica desde el siguiente ciclo.",
       "endPilot": "Terminar piloto",
       "venue": "Exchange de órdenes",
-      "confirmBodyVenue": "Cada compra y venta que simula este bot se envía a futuros de {{exchange}} como orden de mercado en {{symbol}}, margen aislado, {{leverage}}x. Las decisiones siguen usando precios de Binance. Un stop queda en el exchange al nivel de stop del bot. Si la posición cambia fuera del bot, el bot se detiene. Se aplican comisiones taker."
+      "confirmBodyVenue": "Cada compra y venta que simula este bot se envía a futuros de {{exchange}} como orden de mercado en {{symbol}}, margen aislado, {{leverage}}x. Las decisiones siguen usando precios de Binance. Un stop queda en el exchange al nivel de stop del bot. Si la posición cambia fuera del bot, el bot se detiene. Se aplican comisiones taker.",
+      "heldClose": "Cerrar solo en la app",
+      "heldCloseTitle": "¿Cerrar {{name}} solo en la app?"
     },
     "report": {
       "title": "Ejecuciones reales vs simuladas",
@@ -2973,6 +2993,7 @@
     "closeConfirmRequired": "Escribe {{detail}} para cerrar.",
     "resetConfirmRequired": "Escribe {{detail}} para restablecer la bóveda.",
     "vaultBusyLive": "Hay dinero real en juego. Cierra las posiciones reales y desactiva el modo real antes de bloquear la bóveda o cambiar claves.",
+    "vaultResetBusyLive": "Hay dinero real en juego. Desbloquea la bóveda y cierra las posiciones reales, o desactiva el modo real, antes de restablecerla. Una bóveda que ninguna contraseña puede abrir se puede restablecer en cualquier momento.",
     "updateBlockedLive": "Hay dinero real en juego. Cierra las posiciones reales y desactiva el modo real antes de instalar una actualización.",
     "trendUnavailable": "Tendencia no disponible: Binance no respondió.",
     "liveVenueNotDryRun": "El dinero real aún no está disponible en este exchange: su ruta de órdenes no ha superado una prueba en la red de pruebas del exchange. Las posiciones allí se pueden seguir cerrando.",
@@ -3243,7 +3264,7 @@
   "trend": {
     "title": "Tendencia del mercado",
     "chip": "Tendencia BTC: {{state}} · {{days}} d",
-    "chipTooltip": "Cierre diario de BTC frente a su media de 50 días. Solo información: ningún bot la lee.",
+    "chipTooltip": "Cierre diario de BTC frente a su media de 50 días. Ningún bot lo lee salvo que actives su filtro en un grid long.",
     "state": {
       "up": "Alcista",
       "down": "Bajista"
@@ -3266,7 +3287,9 @@
     "warn": {
       "longInDown": "BTC está en tendencia bajista de 50 días ({{days}} días) y este bot compra en largo.",
       "shortInUp": "BTC está en tendencia alcista de 50 días ({{days}} días) y este bot vende en corto."
-    }
+    },
+    "gateOffer": "Retener nuevos ciclos hasta que suba",
+    "gateOn": "Los nuevos ciclos esperan hasta que suba."
   },
   "botsSummary": {
     "label": "Tus bots de un vistazo",
@@ -3558,6 +3581,11 @@
       "next": "Próximo",
       "stale": "DataHub marca esta instantánea de funding como desactualizada."
     },
+    "knife": {
+      "title": "Monedas que caen frente a BTC",
+      "none": "Ninguna moneda en las últimas {{hours}} horas.",
+      "more": "{{n}} más"
+    },
     "models": {
       "title": "Modelos de bot y sus resultados de prueba",
       "template": "Plantilla",
@@ -3778,7 +3806,9 @@
       "chart_info_only_bar_open": "Solo informativo: el umbral prerregistrado de la lectura sigue abierto.",
       "farm_signal_bots_paper_v1": "Los bots de señales siguen las señales publicadas con la configuración predeterminada de la app. Operación en papel con ejecuciones simuladas; sin clasificación.",
       "news_machine_translated_v1": "Las líneas traducidas son traducciones automáticas de la línea en inglés; sus cifras y tickers se comprobaron con ella.",
-      "news_newer_run_failed_v1": "La ejecución más reciente del resumen ({{time}}) no produjo resumen; se muestra el resumen anterior."
+      "news_newer_run_failed_v1": "La ejecución más reciente del resumen ({{time}}) no produjo resumen; se muestra el resumen anterior.",
+      "rs96_falling_knife_v1": "El escáner no da un long en una moneda que cayó más de un 5,4 % frente a BTC en las últimas 96 horas. Longs publicados en ese estado: 0 de 21 ganaron del 23 al 30 oct 2026 (neto -3,44 % cada uno); en 191 anteriores el neto fue -1,02 % frente a -0,23 % del resto. Probado solo en longs de señales, no en bots DCA ni Grid.",
+      "rs96_falling_knife_v2": "El escáner no da un long en una moneda que cayó más de un 5,4 % frente a BTC en las últimas 96 horas. Longs publicados en ese estado: 0 de 21 ganaron del 23 al 30 oct 2026 (neto -3,44 % cada uno); en 191 anteriores el neto fue -1,02 % frente a -0,23 % del resto. En los bots DCA Long Classic el mismo filtro redujo la rentabilidad (prueba de laboratorio, dic 2024 a ene 2026)."
     },
     "bar": {
       "notMet": "Umbral de veto no alcanzado: {{hit}} con n={{n}} (se necesitaba {{needed}} y {{margin}} pp sobre ambas referencias).",
@@ -3984,7 +4014,8 @@
       "heldLine": "{{symbol}} · {{side}} · {{qty}} @ {{entry}}",
       "closeAndSwitch": "Cerrar posiciones y pasar",
       "switchLater": "Pasar más tarde",
-      "closeAndSwitchNote": "Cerrar posiciones y pasar envía una orden a mercado de solo reducción por cada posición de arriba, espera a que el exchange la confirme y pasa el bot a papel. Pasar más tarde detiene el bot ahora; pasa a papel cuando esas posiciones se cierren. No se toca ninguna posición de otro bot."
+      "closeAndSwitchNote": "Cerrar posiciones y pasar envía una orden a mercado de solo reducción por cada posición de arriba, espera a que el exchange la confirme y pasa el bot a papel. Pasar más tarde detiene el bot ahora; pasa a papel cuando esas posiciones se cierren. No se toca ninguna posición de otro bot.",
+      "closeAndSwitchHeld": "Las filas marcadas como Retenida tras restablecer la bóveda no reciben órdenes: para ellas, Cerrar posiciones y cambiar solo quita la fila del registro de la app. Revisa esas posiciones y sus stops en el exchange y ciérralos allí tú mismo."
     },
     "startLive": "Arrancar con dinero real",
     "restartNote": "Tras reiniciar, este bot vuelve detenido y pide LIVE de nuevo.",

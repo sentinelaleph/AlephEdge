@@ -291,6 +291,7 @@ fn read_gates(app: &AppHandle, mgr: &StrategyManager) -> Gates {
         portfolio: mgr.portfolio_tripped(),
         membership_inactive: !app.state::<MembershipManager>().view().active,
         btc_break: bots.btc_regime() == BtcRegime::Break,
+        btc_trend_up: crate::app::market_trend::cached_up(now_ms()),
         max_leverage: app.state::<crate::risk::RiskManager>().limits().max_leverage,
     }
 }
@@ -344,6 +345,13 @@ pub async fn strategy_phase(app: &AppHandle) {
                 .or_default()
                 .push(b);
         }
+    }
+    // The trend gate reads a cache; refresh it (15 min cache, one request)
+    // only when a bot uses it. A failed read leaves the cache, which goes
+    // unknown after a day, and is not retried for 5 minutes, so a dead
+    // endpoint costs one timeout per window instead of one per tick.
+    if groups.values().flatten().any(|b| b.cfg.trend_gate_on()) {
+        let _ = crate::app::market_trend::market_trend().await;
     }
     for ((market, symbol), bots) in groups {
         run_group(app, &mgr, market, &symbol, &bots, now).await;
@@ -491,6 +499,7 @@ fn walk_bot(
         return;
     };
     let gate = gates.for_bot(&bot);
+    mgr.set_held(&bot.id, gate);
     let (batch, notes, opened) = walk_bars(&mut bot, &mut cycle, bars, gate, seen_until);
     if opened {
         mgr.clear_last_note(&bot.id);
@@ -827,12 +836,72 @@ mod tests {
     }
 
     #[test]
+    fn the_trend_gate_holds_only_bots_that_opt_in() {
+        use crate::bot::strategy::driver::tests::sample_bot;
+        let gates = |btc_trend_up: Option<bool>| Gates {
+            portfolio: false,
+            membership_inactive: false,
+            btc_break: false,
+            btc_trend_up,
+            max_leverage: 5,
+        };
+        let mut bot = sample_bot();
+        bot.cfg.params = long_grid_params();
+        assert_eq!(gates(Some(false)).for_bot(&bot), None, "off by default");
+        assert_eq!(gates(None).for_bot(&bot), None);
+        bot.cfg.pause_in_btc_downtrend = true;
+        assert_eq!(gates(Some(true)).for_bot(&bot), None);
+        assert_eq!(gates(Some(false)).for_bot(&bot), Some("btcDowntrend"));
+        assert_eq!(gates(None).for_bot(&bot), Some("btcTrendUnknown"));
+    }
+
+    fn long_grid_params() -> crate::bot::strategy::model::StrategyParams {
+        use crate::bot::strategy::model::{GridParams, GridRange, Spacing, StrategyParams};
+        StrategyParams::Grid(GridParams {
+            range: GridRange::Absolute { lower: 90.0, upper: 110.0 },
+            n_grids: 2,
+            spacing: Spacing::Arith,
+            stop_out_pct: None,
+            trailing_up: false,
+            trail_up_limit: None,
+            take_profit_pct: None,
+            max_duration_min: None,
+        })
+    }
+
+    #[test]
+    fn the_trend_gate_is_ignored_unless_the_bot_is_a_long_grid() {
+        use crate::bot::strategy::driver::tests::sample_bot;
+        use crate::bot::strategy::model::Side;
+        let down = Gates {
+            portfolio: false,
+            membership_inactive: false,
+            btc_break: false,
+            btc_trend_up: Some(false),
+            max_leverage: 5,
+        };
+        let mut bot = sample_bot();
+        bot.cfg.pause_in_btc_downtrend = true;
+        // A DCA (long) with the flag left on: not held.
+        assert_eq!(down.for_bot(&bot), None, "DCA ignores the flag");
+        assert!(!bot.cfg.trend_gate_on());
+        bot.cfg.params = long_grid_params();
+        assert_eq!(down.for_bot(&bot), Some("btcDowntrend"));
+        for side in [Side::Short, Side::Neutral] {
+            bot.cfg.side = side;
+            assert_eq!(down.for_bot(&bot), None, "a grid that left long ignores the hidden flag");
+            assert!(!bot.cfg.trend_gate_on());
+        }
+    }
+
+    #[test]
     fn a_lowered_leverage_ceiling_holds_new_cycles_only() {
         use crate::bot::strategy::driver::tests::{sample_bot, wave};
         let gates = |max_leverage: u8| Gates {
             portfolio: false,
             membership_inactive: false,
             btc_break: false,
+            btc_trend_up: Some(true),
             max_leverage,
         };
         let mut bot = sample_bot();

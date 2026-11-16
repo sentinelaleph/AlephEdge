@@ -130,6 +130,14 @@ export interface Market {
     };
   };
   funding: Leaf & { datahub_stale: boolean; rows: FundingRow[] };
+  /** schema_minor 3: coins the scanner withheld a long on in the last window_hours (rs96 gate). Absent on older servers. */
+  falling_knife?: Leaf & {
+    window_hours: number;
+    coins: { symbol: string; withheld_at: string }[];
+    total: number;
+    rule: string;
+    rule_code?: string;
+  };
 }
 
 export interface LabSplit {

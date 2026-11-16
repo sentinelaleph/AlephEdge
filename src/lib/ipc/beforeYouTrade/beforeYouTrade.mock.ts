@@ -9,6 +9,7 @@
  * `?byt=legacy` the live payload exactly as today's server sends it (no codes).
  * `?byt=future` codes this app version does not know (generic lines).
  * `?byt=newerfailed` the newest digest run failed: the previous digest is shown.
+ * `?byt=knife` schema_minor 3: coins the scanner withheld a long on (rs96 gate).
  * `?byt=offline` pictures the cached copy after a failed fetch (3 h old);
  * `?byt=down` a first fetch that failed with nothing cached.
  */
@@ -45,6 +46,26 @@ export function beforeYouTrade(_refresh: boolean, lang?: string): BeforeYouTrade
   if (mode === "future") payload = withUnknownCodes(payload);
   if (mode === "newerfailed")
     payload = { ...payload, news: { ...payload.news, newer_run_at: "2026-10-17T02:02:00Z", newer_run_status: "error", newer_run_code: "news_newer_run_failed_v1" } };
+  if (mode === "knife")
+    payload = {
+      ...payload,
+      market: {
+        ...payload.market,
+        falling_knife: {
+          status: "ok",
+          as_of: "2026-11-03T12:18:00Z",
+          source: "scanner rs96 gate",
+          window_hours: 24,
+          total: 3,
+          coins: [
+            { symbol: "BLURUSDT", withheld_at: "2026-11-03T12:10:00Z" },
+            { symbol: "PEPEUSDT", withheld_at: "2026-11-03T11:40:00Z" },
+          ],
+          rule: "The scanner does not give a long on a coin that fell more than 5.4% against BTC over the last 96 hours.",
+          rule_code: "rs96_falling_knife_v1",
+        },
+      },
+    };
   if (mode === "offline") return { payload, fetchedAtMs: Date.now() - 3 * 3_600_000, stale: true, error: "bytUnavailable" };
   return { payload, fetchedAtMs: Date.now(), stale: false, error: null };
 }

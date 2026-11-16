@@ -325,6 +325,14 @@ impl VaultManager {
         Ok(())
     }
 
+    /// Whether no password can open the vault at `path`: its file records a
+    /// salt fingerprint and this build's keychain holds another salt, or none.
+    /// A file without a fingerprint (before 0.3.0) or an unreadable one is not
+    /// called foreign: that is not provable without the password.
+    pub fn salt_is_foreign(&self, path: &Path) -> bool {
+        salt_is_foreign_in(&OsKeychain, keychain::service(), path)
+    }
+
     /// Drop the in-memory session (Drop zeroizes secrets).
     pub fn lock(&self) {
         *self.session.lock().expect("vault mutex") = None;
@@ -670,6 +678,29 @@ impl SaltEntry {
         match self {
             SaltEntry::Own(v) | SaltEntry::Legacy(v) => v,
         }
+    }
+}
+
+/// Foreign = the keychain ANSWERED: another salt, or no entry at all. A
+/// keychain read that failed proves nothing, so it is not foreign: a reset
+/// that would delete a working vault while live stays refused.
+fn salt_is_foreign_in(store: &impl SecretStore, service: &str, path: &Path) -> bool {
+    let Ok(raw) = std::fs::read(path) else { return false };
+    let Ok(file) = serde_json::from_slice::<VaultFile>(&raw) else { return false };
+    let Some(recorded) = file.salt_check.as_deref() else { return false };
+    let read = |svc: &str| store.lookup(svc, KEYCHAIN_SALT_USER);
+    let found = match read(service) {
+        Err(()) => return false,
+        Ok(Some(own)) => Some(own),
+        Ok(None) if service != keychain::LEGACY_SERVICE => match read(keychain::LEGACY_SERVICE) {
+            Err(()) => return false,
+            Ok(v) => v,
+        },
+        Ok(None) => None,
+    };
+    match found {
+        Some(v) => B64.decode(v.as_bytes()).is_ok_and(|salt| salt_check(&salt) != recorded),
+        None => true,
     }
 }
 
@@ -1213,6 +1244,53 @@ mod tests {
         m.lock();
         m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").expect("still opens");
         assert_eq!(m.list().unwrap().len(), 2);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_foreign_salt_is_detected_without_the_password() {
+        let store = MemoryKeychain::default();
+        let salt = [1u8; crypto::SALT_LEN];
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
+        let (dir, path) = sealed_with("fp-detect", "pw", &salt);
+        // Before the fingerprint exists nothing can be proven.
+        assert!(!salt_is_foreign_in(&store, LEGACY_SERVICE, &path));
+        let (m, _c) = manager(60_000);
+        m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").expect("fingerprint written");
+        m.lock();
+        assert!(!salt_is_foreign_in(&store, LEGACY_SERVICE, &path), "own salt");
+
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode([9u8; crypto::SALT_LEN])).unwrap();
+        assert!(salt_is_foreign_in(&store, LEGACY_SERVICE, &path), "replaced salt");
+        store.delete(LEGACY_SERVICE, KEYCHAIN_SALT_USER);
+        assert!(salt_is_foreign_in(&store, LEGACY_SERVICE, &path), "salt gone");
+        assert!(!salt_is_foreign_in(&store, LEGACY_SERVICE, &dir.join("absent.edge")), "no file");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_failed_keychain_read_is_not_a_foreign_salt() {
+        let store = MemoryKeychain::default();
+        let salt = [1u8; crypto::SALT_LEN];
+        store.set(LEGACY_SERVICE, KEYCHAIN_SALT_USER, &B64.encode(salt)).unwrap();
+        let (dir, path) = sealed_with("fp-transient", "pw", &salt);
+        let (m, _c) = manager(60_000);
+        m.unlock_in(&store, LEGACY_SERVICE, &path, "pw").expect("fingerprint written");
+        m.lock();
+        store.failing.set(true);
+        assert!(!salt_is_foreign_in(&store, LEGACY_SERVICE, &path), "a failed read proves nothing");
+        assert!(
+            !commands::reset_allowed_while_live(VaultState::Locked, || salt_is_foreign_in(&store, LEGACY_SERVICE, &path)),
+            "so a reset while live stays refused"
+        );
+        assert!(!salt_is_foreign_in(&store, "com.sentinelaleph.edge.testnet", &path), "nor on a build with its own service");
+        // The vault still opens once the keychain answers again.
+        store.failing.set(false);
+        assert!(!salt_is_foreign_in(&store, LEGACY_SERVICE, &path));
+        store.delete(LEGACY_SERVICE, KEYCHAIN_SALT_USER);
+        assert!(salt_is_foreign_in(&store, LEGACY_SERVICE, &path), "no entry: foreign, as before");
+        assert!(commands::reset_allowed_while_live(VaultState::Locked, || salt_is_foreign_in(&store, LEGACY_SERVICE, &path)));
+        assert!(salt_is_foreign_in(&store, "com.sentinelaleph.edge.testnet", &path), "no entry under either service");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

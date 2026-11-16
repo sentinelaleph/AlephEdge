@@ -283,6 +283,7 @@ function MarketBlock({ v, now }: { v: BeforeYouTradeView; now: number }) {
   const range = m.volatility.range_24h;
   const atr = m.volatility.atr14_1d;
   const f = m.funding;
+  const k = m.falling_knife;
   const fundingCols: DataColumn<(typeof f.rows)[number]>[] = [
     { id: "symbol", header: t("table.symbol"), cell: (r) => r.symbol },
     { id: "rate", header: t("byt.funding.rate"), numeric: true, cell: (r) => t("byt.funding.perInterval", { rate: formatSignedPercent(r.rate_pct, locale, 4), hours: r.interval_hours }) },
@@ -329,6 +330,25 @@ function MarketBlock({ v, now }: { v: BeforeYouTradeView; now: number }) {
           <Reason leaf={f} />
         )}
       </Row>
+      {k ? (
+        <Row title={t("byt.knife.title")} leaf={k} now={now} testId="byt-knife">
+          {k.status === "ok" ? (
+            <>
+              {k.coins.length > 0 ? (
+                <p>
+                  {k.coins.map((c) => c.symbol).join(" · ")}
+                  {k.total > k.coins.length ? ` · ${t("byt.knife.more", { n: k.total - k.coins.length })}` : ""}
+                </p>
+              ) : (
+                <p className="ae-subtle">{t("byt.knife.none", { hours: k.window_hours })}</p>
+              )}
+              <p className="ae-byt__reason">{sayText(t, k.rule_code, k.rule)}</p>
+            </>
+          ) : (
+            <Reason leaf={k} />
+          )}
+        </Row>
+      ) : null}
     </Panel>
   );
 }

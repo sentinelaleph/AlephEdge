@@ -155,6 +155,7 @@ pub fn keeps_provenance(cfg: &StrategyConfig) -> bool {
         && a.leverage == cfg.leverage
         && a.max_drawdown_pct == cfg.max_drawdown_pct
         && a.pause_on_btc_break == cfg.pause_on_btc_break
+        && a.pause_in_btc_downtrend == cfg.pause_in_btc_downtrend
         && a.portfolio_breaker == cfg.portfolio_breaker
         && a.start == cfg.start
         && a.restart == cfg.restart
@@ -189,6 +190,7 @@ pub fn dca_long_classic() -> Preset {
             max_drawdown_pct: None,
             // The simulation had no BTC gate; parity keeps it off.
             pause_on_btc_break: false,
+            pause_in_btc_downtrend: false,
             // Off by default: on this preset a breaker trip closes no-stop
             // DCA cycles at the bottom, and the simulation ran without one.
             // The user can switch it on.
@@ -299,6 +301,7 @@ fn template_config(name: &str, id: &str, side: Side, params: StrategyParams) -> 
         // The simulation had no drawdown stop, BTC gate or breaker.
         max_drawdown_pct: None,
         pause_on_btc_break: false,
+        pause_in_btc_downtrend: false,
         portfolio_breaker: false,
         params,
         preset_id: Some(id.into()),

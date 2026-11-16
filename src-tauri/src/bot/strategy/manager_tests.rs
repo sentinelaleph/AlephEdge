@@ -252,3 +252,19 @@ fn switching_a_bot_keeps_the_breaker_drawdown() {
     assert_eq!(mgr.portfolio_peak() - mgr.breaker_pnl(), dd_before);
     assert!(!mgr.breaker_check(mgr.breaker_pnl(), mgr.breaker_budget()), "joining is not a drawdown");
 }
+
+#[test]
+fn the_view_names_the_gate_holding_new_cycles() {
+    let mgr = StrategyManager::new();
+    let b = sample_bot();
+    mgr.put_bot(b.clone());
+    assert_eq!(mgr.view(&b.id).unwrap().held_by, None);
+    mgr.set_held(&b.id, Some("btcDowntrend"));
+    assert_eq!(mgr.view(&b.id).unwrap().held_by, Some("btcDowntrend"));
+    mgr.set_held(&b.id, None);
+    assert_eq!(mgr.view(&b.id).unwrap().held_by, None, "cleared when no gate applies");
+    mgr.set_held(&b.id, Some("btcBreak"));
+    mgr.remove_bot(&b.id);
+    mgr.put_bot(b.clone());
+    assert_eq!(mgr.view(&b.id).unwrap().held_by, None, "a removed bot leaves nothing behind");
+}

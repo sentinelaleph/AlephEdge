@@ -802,6 +802,7 @@ pub(crate) mod tests {
             restart: RestartPolicy::default(),
             max_drawdown_pct: None,
             pause_on_btc_break: true,
+            pause_in_btc_downtrend: false,
             portfolio_breaker: true,
             params: StrategyParams::Dca(DcaParams {
                 base_order: Some(100.0),

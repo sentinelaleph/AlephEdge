@@ -241,6 +241,15 @@ pub struct StrategyConfig {
     /// Blocks NEW cycles while Sentinel declares a BTC break.
     #[serde(default = "yes")]
     pub pause_on_btc_break: bool,
+    /// Blocks NEW cycles unless BTC's slow trend (daily close vs its 50-day
+    /// average, 2 closes to switch; app/market_trend.rs) is up. Off by
+    /// default. Lab test 15 Nov 2026 on Grid Long
+    /// Trailing: worst drawdown -33.5% -> -28.7%, fewer stop-outs, mean per
+    /// bot-month -5.2% -> -2.5% (CI includes 0). The grid still lost: it runs
+    /// less, it does not earn. Written only when on, so stores saved before
+    /// the field read back byte-identical.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub pause_in_btc_downtrend: bool,
     /// Inside the strategy portfolio breaker: counted toward its P&L and
     /// budget, closed when it trips, held while it is tripped. Off = the
     /// breaker neither counts, closes nor holds this bot. Default true, so
@@ -260,6 +269,13 @@ fn schema_version() -> u32 {
 impl StrategyConfig {
     pub fn kind(&self) -> StrategyKind {
         self.params.kind()
+    }
+
+    /// The BTC downtrend gate holds this bot: switched on AND a long grid,
+    /// the only kind it was tested on. A flag left on after the side or kind
+    /// changed (an older form kept it hidden) is ignored.
+    pub fn trend_gate_on(&self) -> bool {
+        self.pause_in_btc_downtrend && self.side == Side::Long && matches!(self.params, StrategyParams::Grid(_))
     }
 }
 
@@ -341,6 +357,9 @@ pub enum ExitReason {
     DailyStop,
     RemoteKill,
     Manual,
+    /// A live cycle held by a vault reset, closed by the user in the app's
+    /// record only: nothing was sent to the exchange.
+    KeyResetBookClose,
     /// Data end (research replay only).
     End,
     /// Never a cycle exit: why a bot died after losses shrank its orders
@@ -363,6 +382,7 @@ impl ExitReason {
             ExitReason::DailyStop => "dailyStop",
             ExitReason::RemoteKill => "remoteKill",
             ExitReason::Manual => "manual",
+            ExitReason::KeyResetBookClose => "keyResetBookClose",
             ExitReason::End => "end",
             ExitReason::SizeDown => "sizeDown",
         }
@@ -382,6 +402,7 @@ impl ExitReason {
             ExitReason::DailyStop,
             ExitReason::RemoteKill,
             ExitReason::Manual,
+            ExitReason::KeyResetBookClose,
             ExitReason::End,
             ExitReason::SizeDown,
         ]

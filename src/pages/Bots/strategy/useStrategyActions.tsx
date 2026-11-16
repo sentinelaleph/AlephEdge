@@ -7,6 +7,7 @@ import { localeForLanguage } from "@/i18n";
 import { formatNumber, formatPrice } from "@/lib/format";
 import type { StrategyBotView } from "@/lib/ipc/strategy/strategy";
 import type { StrategyAction } from "@/lib/ipc/strategy/useStrategyDesk";
+import { KEY_RESET_HALT } from "@/lib/keyReset";
 import { neverStarted, sideText, strategyErrorText } from "@/lib/strategyText";
 import { useStrategyLive } from "./useStrategyLive";
 
@@ -61,6 +62,8 @@ export function useStrategyActions(onDone?: (action: StrategyAction, bot: Strate
     const { bot, action } = pending;
     const c = bot.openCycle;
     const real = live.liveIds.has(bot.id);
+    // Held by a vault reset: Close cycle closes the app's record only.
+    const keyResetHeld = live.viewFor(bot.id)?.halted === KEY_RESET_HALT;
     const firstStart = action === "start" && neverStarted(bot);
     const rows = [
       { label: t("table.symbol"), value: `${bot.symbol} · ${sideText(t, bot.side)}` },
@@ -84,7 +87,9 @@ export function useStrategyActions(onDone?: (action: StrategyAction, bot: Strate
               {t(
                 action === "archive" && (c || bot.acceptingNewCycles)
                   ? "strategy.confirm.archive.bodyOpen"
-                  : real && action !== "archive"
+                  : action === "close" && keyResetHeld
+                    ? "strategy.confirm.close.bodyHeld"
+                    : real && action !== "archive"
                     ? `strategy.confirm.${action}.bodyLive`
                     : `strategy.confirm.${action}.body`,
               )}

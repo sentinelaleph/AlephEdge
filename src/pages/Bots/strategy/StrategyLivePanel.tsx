@@ -6,6 +6,9 @@ import { Link } from "@/app/router/router";
 import { Button } from "@/components/ui/Button/Button";
 import { LiveChip } from "@/components/ui/Chip/Chip";
 import { LiveConfirmDialog } from "@/components/LiveMode/LiveMode";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
+import { CLOSE_WORD } from "@/components/Account/AccountPanel/AccountPanel";
+import { KEY_RESET_HALT } from "@/lib/keyReset";
 import type { LiveTerms } from "@/lib/ipc/bot/bot";
 import { FactList, Panel } from "@/components/ui/Panel/Panel";
 import { StatusChip } from "@/components/ui/StatusChip/StatusChip";
@@ -117,6 +120,22 @@ export function StrategyLivePanel({ view, config }: { view: StrategyBotView; con
     } finally {
       setBusy(false);
       setDialog(null);
+    }
+  };
+
+  // Held by a vault reset: the only way out is the typed book-only close.
+  const keyResetHeld = live?.halted === KEY_RESET_HALT;
+  const [heldAsk, setHeldAsk] = useState(false);
+  const closeHeld = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setViews(await strategySetLive(view.id, false, CLOSE_WORD));
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
+      setHeldAsk(false);
     }
   };
 
@@ -256,7 +275,11 @@ export function StrategyLivePanel({ view, config }: { view: StrategyBotView; con
               {t("liveMode.strategy.arm")}
             </Button>
           ) : null}
-          {enabled ? (
+          {keyResetHeld ? (
+            <Button variant="danger" size="sm" disabled={busy} onClick={() => setHeldAsk(true)}>
+              {t("strategy.live.heldClose")}
+            </Button>
+          ) : enabled ? (
             <Button variant="secondary" size="sm" disabled={busy} onClick={() => void off()}>
               {t("strategy.live.disable")}
             </Button>
@@ -286,6 +309,18 @@ export function StrategyLivePanel({ view, config }: { view: StrategyBotView; con
         busy={busy}
         onConfirm={(typed) => void confirm(typed)}
         onCancel={() => setDialog(null)}
+      />
+      <ConfirmDialog
+        open={heldAsk}
+        live
+        danger
+        title={t("strategy.live.heldCloseTitle", { name: view.name })}
+        body={t("strategy.confirm.close.bodyHeld")}
+        word={CLOSE_WORD}
+        confirmLabel={t("strategy.live.heldClose")}
+        busy={busy}
+        onConfirm={() => void closeHeld()}
+        onCancel={() => setHeldAsk(false)}
       />
     </Panel>
   );

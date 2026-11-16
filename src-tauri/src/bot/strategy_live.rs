@@ -103,6 +103,58 @@ pub struct LiveState {
     /// prices; a state saved before venues existed reads as Binance.
     #[serde(default = "default_venue")]
     pub venue: String,
+    /// When the mirror first sent an order of the current real exposure
+    /// (ms). None on a state saved before 0.3.23: read as "before any vault
+    /// reset", so a reset holds it. Written only when set, so a state saved
+    /// by an older build reads back unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exposure_since_ms: Option<u64>,
+}
+
+/// The halt and note of a live DCA / Grid bot whose real exposure began at
+/// or before a vault reset made while live: the key now stored may be
+/// another account's, so the mirror makes no exchange call for it.
+pub const HELD_BY_KEY_RESET: &str = "liveKeyReplacedHeld";
+/// Said once the user closed such a bot in the app's record only.
+pub const KEY_RESET_BOOK_CLOSED: &str = "liveKeyResetBookClosed";
+/// The typed word that confirms that book-only close.
+pub const KEY_RESET_CLOSE_WORD: &str = "CLOSE";
+
+/// The mirror holds real exposure for the bot: a position, an exchange stop,
+/// an order whose outcome is unread, or a close still owed.
+pub fn has_real_exposure(st: &LiveState) -> bool {
+    st.synced_qty != 0.0 || st.last_real_qty != 0.0 || st.stop_algo_id.is_some() || st.pending_check || st.unprotected
+}
+
+/// Held by a vault reset (`reset_at` ms, 0 = none): already halted for it,
+/// or real exposure that began at or before the reset. No exchange call
+/// (no order, no cancel, no account read) is made for a held bot.
+pub fn held_by_key_reset(st: &LiveState, reset_at: u64) -> bool {
+    st.halted.as_deref() == Some(HELD_BY_KEY_RESET)
+        || has_real_exposure(st)
+            && crate::bot::engine::reconcile::opened_before_reset(st.exposure_since_ms.unwrap_or(0), reset_at)
+}
+
+/// The live state after the user closed a held bot in the app's record
+/// only: Paper, no position, stop or pending order believed held. Nothing
+/// was sent to the exchange; whatever it holds stays there.
+pub fn book_closed_state(cur: LiveState) -> LiveState {
+    LiveState {
+        enabled: false,
+        synced_qty: 0.0,
+        last_real_qty: 0.0,
+        last_entry_price: 0.0,
+        last_unrealized: 0.0,
+        stop_algo_id: None,
+        stop_px: None,
+        halted: None,
+        pending_check: false,
+        unprotected: false,
+        closed_seq: None,
+        blind_since: None,
+        exposure_since_ms: None,
+        ..cur
+    }
 }
 
 fn default_venue() -> String {
@@ -600,11 +652,17 @@ pub async fn sync_all(app: &AppHandle) {
     let smgr = app.state::<StrategyManager>();
     let _guard = smgr.op_lock.lock().await;
     let vault = app.state::<VaultManager>();
+    let reset_at = super::engine::reconcile::vault_reset_at(app);
     let mut locked = false;
     for id in ids {
+        // Before the key is even looked up: a held bot gets no exchange call.
+        if lmgr.get(&id).is_some_and(|st| held_by_key_reset(&st, reset_at)) {
+            hold_for_key_reset(app, &lmgr, &smgr, &id);
+            continue;
+        }
         let venue = lmgr.get(&id).map(|st| st.venue().to_string()).unwrap_or_else(default_venue);
         match vault.credential(&venue) {
-            Some(cred) => sync_bot(app, &id, &cred).await,
+            Some(cred) => sync_bot(app, &id, &cred, reset_at).await,
             None => {
                 let sym = smgr.bot(&id).map(|b| b.cfg.symbol).unwrap_or_default();
                 smgr.note(&id, &sym, "liveVaultLocked", None, now_ms());
@@ -616,6 +674,52 @@ pub async fn sync_all(app: &AppHandle) {
     if locked {
         save(app);
     }
+}
+
+/// Halts a bot held by a vault reset, once: it stops starting cycles, is
+/// disarmed and says why. Later passes skip it without a word.
+fn hold_for_key_reset(app: &AppHandle, lmgr: &StrategyLiveManager, smgr: &StrategyManager, id: &str) {
+    let Some(mut st) = lmgr.get(id) else { return };
+    if st.halted.as_deref() == Some(HELD_BY_KEY_RESET) {
+        return;
+    }
+    st.halted = Some(HELD_BY_KEY_RESET.into());
+    let symbol = smgr.bot(id).map(|b| b.cfg.symbol).or_else(|| st.symbol.clone()).unwrap_or_default();
+    lmgr.disarm(id);
+    lmgr.put(id, st);
+    save(app);
+    stop_bot(app, id);
+    smgr.note(id, &symbol, HELD_BY_KEY_RESET, None, now_ms());
+}
+
+/// The user's close of a bot held by a vault reset: the open simulated
+/// cycle closes in the app (exit `keyResetBookClose`), the bot stops and
+/// goes back to Paper. No exchange call: the real position and its stop, if
+/// the exchange still holds them, are the user's to close there. Caller
+/// holds the strategy `op_lock`.
+pub async fn close_held_in_book(app: &AppHandle, id: &str) -> Result<(), String> {
+    let smgr = app.state::<StrategyManager>();
+    let lmgr = app.state::<StrategyLiveManager>();
+    let cur = lmgr.get(id).ok_or_else(|| "botNotLive".to_string())?;
+    if smgr.has_open_cycle(id) {
+        super::strategy::engine::close_one_locked(app, &smgr, id, ExitReason::KeyResetBookClose, false).await?;
+        if smgr.has_open_cycle(id) {
+            return Err("priceUnavailable".into());
+        }
+    }
+    let symbol = smgr.bot(id).map(|b| b.cfg.symbol).or_else(|| cur.symbol.clone()).unwrap_or_default();
+    lmgr.disarm(id);
+    lmgr.put(id, book_closed_state(cur));
+    save(app);
+    stop_bot(app, id);
+    smgr.note(id, &symbol, KEY_RESET_BOOK_CLOSED, None, now_ms());
+    Ok(())
+}
+
+/// Whether the bot is held by a vault reset now (reads the store's marker).
+pub fn is_held_by_key_reset(app: &AppHandle, id: &str) -> bool {
+    let reset_at = super::engine::reconcile::vault_reset_at(app);
+    app.state::<StrategyLiveManager>().get(id).is_some_and(|st| held_by_key_reset(&st, reset_at))
 }
 
 /// The mirror could not act this pass (vault locked, Binance unreadable).
@@ -740,11 +844,17 @@ async fn close_sim(app: &AppHandle, smgr: &StrategyManager, id: &str, st: &mut L
 }
 
 /// Caller holds the strategy `op_lock`.
-async fn sync_bot(app: &AppHandle, id: &str, cred: &crate::vault::model::ExchangeCredential) {
+async fn sync_bot(app: &AppHandle, id: &str, cred: &crate::vault::model::ExchangeCredential, reset_at: u64) {
     let smgr = app.state::<StrategyManager>();
     let lmgr = app.state::<StrategyLiveManager>();
     let exchange = app.state::<ExchangeManager>();
     let Some(mut st) = lmgr.get(id) else { return };
+    // Every exchange call below (account read, stop, close, cancel, orders)
+    // comes after this: a bot held by a vault reset gets none of them.
+    if held_by_key_reset(&st, reset_at) {
+        hold_for_key_reset(app, &lmgr, &smgr, id);
+        return;
+    }
     // A bot removed while it still held a real position keeps its last
     // symbol in the state, so the position is still read and closed.
     let bot = smgr.bot(id);
@@ -1008,6 +1118,11 @@ async fn sync_bot(app: &AppHandle, id: &str, cred: &crate::vault::model::Exchang
                     return;
                 }
                 st.prepared_seq = st.seq;
+            }
+            // A new real exposure starts with this order: its time decides
+            // whether a later vault reset holds the bot.
+            if st.synced_qty.abs() < tol {
+                st.exposure_since_ms = Some(now_ms());
             }
             // Split at MARKET_LOT_SIZE, like the closes.
             let parts = close_parts(qty, rules.market_max_qty, rules.lot);
@@ -1544,6 +1659,9 @@ pub async fn strategy_arm_live(app: AppHandle, id: String, confirmation: String,
     let _guard = smgr.op_lock.lock().await;
     let bot = smgr.bot(&id).ok_or_else(|| "botUnknown".to_string())?;
     let st = lmgr.get(&id).filter(|s| s.enabled).ok_or_else(|| "botNotLive".to_string())?;
+    if is_held_by_key_reset(&app, &id) {
+        return Err(HELD_BY_KEY_RESET.into());
+    }
     let sandbox = crate::exchange::venue::ccxt::sandbox_from_env();
     if let Some(refusal) = enable_refusal(LIVE_TRADING_ENABLED, &bot.cfg, st.venue(), &confirmation, sandbox) {
         return Err(refusal);
@@ -1600,6 +1718,18 @@ pub async fn strategy_set_live(
     let _guard = smgr.op_lock.lock().await;
     let bot = smgr.bot(&id).ok_or_else(|| "botUnknown".to_string())?;
     let cur = lmgr.get(&id).unwrap_or_default();
+    if is_held_by_key_reset(&app, &id) {
+        // Held by a vault reset: no exchange call. Back to Paper only as the
+        // typed book-only close; going live again waits for it.
+        if enabled {
+            return Err(HELD_BY_KEY_RESET.into());
+        }
+        if confirmation.trim() != KEY_RESET_CLOSE_WORD {
+            return Err("keyResetCloseConfirm".into());
+        }
+        close_held_in_book(&app, &id).await?;
+        return Ok(views(&app));
+    }
     if !enabled {
         // Off only once nothing is held: the mirror is what closes it.
         if cur.synced_qty != 0.0 || cur.last_real_qty != 0.0 || smgr.has_open_cycle(&id) && cur.enabled {
@@ -1634,6 +1764,154 @@ mod tests {
     use super::*;
 
     const LOT: LotStep = LotStep { step: 0.001, min_qty: 0.001 };
+
+    // A vault reset while live: a bot whose real exposure began at or
+    // before it is held (no exchange call); one flat at the reset, or whose
+    // exposure began after it, behaves as before.
+    #[test]
+    fn a_bot_whose_exposure_began_before_a_vault_reset_is_held() {
+        let reset_at = 2_000;
+        let open = |since: Option<u64>| LiveState { enabled: true, synced_qty: 0.5, last_real_qty: 0.5, exposure_since_ms: since, ..LiveState::default() };
+        assert!(held_by_key_reset(&open(Some(1_000)), reset_at));
+        assert!(held_by_key_reset(&open(Some(2_000)), reset_at), "the reset's millisecond");
+        assert!(held_by_key_reset(&open(None), reset_at), "a state saved before the start time existed");
+        assert!(!held_by_key_reset(&open(Some(2_001)), reset_at), "began after the reset: as before");
+        assert!(!held_by_key_reset(&open(Some(1_000)), 0), "no reset: as before");
+        let flat = LiveState { enabled: true, ..LiveState::default() };
+        assert!(!held_by_key_reset(&flat, reset_at), "flat at the reset: as before");
+        // Every form of exposure the mirror would act on counts.
+        for st in [
+            LiveState { stop_algo_id: Some(7), ..flat.clone() },
+            LiveState { pending_check: true, ..flat.clone() },
+            LiveState { unprotected: true, ..flat.clone() },
+            LiveState { last_real_qty: -1.0, ..flat.clone() },
+        ] {
+            assert!(held_by_key_reset(&st, reset_at), "{st:?}");
+        }
+        // Once halted for it, the hold stays until the user's book-only close.
+        let halted = LiveState { halted: Some(HELD_BY_KEY_RESET.into()), ..flat.clone() };
+        assert!(held_by_key_reset(&halted, reset_at));
+        assert!(held_by_key_reset(&halted, 0));
+    }
+
+    #[test]
+    fn the_book_only_close_leaves_a_paper_state_with_nothing_held() {
+        let cur = LiveState {
+            enabled: true,
+            synced_qty: 0.5,
+            last_real_qty: 0.5,
+            stop_algo_id: Some(9),
+            stop_px: Some(90.0),
+            halted: Some(HELD_BY_KEY_RESET.into()),
+            pending_check: true,
+            unprotected: true,
+            exposure_since_ms: Some(1_000),
+            symbol: Some("BTCUSDT".into()),
+            ..LiveState::default()
+        };
+        let after = book_closed_state(cur);
+        assert!(!after.enabled && after.halted.is_none());
+        assert!(!has_real_exposure(&after));
+        assert!(!held_by_key_reset(&after, 2_000), "released: the next live start is a new exposure");
+        assert_eq!(after.symbol.as_deref(), Some("BTCUSDT"));
+    }
+
+    fn live_src() -> String {
+        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/bot/strategy_live.rs")).unwrap()
+    }
+
+    /// The source before the tests module, split per function.
+    fn functions(src: &str) -> Vec<(String, String)> {
+        let code = &src[..src.find("#[cfg(test)]").unwrap()];
+        let mut out = Vec::new();
+        for (i, _) in code.match_indices("fn ") {
+            let before = &code[..i];
+            let line_start = before.rfind('\n').map_or(0, |n| n + 1);
+            let head = &code[line_start..i];
+            if !head.trim_start().is_empty() && !["pub ", "async ", "pub(crate) "].iter().any(|h| head.trim_start().starts_with(h)) {
+                continue;
+            }
+            if head.starts_with(' ') && !head.starts_with("    pub fn") {
+                // methods inside impl blocks are not exchange senders here
+            }
+            let name: String = code[i + 3..].chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+            let rest = &code[i..];
+            let end = rest.find("\n}\n").map_or(rest.len(), |e| e + 2);
+            out.push((name, rest[..end].to_string()));
+        }
+        out
+    }
+
+    /// No exchange seam exists to record calls in a test (ExchangeManager is
+    /// a concrete client), so this pins every function of the mirror that
+    /// can reach the exchange, and that each one sits behind the reset hold:
+    /// sync_bot checks it before its first call, keep_stop and
+    /// close_unprotected are reached only from sync_bot, real_position only
+    /// from those, and strategy_set_live checks it before its cancel. A new
+    /// exchange call in another function fails here.
+    #[test]
+    fn every_mirror_exchange_call_sits_behind_the_reset_hold() {
+        const CALLS: &[&str] = &[
+            "exchange.futures_account(", "exchange.symbol_rules(", "exchange.status(", "exchange.algo_status(",
+            "exchange.cancel_symbol_orders(", "exchange.hedge_mode(", "exchange.open_order_count(", "exchange.set_isolated(",
+            "exchange.set_leverage(", "exchange.open_market(", "exchange.reduce_market_all(", "exchange.cancel_algo(",
+            "exchange.place_protective(", ".cancel_algo(", "real_position(",
+        ];
+        let src = live_src();
+        let fns = functions(&src);
+        let mut callers: Vec<&str> = fns
+            .iter()
+            .filter(|(_, body)| CALLS.iter().any(|c| body.contains(c)))
+            .map(|(n, _)| n.as_str())
+            .collect();
+        callers.sort();
+        callers.dedup();
+        assert_eq!(
+            callers,
+            vec!["close_unprotected", "go_live_checks", "keep_stop", "real_position", "strategy_set_live", "sync_bot"],
+            "a function that reaches the exchange was added or removed: guard it and update this list"
+        );
+        let body = |n: &str| fns.iter().find(|(f, _)| f == n).map(|(_, b)| b.clone()).unwrap();
+        // sync_bot: the hold before every call.
+        let sync = body("sync_bot");
+        let hold = sync.find("if held_by_key_reset(&st, reset_at)").expect("hold in sync_bot");
+        for c in CALLS {
+            if let Some(at) = sync.find(c) {
+                assert!(hold < at, "{c} before the hold in sync_bot");
+            }
+        }
+        // sync_all checks the hold before the key lookup and sync_bot.
+        let all = body("sync_all");
+        let pre = all.find("held_by_key_reset(&st, reset_at)").expect("hold in sync_all");
+        assert!(pre < all.find("vault.credential(").unwrap() && pre < all.find("sync_bot(").unwrap());
+        // Helpers are reached only from guarded functions.
+        for (helper, allowed) in [
+            ("keep_stop(", &["sync_bot"][..]),
+            ("close_unprotected(", &["sync_bot"][..]),
+            // go_live_checks: only for a bot going live (refused while held,
+            // or a new bot that holds nothing).
+            ("real_position(", &["sync_bot", "close_unprotected", "go_live_checks"][..]),
+        ] {
+            for (name, b) in &fns {
+                let def = format!("fn {helper}");
+                let calls = b.matches(helper).count() - b.matches(&def).count();
+                if calls > 0 {
+                    assert!(allowed.contains(&name.as_str()), "{helper} called from {name}");
+                }
+            }
+        }
+        // strategy_set_live: the hold (and its book-only close) before the cancel.
+        let set = body("strategy_set_live");
+        assert!(set.find("is_held_by_key_reset(&app, &id)").unwrap() < set.find(".cancel_algo(").unwrap());
+        // go_live_checks only reads rules for a bot going live, which a held
+        // bot cannot (strategy_set_live refuses it before).
+        assert!(set.find("is_held_by_key_reset(&app, &id)").unwrap() < set.find("go_live_checks(").unwrap());
+        // The book-only close makes no exchange call.
+        let book = body("close_held_in_book");
+        for c in CALLS {
+            assert!(!book.contains(c), "close_held_in_book reaches the exchange: {c}");
+        }
+    }
 
     // A real-money state that cannot be read must keep its bots stopped.
     #[test]

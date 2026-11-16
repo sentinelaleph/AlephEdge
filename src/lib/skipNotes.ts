@@ -55,6 +55,12 @@ export function isBotFailure(reason: string): boolean {
   return (
     /^live.*(Failed|Unprotected|Unconfirmed|Mismatch|Unavailable)$/.test(reason) ||
     reason === "untrackedExchangePosition" ||
+    // Flat on the account the new key reads; the user decides (vault reset).
+    reason === "liveKeyReplacedFlat" ||
+    // Opened before that reset: the app sends no automatic order for it.
+    reason === "liveKeyReplacedHeld" ||
+    // Opened by the app before that reset, no longer in its record.
+    reason === "liveKeyResetUntracked" ||
     reason === "storeWriteFailed" ||
     reason === "storeReadFailed" ||
     // Saved bot data restore could not read (it stays on disk, unused).

@@ -18,12 +18,14 @@ use crate::vault::VaultManager;
 use super::super::model::{OpenPosition, FUTURES_FEE_RATE};
 use super::super::BotManager;
 use super::live::{
-    NOTE_DIRECTION_MISMATCH, NOTE_FEE_NOT_USDT, NOTE_FILLS_UNAVAILABLE, SKIP_CLOSE_FAILED,
-    SKIP_VAULT_LOCKED,
+    EXIT_KEY_RESET_BOOK_CLOSE, NOTE_DIRECTION_MISMATCH, NOTE_FEE_NOT_USDT, NOTE_FILLS_UNAVAILABLE,
+    NOTE_KEY_REPLACED_HELD, SKIP_CLOSE_FAILED, SKIP_VAULT_LOCKED,
 };
 use super::now_ms;
 use super::pnl::{LEDGER_FUNDING_PCT, LEDGER_ROUND_TRIP_PCT};
-use super::reconcile::{exchange_state, infer_exit_reason, reference_exit, ExchangeSide};
+use super::reconcile::{
+    exchange_state, infer_exit_reason, order_allowed_after_reset, reference_exit, vault_reset_at, ExchangeSide,
+};
 
 /// Slack before `opened_at` for the fill query: the app's clock stamps the
 /// position before the order round trip, and local clocks drift from
@@ -152,6 +154,26 @@ pub fn live_trade_record(
     }
 }
 
+/// The record of a held position the user closed in the app only
+/// (`EXIT_KEY_RESET_BOOK_CLOSE`): nothing was sent to the exchange, so no
+/// fill exists and no exit price is known. The row books flat (exit =
+/// entry, P&L 0, no fee) with no fill and no unlevered figure, so no total
+/// counts a result that was never measured.
+pub fn key_reset_book_record(pos: &OpenPosition, closed_at: u64) -> TradeRecord {
+    let s = Settlement { entry: pos.entry, exit: pos.entry, qty: pos.qty, commission_usdt: None, exit_is_fill: false };
+    TradeRecord {
+        pnl_pct: 0.0,
+        pnl_quote: 0.0,
+        pnl_usdt: 0.0,
+        pnl_pct_of_capital: 0.0,
+        unlevered_net_pct: None,
+        fill_entry: None,
+        fill_exit: None,
+        commission_usdt: None,
+        ..live_trade_record(pos, &s, EXIT_KEY_RESET_BOOK_CLOSE, closed_at)
+    }
+}
+
 /// Flattens a live position the book decided to close (`reason` at
 /// `book_price`). Re-reads the exchange first: if it is ALREADY flat, a
 /// protective order fired and that — not the book's reason — is recorded.
@@ -162,6 +184,10 @@ pub async fn close_live(
     reason: &str,
     book_price: f64,
 ) -> Result<TradeRecord, &'static str> {
+    // Before any exchange call: the key may be another account's.
+    if !order_allowed_after_reset(pos.opened_at, vault_reset_at(app)) {
+        return Err(NOTE_KEY_REPLACED_HELD);
+    }
     let exchange = app.state::<ExchangeManager>();
     let Some(cred) = app.state::<VaultManager>().credential(&pos.exchange_id) else {
         return Err(SKIP_VAULT_LOCKED);

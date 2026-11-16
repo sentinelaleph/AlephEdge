@@ -1,5 +1,6 @@
-//! Market trend panel (`market_trend`): BTC's slow trend, shown as
-//! information only. No bot reads it and nothing trades on it.
+//! Market trend panel (`market_trend`): BTC's slow trend. Shown as
+//! information; the only reader is the opt-in strategy gate
+//! `pause_in_btc_downtrend` (via `cached_up`), which holds new cycles.
 //!
 //! Definition: daily BTCUSDT close vs its 50-day average; the confirmed state
 //! switches only after 2 consecutive closes on the other side. Tested as a
@@ -91,9 +92,72 @@ fn client() -> &'static reqwest::Client {
     })
 }
 
-fn cache() -> &'static Mutex<Option<MarketTrend>> {
-    static C: OnceLock<Mutex<Option<MarketTrend>>> = OnceLock::new();
-    C.get_or_init(|| Mutex::new(None))
+/// After a failed read no new read is tried for this long. The strategy
+/// engine awaits the refresh inside its serial tick, so an unreachable
+/// api.binance.com must cost one timeout per window, not one per tick. The
+/// gate stays closed meanwhile (`cached_up` goes unknown after a day).
+const RETRY_AFTER_FAIL_MS: u64 = 5 * 60_000;
+
+/// The last good read and when the last read failed.
+#[derive(Debug, Clone, Default)]
+struct TrendState {
+    cache: Option<MarketTrend>,
+    failed_at_ms: Option<u64>,
+}
+
+/// What a call does now: answer from the cache, refuse inside the backoff
+/// window, or read.
+#[derive(Debug, Clone, PartialEq)]
+enum Plan {
+    Cached(MarketTrend),
+    Backoff,
+    Fetch,
+}
+
+fn plan(s: &TrendState, now_ms: u64) -> Plan {
+    if let Some(c) = &s.cache {
+        if now_ms.saturating_sub(c.checked_at_ms) < CACHE_MS {
+            return Plan::Cached(c.clone());
+        }
+    }
+    match s.failed_at_ms {
+        Some(at) if now_ms.saturating_sub(at) < RETRY_AFTER_FAIL_MS => Plan::Backoff,
+        _ => Plan::Fetch,
+    }
+}
+
+fn record(s: &mut TrendState, now_ms: u64, res: &Result<MarketTrend, String>) {
+    match res {
+        Ok(t) => {
+            s.cache = Some(t.clone());
+            s.failed_at_ms = None;
+        }
+        Err(_) => s.failed_at_ms = Some(now_ms),
+    }
+}
+
+fn state() -> &'static Mutex<TrendState> {
+    static C: OnceLock<Mutex<TrendState>> = OnceLock::new();
+    C.get_or_init(|| Mutex::new(TrendState::default()))
+}
+
+/// One call against `st`: the cache, the backoff refusal, or one `fetch`
+/// whose outcome is recorded (a failure starts the backoff window).
+async fn trend_with<F, Fut>(st: &Mutex<TrendState>, now_ms: u64, fetch: F) -> Result<MarketTrend, String>
+where
+    F: FnOnce(u64) -> Fut,
+    Fut: std::future::Future<Output = Result<MarketTrend, String>>,
+{
+    let p = plan(&st.lock().expect("trend cache"), now_ms);
+    match p {
+        Plan::Cached(c) => Ok(c),
+        Plan::Backoff => Err("trendUnavailable".to_string()),
+        Plan::Fetch => {
+            let res = fetch(now_ms).await;
+            record(&mut st.lock().expect("trend cache"), now_ms, &res);
+            res
+        }
+    }
 }
 
 async fn fetch(now_ms: u64) -> Result<MarketTrend, String> {
@@ -108,17 +172,20 @@ async fn fetch(now_ms: u64) -> Result<MarketTrend, String> {
     confirmed_trend(&bars, now_ms).ok_or_else(|| "trendUnavailable".to_string())
 }
 
+/// The cached trend for the strategy gate: Some(up) when read within the
+/// last day, else None (unknown). No I/O.
+pub fn cached_up(now_ms: u64) -> Option<bool> {
+    cached_up_in(state(), now_ms)
+}
+
+fn cached_up_in(st: &Mutex<TrendState>, now_ms: u64) -> Option<bool> {
+    let c = st.lock().expect("trend cache").cache.clone()?;
+    (now_ms.saturating_sub(c.checked_at_ms) <= DAY_MS).then_some(c.state == "up")
+}
+
 #[tauri::command]
 pub async fn market_trend() -> Result<MarketTrend, String> {
-    let now = crate::bot::engine::now_ms();
-    if let Some(c) = cache().lock().expect("trend cache").clone() {
-        if now.saturating_sub(c.checked_at_ms) < CACHE_MS {
-            return Ok(c);
-        }
-    }
-    let fresh = fetch(now).await?;
-    *cache().lock().expect("trend cache") = Some(fresh.clone());
-    Ok(fresh)
+    trend_with(state(), crate::bot::engine::now_ms(), fetch).await
 }
 
 #[cfg(test)]
@@ -134,6 +201,60 @@ mod tests {
                 Kline { open_ms, close_ms: open_ms + DAY_MS - 1, o: c, h: c, l: c, c }
             })
             .collect()
+    }
+
+    fn sample(at: u64) -> MarketTrend {
+        MarketTrend {
+            state: "down",
+            since_ms: 0,
+            days: 0,
+            close: 1.0,
+            sma50: 1.0,
+            gap_pct: 0.0,
+            switches_365d: 0,
+            checked_at_ms: at,
+        }
+    }
+
+    #[test]
+    fn a_failed_read_is_not_retried_inside_the_backoff_window() {
+        use std::sync::atomic::{AtomicU32, Ordering};
+        let st = Mutex::new(TrendState::default());
+        let calls = AtomicU32::new(0);
+        let failing = |_: u64| {
+            calls.fetch_add(1, Ordering::SeqCst);
+            async { Err::<MarketTrend, String>("trendUnavailable".into()) }
+        };
+        let t0 = 10 * DAY_MS;
+        let run = |now: u64| tauri::async_runtime::block_on(trend_with(&st, now, failing));
+        assert!(run(t0).is_err());
+        assert_eq!(calls.load(Ordering::SeqCst), 1, "the first tick reads");
+        // Engine ticks every few seconds inside the window: no read, gate unknown.
+        for dt in [1_000, 30_000, 60_000, RETRY_AFTER_FAIL_MS - 1] {
+            assert_eq!(run(t0 + dt), Err("trendUnavailable".to_string()));
+        }
+        assert_eq!(calls.load(Ordering::SeqCst), 1, "no read inside the backoff window");
+        assert_eq!(cached_up_in(&st, t0 + 60_000), None);
+        assert!(run(t0 + RETRY_AFTER_FAIL_MS).is_err());
+        assert_eq!(calls.load(Ordering::SeqCst), 2, "one retry after the window");
+    }
+
+    #[test]
+    fn a_good_read_clears_the_backoff_and_is_cached() {
+        let st = Mutex::new(TrendState::default());
+        let t0 = 10 * DAY_MS;
+        record(&mut st.lock().unwrap(), t0, &Err("x".into()));
+        assert_eq!(plan(&st.lock().unwrap(), t0 + 1), Plan::Backoff);
+        let ok = tauri::async_runtime::block_on(trend_with(&st, t0 + RETRY_AFTER_FAIL_MS, |now| async move { Ok(sample(now)) }));
+        assert!(ok.is_ok());
+        let s = st.lock().unwrap().clone();
+        assert_eq!(s.failed_at_ms, None);
+        assert!(matches!(plan(&s, t0 + RETRY_AFTER_FAIL_MS + 60_000), Plan::Cached(_)));
+        // A stale cache whose refresh fails keeps the old read for the gate (fails closed after a day).
+        let mut s2 = s.clone();
+        record(&mut s2, t0 + RETRY_AFTER_FAIL_MS + CACHE_MS, &Err("x".into()));
+        assert_eq!(plan(&s2, t0 + RETRY_AFTER_FAIL_MS + CACHE_MS + 1), Plan::Backoff);
+        assert_eq!(cached_up_in(&Mutex::new(s2), t0 + RETRY_AFTER_FAIL_MS + DAY_MS + 1), None);
     }
 
     #[test]

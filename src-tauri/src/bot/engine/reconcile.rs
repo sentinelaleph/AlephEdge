@@ -31,7 +31,7 @@ use super::entry_rules::new_position;
 use super::live::{
     self, exchange_leverage, live_trading_allowed, stop_beyond_liquidation, Protection,
     EXIT_EXCHANGE_CLOSED, NOTE_DIRECTION_MISMATCH, NOTE_RECONCILE_FAILED, NOTE_UNPROTECTED,
-    NOTE_UNTRACKED, SKIP_VAULT_LOCKED,
+    NOTE_KEY_REPLACED, NOTE_UNTRACKED, SKIP_VAULT_LOCKED,
 };
 use super::sizing::{self, Size};
 use super::{book, geometry, live_close, live_price, now_ms, precheck};
@@ -40,6 +40,10 @@ pub const RECONCILE_INTERVAL_MS: u64 = 60_000;
 /// An entry of ours that filled after it was finalized as failed: now in
 /// the book with its exchange stop.
 pub const NOTE_OWN_ENTRY_ADOPTED: &str = "liveOwnEntryAdopted";
+/// An untracked position the app's own entry opened before a vault reset
+/// (a held row closed in the book only, its position still open): never
+/// adopted, protected or closed. Said once per symbol; the user closes it.
+pub const NOTE_KEY_RESET_UNTRACKED: &str = "liveKeyResetUntracked";
 /// An entry of ours that filled after it was finalized as failed and could
 /// not be protected as its signal planned: flattened.
 pub const NOTE_OWN_ENTRY_FLATTENED: &str = "liveOwnEntryFlattened";
@@ -158,6 +162,47 @@ pub fn reconcile_venues(bot_venue: Option<&str>, book: &[OpenPosition]) -> Vec<S
 /// claim (the caller releases it). One already claimed — a veto or a remote
 /// kill closing it right now — is left to that close: settling it here too
 /// recorded the same real round trip twice.
+/// Meta key: when a vault was reset while live positions were in the book
+/// (ms). Written by `vault_reset`; read on every reconcile pass.
+pub const VAULT_RESET_LIVE_META: &str = "vault_reset_live_at";
+
+/// The flat positions the app must not close by itself: opened before the
+/// vault was reset, so the key reading the account may be another account's.
+/// The user closes them in Positions & orders after checking the exchange.
+pub fn held_by_key_reset(positions: &[OpenPosition], plan: &ReconcilePlan, reset_at: u64) -> Vec<String> {
+    positions
+        .iter()
+        .filter(|p| plan.closed.contains(&p.signal_id) && opened_before_reset(p.opened_at, reset_at))
+        .map(|p| p.signal_id.clone())
+        .collect()
+}
+
+/// A position opened at or before a vault reset made while live (`reset_at`
+/// ms, 0 = none): the key now stored may be another account's.
+pub fn opened_before_reset(opened_at: u64, reset_at: u64) -> bool {
+    reset_at > 0 && opened_at <= reset_at
+}
+
+/// Whether any exchange call may be made for this live position. A
+/// position opened before a vault reset gets none: with another account
+/// behind the new key, a stop, target, veto or trigger close (and the
+/// user's own Close too) would cancel that account's orders or flatten its
+/// position. The user's Close closes the app's record only
+/// (`book::close_now`, `EXIT_KEY_RESET_BOOK_CLOSE`).
+pub fn order_allowed_after_reset(opened_at: u64, reset_at: u64) -> bool {
+    !opened_before_reset(opened_at, reset_at)
+}
+
+/// The reset marker from the store (0 when absent or unreadable as a time).
+pub fn vault_reset_at(app: &AppHandle) -> u64 {
+    app.path()
+        .app_data_dir()
+        .ok()
+        .and_then(|d| app.state::<crate::store::StoreManager>().get_meta(&d, VAULT_RESET_LIVE_META).ok().flatten())
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .unwrap_or(0)
+}
+
 pub fn claim_flat(
     bots: &BotManager,
     positions: &[OpenPosition],
@@ -243,6 +288,13 @@ pub fn signal_for<'a>(own: &OwnEntry, symbol: &str, signals: &'a [Signal], excha
     signals
         .iter()
         .find(|s| s.symbol == symbol && own_entry_id(exchange_id, &s.id) == own.client_id)
+}
+
+/// An own entry filled at or before a vault reset made while live (`reset_at`
+/// ms, 0 = none) gets no order from reconcile. A fill without a time counts
+/// as before the reset.
+pub fn untracked_held_by_reset(own: &OwnEntry, reset_at: u64) -> bool {
+    opened_before_reset(own.filled_at, reset_at)
 }
 
 /// What reconcile does with one untracked exchange position.
@@ -391,7 +443,13 @@ async fn reconcile_venue(app: &AppHandle, venue: &str, positions: &[OpenPosition
         .iter()
         .map(|p| (p.symbol.clone(), p.position_amt))
         .collect();
-    let plan = plan_reconcile_on(venue, positions, &held);
+    let mut plan = plan_reconcile_on(venue, positions, &held);
+    let reset_at = vault_reset_at(app);
+    let kept = held_by_key_reset(positions, &plan, reset_at);
+    for p in positions.iter().filter(|p| kept.contains(&p.signal_id)) {
+        bots.skip_once(p.bot_kind, &p.signal_id, &p.symbol, NOTE_KEY_REPLACED, None);
+    }
+    plan.closed.retain(|id| !kept.contains(id));
 
     for pos in claim_flat(&bots, positions, &plan) {
         let price = live_price(&exchange, &pos.exchange_id, &pos.symbol, pos.bot_kind)
@@ -450,6 +508,12 @@ async fn handle_untracked(app: &AppHandle, cred: &crate::vault::model::ExchangeC
     let Some(own) = own else {
         return report_untracked(&bots, symbol);
     };
+    // Filled before a vault reset: no adoption, stop or close. The position
+    // is the user's to close on the exchange.
+    if untracked_held_by_reset(&own, vault_reset_at(app)) {
+        bots.skip_once(BotKind::Futures, &format!("exchange:{symbol}"), symbol, NOTE_KEY_RESET_UNTRACKED, None);
+        return;
+    }
     // Only the live bot trading THIS venue may hold the adopted position.
     let cfg = bots
         .running_config(BotKind::Futures)

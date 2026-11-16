@@ -26,6 +26,8 @@ import { formatDecimalInput, parseDecimal } from "@/lib/decimal";
 import { formatNumber, formatPercent, formatSignedPercent, formatSignedUsdt, formatUsdt } from "@/lib/format";
 import { botDefaultConfig, botMode, PILOT_NOTIONAL_USDT, type BotConfig, type BotKind, type OpenPosition, type SizingMode, type TradeMode } from "@/lib/ipc/bot/bot";
 import { liveWordKey, signalStartAction, type Blocker } from "@/lib/liveMode";
+import { isKeyResetHeld } from "@/lib/keyReset";
+import { useDeskContext } from "@/app/DeskProvider";
 import { errorMessage } from "@/lib/ipc/bridge";
 import type { ExchangeInfo } from "@/lib/ipc/exchange/exchange";
 import {
@@ -707,6 +709,8 @@ export function ModePanel({
 
   // Real positions open: name them, and offer to close them first.
   const held = live.realPositions;
+  const resetAt = useDeskContext().desk.status.vaultResetLiveAt;
+  const anyKeyResetHeld = held.some((p) => isKeyResetHeld(p, resetAt));
   const closeAndSwitch = async () => {
     const err = await live.onCloseAndPaper();
     setToPaper(false);
@@ -782,10 +786,12 @@ export function ModePanel({
                     qty: formatNumber(p.qty, locale, { maximumFractionDigits: 8 }),
                     entry: formatNumber(p.entry, locale, { maximumFractionDigits: 8 }),
                   })}
+                  {isKeyResetHeld(p, resetAt) ? ` · ${t("positions.keyResetChip")}` : null}
                 </li>
               ))}
             </ul>
             <p>{t("liveMode.signal.closeAndSwitchNote")}</p>
+            {anyKeyResetHeld ? <p className="ae-error">{t("liveMode.signal.closeAndSwitchHeld")}</p> : null}
           </>
         }
         word={CLOSE_WORD}

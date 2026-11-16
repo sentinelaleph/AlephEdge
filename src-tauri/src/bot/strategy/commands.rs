@@ -150,6 +150,7 @@ pub fn default_config(kind: StrategyKind, exchange_id: String, symbol: String) -
         restart: RestartPolicy::default(),
         max_drawdown_pct: Some(DEFAULT_BOT_DD_STOP_PCT),
         pause_on_btc_break: true,
+        pause_in_btc_downtrend: false,
         // Manual DCA and Grid bots start inside the portfolio breaker.
         portfolio_breaker: true,
         params,
@@ -622,6 +623,11 @@ pub async fn strategy_close(
         return Err("closeModeUnsupported".into());
     }
     let _guard = mgr.op_lock.lock().await;
+    // A live bot held by a vault reset: the app's record only, no order.
+    if crate::bot::strategy_live::is_held_by_key_reset(&app, &id) {
+        crate::bot::strategy_live::close_held_in_book(&app, &id).await?;
+        return view(&mgr, &id);
+    }
     engine::close_one_locked(&app, &mgr, &id, super::model::ExitReason::Manual, false).await?;
     if let Some(mut b) = mgr.bot(&id) {
         if b.state != BotRunState::Dead {

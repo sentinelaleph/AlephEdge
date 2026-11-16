@@ -114,6 +114,7 @@ export function matchesPreset(cfg: StrategyConfig, preset: Preset): boolean {
     a.leverage === cfg.leverage &&
     a.maxDrawdownPct === cfg.maxDrawdownPct &&
     a.pauseOnBtcBreak === cfg.pauseOnBtcBreak &&
+    (a.pauseInBtcDowntrend ?? false) === (cfg.pauseInBtcDowntrend ?? false) &&
     // The preset was simulated without the portfolio breaker: switching it on is a deviation.
     a.portfolioBreaker === cfg.portfolioBreaker &&
     JSON.stringify(a.start) === JSON.stringify(cfg.start) &&
@@ -129,6 +130,21 @@ export type RangeExit = "wait" | "close" | "restart";
  * trades again inside the range); a stop distance closes the position at
  * market, and `restart.afterStop` decides whether a new grid opens after it.
  */
+/**
+ * The config after the side changes. Trailing up and the BTC downtrend gate
+ * exist on long grids only: leaving long clears both, so a switch the form
+ * no longer shows cannot stay on.
+ */
+export function withSide(c: StrategyConfig, side: StrategySide): StrategyConfig {
+  const longGrid = c.params.kind === "grid" && side === "long";
+  return {
+    ...c,
+    side,
+    params: c.params.kind === "grid" && side !== "long" ? { ...c.params, trailingUp: false, trailUpLimit: null } : c.params,
+    ...(longGrid ? {} : { pauseInBtcDowntrend: false }),
+  };
+}
+
 export function rangeExitOf(p: GridParams, afterStop: boolean): RangeExit {
   if (p.stopOutPct === null) return "wait";
   return afterStop ? "restart" : "close";
@@ -503,7 +519,17 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
             {t("strategy.form.slotLocked")}
           </p>
         ) : null}
-        {backtest ? null : <TrendMismatchNote long={cfg.side === "long"} short={cfg.side === "short"} />}
+        {backtest ? null : (
+          <TrendMismatchNote
+            long={cfg.side === "long"}
+            short={cfg.side === "short"}
+            gate={
+              cfg.params.kind === "grid" && cfg.side === "long"
+                ? { on: cfg.pauseInBtcDowntrend ?? false, set: (pauseInBtcDowntrend) => set({ pauseInBtcDowntrend }) }
+                : undefined
+            }
+          />
+        )}
 
         <Panel title={t("strategy.form.section.general")}>
           <div className="ae-sform__grid">
@@ -548,13 +574,7 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
                   disabled: spot && s !== "long",
                   reason: t("strategy.hint.spotLongOnly"),
                 }))}
-                onChange={(side) =>
-                  setCfg((c) => ({
-                    ...c,
-                    side,
-                    params: c.params.kind === "grid" && side !== "long" ? { ...c.params, trailingUp: false, trailUpLimit: null } : c.params,
-                  }))
-                }
+                onChange={(side) => setCfg((c) => withSide(c, side))}
               />
             )}
             <FieldShell
@@ -922,6 +942,15 @@ export function StrategyForm({ kind, initial, bot, preset, templates, onSubmit, 
             ) : null}
             {!backtest ? (
               <CheckRow label={t("strategy.field.btcGate")} checked={cfg.pauseOnBtcBreak} onChange={(pauseOnBtcBreak) => set({ pauseOnBtcBreak })} hint={t("strategy.hint.btcGate")} />
+            ) : null}
+            {/* Lab-tested on long grids only (15 Nov 2026); neutral grids showed no effect. */}
+            {!backtest && cfg.params.kind === "grid" && cfg.side === "long" ? (
+              <CheckRow
+                label={t("strategy.field.trendGate")}
+                checked={cfg.pauseInBtcDowntrend ?? false}
+                onChange={(pauseInBtcDowntrend) => set({ pauseInBtcDowntrend })}
+                hint={t("strategy.hint.trendGate")}
+              />
             ) : null}
             {!backtest ? (
               <CheckRow

@@ -68,6 +68,10 @@ pub struct Gates {
     pub portfolio: bool,
     pub membership_inactive: bool,
     pub btc_break: bool,
+    /// BTC's slow trend is up (Some(true)), down (Some(false)) or unknown
+    /// (None: not read yet, or older than a day). Only bots with
+    /// `pause_in_btc_downtrend` read it; unknown holds them too.
+    pub btc_trend_up: Option<bool>,
     /// The risk level's leverage ceiling now: a bot above it (the level was
     /// lowered after Start) opens no new cycle; its open cycle runs on.
     pub max_leverage: u8,
@@ -83,6 +87,8 @@ impl Gates {
             Some("leverageAboveCeiling")
         } else if self.btc_break && bot.cfg.pause_on_btc_break {
             Some("btcBreak")
+        } else if bot.cfg.trend_gate_on() && self.btc_trend_up != Some(true) {
+            Some(if self.btc_trend_up.is_none() { "btcTrendUnknown" } else { "btcDowntrend" })
         } else {
             None
         }

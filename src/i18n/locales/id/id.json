@@ -272,6 +272,8 @@
       "liveFillsUnavailable": "Harga fill pasti dan komisi tidak tersedia dari exchange untuk trade ini.",
       "liveFeeNotUsdt": "Biaya bukan dalam USDT · komisi tidak ditampilkan",
       "untrackedExchangePosition": "Posisi bursa tidak dilacak bot mana pun · periksa akun",
+      "liveKeyReplacedFlat": "Tidak ada posisi di bursa, tetapi brankas direset setelah posisi ini dibuka: kunci sekarang mungkin milik akun lain. Tidak ditutup oleh aplikasi · periksa bursa, lalu tutup di Posisi & order",
+      "liveKeyReplacedHeld": "Brankas direset setelah posisi ini dibuka: kunci sekarang mungkin milik akun lain. Aplikasi tidak mengirim order untuknya · periksa posisi dan stop-nya di bursa lalu tutup di sana; Tutup hanya menghapus baris dari catatan aplikasi",
       "liveDirectionMismatch": "Bursa memegang sisi berlawanan · tidak disentuh",
       "liveReconcileFailed": "Rekonsiliasi akun gagal · akan dicoba lagi",
       "tpCustomInvalid": "Ambil untung kustom {{detail}}% tidak dapat diterapkan pada trade ini",
@@ -305,7 +307,9 @@
       "paperRecalculated": "{{detail}} trade kertas dihitung ulang dengan penutupan Sentinel · catatan awal tetap di riwayat",
       "pineOpened": "Dibuka oleh pemicu skrip Pine",
       "pineLateFillAdopted": "Bot Pine: fill terlambat ditemukan dan dilindungi",
-      "pineHalted": "Bot Pine: entri baru dihentikan setelah {{detail}} run gagal berturut-turut · jalankan lagi untuk melanjutkan"
+      "pineHalted": "Bot Pine: entri baru dihentikan setelah {{detail}} run gagal berturut-turut · jalankan lagi untuk melanjutkan",
+      "liveKeyResetBookClosed": "Ditutup hanya di catatan aplikasi. Tidak ada yang dikirim ke bursa · periksa posisi dan stop-nya di bursa lalu tutup sendiri di sana",
+      "liveKeyResetUntracked": "Aplikasi membuka posisi ini sebelum brankas direset dan posisi ini tidak lagi ada di catatan aplikasi. Aplikasi tidak mengirim order untuknya · tutup sendiri posisi dan stop-nya di bursa"
     },
     "exchange": "Bursa",
     "signalFilter": "Filter sinyal",
@@ -483,7 +487,8 @@
       "remoteKill": "Dihentikan dari ponsel",
       "manual": "Ditutup oleh Anda",
       "trigger": "Pemicu tutup bot",
-      "liquidation": "Likuidasi"
+      "liquidation": "Likuidasi",
+      "keyResetBookClose": "Ditutup hanya di aplikasi"
     },
     "exitTooltip": {
       "veto": "Langsung ditutup · veto Sentinel · rezim BTC berbalik melawan sinyal",
@@ -494,7 +499,8 @@
       "unprotected": "Ditutup di harga pasar: bursa tidak mengonfirmasi stop untuk posisi nyata ini.",
       "stopped": "Ditutup di harga pasar: bot dihentikan saat entri ini sedang ditempatkan.",
       "liquidation": "Harga melewati harga likuidasi terisolasi sebelum stop; seluruh margin hilang.",
-      "trigger": "Ditutup oleh bot sendiri: pemicu Close skrip Pine atau peringatan tutup TradingView."
+      "trigger": "Ditutup oleh bot sendiri: pemicu Close skrip Pine atau peringatan tutup TradingView.",
+      "keyResetBookClose": "Brankas direset setelah posisi ini dibuka. Tidak ada yang dikirim ke bursa dan harga keluar tidak diketahui, jadi hasilnya dicatat 0"
     },
     "exportFailed": "Ekspor gagal. Coba lagi.",
     "accountScale": "{{usdt}} akun",
@@ -1213,7 +1219,9 @@
       "placed": "Order {{id}}",
       "none": "Tidak ada",
       "tip": "Order stop dan take-profit yang dipasang bot di bursa, menurut id order, dari catatan posisi bot sendiri. Akun diperiksa setiap 60 detik; stop atau take-profit yang terpicu menutup baris ini."
-    }
+    },
+    "closeHeldBody": "Brankas direset setelah posisi {{symbol}} ini dibuka, jadi kunci sekarang mungkin milik akun lain. Tutup hanya menghapus baris dari catatan aplikasi dan tidak mengirim apa pun ke bursa. Periksa posisi dan stop-nya di bursa lalu tutup sendiri di sana.",
+    "keyResetChip": "Ditahan setelah brankas direset"
   },
   "history": {
     "byBot": "Per bot",
@@ -2034,7 +2042,8 @@
       "close": {
         "title": "Tutup siklus {{name}}?",
         "body": "Siklus paper yang terbuka ditutup di harga pasar (biaya taker dan slippage) dan bot berhenti.",
-        "bodyLive": "Siklus ditutup di harga pasar dan posisi bot di bursa ditutup pada putaran berikutnya (beberapa detik). Bot berhenti."
+        "bodyLive": "Siklus ditutup di harga pasar dan posisi bot di bursa ditutup pada putaran berikutnya (beberapa detik). Bot berhenti.",
+        "bodyHeld": "Brankas direset saat bot ini memegang posisi nyata. Siklus ditutup hanya di catatan aplikasi, bot berhenti dan menjadi Paper, dan tidak ada yang dikirim ke bursa. Periksa posisi dan stop-nya di bursa lalu tutup sendiri di sana."
       },
       "archive": {
         "title": "Hapus {{name}}?",
@@ -2176,6 +2185,7 @@
       "ddStop": "Stop drawdown bot",
       "ddStopPct": "Stop drawdown, % anggaran",
       "btcGate": "Tahan siklus baru saat BTC break",
+      "trendGate": "Tahan siklus baru saat BTC dalam tren turun",
       "portfolioBreaker": "Pemutus portofolio (−{{pct}}%)"
     },
     "hint": {
@@ -2218,6 +2228,7 @@
       "endAt": "Siklus yang terbuka tetap berjalan sampai exit.",
       "ddStop": "Menutup siklus dan menghentikan bot pada kerugian ini dari puncak ekuitas.",
       "btcGate": "Tidak ada siklus baru selama Sentinel melaporkan BTC break. Siklus terbuka tetap berjalan.",
+      "trendGate": "Siklus baru hanya dimulai saat penutupan harian BTC di atas rata-rata 50 harinya (2 penutupan untuk berganti). Siklus yang terbuka tetap berjalan. Uji lab pada Grid Long Trailing, 5 koin teratas, Okt 2024 hingga Jan 2026: drawdown terburuk -33,5% menjadi -28,7%, lebih sedikit stop. Grid tetap rugi; hanya lebih jarang berjalan.",
       "portfolioBreakerOff": "Di luar pemutus portofolio: tidak dihitung, tidak ditutup atau ditahan saat pemutus terpicu.",
       "maxDuration": "Saat tercapai, menutup siklus pada harga pasar. Bot yang berjalan membuka siklus berikutnya setelah jeda."
     },
@@ -2400,7 +2411,8 @@
       "remoteKill": "Ponsel: tutup semua",
       "manual": "Ditutup oleh Anda",
       "end": "Akhir data",
-      "sizeDown": "Kerugian mengecilkan order"
+      "sizeDown": "Kerugian mengecilkan order",
+      "keyResetBookClose": "Ditutup hanya di aplikasi"
     },
     "role": {
       "base": "Order dasar",
@@ -2629,6 +2641,8 @@
       "portfolioDdTripped": "Pemutus portofolio terpicu: siklus bot yang tercakup ditutup. Aktifkan ulang mulai hari UTC berikutnya.",
       "membershipInactive": "Keanggotaan tidak aktif: tidak ada siklus baru.",
       "btcBreak": "BTC break: siklus baru ditahan.",
+      "btcDowntrend": "BTC dalam tren turun: siklus baru ditahan.",
+      "btcTrendUnknown": "Tren BTC belum terbaca: siklus baru ditahan.",
       "priceStale": "Harga lebih lama dari 3 menit",
       "priceUnavailable": "Tidak ada harga terkini",
       "strategyDataGap": "Celah di data harga: candle dilewati.",
@@ -2667,7 +2681,9 @@
       "leverageAboveCeiling": "Leverage di atas batas maksimum level risiko Anda: siklus baru ditahan.",
       "liveVenueNotDryRun": "Uang nyata dihentikan: jalur order bursa ini belum lulus uji di jaringan ujinya. Posisi nyata tetap di bawah stop-nya; tutup di halaman Posisi & order.",
       "cycleRestoreFailed": "Siklus terbuka tidak terbaca saat mulai · bot tidak dilanjutkan",
-      "liveStateUnreadable": "Status uang nyata tidak terbaca saat mulai · bot tidak dilanjutkan"
+      "liveStateUnreadable": "Status uang nyata tidak terbaca saat mulai · bot tidak dilanjutkan",
+      "liveKeyReplacedHeld": "Brankas direset saat bot ini memegang posisi nyata: kunci sekarang mungkin milik akun lain. Aplikasi tidak mengirim order untuk bot ini. Periksa posisi dan stop-nya di bursa lalu tutup di sana; setelah itu Tutup hanya di aplikasi menutup catatan bot dan menjadikannya Paper.",
+      "liveKeyResetBookClosed": "Ditutup hanya di catatan aplikasi dan beralih ke Paper. Tidak ada yang dikirim ke bursa: periksa posisi dan stop-nya di bursa lalu tutup sendiri di sana."
     },
     "errors": {
       "nameInvalid": "Nama: 1 sampai 40 karakter.",
@@ -2752,7 +2768,9 @@
       "liveTermsRequired": "Konfirmasi uang berisiko dulu.",
       "riskConfigUnreadable": "Pengaturan risiko tidak terbaca: simpan di halaman risiko.",
       "storeSchemaNewer": "Data lokal ditulis oleh Aleph Edge yang lebih baru (skema {{detail}}). Pasang versi itu; tidak ada yang diubah.",
-      "botNotLive": "Bot ini bukan Live."
+      "botNotLive": "Bot ini bukan Live.",
+      "liveKeyReplacedHeld": "Brankas direset saat bot ini memegang posisi nyata. Aplikasi tidak mengirim order untuknya; tutup dulu hanya di aplikasi.",
+      "keyResetCloseConfirm": "Ketik CLOSE untuk menutup bot ini hanya di catatan aplikasi."
     },
     "leverageConfirm": {
       "title": "Likuidasi mungkin terjadi, tanpa stop",
@@ -2797,7 +2815,9 @@
       "pilot": "Pilot: tersisa {{count}} siklus pada {{pct}}% dari ukuran simulasi. Mengakhirinya berlaku mulai siklus berikutnya.",
       "endPilot": "Akhiri pilot",
       "venue": "Bursa order",
-      "confirmBodyVenue": "Setiap beli dan jual yang disimulasikan bot ini dikirim ke futures {{exchange}} sebagai order pasar pada {{symbol}}, margin terisolasi, {{leverage}}x. Keputusan tetap memakai harga Binance. Stop tetap di bursa pada level stop bot. Jika posisi berubah di luar bot, bot berhenti. Biaya taker berlaku."
+      "confirmBodyVenue": "Setiap beli dan jual yang disimulasikan bot ini dikirim ke futures {{exchange}} sebagai order pasar pada {{symbol}}, margin terisolasi, {{leverage}}x. Keputusan tetap memakai harga Binance. Stop tetap di bursa pada level stop bot. Jika posisi berubah di luar bot, bot berhenti. Biaya taker berlaku.",
+      "heldClose": "Tutup hanya di aplikasi",
+      "heldCloseTitle": "Tutup {{name}} hanya di aplikasi?"
     },
     "report": {
       "title": "Eksekusi nyata vs simulasi",
@@ -2973,6 +2993,7 @@
     "closeConfirmRequired": "Ketik {{detail}} untuk menutup.",
     "resetConfirmRequired": "Ketik {{detail}} untuk mengatur ulang brankas.",
     "vaultBusyLive": "Uang sungguhan sedang dipakai. Tutup posisi nyata dan matikan live sebelum mengunci brankas atau mengganti kunci.",
+    "vaultResetBusyLive": "Uang sungguhan sedang dipakai. Buka kunci brankas dan tutup posisi nyata, atau matikan mode live, sebelum meresetnya. Brankas yang tidak bisa dibuka dengan kata sandi apa pun dapat direset kapan saja.",
     "updateBlockedLive": "Uang sungguhan sedang dipakai. Tutup posisi nyata dan matikan live sebelum memasang pembaruan.",
     "trendUnavailable": "Tren tidak tersedia: Binance tidak menjawab.",
     "liveVenueNotDryRun": "Uang nyata belum tersedia di bursa ini: jalur order-nya belum lulus uji di jaringan uji bursa. Posisi di sana tetap bisa ditutup.",
@@ -3243,7 +3264,7 @@
   "trend": {
     "title": "Tren pasar",
     "chip": "Tren BTC: {{state}} · {{days}} h",
-    "chipTooltip": "Penutupan harian BTC dibanding rata-rata 50 harinya. Hanya informasi: tidak ada bot yang membacanya.",
+    "chipTooltip": "Penutupan harian BTC dibanding rata-rata 50 harinya. Tidak ada bot yang membacanya kecuali Anda menyalakan filternya di grid long.",
     "state": {
       "up": "Naik",
       "down": "Turun"
@@ -3266,7 +3287,9 @@
     "warn": {
       "longInDown": "BTC dalam tren turun 50 hari ({{days}} hari) dan bot ini membeli long.",
       "shortInUp": "BTC dalam tren naik 50 hari ({{days}} hari) dan bot ini menjual short."
-    }
+    },
+    "gateOffer": "Tahan siklus baru sampai tren naik",
+    "gateOn": "Siklus baru menunggu sampai tren naik."
   },
   "botsSummary": {
     "label": "Bot Anda sekilas",
@@ -3558,6 +3581,11 @@
       "next": "Berikutnya",
       "stale": "DataHub menandai snapshot funding ini sebagai usang."
     },
+    "knife": {
+      "title": "Koin yang turun terhadap BTC",
+      "none": "Tidak ada koin dalam {{hours}} jam terakhir.",
+      "more": "{{n}} lagi"
+    },
     "models": {
       "title": "Model bot dan hasil ujinya",
       "template": "Templat",
@@ -3778,7 +3806,9 @@
       "chart_info_only_bar_open": "Hanya informasi: ambang praregistrasi bacaan masih terbuka.",
       "farm_signal_bots_paper_v1": "Bot sinyal mengikuti sinyal yang diterbitkan dengan pengaturan bawaan aplikasi. Perdagangan kertas dengan eksekusi simulasi; tanpa peringkat.",
       "news_machine_translated_v1": "Baris terjemahan adalah terjemahan mesin dari baris berbahasa Inggris; angka dan tickernya diperiksa terhadapnya.",
-      "news_newer_run_failed_v1": "Proses ringkasan terbaru ({{time}}) tidak menghasilkan ringkasan; ringkasan sebelumnya ditampilkan."
+      "news_newer_run_failed_v1": "Proses ringkasan terbaru ({{time}}) tidak menghasilkan ringkasan; ringkasan sebelumnya ditampilkan.",
+      "rs96_falling_knife_v1": "Pemindai tidak memberi long pada koin yang turun lebih dari 5,4% terhadap BTC dalam 96 jam terakhir. Long yang dipublikasikan dalam kondisi itu: 0 dari 21 menang pada 23-30 Okt 2026 (bersih -3,44% masing-masing); pada 191 sebelumnya hasil bersihnya -1,02% dibanding -0,23% untuk sisanya. Hanya diuji pada long sinyal, bukan pada bot DCA atau Grid.",
+      "rs96_falling_knife_v2": "Pemindai tidak memberi long pada koin yang turun lebih dari 5,4% terhadap BTC dalam 96 jam terakhir. Long yang dipublikasikan dalam kondisi itu: 0 dari 21 menang pada 23-30 Okt 2026 (bersih -3,44% masing-masing); pada 191 sebelumnya hasil bersihnya -1,02% dibanding -0,23% untuk sisanya. Pada bot DCA Long Classic filter yang sama menurunkan hasil (uji lab, Des 2024 hingga Jan 2026)."
     },
     "bar": {
       "notMet": "Ambang veto tidak tercapai: {{hit}} pada n={{n}} (perlu {{needed}} dan {{margin}} pp di atas kedua pembanding).",
@@ -3984,7 +4014,8 @@
       "heldLine": "{{symbol}} · {{side}} · {{qty}} @ {{entry}}",
       "closeAndSwitch": "Tutup posisi dan beralih",
       "switchLater": "Beralih nanti",
-      "closeAndSwitchNote": "Tutup posisi dan beralih mengirim order pasar reduce-only untuk setiap posisi di atas, menunggu konfirmasi bursa, lalu menjadikan bot Paper. Beralih nanti menghentikan bot sekarang; bot menjadi Paper setelah posisi ini tertutup. Posisi bot lain tidak disentuh."
+      "closeAndSwitchNote": "Tutup posisi dan beralih mengirim order pasar reduce-only untuk setiap posisi di atas, menunggu konfirmasi bursa, lalu menjadikan bot Paper. Beralih nanti menghentikan bot sekarang; bot menjadi Paper setelah posisi ini tertutup. Posisi bot lain tidak disentuh.",
+      "closeAndSwitchHeld": "Baris bertanda Ditahan setelah brankas direset tidak mendapat order: untuk baris ini, Tutup posisi dan ganti hanya menghapus baris dari catatan aplikasi. Periksa posisi tersebut dan stop-nya di bursa lalu tutup sendiri di sana."
     },
     "startLive": "Mulai dengan uang nyata",
     "restartNote": "Setelah restart bot ini kembali berhenti dan meminta LIVE lagi.",

@@ -272,6 +272,8 @@
       "liveFillsUnavailable": "Không lấy được giá khớp chính xác và phí hoa hồng từ sàn cho giao dịch này.",
       "liveFeeNotUsdt": "Phí không tính bằng USDT · không hiển thị hoa hồng",
       "untrackedExchangePosition": "Vị thế trên sàn không do bot nào theo dõi · kiểm tra tài khoản",
+      "liveKeyReplacedFlat": "Sàn không còn vị thế, nhưng kho đã được đặt lại sau khi vị thế này mở: khóa hiện tại có thể thuộc tài khoản khác. Ứng dụng không tự đóng · hãy kiểm tra sàn rồi đóng trong Vị thế & lệnh",
+      "liveKeyReplacedHeld": "Kho đã được đặt lại sau khi vị thế này mở: khóa hiện tại có thể thuộc tài khoản khác. Ứng dụng không gửi lệnh cho vị thế này · hãy kiểm tra vị thế và lệnh dừng của nó trên sàn rồi đóng ở đó; Đóng chỉ xóa dòng khỏi sổ của ứng dụng",
       "liveDirectionMismatch": "Sàn đang giữ chiều ngược lại · không can thiệp",
       "liveReconcileFailed": "Đối chiếu tài khoản thất bại · sẽ thử lại",
       "tpCustomInvalid": "Chốt lời tùy chỉnh {{detail}}% không áp dụng được cho lệnh này",
@@ -305,7 +307,9 @@
       "paperRecalculated": "Đã tính lại {{detail}} giao dịch giấy theo lệnh đóng của Sentinel · ghi nhận ban đầu vẫn giữ trong lịch sử",
       "pineOpened": "Mở theo tín hiệu kích hoạt của script Pine",
       "pineLateFillAdopted": "Bot Pine: tìm thấy lệnh khớp muộn và đã bảo vệ",
-      "pineHalted": "Bot Pine: dừng vào lệnh mới sau {{detail}} lần chạy lỗi liên tiếp · khởi động lại để tiếp tục"
+      "pineHalted": "Bot Pine: dừng vào lệnh mới sau {{detail}} lần chạy lỗi liên tiếp · khởi động lại để tiếp tục",
+      "liveKeyResetBookClosed": "Chỉ đóng trong sổ của ứng dụng. Không có gì được gửi lên sàn · hãy tự kiểm tra vị thế và lệnh dừng của nó trên sàn rồi đóng ở đó",
+      "liveKeyResetUntracked": "Ứng dụng đã mở vị thế này trước khi kho được đặt lại và vị thế không còn trong sổ của ứng dụng. Ứng dụng không gửi lệnh cho vị thế này · hãy tự đóng vị thế và lệnh dừng của nó trên sàn"
     },
     "exchange": "Sàn giao dịch",
     "signalFilter": "Bộ lọc tín hiệu",
@@ -483,7 +487,8 @@
       "remoteKill": "Dừng từ điện thoại",
       "manual": "Bạn đã đóng",
       "trigger": "Trình kích hoạt đóng của bot",
-      "liquidation": "Thanh lý"
+      "liquidation": "Thanh lý",
+      "keyResetBookClose": "Chỉ đóng trong ứng dụng"
     },
     "exitTooltip": {
       "veto": "Đóng ngay · Sentinel phủ quyết · chế độ BTC đảo chiều ngược tín hiệu",
@@ -494,7 +499,8 @@
       "unprotected": "Đóng theo giá thị trường: sàn không xác nhận stop cho vị thế thật này.",
       "stopped": "Đóng theo giá thị trường: bot bị dừng khi lệnh vào này đang được đặt.",
       "liquidation": "Giá vượt qua giá thanh lý cô lập trước mức dừng lỗ; mất toàn bộ ký quỹ.",
-      "trigger": "Do chính bot đóng: trình kích hoạt Close của script Pine hoặc cảnh báo đóng của TradingView."
+      "trigger": "Do chính bot đóng: trình kích hoạt Close của script Pine hoặc cảnh báo đóng của TradingView.",
+      "keyResetBookClose": "Kho đã được đặt lại sau khi vị thế này mở. Không có gì được gửi lên sàn và không biết giá thoát, nên kết quả được ghi là 0"
     },
     "exportFailed": "Xuất tệp thất bại. Thử lại.",
     "accountScale": "{{usdt}} tài khoản",
@@ -1213,7 +1219,9 @@
       "placed": "Lệnh {{id}}",
       "none": "Không có",
       "tip": "Lệnh stop và chốt lời bot đã đặt trên sàn, theo id lệnh, từ bản ghi vị thế của chính bot. Tài khoản được kiểm tra mỗi 60 giây; stop hoặc chốt lời đã khớp sẽ đóng dòng này."
-    }
+    },
+    "closeHeldBody": "Kho đã được đặt lại sau khi vị thế {{symbol}} này mở, nên khóa hiện tại có thể thuộc tài khoản khác. Đóng chỉ xóa dòng khỏi sổ của ứng dụng và không gửi gì lên sàn. Hãy tự kiểm tra vị thế và lệnh dừng của nó trên sàn rồi đóng ở đó.",
+    "keyResetChip": "Bị giữ sau khi đặt lại kho"
   },
   "history": {
     "byBot": "Theo bot",
@@ -2034,7 +2042,8 @@
       "close": {
         "title": "Đóng chu kỳ của {{name}}?",
         "body": "Chu kỳ giấy đang mở được đóng theo giá thị trường (phí taker và trượt giá) và bot dừng.",
-        "bodyLive": "Chu kỳ đóng theo giá thị trường và vị thế của bot trên sàn được đóng ở lượt kế tiếp (vài giây). Bot dừng."
+        "bodyLive": "Chu kỳ đóng theo giá thị trường và vị thế của bot trên sàn được đóng ở lượt kế tiếp (vài giây). Bot dừng.",
+        "bodyHeld": "Kho đã được đặt lại khi bot này đang giữ vị thế thật. Chu kỳ chỉ đóng trong sổ của ứng dụng, bot dừng và chuyển sang Paper, không có gì được gửi lên sàn. Hãy tự kiểm tra vị thế và lệnh dừng của nó trên sàn rồi đóng ở đó."
       },
       "archive": {
         "title": "Xóa {{name}}?",
@@ -2176,6 +2185,7 @@
       "ddStop": "Dừng theo sụt giảm của bot",
       "ddStopPct": "Dừng theo sụt giảm, % ngân sách",
       "btcGate": "Giữ chu kỳ mới khi BTC phá vỡ",
+      "trendGate": "Giữ chu kỳ mới khi BTC trong xu hướng giảm",
       "portfolioBreaker": "Ngắt danh mục (−{{pct}}%)"
     },
     "hint": {
@@ -2218,6 +2228,7 @@
       "endAt": "Chu kỳ đang mở vẫn chạy đến khi thoát.",
       "ddStop": "Đóng chu kỳ và dừng bot khi lỗ mức này từ đỉnh vốn.",
       "btcGate": "Không mở chu kỳ mới khi Sentinel báo BTC phá vỡ. Chu kỳ đang mở vẫn tiếp tục.",
+      "trendGate": "Chu kỳ mới chỉ bắt đầu khi giá đóng cửa ngày của BTC trên đường trung bình 50 ngày (cần 2 lần đóng cửa để đổi). Chu kỳ đang mở vẫn chạy. Kiểm tra lab trên Grid Long Trailing, top 5 coin, 10/2024 đến 01/2026: sụt giảm tệ nhất từ -33,5% còn -28,7%, ít lần dừng lỗ hơn. Grid vẫn lỗ; chỉ là chạy ít hơn.",
       "portfolioBreakerOff": "Ngoài ngắt danh mục: không được tính, không bị đóng hay giữ lại khi ngắt kích hoạt.",
       "maxDuration": "Khi đạt tới, đóng chu kỳ theo giá thị trường. Bot đang chạy mở chu kỳ tiếp theo sau thời gian chờ."
     },
@@ -2400,7 +2411,8 @@
       "remoteKill": "Điện thoại: đóng tất cả",
       "manual": "Bạn đã đóng",
       "end": "Hết dữ liệu",
-      "sizeDown": "Thua lỗ làm lệnh nhỏ lại"
+      "sizeDown": "Thua lỗ làm lệnh nhỏ lại",
+      "keyResetBookClose": "Chỉ đóng trong ứng dụng"
     },
     "role": {
       "base": "Lệnh cơ sở",
@@ -2629,6 +2641,8 @@
       "portfolioDdTripped": "Ngắt danh mục đã kích hoạt: chu kỳ của các bot được bao gồm đã đóng. Bật lại từ ngày UTC kế tiếp.",
       "membershipInactive": "Thành viên không hoạt động: không có chu kỳ mới.",
       "btcBreak": "BTC phá vỡ: chu kỳ mới đang bị giữ.",
+      "btcDowntrend": "BTC trong xu hướng giảm: chu kỳ mới bị giữ lại.",
+      "btcTrendUnknown": "Chưa đọc được xu hướng BTC: chu kỳ mới bị giữ lại.",
       "priceStale": "Giá cũ hơn 3 phút",
       "priceUnavailable": "Không có giá hiện tại",
       "strategyDataGap": "Dữ liệu giá bị thiếu: bỏ qua một số nến.",
@@ -2667,7 +2681,9 @@
       "leverageAboveCeiling": "Đòn bẩy vượt mức tối đa của mức rủi ro: chu kỳ mới đang bị giữ.",
       "liveVenueNotDryRun": "Đã dừng tiền thật: đường lệnh của sàn này chưa qua lần chạy thử trên mạng thử nghiệm. Vị thế thật vẫn nằm dưới lệnh dừng; hãy đóng nó ở trang Vị thế & lệnh.",
       "cycleRestoreFailed": "Không đọc được chu kỳ đang mở khi khởi động · bot không được tiếp tục",
-      "liveStateUnreadable": "Không đọc được trạng thái tiền thật khi khởi động · bot không được tiếp tục"
+      "liveStateUnreadable": "Không đọc được trạng thái tiền thật khi khởi động · bot không được tiếp tục",
+      "liveKeyReplacedHeld": "Kho đã được đặt lại khi bot này đang giữ vị thế thật: khóa hiện tại có thể thuộc tài khoản khác. Ứng dụng không gửi lệnh cho bot này. Hãy kiểm tra vị thế và lệnh dừng của nó trên sàn rồi đóng ở đó; sau đó Chỉ đóng trong ứng dụng sẽ đóng sổ của bot và chuyển nó sang Paper.",
+      "liveKeyResetBookClosed": "Chỉ đóng trong sổ của ứng dụng và đã chuyển sang Paper. Không có gì được gửi lên sàn: hãy tự kiểm tra vị thế và lệnh dừng của nó trên sàn rồi đóng ở đó."
     },
     "errors": {
       "nameInvalid": "Tên: từ 1 đến 40 ký tự.",
@@ -2752,7 +2768,9 @@
       "liveTermsRequired": "Hãy xác nhận số tiền rủi ro trước.",
       "riskConfigUnreadable": "Không đọc được cài đặt rủi ro: hãy lưu ở trang rủi ro.",
       "storeSchemaNewer": "Dữ liệu cục bộ do một Aleph Edge mới hơn ghi (lược đồ {{detail}}). Hãy cài phiên bản đó; không có gì bị thay đổi.",
-      "botNotLive": "Bot này không phải bot thật."
+      "botNotLive": "Bot này không phải bot thật.",
+      "liveKeyReplacedHeld": "Kho đã được đặt lại khi bot này đang giữ vị thế thật. Ứng dụng không gửi lệnh cho nó; hãy chỉ đóng nó trong ứng dụng trước.",
+      "keyResetCloseConfirm": "Gõ CLOSE để chỉ đóng bot này trong sổ của ứng dụng."
     },
     "leverageConfirm": {
       "title": "Có thể bị thanh lý, không có dừng",
@@ -2797,7 +2815,9 @@
       "pilot": "Thí điểm: còn {{count}} chu kỳ ở {{pct}}% kích thước mô phỏng. Kết thúc sẽ áp dụng từ chu kỳ sau.",
       "endPilot": "Kết thúc thí điểm",
       "venue": "Sàn đặt lệnh",
-      "confirmBodyVenue": "Mỗi lệnh mua bán bot mô phỏng được gửi tới hợp đồng tương lai {{exchange}} dưới dạng lệnh thị trường cho {{symbol}}, ký quỹ riêng, {{leverage}}x. Quyết định vẫn dùng giá Binance. Lệnh dừng nằm trên sàn ở mức dừng của bot. Nếu vị thế thay đổi ngoài bot, bot dừng. Áp dụng phí taker."
+      "confirmBodyVenue": "Mỗi lệnh mua bán bot mô phỏng được gửi tới hợp đồng tương lai {{exchange}} dưới dạng lệnh thị trường cho {{symbol}}, ký quỹ riêng, {{leverage}}x. Quyết định vẫn dùng giá Binance. Lệnh dừng nằm trên sàn ở mức dừng của bot. Nếu vị thế thay đổi ngoài bot, bot dừng. Áp dụng phí taker.",
+      "heldClose": "Chỉ đóng trong ứng dụng",
+      "heldCloseTitle": "Chỉ đóng {{name}} trong ứng dụng?"
     },
     "report": {
       "title": "Khớp lệnh thật và mô phỏng",
@@ -2973,6 +2993,7 @@
     "closeConfirmRequired": "Nhập {{detail}} để đóng.",
     "resetConfirmRequired": "Nhập {{detail}} để đặt lại kho.",
     "vaultBusyLive": "Đang dùng tiền thật. Hãy đóng các vị thế thật và tắt chế độ thật trước khi khóa kho hoặc đổi khóa.",
+    "vaultResetBusyLive": "Đang có tiền thật. Hãy mở khóa kho, đóng các vị thế thật hoặc tắt chế độ thật trước khi đặt lại kho. Kho không mật khẩu nào mở được thì có thể đặt lại bất cứ lúc nào.",
     "updateBlockedLive": "Đang dùng tiền thật. Hãy đóng các vị thế thật và tắt chế độ thật trước khi cài bản cập nhật.",
     "trendUnavailable": "Không có xu hướng: Binance không phản hồi.",
     "liveVenueNotDryRun": "Tiền thật chưa dùng được trên sàn này: đường lệnh của sàn chưa qua lần chạy thử trên mạng thử nghiệm của sàn. Vị thế ở đó vẫn có thể đóng.",
@@ -3243,7 +3264,7 @@
   "trend": {
     "title": "Xu hướng thị trường",
     "chip": "Xu hướng BTC: {{state}} · {{days}} ngày",
-    "chipTooltip": "Giá đóng cửa ngày của BTC so với trung bình 50 ngày. Chỉ là thông tin: không bot nào đọc nó.",
+    "chipTooltip": "Giá đóng cửa ngày của BTC so với trung bình 50 ngày. Không bot nào đọc nó trừ khi bạn bật bộ lọc này trên grid long.",
     "state": {
       "up": "Tăng",
       "down": "Giảm"
@@ -3266,7 +3287,9 @@
     "warn": {
       "longInDown": "BTC đang trong xu hướng giảm 50 ngày ({{days}} ngày) và bot này mua long.",
       "shortInUp": "BTC đang trong xu hướng tăng 50 ngày ({{days}} ngày) và bot này bán short."
-    }
+    },
+    "gateOffer": "Giữ chu kỳ mới đến khi xu hướng tăng",
+    "gateOn": "Chu kỳ mới chờ đến khi xu hướng tăng."
   },
   "botsSummary": {
     "label": "Tổng quan bot của bạn",
@@ -3558,6 +3581,11 @@
       "next": "Kế tiếp",
       "stale": "DataHub đánh dấu dữ liệu funding này là cũ."
     },
+    "knife": {
+      "title": "Coin giảm so với BTC",
+      "none": "Không có coin nào trong {{hours}} giờ qua.",
+      "more": "thêm {{n}}"
+    },
     "models": {
       "title": "Mẫu bot và kết quả kiểm thử",
       "template": "Mẫu",
@@ -3778,7 +3806,9 @@
       "chart_info_only_bar_open": "Chỉ để tham khảo: ngưỡng đăng ký trước của lần đọc vẫn đang mở.",
       "farm_signal_bots_paper_v1": "Bot tín hiệu theo các tín hiệu đã công bố với cài đặt mặc định của ứng dụng. Giao dịch giấy với khớp lệnh mô phỏng; không xếp hạng.",
       "news_machine_translated_v1": "Các dòng đã dịch là bản dịch máy của dòng tiếng Anh; số liệu và mã ticker đã được đối chiếu với nó.",
-      "news_newer_run_failed_v1": "Lần chạy bản tóm tắt mới nhất ({{time}}) không tạo được tóm tắt; bản tóm tắt trước được hiển thị."
+      "news_newer_run_failed_v1": "Lần chạy bản tóm tắt mới nhất ({{time}}) không tạo được tóm tắt; bản tóm tắt trước được hiển thị.",
+      "rs96_falling_knife_v1": "Máy quét không đưa ra lệnh long với coin đã giảm hơn 5,4% so với BTC trong 96 giờ qua. Các long đã công bố trong trạng thái đó: 0 trên 21 thắng trong 23-30/10/2026 (ròng -3,44% mỗi lệnh); 191 lệnh trước đó ròng -1,02% so với -0,23% của phần còn lại. Chỉ được kiểm tra trên long tín hiệu, không phải bot DCA hay Grid.",
+      "rs96_falling_knife_v2": "Máy quét không đưa ra lệnh long với coin đã giảm hơn 5,4% so với BTC trong 96 giờ qua. Các long đã công bố trong trạng thái đó: 0 trên 21 thắng trong 23-30/10/2026 (ròng -3,44% mỗi lệnh); 191 lệnh trước đó ròng -1,02% so với -0,23% của phần còn lại. Trên bot DCA Long Classic, cùng bộ lọc này làm giảm lợi nhuận (kiểm tra lab, 12/2024 đến 01/2026)."
     },
     "bar": {
       "notMet": "Chưa đạt ngưỡng phủ quyết: {{hit}} tại n={{n}} (cần {{needed}} và cao hơn cả hai mốc so sánh {{margin}} điểm %).",
@@ -3984,7 +4014,8 @@
       "heldLine": "{{symbol}} · {{side}} · {{qty}} @ {{entry}}",
       "closeAndSwitch": "Đóng vị thế và chuyển",
       "switchLater": "Chuyển sau",
-      "closeAndSwitchNote": "Đóng vị thế và chuyển gửi một lệnh thị trường chỉ giảm cho mỗi vị thế ở trên, chờ sàn xác nhận rồi chuyển bot sang giấy. Chuyển sau dừng bot ngay; bot thành giấy khi các vị thế này đóng. Không chạm đến vị thế của bot khác."
+      "closeAndSwitchNote": "Đóng vị thế và chuyển gửi một lệnh thị trường chỉ giảm cho mỗi vị thế ở trên, chờ sàn xác nhận rồi chuyển bot sang giấy. Chuyển sau dừng bot ngay; bot thành giấy khi các vị thế này đóng. Không chạm đến vị thế của bot khác.",
+      "closeAndSwitchHeld": "Các dòng có nhãn Bị giữ sau khi đặt lại kho không được gửi lệnh: với chúng, Đóng vị thế và chuyển chỉ xóa dòng khỏi sổ của ứng dụng. Hãy tự kiểm tra các vị thế đó và lệnh dừng của chúng trên sàn rồi đóng ở đó."
     },
     "startLive": "Khởi động với tiền thật",
     "restartNote": "Sau khi khởi động lại, bot này ở trạng thái dừng và yêu cầu LIVE lần nữa.",

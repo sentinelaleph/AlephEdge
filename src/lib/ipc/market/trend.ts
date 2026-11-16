@@ -1,6 +1,7 @@
 /**
  * BTC's slow trend (mirrors src-tauri/src/app/market_trend.rs): daily close vs
- * its 50-day average, 2 closes to switch. Information only: no bot reads it.
+ * its 50-day average, 2 closes to switch. Read by no bot unless its gate is on
+ * (long grids, `pauseInBtcDowntrend`).
  */
 
 import { devMock, inTauri, invoke } from "../bridge";

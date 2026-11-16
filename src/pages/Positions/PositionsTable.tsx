@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/EmptyState/EmptyState";
 import { localeForLanguage } from "@/i18n";
 import { formatAge, formatNumber, formatPrice, formatUsdt, NO_VALUE } from "@/lib/format";
 import type { OpenPosition } from "@/lib/ipc/bot/bot";
+import { isKeyResetHeld } from "@/lib/keyReset";
 import { marksByPosition } from "@/lib/positionMarks";
 import "./Positions.css";
 
@@ -48,6 +49,8 @@ export function PositionsTable({
   const now = useNow(5_000);
   const { desk } = useDeskContext();
   const marks = useMemo(() => marksByPosition(desk.status), [desk.status]);
+  const resetAt = desk.status.vaultResetLiveAt;
+  const held = (p: OpenPosition) => isKeyResetHeld(p, resetAt);
 
   const confirmClose = async () => {
     if (!target || !onClose) return;
@@ -73,6 +76,11 @@ export function PositionsTable({
           {p.live && p.unprotected ? (
             <Chip tone="danger" title={t("bots.skipReasons.liveUnprotected")}>
               {t("pnl.exit.unprotected")}
+            </Chip>
+          ) : null}
+          {held(p) ? (
+            <Chip tone="danger" title={t("bots.skipReasons.liveKeyReplacedHeld")}>
+              {t("positions.keyResetChip")}
             </Chip>
           ) : null}
         </span>
@@ -129,7 +137,13 @@ export function PositionsTable({
         open={target !== null}
         live={target?.live || undefined}
         title={target ? t("positions.closeBotTitle", { symbol: target.symbol, bot: t(`bots.kind.${target.botKind}`) }) : ""}
-        body={target ? t(target.live ? "positions.closeLiveBody" : "positions.closePaperBody", { symbol: target.symbol }) : undefined}
+        body={
+          target
+            ? t(held(target) ? "positions.closeHeldBody" : target.live ? "positions.closeLiveBody" : "positions.closePaperBody", {
+                symbol: target.symbol,
+              })
+            : undefined
+        }
         word={target?.live ? CLOSE_WORD : undefined}
         confirmLabel={t("account.close")}
         danger

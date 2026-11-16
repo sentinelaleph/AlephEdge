@@ -16,7 +16,8 @@ use super::super::model::{BotKind, OpenPosition};
 use super::super::BotManager;
 use super::catch_up_io::{self, CatchUp};
 use super::record::stamp_veto_reason;
-use super::{close_price, live_close, live_manage, live_price, management, now_ms};
+use super::live::{NOTE_KEY_REPLACED_HELD, NOTE_KEY_RESET_BOOK_CLOSED};
+use super::{close_price, live_close, live_manage, live_price, management, now_ms, reconcile};
 
 /// A paper position's `last_seen_ms` is saved at most this often.
 const LAST_SEEN_SAVE_MS: u64 = 60_000;
@@ -33,8 +34,16 @@ pub async fn close_phase(app: &AppHandle) {
     let bots = app.state::<BotManager>();
     let exchange = app.state::<ExchangeManager>();
     let signals = app.state::<SignalManager>();
+    let reset_at = reconcile::vault_reset_at(app);
 
     for mut pos in bots.positions_snapshot() {
+        // Opened before a vault reset made while live: no automatic order of
+        // any kind (exit, veto, partial, breakeven, unprotected flatten). Said
+        // once; the user closes it in Positions & orders.
+        if pos.is_live() && reconcile::opened_before_reset(pos.opened_at, reset_at) {
+            bots.skip_once(pos.bot_kind, &pos.signal_id, &pos.symbol, NOTE_KEY_REPLACED_HELD, None);
+            continue;
+        }
         if !pos.is_live() {
             let now = now_ms();
             let gap_from = (!bots.watched_recently(&pos.signal_id, pos.bot_kind, now)).then_some(
@@ -168,9 +177,31 @@ pub async fn close_phase(app: &AppHandle) {
     }
 }
 
+/// What a close of a position held by a vault reset does: the user's own
+/// Close closes the app's record only; every other close is refused.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HeldClose {
+    /// Not held: the ordinary close path.
+    NotHeld,
+    BookOnly,
+    Refused,
+}
+
+pub fn held_close(live: bool, opened_at: u64, reset_at: u64, reason: &str) -> HeldClose {
+    if !live || !reconcile::opened_before_reset(opened_at, reset_at) {
+        HeldClose::NotHeld
+    } else if reason == crate::bot::commands::MANUAL_EXIT_REASON {
+        HeldClose::BookOnly
+    } else {
+        HeldClose::Refused
+    }
+}
+
 /// Closes one open position now at the live price (`reason` is the exit
 /// reason). Takes the close claim; a position already closing or gone is
 /// left alone. A live close that fails stays open and retries next tick.
+/// A live position opened before a vault reset makes no exchange call: the
+/// user's Close books it in the app's record only, anything else is held.
 pub(crate) async fn close_now(app: &AppHandle, signal_id: &str, kind: BotKind, reason: &str) {
     let bots = app.state::<BotManager>();
     let exchange = app.state::<ExchangeManager>();
@@ -181,6 +212,21 @@ pub(crate) async fn close_now(app: &AppHandle, signal_id: &str, kind: BotKind, r
     else {
         return;
     };
+    match held_close(pos.is_live(), pos.opened_at, reconcile::vault_reset_at(app), reason) {
+        HeldClose::NotHeld => {}
+        HeldClose::Refused => {
+            bots.skip_once(kind, signal_id, &pos.symbol, NOTE_KEY_REPLACED_HELD, None);
+            return;
+        }
+        HeldClose::BookOnly => {
+            if bots.claim_open(signal_id, kind) {
+                close_with_record(app, &pos, &live_close::key_reset_book_record(&pos, now_ms()));
+                bots.push_skip(&pos.symbol, NOTE_KEY_RESET_BOOK_CLOSED, None);
+                bots.closing.release(signal_id, kind);
+            }
+            return;
+        }
+    }
     let Some(price) = close_price(&exchange, &pos).await else {
         return;
     };
@@ -220,6 +266,11 @@ pub(crate) async fn force_close_kinds(app: &AppHandle, reason: &str, kinds: &[Bo
         } else {
             match live_close::close_live(app, &pos, reason, price).await {
                 Ok(record) => close_with_record(app, &pos, &record),
+                // The daily stop retries this every tick while the row is
+                // held by a vault reset: said once, not every tick.
+                Err(key) if key == NOTE_KEY_REPLACED_HELD => {
+                    bots.skip_once(pos.bot_kind, &pos.signal_id, &pos.symbol, key, None)
+                }
                 Err(key) => bots.push_skip(&pos.symbol, key, None),
             }
         }

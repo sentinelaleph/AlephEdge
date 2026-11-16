@@ -466,3 +466,40 @@ describe("language of the request and a failed newest digest run", () => {
     expect(el.querySelector('[data-testid="byt-news-newer-run"]')).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------- schema_minor 3
+
+describe("Coins falling against BTC (schema_minor 3)", () => {
+  it("lists the withheld coins with the rule in the reader's language, and is absent on an older server", async () => {
+    window.history.replaceState({}, "", "/?byt=knife#/before-you-trade");
+    let el = await mount();
+    const row = el.querySelector('[data-testid="byt-knife"]')!;
+    expect(row).not.toBeNull();
+    expect(row.textContent).toContain("Coins falling against BTC");
+    expect(row.textContent).toContain("BLURUSDT · PEPEUSDT · 1 more");
+    expect(row.textContent).toContain("Tested on signal longs only, not on DCA or Grid bots.");
+    act(() => root!.unmount());
+    host!.remove();
+
+    await act(async () => {
+      await i18n.changeLanguage("tr");
+    });
+    el = await mount();
+    expect(el.querySelector('[data-testid="byt-knife"]')!.textContent).toContain("BTC'ye karşı düşen coinler");
+    act(() => root!.unmount());
+    host!.remove();
+    await act(async () => {
+      await i18n.changeLanguage("en");
+    });
+
+    window.history.replaceState({}, "", "/#/before-you-trade");
+    el = await mount();
+    expect(el.querySelector('[data-testid="byt-knife"]')).toBeNull();
+  });
+
+  it("knows both rule codes (v2 states the DCA lab result, 15 Nov 2026)", () => {
+    expect(TEXT_CODES).toContain("rs96_falling_knife_v1");
+    expect(TEXT_CODES).toContain("rs96_falling_knife_v2");
+    expect(i18n.t("byt.text.rs96_falling_knife_v2")).toContain("DCA Long Classic bots the same filter lowered returns");
+  });
+});

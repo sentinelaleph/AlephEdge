@@ -82,6 +82,8 @@ export interface StrategyConfig {
   restart: RestartPolicy;
   maxDrawdownPct: number | null;
   pauseOnBtcBreak: boolean;
+  /** Holds new cycles unless BTC's slow trend is up (offered on long grids). Absent = off. */
+  pauseInBtcDowntrend?: boolean;
   /** Inside the strategy portfolio breaker (counted, closed and held by it). */
   portfolioBreaker: boolean;
   params: StrategyParams;
@@ -103,6 +105,8 @@ export type ExitReason =
   | "dailyStop"
   | "remoteKill"
   | "manual"
+  /** Held by a vault reset; the user closed it in the app's record only, nothing was sent. */
+  | "keyResetBookClose"
   | "end"
   /** Losses shrank orders below 1% of budget or the 5 USDT exchange minimum. */
   | "sizeDown";
@@ -151,6 +155,8 @@ export interface StrategyBotView {
   runState: RunState;
   /** Start pressed and not paused: the bot may open NEW cycles. */
   acceptingNewCycles: boolean;
+  /** Gate holding new cycles now (`strategy.notes.*` key), null when none. */
+  heldBy?: string | null;
   /** "priceStale" | "outOfRange" (i18n under strategy.notes.*). */
   pauseReason: string | null;
   budget: number;

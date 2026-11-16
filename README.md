@@ -90,13 +90,15 @@ A DCA bot buys a base order, adds safety orders as price falls, and sells the wh
 
 ![DCA bot detail](assets/screenshots/dca-detail.webp)
 
-Each bot has an overview, its cycles, orders, fills, settings and a log, with pause, close-and-stop, clone and delete.
+Each bot has an overview, its cycles, orders, fills, settings and a log, with pause, close-and-stop, clone and delete. When a gate holds new cycles (a BTC break, the BTC downtrend switch, leverage above the risk level's ceiling), the overview's State panel names it.
 
 ### Grid bots
 
 ![New grid bot](assets/screenshots/grid-new.webp)
 
 A Grid bot splits a price range into steps, buys below the start price and sells above it, and takes one step of profit each time price crosses a level and comes back. Neutral, long and short modes; relative or fixed range; geometric or arithmetic spacing; a stop beyond the range; trailing up for long grids; take profit on cycle profit. The summary shows the profit per grid after fees, the orders at start, the stop prices and the worst-case liquidation band.
+
+Long grids have an optional switch, off by default: **Hold new cycles while BTC is in a downtrend**. With it on, a new cycle starts only while BTC's daily close is above its 50-day average (two closes to switch, the rule of the Market trend card). Open cycles continue. A trend that has not been read, or was read more than a day ago, holds new cycles too. In a lab test on Grid Long Trailing (top 5 coins, Oct 2024 to Jan 2026) the switch lowered the worst drawdown from -33.5% to -28.7%. The grid still lost money with the switch on; the smaller drawdown comes from sitting out. When the form warns that BTC is in a downtrend, it offers to turn the switch on.
 
 ### Templates with their verdict
 
@@ -155,6 +157,7 @@ Paste a Pine-lite script, the subset of Pine Script v5/v6 that runs on [ribqa.co
 One page with what Sentinel has measured, read from ribqa.com without signing in:
 
 - the market today: BTC regime, the BTC chart read with its hit record, volatility and funding;
+- coins falling against BTC: the coins the scanner recently withheld a long on because they fell more than 5.4% against BTC over 96 hours, with the rule's record. On DCA Long Classic bots the same filter lowered returns in a lab test (Dec 2024 to Jan 2026), so the app's DCA and Grid bots do not use it;
 - the bot templates with their test results, the forward-tracked ghost bots and the bot farm;
 - the news Sentinel read, with its measured price impact;
 - new listings.
@@ -209,7 +212,8 @@ API keys live in a local vault: Argon2id key derivation (64 MiB), AES-256-GCM, w
 - **Only verified trade-only keys are accepted.** A key's real permissions are read from the exchange (Binance's signed `apiRestrictions`, and the key-info endpoints of Bybit, OKX, Bitget, Gate, BingX, WOO X and Deribit); a key that can withdraw, a key the exchange cannot be asked about, and keys for exchanges without a verifier are refused.
 - Renew a key in place (the old one stays until the new one is accepted), rename it, remove it.
 - Change the vault password; choose auto-lock after 5 minutes to 1 month without use. While real money holds an open position the vault does not lock itself.
-- There is no password recovery by design: a lost password means resetting the vault.
+- There is no password recovery by design: a lost password means resetting the vault. A vault no password can open (its keychain salt was replaced) can be reset even while a real position is open. Any other vault can be reset only after its real positions are closed or live is switched off.
+- After a reset the next key may belong to another account. A real position opened before the reset gets no exchange call from the app: no close at a stop or target cross, on a veto or a bot's Close, no partial, no breakeven move, and no close as flat when that account shows nothing. A live DCA or Grid bot that held a real position at the reset is stopped the same way. You close the position and its stop on the exchange yourself. Close in **Positions & orders** then removes the position from the app's record only: nothing is sent to the exchange, and the trade is recorded with a result of 0. For a DCA or Grid bot, Close cycle (or Close in the app only on its live panel) closes the simulated cycle at the current market price like any paper close, writes no real fill and returns the bot to Paper; nothing is sent to the exchange either.
 - **15 venues.** Eight have an order path (Binance, Bybit, OKX, Bitget, Gate, BingX, WOO X, Deribit); a venue goes live only after it passes a full run on its exchange's test network and a release switches it on. Binance has passed. The other seven give price data and paper trading. Until a venue is live, its key reads the account and closes positions, and bots run paper. Settings, Exchange keys lists each venue with its state.
 
 ### Settings and account

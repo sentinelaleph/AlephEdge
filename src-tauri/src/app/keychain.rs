@@ -32,6 +32,12 @@ pub fn service() -> &'static str {
 /// the app, a map in tests: no test ever touches the developer's real entries.
 pub trait SecretStore {
     fn get(&self, service: &str, user: &str) -> Option<String>;
+    /// `get` that tells a missing entry (`Ok(None)`, the keychain's own
+    /// "no entry" answer) from a read that failed (`Err`). Only the first
+    /// proves anything about the entry.
+    fn lookup(&self, service: &str, user: &str) -> Result<Option<String>, ()> {
+        Ok(self.get(service, user))
+    }
     fn set(&self, service: &str, user: &str, value: &str) -> Result<(), ()>;
     fn delete(&self, service: &str, user: &str);
 }
@@ -42,6 +48,11 @@ pub struct OsKeychain;
 impl SecretStore for OsKeychain {
     fn get(&self, service: &str, user: &str) -> Option<String> {
         keyring::Entry::new(service, user).ok()?.get_password().ok()
+    }
+
+    fn lookup(&self, service: &str, user: &str) -> Result<Option<String>, ()> {
+        let entry = keyring::Entry::new(service, user).map_err(|_| ())?;
+        no_entry_is_none(entry.get_password())
     }
 
     fn set(&self, service: &str, user: &str, value: &str) -> Result<(), ()> {
@@ -57,6 +68,16 @@ impl SecretStore for OsKeychain {
     }
 }
 
+/// A keyring read: the value, `None` for the keychain's "no entry" answer,
+/// `Err` for every other failure (locked store, platform error, ...).
+fn no_entry_is_none(res: Result<String, keyring::Error>) -> Result<Option<String>, ()> {
+    match res {
+        Ok(v) => Ok(Some(v)),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(_) => Err(()),
+    }
+}
+
 #[cfg(test)]
 pub mod memory {
     use std::cell::RefCell;
@@ -68,11 +89,23 @@ pub mod memory {
     #[derive(Default)]
     pub struct MemoryKeychain {
         entries: RefCell<HashMap<(String, String), String>>,
+        /// Every read fails (a locked or unreachable store), as `lookup` sees it.
+        pub failing: std::cell::Cell<bool>,
     }
 
     impl SecretStore for MemoryKeychain {
         fn get(&self, service: &str, user: &str) -> Option<String> {
+            if self.failing.get() {
+                return None;
+            }
             self.entries.borrow().get(&(service.to_string(), user.to_string())).cloned()
+        }
+
+        fn lookup(&self, service: &str, user: &str) -> Result<Option<String>, ()> {
+            if self.failing.get() {
+                return Err(());
+            }
+            Ok(self.get(service, user))
         }
 
         fn set(&self, service: &str, user: &str, value: &str) -> Result<(), ()> {
@@ -91,6 +124,14 @@ pub mod memory {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_the_no_entry_answer_reads_as_missing() {
+        assert_eq!(no_entry_is_none(Ok("s".into())), Ok(Some("s".into())));
+        assert_eq!(no_entry_is_none(Err(keyring::Error::NoEntry)), Ok(None));
+        assert_eq!(no_entry_is_none(Err(keyring::Error::NoStorageAccess(Box::new(std::io::Error::other("locked"))))), Err(()));
+        assert_eq!(no_entry_is_none(Err(keyring::Error::PlatformFailure(Box::new(std::io::Error::other("rpc"))))), Err(()));
+    }
 
     #[test]
     fn the_release_build_keeps_the_entry_name_it_always_had() {
